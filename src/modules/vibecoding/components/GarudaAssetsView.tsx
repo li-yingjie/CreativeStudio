@@ -111,6 +111,8 @@ const GROUPS: AssetGroup[] = [
   },
 ]
 
+export type { AssetGroup, AssetItem }
+
 interface GarudaAssetsViewProps {
   /** When true, the left category-filter side panel is mounted. The
    *  parent toolbar's list-icon button toggles this. */
@@ -119,16 +121,20 @@ interface GarudaAssetsViewProps {
   activeCategory?: string | null
   /** Click handler for category rows in the side panel. */
   onSelectCategory?: (category: string | null) => void
+  /** Group/items to render. Defaults to the Garuda game's GROUPS so
+   *  existing call sites stay unchanged; pass a project-specific list
+   *  (e.g. H5 活动素材) to reuse the same layout for other surfaces. */
+  groups?: AssetGroup[]
 }
 
 /** Aggregate per-kind / frame counts across the provided groups. When
  *  no category is passed (or `null`), totals span every group; passing
  *  a group title narrows the count to just that bucket so the toolbar
  *  reflects the filter the user has selected. */
-function computeStats(activeCategory: string | null) {
+function computeStats(groups: AssetGroup[], activeCategory: string | null) {
   const slice = activeCategory
-    ? GROUPS.filter((g) => g.title === activeCategory)
-    : GROUPS
+    ? groups.filter((g) => g.title === activeCategory)
+    : groups
   return slice.reduce(
     (a, g) => {
       g.items.forEach((it) => {
@@ -146,12 +152,13 @@ export default function GarudaAssetsView({
   panelOpen = false,
   activeCategory = null,
   onSelectCategory,
+  groups = GROUPS,
 }: GarudaAssetsViewProps = {}) {
   const [zoomed, setZoomed] = useState<AssetItem | null>(null)
 
   const visibleGroups = activeCategory
-    ? GROUPS.filter((g) => g.title === activeCategory)
-    : GROUPS
+    ? groups.filter((g) => g.title === activeCategory)
+    : groups
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden bg-[var(--color-surface-0)]">
@@ -172,7 +179,7 @@ export default function GarudaAssetsView({
             )}
           </button>
           <div className="mx-3 my-1 h-px bg-[var(--divider-soft)]" />
-          {GROUPS.map((g) => {
+          {groups.map((g) => {
             const isActive = activeCategory === g.title
             return (
               <button
@@ -261,10 +268,12 @@ export default function GarudaAssetsView({
  *  applied in the side panel. */
 export function AssetStatsLine({
   activeCategory = null,
+  groups = GROUPS,
 }: {
   activeCategory?: string | null
+  groups?: AssetGroup[]
 } = {}) {
-  const stats = computeStats(activeCategory)
+  const stats = computeStats(groups, activeCategory)
   return (
     <span className="flex items-center gap-3 text-[11px] text-[var(--color-ink)]/50">
       <Stat icon={ImageIcon} value={stats.image} label="图像" />

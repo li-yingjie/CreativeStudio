@@ -7,19 +7,25 @@ import type { MiniProgramAsset } from './MiniProgramConfigData'
  */
 interface AssetGridViewProps {
   assets: MiniProgramAsset[]
+  title?: string
+  description?: (count: number) => string
 }
 
-export default function AssetGridView({ assets }: AssetGridViewProps) {
+export default function AssetGridView({
+  assets,
+  title = '静态素材',
+  description = (count) => `小程序用到的图标与图片，共 ${count} 张。`,
+}: AssetGridViewProps) {
   return (
     <div className="thin-scroll flex min-h-0 flex-1 flex-col overflow-y-auto bg-[var(--color-surface-0)]">
       <div className="mx-auto flex w-full max-w-[860px] flex-col px-8 py-8">
         <header className="mb-6 flex items-baseline justify-between">
           <div>
             <h1 className="text-[18px] font-semibold text-[var(--color-ink)]">
-              静态素材
+              {title}
             </h1>
             <p className="mt-1 text-[13px] text-[var(--color-ink)]/55">
-              小程序用到的图标与图片，共 {assets.length} 张。
+              {description(assets.length)}
             </p>
           </div>
         </header>

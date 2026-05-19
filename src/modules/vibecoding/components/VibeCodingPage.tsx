@@ -17,8 +17,9 @@ import PublishFlowModal from '@/modules/editor/components/chat/PublishFlowModal'
 import { useThemeStore } from '@/shared/storage/theme'
 import MiniAppPreview from './MiniAppPreview'
 import WebAppPreview from './WebAppPreview'
+import MarketingH5Preview from './MarketingH5Preview'
 import GarudaGamePreview from './GarudaGamePreview'
-import GarudaAssetsView, { AssetStatsLine } from './GarudaAssetsView'
+import GarudaAssetsView, { AssetStatsLine, type AssetGroup } from './GarudaAssetsView'
 import GarudaCodeView from './GarudaCodeView'
 import GarudaEditPanel from './GarudaEditPanel'
 import GameGenerationFlow, { GameBuildProgress } from './GameGenerationFlow'
@@ -82,6 +83,8 @@ import { getAvatarConfig } from './AvatarConfigData'
 import MiniProgramAgentView from './MiniProgramAgentView'
 import MiniProgramSettingsForm from './MiniProgramSettingsForm'
 import AssetGridView from './AssetGridView'
+import MarketingDocEditor from './MarketingDocEditor'
+import MarketingH5PublishPanel from './MarketingH5PublishPanel'
 import { getMiniProgramConfig } from './MiniProgramConfigData'
 
 /** Each platform project has a `ProjectKind` (the concrete product /
@@ -183,7 +186,6 @@ import {
   PanelLeft,
   PanelRight,
   PanelRightOpen,
-  PanelRightClose,
   Share2,
   ListCollapse,
   ListFilter,
@@ -1132,7 +1134,116 @@ function FileTreeView({
 const PHONE_W = 286
 const PHONE_H = 620
 
-function PhoneMockup({ children }: { children: React.ReactNode }) {
+/* ─── 六一儿童节 H5 活动方案文档 ─── */
+const CHILDREN_DAY_PLAN_MD = `# 六一童趣抽奖 - H5活动页面大纲
+
+## 楼层1
+
+**【计时器】**
+
+## 楼层2
+
+**【标题】**：六一童趣节，好礼送不停
+
+**【文案】**：
+
+童年是最美好的时光，陪伴是最珍贵的礼物。
+
+这个六一儿童节，抖音为你准备了超多惊喜好礼！参与活动即有机会赢取丰厚奖品，让你的节日更加精彩纷呈。
+
+## 楼层3
+
+**【标题】**：精美奖品
+
+**【奖励icon+文案】**：儿童智能手表、精美玩具礼盒、学习用品套装
+
+**【奖励icon+文案】**：抖音限定公仔、专属表情包、虚拟钻石礼包
+
+## 楼层4
+
+**【标题】**：参与方式
+
+**【文案】**：
+
+### 如何参与
+
+活动期间，完成以下任务即可获得抽奖机会：
+
+- 每日签到，领取一次抽奖机会
+- 观看指定直播，额外获得抽奖机会
+- 邀请好友参与，双方均可获得额外奖励
+
+### 活动时间
+
+2026年6月1日 - 2026年6月7日
+
+### 温馨提示
+
+- 每人每日最多可获得3次抽奖机会
+- 奖品以实物为准，图片仅供参考
+- 中奖后请及时填写收货信息
+
+## 楼层5
+
+**【标题】**：活动规则
+
+**【文案】**：
+
+### 活动对象
+
+抖音全体用户均可参与
+
+### 参与方式
+
+1. 活动期间登录抖音APP，进入活动页面即可参与
+2. 完成指定任务可获得抽奖机会
+3. 中奖后请在规定时间内填写收货信息
+
+### 奖品发放
+
+- 虚拟奖品（钻石、表情包等）将在中奖后24小时内发放至账户
+- 实物奖品将在活动结束后7个工作日内寄出
+- 请确保收货信息准确，因信息错误导致奖品无法送达，平台不承担责任
+
+### 注意事项
+
+- 每人每日抽奖次数有限，请合理参与
+- 如发现作弊行为，平台有权取消参与资格
+- 本活动最终解释权归抖音所有
+
+### 客服联系
+
+如有疑问请联系抖音官方客服
+
+## 楼层6
+
+**【抖音搜索】**：六一儿童节
+`
+
+/* 活动素材 — H5 页面用到的视觉资源（与 MarketingH5Preview 的 src
+ * 路径保持一致）。Grouped to match the 游戏 素材 layout (GarudaAssetsView). */
+const CHILDREN_DAY_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '页面主视觉',
+    desc: 'H5 抽奖页的核心 KV / 互动主图',
+    items: [
+      { src: '/h5/children-day/hero-gifts.png', label: 'hero-gifts' },
+      { src: '/h5/children-day/lottery-cube.png', label: 'lottery-cube' },
+    ],
+  },
+]
+
+function PhoneMockup({
+  children,
+  width = PHONE_W,
+  height = PHONE_H,
+  maxScale = 1,
+}: {
+  children: React.ReactNode
+  width?: number
+  height?: number
+  maxScale?: number
+}) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
   // The glass-edge pseudo paints a 1px white gradient rim — intended as
@@ -1143,11 +1254,11 @@ function PhoneMockup({ children }: { children: React.ReactNode }) {
   const measure = useCallback(() => {
     const el = containerRef.current
     if (!el) return
-    const { width, height } = el.getBoundingClientRect()
-    const sx = (width - 32) / PHONE_W // 32px horizontal padding
-    const sy = (height - 32) / PHONE_H // 32px vertical padding
-    setScale(Math.min(sx, sy, 1))
-  }, [])
+    const { width: cw, height: ch } = el.getBoundingClientRect()
+    const sx = (cw - 32) / width // 32px horizontal padding
+    const sy = (ch - 32) / height // 32px vertical padding
+    setScale(Math.min(sx, sy, maxScale))
+  }, [width, height, maxScale])
 
   useEffect(() => {
     measure()
@@ -1160,8 +1271,8 @@ function PhoneMockup({ children }: { children: React.ReactNode }) {
     <div ref={containerRef} className="flex min-h-0 flex-1 items-center justify-center">
       <div
         style={{
-          width: PHONE_W,
-          height: PHONE_H,
+          width,
+          height,
           transform: `scale(${scale})`,
           transformOrigin: 'center center',
           ['--edge-alpha' as string]: isLight ? 0 : 0.3,
@@ -3555,9 +3666,16 @@ export default function VibeCodingPage() {
   const wantsProposalDeepLink =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('project') === 'proposal'
+  const wantsChildrenDayDeepLink =
+    typeof window !== 'undefined' &&
+    ['h5', 'children-day'].includes(
+      new URLSearchParams(window.location.search).get('project') ?? '',
+    )
   const [openTabs, setOpenTabs] = useState(() =>
     wantsProposalDeepLink
       ? []
+      : wantsChildrenDayDeepLink
+        ? [{ label: '产物预览', closable: false }]
       : [
           { label: '产物预览', closable: false },
           { label: 'soul.md', closable: true },
@@ -3567,7 +3685,7 @@ export default function VibeCodingPage() {
   // Default: 打开 soul.md（AI 分身定义）作为第一眼看到的文件，其次 app.tsx
   // 可关。工作区布局下，产物预览 tab 也通过 productPinned 保持高亮。
   const [activePreviewTab, setActivePreviewTab] = useState(
-    wantsProposalDeepLink ? 0 : 1,
+    wantsProposalDeepLink || wantsChildrenDayDeepLink ? 0 : 1,
   )
 
   // When the right preview area is fully hidden (artifact-shape projects
@@ -3747,6 +3865,17 @@ export default function VibeCodingPage() {
         return
       }
     }
+    // Children's-day 项目文档 product-view leaf opens its editor tab. Keep
+    // the tab label aligned with the sidebar entry ('项目文档') and seed
+    // proposalDocs['项目文档'] with the doc body on first click; renderTab
+    // dispatches the markdown source into <MarketingDocEditor>.
+    if (
+      activeProjectKind === 'marketing-h5' &&
+      filename === '项目文档' &&
+      !proposalDocs[filename]
+    ) {
+      setProposalDocs((prev) => ({ ...prev, [filename]: CHILDREN_DAY_PLAN_MD }))
+    }
     const existing = openTabs.findIndex((t) => t.label === filename)
     if (existing >= 0) {
       setActivePreviewTab(existing)
@@ -3754,7 +3883,10 @@ export default function VibeCodingPage() {
       // Proposal-flow artefacts (人群诊断.md, 人群诊断看板, 提案报告.md…)
       // pin as non-closable so the right preview reads as a stable
       // "产物总览" surface — once an artefact exists it stays.
-      const isProposalArtefact = filename in proposalDocs
+      const isProposalArtefact =
+        filename in proposalDocs ||
+        (activeProjectKind === 'marketing-h5' &&
+          (filename === '项目文档' || filename === '活动素材'))
       const next = [
         ...openTabs,
         { label: filename, closable: !isProposalArtefact },
@@ -4602,8 +4734,17 @@ export default function VibeCodingPage() {
   const wantsProposalProject =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('project') === 'proposal'
+  const wantsChildrenDayProject =
+    typeof window !== 'undefined' &&
+    ['h5', 'children-day'].includes(
+      new URLSearchParams(window.location.search).get('project') ?? '',
+    )
   const [projectTitle, setProjectTitle] = useState(
-    wantsProposalProject ? '沪上火锅·五一种草提案' : '第五人格塔罗小程序',
+    wantsProposalProject
+      ? '沪上火锅·五一种草提案'
+      : wantsChildrenDayProject
+        ? '六一儿童节活动'
+        : '第五人格塔罗小程序',
   )
   /* Derive the active project's "kind" from its title — controls which
    * preview renders on the right and what label the product tab shows.
@@ -4715,6 +4856,10 @@ export default function VibeCodingPage() {
         onNavigate={setPreviewRoute}
       />
     </div>
+  ) : activeProjectKind === 'marketing-h5' ? (
+    <PhoneMockup width={360} height={760} maxScale={1.4}>
+      <MarketingH5Preview key={miniAppKey} />
+    </PhoneMockup>
   ) : activeFilter === 'ai-avatar' ? (
     <PhoneMockup>
       <ChatPreview worldOverride="identity-v" />
@@ -4890,6 +5035,8 @@ export default function VibeCodingPage() {
   const filters =
     activeProjectKind === 'ai-avatar'
       ? [{ label: 'AI分身', value: 'mini-program' }]
+      : activeProjectKind === 'marketing-h5'
+        ? [{ label: 'H5活动', value: 'mini-program' }]
       : [
           { label: '小程序', value: 'mini-program' },
           { label: 'AI分身', value: 'ai-avatar' },
@@ -5537,6 +5684,7 @@ export default function VibeCodingPage() {
                     : CHAT_EMPTY_SUGGESTIONS
                 }
                 onPick={(t) => sendChat(t)}
+                activeProjectKind={activeProjectKind}
               />
             ) : (<>
 
@@ -8222,6 +8370,28 @@ export default function VibeCodingPage() {
                   )
                 }
               }
+              // marketing-h5 product-view sections.
+              if (activeProjectKind === 'marketing-h5') {
+                // 项目文档 — rich markdown editor (edit / preview / split).
+                if (label === '项目文档') {
+                  return (
+                    <MarketingDocEditor
+                      title="项目文档"
+                      value={proposalDocs['项目文档'] ?? CHILDREN_DAY_PLAN_MD}
+                      onChange={(next) =>
+                        setProposalDocs((prev) => ({ ...prev, ['项目文档']: next }))
+                      }
+                    />
+                  )
+                }
+                // 活动素材 — visual asset grid using the same layout as
+                // 游戏 素材 (grouped sections, zoom modal). The Garuda view
+                // accepts a custom `groups` prop so the two surfaces stay
+                // in sync visually.
+                if (label === '活动素材') {
+                  return <GarudaAssetsView groups={CHILDREN_DAY_ASSET_GROUPS} />
+                }
+              }
               // 小程序 product-view sections — config-driven structured
               // tabs (agent / settings / asset grid).
               const miniProgramConfig = getMiniProgramConfig(projectTitle)
@@ -8651,9 +8821,11 @@ const AI_AVATAR_CHAT_SUGGESTIONS = [
 function ChatEmptyState({
   suggestions,
   onPick,
+  activeProjectKind,
 }: {
   suggestions: string[]
   onPick: (text: string) => void
+  activeProjectKind: ProjectKind
 }) {
   const themeMode = useThemeStore((s) => s.mode)
   const isLight = themeMode === 'light'
@@ -8712,7 +8884,11 @@ function ChatEmptyState({
           </motion.button>
         ))}
       </div>
-      <PublishFlowModal />
+      {activeProjectKind === 'marketing-h5' ? (
+        <MarketingH5PublishPanel />
+      ) : (
+        <PublishFlowModal />
+      )}
     </motion.div>
   )
 }
