@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>紧凑卡片自适应栅格规则</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+    background: #f5f5f7;
+    color: #101218;
+    padding: 40px;
+    width: 1280px;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: rgba(16,18,24,0.55);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+  .rule-block {
+    background: #101218;
+    color: #fff;
+    padding: 20px 24px;
+    border-radius: 12px;
+    font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+  .rule-block .k { color: #82aaff; }
+  .rule-block .v { color: #c3e88d; }
+  .rule-block .c { color: rgba(255,255,255,0.45); }
+  .rule-note {
+    font-size: 12.5px;
+    color: rgba(16,18,24,0.55);
+    line-height: 1.7;
+    padding: 0 4px;
+    margin-bottom: 32px;
+  }
+  .examples {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .example {
+    background: #fff;
+    border: 1px solid rgba(16,18,24,0.08);
+    border-radius: 16px;
+    padding: 20px 24px 24px;
+  }
+  .example-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .example-header .left {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .example-header .width-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #101218;
+  }
+  .example-header .viewport {
+    font-size: 12px;
+    color: rgba(16,18,24,0.45);
+  }
+  .example-header .col-pill {
+    font-size: 12px;
+    font-weight: 500;
+    color: #101218;
+    background: rgba(16,18,24,0.06);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .container-ruler {
+    position: relative;
+    margin-bottom: 6px;
+    height: 14px;
+    color: rgba(16,18,24,0.4);
+    font-size: 11px;
+  }
+  .container-ruler .tick-l,
+  .container-ruler .tick-r {
+    position: absolute;
+    top: 0;
+    width: 1px;
+    height: 8px;
+    background: rgba(16,18,24,0.25);
+  }
+  .container-ruler .tick-l { left: 0; }
+  .container-ruler .axis {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    height: 1px;
+    background: rgba(16,18,24,0.15);
+  }
+  .container-ruler .num {
+    position: absolute;
+    top: -2px;
+    transform: translateX(-50%);
+    background: #fff;
+    padding: 0 4px;
+  }
+  .container-frame {
+    border: 1px dashed rgba(16,18,24,0.18);
+    border-radius: 8px;
+    padding: 12px;
+    background: rgba(16,18,24,0.015);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid rgba(16,18,24,0.08);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card .banner {
+    aspect-ratio: 632 / 272;
+    background: linear-gradient(135deg, #d6e4f5 0%, #c5cae9 50%, #e1cdf4 100%);
+  }
+  .card .body {
+    padding: 10px 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .card .title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #101218;
+  }
+  .card .tags {
+    display: flex;
+    gap: 4px;
+  }
+  .card .tag {
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 999px;
+  }
+  .card .tag.skill { background: #ece9fe; color: #5720b7; }
+  .card .tag.cat { background: rgba(115,158,202,0.18); color: #373d46; }
+  .card .desc {
+    font-size: 10.5px;
+    color: rgba(16,18,24,0.55);
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card .meta {
+    font-size: 10.5px;
+    color: rgba(16,18,24,0.55);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .card .meta .dot {
+    width: 2px;
+    height: 2px;
+    border-radius: 999px;
+    background: rgba(16,18,24,0.25);
+  }
+  .formula {
+    margin-top: 14px;
+    font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
+    font-size: 11.5px;
+    color: rgba(16,18,24,0.55);
+    line-height: 1.6;
+  }
+  .formula .hl { color: #101218; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<h1>「紧凑卡片」自适应栅格规则</h1>
+<p class="subtitle">
+  资源库右侧能力卡片网格 · 容器宽度自适应 · 列数随容器宽度变化，列宽在剩余空间内均分
+</p>
+
+<div class="rule-block">
+<span class="c">/* 唯一规则 — 不设断点，由浏览器按可用宽度自动确定列数 */</span><br>
+<span class="k">display</span>: <span class="v">grid</span>;<br>
+<span class="k">grid-template-columns</span>: <span class="v">repeat(auto-fill, minmax(200px, 1fr))</span>;<br>
+<span class="k">gap</span>: <span class="v">12px</span>;
+</div>
+<p class="rule-note">
+  <strong>auto-fill</strong> 会塞入尽可能多的列；每列最小 <strong>200px</strong>，剩余空间通过 <strong>1fr</strong> 均分给每一列。
+  下面四个示例特意选在 <strong>「刚跨入下一档」的边界容器宽度</strong>，列宽落在 200–204 区间——这就是该档下能看到的最窄态。
+  容器继续变宽，列宽线性增加；直到下一个断点 (424 / 636 / 848 / 1060) 才会塞入新的一列。
+</p>
+
+<div class="examples">
+
+  <div class="example">
+    <div class="example-header">
+      <div class="left">
+        <span class="width-label">容器 420px</span>
+        <span class="viewport">刚跨入 2 列断点 (≥ 412px)</span>
+      </div>
+      <span class="col-pill">2 列 · 每列 204px</span>
+    </div>
+    <div class="container-frame" style="width: 420px">
+      <div class="grid">
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+      </div>
+    </div>
+    <div class="formula">
+      <span class="hl">n</span> = ⌊(420 + 12) ÷ (200 + 12)⌋ = <span class="hl">2</span> &nbsp;·&nbsp; 列宽 = (420 − 12) ÷ 2 = <span class="hl">204</span>
+    </div>
+  </div>
+
+  <div class="example">
+    <div class="example-header">
+      <div class="left">
+        <span class="width-label">容器 636px</span>
+        <span class="viewport">刚跨入 3 列断点 (≥ 624px)</span>
+      </div>
+      <span class="col-pill">3 列 · 每列 204px</span>
+    </div>
+    <div class="container-frame" style="width: 636px">
+      <div class="grid">
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+      </div>
+    </div>
+    <div class="formula">
+      <span class="hl">n</span> = ⌊(636 + 12) ÷ (200 + 12)⌋ = <span class="hl">3</span> &nbsp;·&nbsp; 列宽 = (636 − 24) ÷ 3 = <span class="hl">204</span>
+    </div>
+  </div>
+
+  <div class="example">
+    <div class="example-header">
+      <div class="left">
+        <span class="width-label">容器 852px</span>
+        <span class="viewport">刚跨入 4 列断点 (≥ 836px) — 默认设计基线</span>
+      </div>
+      <span class="col-pill">4 列 · 每列 204px</span>
+    </div>
+    <div class="container-frame" style="width: 852px">
+      <div class="grid">
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+      </div>
+    </div>
+    <div class="formula">
+      <span class="hl">n</span> = ⌊(852 + 12) ÷ (200 + 12)⌋ = <span class="hl">4</span> &nbsp;·&nbsp; 列宽 = (852 − 36) ÷ 4 = <span class="hl">204</span>
+    </div>
+  </div>
+
+  <div class="example">
+    <div class="example-header">
+      <div class="left">
+        <span class="width-label">容器 1068px</span>
+        <span class="viewport">刚跨入 5 列断点 (≥ 1048px)</span>
+      </div>
+      <span class="col-pill">5 列 · 每列 204px</span>
+    </div>
+    <div class="container-frame" style="width: 1068px">
+      <div class="grid">
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+        <div class="card"><div class="banner"></div><div class="body"><div class="title">能力名称示例</div><div class="tags"><span class="tag skill">Skill</span><span class="tag cat">联网搜索</span></div><div class="desc">一句话产生最新数据，无需登录后台。</div><div class="meta">抖音官方<span class="dot"></span>2 天前<span class="dot"></span>1.2k</div></div></div>
+      </div>
+    </div>
+    <div class="formula">
+      <span class="hl">n</span> = ⌊(1068 + 12) ÷ (200 + 12)⌋ = <span class="hl">5</span> &nbsp;·&nbsp; 列宽 = (1068 − 48) ÷ 5 = <span class="hl">204</span>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

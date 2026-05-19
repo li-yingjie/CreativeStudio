@@ -1,0 +1,968 @@
+/* ── Fonts (Overlay.com style) — must precede other @import rules ── */
+@import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700&display=swap");
+@import "tailwindcss";
+
+/* Register `--edge-angle` so browsers can animate it between keyframes /
+   hover states. Without this, changes jump instantly. */
+@property --edge-angle {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 135deg;
+}
+
+/* Project list card — hover rotates the glass-edge highlight ring by
+   driving `--edge-angle` via a keyframe animation. Requires the
+   `@property --edge-angle` registration above so the angle type can
+   be interpolated. */
+@keyframes project-card-edge-rotate {
+  from { --edge-angle: 135deg; }
+  to   { --edge-angle: 225deg; }
+}
+.project-card {
+  --edge-angle: 135deg;
+}
+.project-card:hover {
+  animation: project-card-edge-rotate 0.8s ease-out forwards;
+}
+
+/* ── Design Tokens ── */
+@theme {
+  /* Brand palette — cool steel for dark theme */
+  --color-brand-50: oklch(0.22 0.01 275);
+  --color-brand-100: oklch(0.28 0.012 275);
+  --color-brand-200: oklch(0.35 0.018 275);
+  --color-brand-300: oklch(0.48 0.025 272);
+  --color-brand-400: oklch(0.62 0.04 270);
+  --color-brand-500: oklch(0.72 0.05 268);
+  --color-brand-600: oklch(0.82 0.04 268);
+  --color-brand-700: oklch(0.9 0.03 268);
+
+  /* Ink — primary foreground on dark (near-white, slightly cool) */
+  --color-ink: oklch(0.96 0.004 275);
+  --color-ink-60: oklch(0.96 0.004 275 / 0.6);
+  --color-ink-40: oklch(0.96 0.004 275 / 0.4);
+  --color-ink-20: oklch(0.96 0.004 275 / 0.2);
+  --color-ink-10: oklch(0.96 0.004 275 / 0.1);
+  /* Contrast color for text sitting on top of ink-colored pills/buttons */
+  --color-ink-contrast: oklch(0.14 0.008 275);
+
+  /* Pastel accents — desaturated and darkened for dark theme */
+  --color-pastel-peach: oklch(0.42 0.055 55);
+  --color-pastel-rose: oklch(0.4 0.06 15);
+  --color-pastel-mauve: oklch(0.38 0.05 320);
+  --color-pastel-sage: oklch(0.4 0.05 150);
+  --color-pastel-sky: oklch(0.42 0.045 230);
+  --color-pastel-lavender: oklch(0.4 0.05 285);
+
+  /* Accent — neutral near-white so IP variants aren't forced into a warm palette */
+  --color-accent-400: oklch(0.96 0 0);
+  --color-accent-500: oklch(0.88 0 0);
+  --color-accent-600: oklch(0.72 0 0);
+
+  /* Surface layers (dark theme) — near-black → slightly lifted */
+  --color-surface-0: #0b0b0d;
+  --color-surface-1: #171717;
+  --color-surface-2: oklch(0.22 0.008 275);
+  --color-surface-3: oklch(0.27 0.01 275);
+
+  /* Glass tokens — dark translucent with light borders */
+  --glass-bg: rgba(22, 24, 32, 0.55);
+  --glass-bg-strong: rgba(22, 24, 32, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 18px;
+  --glass-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6),
+    0 8px 24px -12px rgba(0, 0, 0, 0.4);
+
+  /* Animation */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 600ms;
+  --duration-dramatic: 1200ms;
+
+  /* Typography — Inter handles Latin, PingFang SC falls in for CJK
+   *   glyphs (browsers pick per-codepoint from the stack, so Latin
+   *   resolves to Inter and Chinese to PingFang SC). system-ui keeps
+   *   the rendering native on non-Apple platforms that lack PingFang. */
+  --font-sans: "Inter", "PingFang SC", system-ui, -apple-system, "Segoe UI",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Adaptive raised-fill tokens — used in place of `bg-white/[0.04]`-style
+ * arbitrary values so components automatically flip between a dark-on-dark
+ * and a dark-on-light treatment. `.theme-light` below remaps them. */
+:root {
+  --fill-subtle: rgba(255, 255, 255, 0.04);
+  --fill-soft: rgba(255, 255, 255, 0.06);
+  --fill-medium: rgba(255, 255, 255, 0.1);
+  --fill-strong: rgba(255, 255, 255, 0.16);
+  --fill-hover: rgba(255, 255, 255, 0.08);
+  --divider: rgba(255, 255, 255, 0.1);
+  --divider-soft: rgba(255, 255, 255, 0.06);
+  /* Stronger divider for the VibeCoding code-editor panels — tab bars,
+   * file-tree gutter — where the original was 13% white. */
+  --code-divider: rgba(255, 255, 255, 0.13);
+  --composer-bg: #0d0d0e;
+  --bubble-me-bg: #222222;
+  --bubble-ai-bg: rgba(255, 255, 255, 0.04);
+  /* Background for in-chat form cards (需求收集 / 发布). Intentionally
+   * a dedicated token so tweaks to general --fill-subtle don't drift
+   * the form look. Dark default, overridden in theme-light below. */
+  --chat-form-bg: rgba(255, 255, 255, 0.04);
+  /* Base background for individual form options (radio pills, capability
+   * cards, tag chips, picker chips). Selected vs. unselected is still
+   * differentiated via ring + shadow — the fill stays constant. */
+  --chat-form-option-bg: rgba(255, 255, 255, 0.04);
+
+  /* Syntax-highlight palette (VibeCoding code editor) — dark-friendly
+   * neon tones. `theme-light` below remaps these to GitHub-Light-ish hues
+   * that read well on white. */
+  --syntax-keyword: #c084fc; /* purple-400 */
+  --syntax-string: #34d399; /* emerald-400 */
+  --syntax-func: #7dd3fc; /* sky-300 */
+  --syntax-operator: #f472b6; /* pink-400 */
+  --syntax-jsx: #fcd34d; /* amber-300 */
+  --syntax-comment: rgba(255, 255, 255, 0.35);
+
+  /* Phone mockup shadow — layered drop shadow used by the right-side phone
+   * previews in VibeCoding and the editor's MobilePreview. */
+  --phone-shadow: 0 40px 90px -24px rgba(0, 0, 0, 0.8),
+    0 12px 30px -12px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  /* Phone bezel fill — dark theme uses the standard surface-2 tint; light
+   * theme overrides to solid black for stronger contrast against the
+   * white card. */
+  --phone-bezel: var(--color-surface-2);
+}
+
+/* ── Light theme overrides ──
+ * When `.theme-light` is applied to <html>, every CSS variable the app
+ * already consumes is remapped here. Components that hardcode dark hex
+ * values won't flip automatically — they're migrated in follow-up
+ * passes. */
+html.theme-light {
+  color-scheme: light;
+
+  /* Flip ink / contrast */
+  --color-ink: oklch(0.2 0.01 275);
+  --color-ink-60: oklch(0.2 0.01 275 / 0.6);
+  --color-ink-40: oklch(0.2 0.01 275 / 0.4);
+  --color-ink-20: oklch(0.2 0.01 275 / 0.2);
+  --color-ink-10: oklch(0.2 0.01 275 / 0.1);
+  --color-ink-contrast: oklch(0.98 0 0);
+
+  /* Surface ramp — near-white to gentle gray */
+  --color-surface-0: #fafbfc;
+  --color-surface-1: #f2f2f7;
+  --color-surface-2: #e8eaed;
+  --color-surface-3: #dcdfe4;
+
+  /* Glass — translucent white with subtle dark border */
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-bg-strong: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(16, 18, 24, 0.08);
+  --glass-shadow: 0 24px 60px -20px rgba(16, 18, 24, 0.18),
+    0 8px 24px -12px rgba(16, 18, 24, 0.12);
+
+  /* Brand / accents — lift for contrast against light surfaces */
+  --color-brand-50: oklch(0.95 0.01 275);
+  --color-brand-100: oklch(0.88 0.014 275);
+  --color-brand-200: oklch(0.78 0.02 275);
+  --color-brand-300: oklch(0.62 0.03 272);
+  --color-brand-400: oklch(0.5 0.04 270);
+  --color-brand-500: oklch(0.42 0.05 268);
+  --color-brand-600: oklch(0.34 0.04 268);
+  --color-brand-700: oklch(0.26 0.03 268);
+
+  --color-accent-400: oklch(0.2 0 0);
+  --color-accent-500: oklch(0.28 0 0);
+  --color-accent-600: oklch(0.42 0 0);
+
+  /* Pastels — lift to actual pastel pastels in light mode */
+  --color-pastel-peach: oklch(0.9 0.05 55);
+  --color-pastel-rose: oklch(0.88 0.055 15);
+  --color-pastel-mauve: oklch(0.88 0.045 320);
+  --color-pastel-sage: oklch(0.88 0.045 150);
+  --color-pastel-sky: oklch(0.9 0.04 230);
+  --color-pastel-lavender: oklch(0.88 0.045 285);
+
+  /* Adaptive raised-fill tokens — darker, softer versions for light mode */
+  --fill-subtle: rgba(16, 18, 24, 0.04);
+  --fill-soft: rgba(16, 18, 24, 0.06);
+  --fill-medium: rgba(16, 18, 24, 0.08);
+  --fill-strong: rgba(16, 18, 24, 0.12);
+  --fill-hover: rgba(16, 18, 24, 0.05);
+  --divider: rgba(16, 18, 24, 0.14);
+  --divider-soft: rgba(16, 18, 24, 0.08);
+  --code-divider: rgba(16, 18, 24, 0.13);
+  --composer-bg: #ffffff;
+  --bubble-me-bg: #f2f2f7;
+  --bubble-ai-bg: rgba(16, 18, 24, 0.04);
+  --chat-form-bg: #f5f7fa;
+  --chat-form-option-bg: rgba(83, 96, 143, 0.07);
+
+  /* Syntax-highlight palette — GitHub-Light-ish for readable code on white */
+  --syntax-keyword: #8250df;
+  --syntax-string: #0a3069;
+  --syntax-func: #953800;
+  --syntax-operator: #cf222e;
+  --syntax-jsx: #116329;
+  --syntax-comment: rgba(16, 18, 24, 0.45);
+
+  /* Phone mockup shadow — light mode: a small pool of shadow under the
+   * bottom edge only. Negative spread pulls the blur inward so the left
+   * and right sides don't bloom. */
+  --phone-shadow: 0 18px 14px -14px rgba(16, 18, 24, 0.22),
+    0 8px 10px -8px rgba(16, 18, 24, 0.12),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+  /* Black phone bezel for light-mode contrast against the white card. */
+  --phone-bezel: #1c1f23;
+}
+
+/* Kill the heavy dark drop shadows on glass-styled containers in light
+ * mode — the source hex values are hardcoded (rgba(0,0,0,0.X)) and look
+ * muddy against a white surface. A single !important override covers
+ * every element that carries one of these classes, regardless of whether
+ * it also applies a Tailwind arbitrary shadow utility. */
+html.theme-light .glass,
+html.theme-light .glass-strong,
+html.theme-light .glass-edge,
+html.theme-light .glass-edge-down {
+  box-shadow: none !important;
+}
+
+/* Dark-locked subtree — re-declare the dark palette locally so previews
+ * that render a simulated mini-app stay night-mode even when the host
+ * app is running in `.theme-light`. Variables cascade, so consumers
+ * inside the scope pick these up without any other changes. */
+.theme-dark-scope {
+  color-scheme: dark;
+
+  --color-ink: oklch(0.96 0.004 275);
+  --color-ink-60: oklch(0.96 0.004 275 / 0.6);
+  --color-ink-40: oklch(0.96 0.004 275 / 0.4);
+  --color-ink-20: oklch(0.96 0.004 275 / 0.2);
+  --color-ink-10: oklch(0.96 0.004 275 / 0.1);
+  --color-ink-contrast: oklch(0.14 0.008 275);
+
+  --color-surface-0: #0b0b0d;
+  --color-surface-1: #171717;
+  --color-surface-2: oklch(0.22 0.008 275);
+  --color-surface-3: oklch(0.27 0.01 275);
+
+  --glass-bg: rgba(22, 24, 32, 0.55);
+  --glass-bg-strong: rgba(22, 24, 32, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6),
+    0 8px 24px -12px rgba(0, 0, 0, 0.4);
+
+  --fill-subtle: rgba(255, 255, 255, 0.04);
+  --fill-soft: rgba(255, 255, 255, 0.06);
+  --fill-medium: rgba(255, 255, 255, 0.1);
+  --fill-strong: rgba(255, 255, 255, 0.16);
+  --fill-hover: rgba(255, 255, 255, 0.08);
+  --divider: rgba(255, 255, 255, 0.1);
+  --divider-soft: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Base ── */
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-surface-0);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  letter-spacing: -0.005em;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+/* Mono headline accent — a la Overlay */
+.font-mono,
+code,
+kbd,
+samp {
+  font-family: var(--font-mono);
+  font-feature-settings: "ss01";
+}
+
+/* ── Drifting pastel blobs (Overlay.com-style ambient gradient) ── */
+@keyframes blob-drift-1 {
+  0%,
+  100% {
+    transform: translate3d(-10%, -12%, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(12%, 8%, 0) scale(1.18);
+  }
+  66% {
+    transform: translate3d(-4%, 20%, 0) scale(0.92);
+  }
+}
+@keyframes blob-drift-2 {
+  0%,
+  100% {
+    transform: translate3d(20%, -8%, 0) scale(1.05);
+  }
+  40% {
+    transform: translate3d(-14%, 14%, 0) scale(0.88);
+  }
+  75% {
+    transform: translate3d(8%, 24%, 0) scale(1.22);
+  }
+}
+@keyframes blob-drift-3 {
+  0%,
+  100% {
+    transform: translate3d(-20%, 18%, 0) scale(0.95);
+  }
+  35% {
+    transform: translate3d(14%, -6%, 0) scale(1.15);
+  }
+  70% {
+    transform: translate3d(22%, 12%, 0) scale(1);
+  }
+}
+@keyframes blob-drift-4 {
+  0%,
+  100% {
+    transform: translate3d(18%, 20%, 0) scale(1.1);
+  }
+  30% {
+    transform: translate3d(-16%, 6%, 0) scale(0.9);
+  }
+  65% {
+    transform: translate3d(4%, -18%, 0) scale(1.2);
+  }
+}
+@keyframes blob-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.blob {
+  position: absolute;
+  width: 55vmax;
+  height: 55vmax;
+  border-radius: 50%;
+  will-change: transform;
+  mix-blend-mode: screen;
+  opacity: 0.35;
+}
+
+.blob--1 {
+  top: -10%;
+  left: -10%;
+  background: radial-gradient(
+    circle,
+    var(--color-pastel-peach) 0%,
+    transparent 62%
+  );
+  animation:
+    blob-drift-1 22s ease-in-out infinite,
+    blob-pulse 12s ease-in-out infinite;
+}
+.blob--2 {
+  top: -5%;
+  right: -15%;
+  background: radial-gradient(
+    circle,
+    var(--color-pastel-mauve) 0%,
+    transparent 62%
+  );
+  animation:
+    blob-drift-2 26s ease-in-out infinite,
+    blob-pulse 14s ease-in-out infinite;
+}
+.blob--3 {
+  bottom: -15%;
+  left: -5%;
+  background: radial-gradient(
+    circle,
+    var(--color-pastel-sage) 0%,
+    transparent 62%
+  );
+  animation:
+    blob-drift-3 30s ease-in-out infinite,
+    blob-pulse 16s ease-in-out infinite;
+}
+.blob--4 {
+  bottom: -10%;
+  right: -10%;
+  background: radial-gradient(
+    circle,
+    var(--color-pastel-sky) 0%,
+    transparent 62%
+  );
+  animation:
+    blob-drift-4 34s ease-in-out infinite,
+    blob-pulse 18s ease-in-out infinite;
+}
+
+.blob-field {
+  filter: blur(90px) saturate(1.05);
+}
+
+/* ── Glassmorphism helper ── */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.96 0.004 275 / 0.16);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.96 0.004 275 / 0.3);
+}
+
+/* ── Selection — uses the theme-aware ink-20 token so the highlight
+ *   stays visible (near-white 20% on dark; near-black 20% on light)
+ *   and the selected text keeps its normal ink color. Previously used
+ *   --color-ink-contrast which inverts per theme and turned selected
+ *   text white-on-white in light mode. */
+::selection {
+  background: var(--color-ink-20);
+  color: var(--color-ink);
+}
+
+/* ── Focus ── */
+:focus-visible {
+  outline: 2px solid var(--color-brand-400);
+  outline-offset: 2px;
+}
+
+/* Form inputs manage their own focus styles — suppress the global ring */
+textarea:focus,
+textarea:focus-visible,
+input:focus,
+input:focus-visible,
+[contenteditable]:focus,
+[contenteditable]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Preview strip — re-flow the VrmControls grids into a single row of
+   compact square tiles centered above the bottom tab bar. */
+.preview-strip,
+.preview-strip * {
+  overflow: hidden !important;
+}
+.preview-strip {
+  padding: 0.5rem 0.6rem;
+}
+/* Tighten the inner VrmControls content padding so the row fits */
+.preview-strip .px-3 {
+  padding-left: 0.35rem !important;
+  padding-right: 0.35rem !important;
+}
+.preview-strip .py-3 {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+}
+.preview-strip .gap-4 {
+  gap: 0 !important;
+}
+/* Convert the grid into a centered flex row of fixed-size tiles */
+.preview-strip .grid {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  min-width: 0;
+}
+.preview-strip .grid > button {
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1px;
+  border-radius: 12px;
+  padding: 0;
+  text-align: center;
+}
+.preview-strip .grid > button .text-xl {
+  font-size: 18px;
+  line-height: 1;
+}
+.preview-strip .grid > button .text-lg {
+  font-size: 16px;
+  line-height: 1;
+}
+.preview-strip .grid > button .text-xs {
+  font-size: 9px;
+  line-height: 1.1;
+  font-weight: 500;
+}
+/* Drop helper paragraph card, slider, and section labels — only tiles needed */
+.preview-strip .mt-2.rounded-xl,
+.preview-strip > div > div.flex.flex-col.gap-3,
+.preview-strip .uppercase.tracking-wider {
+  display: none;
+}
+
+/* ── Persona composer — contenteditable block editor ── */
+.persona-composer:empty::before,
+.persona-composer:has(> br:only-child)::before {
+  content: attr(data-placeholder);
+  color: var(--color-ink);
+  opacity: 0.32;
+  pointer-events: none;
+}
+.persona-composer > * {
+  white-space: pre-wrap;
+}
+.persona-composer :is(p, div) {
+  min-height: 1.6em;
+  color: var(--color-ink);
+  opacity: 0.82;
+}
+.persona-composer :is(p, div) + :is(p, div) {
+  margin-top: 4px;
+}
+.persona-composer p:has(> strong:only-child) {
+  opacity: 1;
+}
+/* Section headings — markdown-style `#` prefix in a sky accent. */
+.persona-composer p:has(> strong:only-child) {
+  margin-top: 18px;
+  margin-bottom: 6px;
+}
+.persona-composer p > strong:only-child {
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+.persona-composer p > strong:only-child::before {
+  content: '# ';
+  color: #74d4ff;
+  font-weight: 500;
+  margin-right: 2px;
+}
+/* AI-edited block — rounded backdrop only. No left bar, no padding /
+ * margin changes; text stays perfectly in place. */
+.persona-composer [data-ai-diff='fresh'],
+.persona-composer [data-ai-diff-focus='true'] {
+  position: relative;
+  border-radius: 6px;
+}
+/* Freshly-applied AI edit — quiet fade out over ~5s. */
+.persona-composer [data-ai-diff='fresh'] {
+  animation: persona-diff-fade 5s ease-in-out forwards;
+}
+@keyframes persona-diff-fade {
+  0% {
+    background: linear-gradient(
+      90deg,
+      rgba(190, 220, 255, 0.24) 0%,
+      rgba(190, 220, 255, 0.06) 100%
+    );
+  }
+  70% {
+    background: linear-gradient(
+      90deg,
+      rgba(190, 220, 255, 0.12) 0%,
+      rgba(190, 220, 255, 0.02) 100%
+    );
+  }
+  100% {
+    background: transparent;
+  }
+}
+/* Locate pulse — single bell-curve breath over ~2.2s. The highlight is
+ * rendered via a ::after overlay so we can animate only `opacity`, which
+ * is GPU-accelerated and keeps the fade perfectly smooth (no color-stop
+ * stepping that made the previous version feel flickery). Ease-in-out
+ * paired with a short hold at the peak gives a natural inhale-hold-exhale
+ * rhythm. */
+.persona-composer [data-ai-diff-focus='true']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(190, 220, 255, 0.22) 0%,
+    rgba(190, 220, 255, 0.05) 100%
+  );
+  pointer-events: none;
+  opacity: 0;
+  animation: persona-diff-breath 2.2s ease-in-out forwards;
+}
+@keyframes persona-diff-breath {
+  0% {
+    opacity: 0;
+  }
+  38% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+/* ── Reusable glass pill base ──
+ *  Give any rounded-full element this class to get the Apple liquid-glass
+ *  look: soft translucent fill + gradient ring confined to the border.
+ *  The consumer handles sizing / padding / text via its own utilities.
+ */
+.glass-pill {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.glass-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0) 37%,
+    rgba(255, 255, 255, 0) 75%,
+    rgba(255, 255, 255, 0.2) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ── Top-down edge fade ──
+ *  1px ring that fades from `--edge-alpha` at the top to 0 at the bottom.
+ *  Good for elements flush against another surface below (e.g. a chat
+ *  composer that sits on the bottom edge of a glass card). */
+.glass-edge-down {
+  position: relative;
+}
+.glass-edge-down::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    var(--edge-angle, 180deg),
+    rgba(255, 255, 255, var(--edge-alpha, 0.15)) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Gradient edge only ──
+ *  Same top-left + bottom-right highlight arcs as `.glass-pill`, but only
+ *  draws the ring — leaves the element's own background / fill untouched.
+ *  Use on larger panels whose background is already designed. */
+.glass-edge {
+  position: relative;
+}
+.glass-edge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    var(--edge-angle, 135deg),
+    rgba(255, 255, 255, var(--edge-alpha, 0.15)) 0%,
+    rgba(255, 255, 255, 0) 37%,
+    rgba(255, 255, 255, 0) 75%,
+    rgba(255, 255, 255, var(--edge-alpha, 0.15)) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Bottom fade — softens the edge between a scroll region and whatever
+ *  sits beneath (e.g. a chat composer), so trailing content fades out. */
+.fade-bottom {
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 32px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 32px),
+    transparent 100%
+  );
+}
+
+/* ── Top-only fade — for scroll regions that aren't at the top edge. */
+.fade-top {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 32px
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 32px
+  );
+}
+
+/* ── Two-way fade — fades both the top and bottom of a scroll region. */
+.fade-y {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 32px,
+    black calc(100% - 32px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 32px,
+    black calc(100% - 32px),
+    transparent 100%
+  );
+}
+
+/* ── Minimal scrollbar — use for long-form code / logs / chat lists ── */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+.thin-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+.thin-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Tab-bar horizontal scroll — scrollbar takes zero space by default and
+ * only appears on hover as a hairline track. Used by the preview tab
+ * bar where reserving space shifts tab content vertically. */
+.tab-scroll {
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+}
+.tab-scroll::-webkit-scrollbar {
+  height: 0;
+  width: 0;
+}
+.tab-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tab-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+}
+.tab-scroll:hover {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.35) transparent;
+}
+.tab-scroll:hover::-webkit-scrollbar {
+  height: 2px;
+}
+.tab-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.35);
+}
+html.theme-light .tab-scroll:hover {
+  scrollbar-color: rgba(16, 18, 24, 0.25) transparent;
+}
+
+/* ── Chat composer (contentEditable) ──
+ * The composer renders as a contentEditable div so @mention picks can
+ * be injected as inline <span class="mention-pill"> tags that read as
+ * real pills instead of plain "@name" text. Placeholder is drawn via
+ * a data-attribute so it vanishes as soon as the div has content. */
+.chat-editable {
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.chat-editable:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(var(--color-ink-rgb, 16 18 24) / 0.35);
+  pointer-events: none;
+}
+html:not(.theme-light) .chat-editable:empty::before {
+  color: rgba(255, 255, 255, 0.35);
+}
+.chat-editable .mention-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px 1px 5px;
+  margin: 0 1px;
+  border-radius: 6px;
+  /* Color matches the picker panel's item icon badge — indigo across
+   * all kinds. The icon differs per kind (via data-kind + inline SVG),
+   * but the accent color is unified. */
+  background: rgba(99, 102, 241, 0.10);
+  color: var(--color-ink);
+  font-size: 13px;
+  line-height: 18px;
+  vertical-align: baseline;
+  /* contentEditable="false" on the span itself keeps the caret from
+   * landing inside the pill; cursor: default signals non-editable. */
+  cursor: default;
+  user-select: all;
+}
+.chat-editable .mention-pill svg {
+  flex-shrink: 0;
+  color: rgb(99 102 241);
+}
+html.theme-light .tab-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(16, 18, 24, 0.25);
+}
+
+.persona-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px 2px 8px;
+  margin: 0 2px;
+  border-radius: 9999px;
+  color: var(--color-ink);
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 500;
+  user-select: none;
+  cursor: default;
+  vertical-align: baseline;
+  white-space: nowrap;
+  transition: filter 0.15s ease;
+}
+.persona-tag:hover {
+  filter: brightness(1.15);
+}
+
+/* ── Login orb field — hover clarifies ── */
+.login-orb {
+  filter: blur(var(--orb-blur, 10px)) brightness(var(--orb-dim, 0.9));
+  transition:
+    filter 700ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 700ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: filter, transform;
+  cursor: pointer;
+}
+.login-orb:hover {
+  filter: blur(1px) brightness(1.25) saturate(1.1);
+  transform: scale(1.04);
+}
+
+@keyframes orb-float {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-10px);
+  }
+}
+
+/* ── Avatar breathing edge glow ── */
+@keyframes edge-breathe {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 1.5px rgba(255,255,255,0.25))
+      drop-shadow(0 0 3px rgba(200,220,255,0.1));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 2.5px rgba(255,255,255,0.4))
+      drop-shadow(0 0 6px rgba(200,220,255,0.18));
+  }
+}
+
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

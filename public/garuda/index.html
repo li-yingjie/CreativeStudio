@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Garuda</title>
+<meta name="description" content="Garuda is a fullscreen STG Roguelike Game.">
+<meta name="DynamicWang" content="AWPlanet">
+<meta name="date" content="2026-05-01">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://awplanets.github.io/garuda/">
+<meta property="og:title" content="Garuda: Apocalypse of Gods">
+<meta property="og:description" content="Garuda is a fullscreen STG Roguelike Game.">
+<meta property="og:image" content="https://awplanets.github.io/garuda/docs/garuda-key-art.png">
+<meta property="og:image:secure_url" content="https://awplanets.github.io/garuda/docs/garuda-key-art.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="2640">
+<meta property="og:image:height" content="1474">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Garuda: Apocalypse of Gods">
+<meta name="twitter:description" content="Garuda is a fullscreen STG Roguelike Game.">
+<meta name="twitter:image" content="https://awplanets.github.io/garuda/docs/garuda-key-art.png">
+<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+<link rel="canonical" href="./">
+<link rel="preload" href="assets/logo.jpg" as="image">
+<link rel="preload" href="assets/Start.jpg" as="image">
+<link rel="preload" href="garuda.js" as="script">
+<script>
+(function()
+{
+	try
+	{
+		if (sessionStorage.getItem('garuda.skipLogoOnce') === '1')
+			document.documentElement.className += ' skip-logo-intro';
+	}
+	catch (e)
+	{
+	}
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator && location.protocol !== 'file:')
+	window.addEventListener('load', function()
+	{
+		navigator.serviceWorker.register('./sw.js').catch(function(){});
+	});
+</script>
+<style>
+* {
+	color: #EEE;
+	font-family: Consolas, monospace;
+}
+html, body {
+	/* I tried to use a gradient in the background but it doesn't look good */
+	background: #111;
+	height: 100%;
+	margin: 0;
+	/* This avoids the page scrolling up when pressing the cursor keys */
+	overflow: hidden;
+	padding: 0;
+	text-align: center;
+	width: 100%;
+}
+html:fullscreen,
+body:fullscreen,
+html:-webkit-full-screen,
+body:-webkit-full-screen,
+html:-moz-full-screen,
+body:-moz-full-screen {
+	background: #000;
+	height: 100%;
+	overflow: hidden;
+	width: 100%;
+}
+a:hover {
+	background: #FFF;
+	color: #000;
+	text-decoration: none;
+}
+#container, canvas {
+	display: block;
+	margin: auto;
+	/* WebKit browsers support max-height: 100% but I removed it because of layout issues */
+	max-width: 100%;
+}
+canvas {
+	background: #000;
+	/* I hat to remove the box-shadow because it made th game very slow in Opera */
+}
+/* The description is placed under the canvas by default */
+#desc {
+	background: #10161C;
+	background-image: -webkit-linear-gradient(#000 -8px, #10161C 16px);
+	background-image: -moz-linear-gradient(#000 -8px, #10161C 16px);
+	background-image: -o-linear-gradient(#000 -8px, #10161C 16px);
+	background-image: linear-gradient(#000 -8px, #10161C 16px);
+	border: 1px solid #234563;
+	border-radius: 0 0 .4em .4em;
+	border-top-style: none;
+	margin: 0 auto;
+	max-width: 990px;
+	padding: .6em 16px;
+	text-shadow: 0 1px 2px #000;
+}
+.note {
+	font-size: smaller;
+	margin: 0 0 1.5em;
+}
+svg {
+	/* WebKit browsers aren't able to scale the SVG properly when the height is missing */
+	height: 24px;
+	width: 24px;
+	vertical-align: top;
+}
+#tweet {
+	background: #10161C;
+	background-color: rgba(18, 24, 31, .9);
+	border: 1px solid #234563;
+	border-radius: .4em;
+	bottom: 3em;
+	box-shadow: 0 0 1em #000;
+	box-sizing: border-box;
+	left: 50%;
+	line-height: 1.6em;
+	margin: 0 0 0 -20em;
+	padding: 1.5em 0;
+	position: absolute;
+	width: 40em;
+}
+form {
+	margin: 0;
+	padding: 0;
+}
+input {
+	background: #1A2A39;
+	background-color: rgba(50, 100, 145, .2);
+	border: 1px solid #234563;
+	font-size: 100%;
+	width: 37em;
+}
+/* This set of media queries adjust the vertical alignment of the canvas */
+@media all and (min-height: 784px) {
+	#container {
+		padding-top: 8px;
+	}
+}
+@media all and (min-height: 800px) {
+	#container {
+		padding-top: 16px;
+	}
+}
+@media all and (min-height: 832px) {
+	#container {
+		padding-top: 32px;
+	}
+}
+@media all and (min-height: 896px) {
+	#container {
+		padding-top: 64px;
+	}
+}
+@media all and (min-height: 1024px) {
+	#container {
+		padding-top: 128px;
+	}
+}
+/* Move the description to the left if there is enough space */
+@media all and (min-width: 1176px) {
+	#container {
+		width: 1176px;
+	}
+	canvas {
+		float: right;
+		margin-left: 16px;
+	}
+	#desc {
+		background-image: -webkit-linear-gradient(left, #10161C 136px, #000 160px);
+		background-image: -moz-linear-gradient(left, #10161C 136px, #000 160px);
+		background-image: -o-linear-gradient(left, #10161C 136px, #000 160px);
+		background-image: linear-gradient(left, #10161C 136px, #000 160px);
+		border-radius: .4em;
+		border-style: solid;
+		margin: 0;
+		padding-top: 1.5em;
+		text-align: right;
+	}
+	.note, a.logo {
+		display: block;
+	}
+	a.logo:hover {
+		background: none;
+	}
+	svg {
+		height: 64px;
+		margin: 0 86px -32px -32px;
+		width: 64px;
+	}
+}
+/* Fullscreen remake shell: keep the high-resolution 2160x3840 game logic and scale only the presentation. */
+#container {
+	align-items: center;
+	background: #000;
+	display: flex;
+	height: 100vh;
+	justify-content: center;
+	margin: 0;
+	overflow: hidden;
+	padding: 0 !important;
+	width: 100vw;
+}
+canvas {
+	float: none;
+	height: min(100vh, 177.777778vw);
+	margin: 0;
+	max-height: 100vh;
+	max-width: 100vw;
+	width: min(100vw, 56.25vh);
+}
+canvas:fullscreen,
+canvas:-webkit-full-screen,
+canvas:-moz-full-screen {
+	background: #000;
+	height: min(100vh, 177.777778vw);
+	width: min(100vw, 56.25vh);
+}
+#desc {
+	display: none;
+}
+#tweet {
+	z-index: 2;
+}
+#hud {
+	box-sizing: border-box;
+	display: none;
+	height: min(100vh, 177.777778vw);
+	left: 50%;
+	pointer-events: none;
+	position: fixed;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: min(100vw, 56.25vh);
+	z-index: 3;
+	--hud-red: #FF442D;
+	--hud-cyan: #06D9FF;
+	--hud-yellow: #FFD200;
+	--hud-ink: rgba(0, 0, 0, .88);
+	--hud-paper: #F7F7F1;
+}
+#hud.active {
+	display: block;
+}
+#stage-banner {
+	align-items: center;
+	box-sizing: border-box;
+	display: none;
+	height: min(100vh, 177.777778vw);
+	justify-content: center;
+	left: 50%;
+	pointer-events: none;
+	position: fixed;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: min(100vw, 56.25vh);
+	z-index: 4;
+}
+#stage-banner.active {
+	display: flex;
+}
+.stage-splash {
+	box-sizing: border-box;
+	color: #FFF;
+	font-family: Impact, "Arial Black", sans-serif;
+	position: relative;
+	text-align: center;
+	text-transform: uppercase;
+	transform: rotate(-3deg) scale(.94);
+	width: 96%;
+}
+#stage-banner.active .stage-splash {
+	animation: stageSlam .52s cubic-bezier(.18, .94, .18, 1) both;
+}
+.stage-title {
+	background: none;
+	border: 0;
+	box-shadow: none;
+	clip-path: none;
+	display: block;
+	margin: 0 auto;
+	overflow: hidden;
+	padding: 0;
+	position: relative;
+	width: min(86%, 640px);
+	z-index: 2;
+}
+.stage-title-art {
+	display: block;
+	filter: drop-shadow(-12px 12px 0 rgba(0, 0, 0, .34)) drop-shadow(0 0 22px rgba(255, 122, 24, .24));
+	height: auto;
+	width: 100%;
+}
+.stage-title:before,
+.stage-strip:before {
+	background:
+		radial-gradient(circle at 3% 12%, #000 0 9px, transparent 10px),
+		radial-gradient(circle at 96% 88%, #000 0 13px, transparent 14px),
+		linear-gradient(90deg, transparent 0 4%, rgba(255,255,255,.08) 4% 5%, transparent 5% 100%);
+	content: "";
+	inset: -18px -28px;
+	position: absolute;
+}
+.stage-title:before {
+	display: none;
+}
+.stage-title:after {
+	background: linear-gradient(105deg, transparent 0 36%, rgba(255,255,255,.22) 44%, transparent 52% 100%);
+	content: "";
+	inset: 9% 8%;
+	position: absolute;
+	transform: translateX(-120%);
+}
+#stage-banner.active .stage-title:after {
+	animation: stageSweep .68s .16s ease-out both;
+}
+.stage-strip {
+	background: linear-gradient(135deg, rgba(5, 5, 5, .95), rgba(20, 10, 4, .92));
+	border: 2px solid #FF7A18;
+	box-shadow: -7px 7px 0 rgba(0,0,0,.34), 0 0 18px rgba(255,122,24,.24), inset 0 0 0 1px rgba(255,255,255,.08);
+	clip-path: polygon(6% 0, 100% 10%, 93% 100%, 0 86%);
+	color: #FFB13B;
+	font: 800 clamp(15px, 3.4vw, 26px)/1 "Arial Black", Impact, sans-serif;
+	margin: -7px auto 0;
+	padding: 8px 18px 10px;
+	position: relative;
+	text-shadow: 2px 3px 0 #000, 0 0 10px rgba(255,122,24,.42);
+	width: 44%;
+	z-index: 3;
+}
+.stage-strip strong,
+.stage-strip span {
+	color: inherit;
+	display: block;
+	font: inherit;
+	position: relative;
+}
+.stage-strip span {
+	font-size: clamp(18px, 4vw, 36px);
+	margin-top: 6px;
+}
+.stage-strip span:empty {
+	display: none;
+}
+.stage-splash > * {
+	position: relative;
+}
+@keyframes stageSlam {
+	0% {
+		opacity: 0;
+		transform: translateY(-26px) rotate(-7deg) scale(1.18);
+	}
+	55% {
+		opacity: 1;
+		transform: translateY(4px) rotate(-4deg) scale(.9);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0) rotate(-4deg) scale(.92);
+	}
+}
+@keyframes stageSweep {
+	0% {
+		transform: translateX(-120%);
+	}
+	100% {
+		transform: translateX(120%);
+	}
+}
+@keyframes bossBarEnter {
+	0% {
+		clip-path: polygon(3% 12%, 3% 12%, 3% 88%, 0 88%, 0 88%);
+		opacity: .2;
+		transform: translateX(-50%) scaleX(.03);
+	}
+	72% {
+		opacity: 1;
+		transform: translateX(-50%) scaleX(1.08);
+	}
+	100% {
+		clip-path: polygon(3% 12%, 97% 0, 100% 78%, 95% 100%, 0 88%);
+		opacity: 1;
+		transform: translateX(-50%) scaleX(1);
+	}
+}
+@keyframes bossBarSweep {
+	0% {
+		transform: translateX(-130%) skewX(-18deg);
+	}
+	100% {
+		transform: translateX(160%) skewX(-18deg);
+	}
+}
+.hud-top {
+	display: grid;
+	gap: 4px;
+	right: 18px;
+	position: absolute;
+	top: 22px;
+	width: min(180px, 30%);
+	z-index: 7;
+}
+.hud-chip {
+	background: none;
+	border: 0;
+	box-shadow: none;
+	clip-path: none;
+	overflow: hidden;
+	position: relative;
+	text-shadow: 0 2px 0 #000, 0 0 9px rgba(255,122,24,.45);
+}
+.hud-chip:before {
+	background: linear-gradient(90deg, transparent 0 18%, rgba(255,122,24,.78) 18% 100%);
+	content: "";
+	height: 2px;
+	opacity: .78;
+	position: absolute;
+	right: 0;
+	top: 100%;
+	width: 72%;
+}
+.hud-chip:after {
+	background: #FF7A18;
+	content: "";
+	height: 4px;
+	opacity: .9;
+	position: absolute;
+	right: 0;
+	top: calc(100% - 1px);
+	transform: skewX(-24deg);
+	width: 16px;
+}
+.hud-chip {
+	color: var(--hud-paper);
+	font: 800 clamp(12px, 1.05vw, 18px)/1 "Arial Black", Impact, sans-serif;
+	letter-spacing: .5px;
+	padding: 2px 2px 6px 0;
+	text-align: right;
+}
+.hud-chip strong {
+	color: var(--hud-yellow);
+	font: inherit;
+	margin-right: 5px;
+	position: relative;
+	text-shadow: 0 2px 0 #000, 0 0 8px rgba(255,210,0,.35);
+	z-index: 1;
+}
+.hud-chip span {
+	font: inherit;
+	position: relative;
+	z-index: 1;
+}
+.boss-health {
+	background: rgba(3, 3, 3, .86);
+	box-shadow: -8px 7px 0 rgba(0, 0, 0, .24), inset 0 0 0 1px rgba(255, 255, 255, .08);
+	box-sizing: border-box;
+	clip-path: polygon(3% 12%, 97% 0, 100% 78%, 95% 100%, 0 88%);
+	display: none;
+	left: 50%;
+	padding: 9px 18px 13px;
+	position: absolute;
+	top: 56px;
+	transform: translateX(-50%);
+	width: min(56%, 520px);
+	z-index: 4;
+}
+.boss-health.active {
+	display: block;
+}
+.boss-health.enter {
+	animation: bossBarEnter .68s cubic-bezier(.12, .88, .18, 1) both;
+	transform-origin: left center;
+}
+.boss-health.enter:after {
+	background: linear-gradient(90deg, transparent, rgba(255, 122, 24, .95), rgba(255, 230, 150, .86), transparent);
+	content: "";
+	inset: 0;
+	pointer-events: none;
+	position: absolute;
+	transform: translateX(-130%) skewX(-18deg);
+	width: 36%;
+	animation: bossBarSweep .68s cubic-bezier(.12, .88, .18, 1) both;
+}
+.boss-health-label {
+	color: #FF7A18;
+	display: flex;
+	font: 800 clamp(14px, 2.1vw, 23px)/1 "Arial Black", Impact, sans-serif;
+	justify-content: space-between;
+	margin-bottom: 6px;
+	text-shadow: 2px 3px 0 #000;
+	text-transform: uppercase;
+}
+.boss-health-track {
+	background: rgba(0, 0, 0, .82);
+	border: 2px solid #050505;
+	box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+	height: clamp(10px, 1.6vw, 18px);
+	overflow: hidden;
+	position: relative;
+	transform: skewX(-10deg);
+}
+.boss-health-fill {
+	background: linear-gradient(90deg, #FF391F, #FF7A18 62%, #FFD0A0);
+	box-shadow: 0 0 16px rgba(255, 74, 24, .75);
+	display: block;
+	height: 100%;
+	left: 0;
+	position: absolute;
+	top: 0;
+	transform: scaleX(1);
+	transform-origin: left center;
+	width: 100%;
+}
+.boss-health.shielded .boss-health-label {
+	color: #36E8FF;
+}
+.boss-health-shield-fill {
+	background: linear-gradient(90deg, #05D9FF, #46F4FF 58%, #FFFFFF);
+	box-shadow: 0 0 18px rgba(5, 217, 255, .8);
+	display: block;
+	height: 100%;
+	left: 0;
+	position: absolute;
+	top: 0;
+	transform: scaleX(0);
+	transform-origin: left center;
+	width: 100%;
+	z-index: 2;
+}
+.hud-status-stack {
+	height: 100%;
+	left: 4.8%;
+	position: absolute;
+	top: 2.35%;
+	width: 100%;
+}
+.hud-status-row {
+	height: auto;
+	position: absolute;
+	width: 52.5%;
+}
+.hud-status-row img {
+	display: block;
+	pointer-events: none;
+	width: 100%;
+}
+.hud-status-life {
+	left: -5.2%;
+	top: 75.05%;
+	z-index: 3;
+}
+.hud-status-shield {
+	left: -2.1%;
+	top: 78.05%;
+	width: 56.2%;
+	z-index: 2;
+}
+.hud-status-special {
+	left: -1.2%;
+	top: 80.55%;
+	width: 58.4%;
+	z-index: 1;
+}
+.killer-gauge {
+	--killer-charge: 0;
+	aspect-ratio: 1;
+	height: auto;
+	left: 1.8%;
+	pointer-events: none;
+	position: absolute;
+	top: 92.5%;
+	width: 13.4%;
+	z-index: 4;
+}
+.killer-gauge-shell {
+	background: none;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	box-sizing: border-box;
+	height: 100%;
+	overflow: hidden;
+	position: relative;
+	transform: rotate(-2deg);
+	width: 100%;
+}
+.killer-gauge-shell:before {
+	background: url("assets/killer.png") center / contain no-repeat;
+	content: "";
+	filter: grayscale(1) brightness(.58) contrast(1.08);
+	inset: 0;
+	opacity: .98;
+	position: absolute;
+}
+.killer-gauge-fill {
+	background: url("assets/killer.png") bottom center / 100% auto no-repeat;
+	bottom: 0;
+	clip-path: none;
+	display: block;
+	height: calc(var(--killer-charge) * 100%);
+	left: 0;
+	opacity: 1;
+	position: absolute;
+	width: 100%;
+	z-index: 1;
+}
+.killer-gauge-shell:after {
+	background: radial-gradient(circle at 50% 50%, transparent 0 42%, rgba(0,0,0,.08) 43% 100%);
+	bottom: 0;
+	content: "";
+	left: 0;
+	position: absolute;
+	right: 0;
+	top: 0;
+	z-index: 2;
+}
+.killer-gauge-label {
+	display: none;
+}
+.killer-gauge.ready .killer-gauge-shell {
+	filter: drop-shadow(0 0 5px rgba(255, 220, 100, .58)) drop-shadow(0 0 10px rgba(255, 122, 24, .28));
+}
+.killer-gauge.ready .killer-gauge-label {
+	color: #FFF2A0;
+}
+.killer-gauge.casting .killer-gauge-shell {
+	filter: saturate(1.35) brightness(1.12);
+}
+.killer-portrait {
+	--killer-x: 0%;
+	--killer-y: 0%;
+	--killer-r: 0deg;
+	--killer-s: 1;
+	bottom: 1.1%;
+	opacity: 0;
+	pointer-events: none;
+	position: absolute;
+	right: 1.6%;
+	transform: translate(58%, 42%) rotate(-8deg) scale(.9);
+	transition: opacity .14s ease-out, transform .22s cubic-bezier(.16, .84, .18, 1);
+	width: 46.5%;
+	will-change: opacity, transform;
+	z-index: 6;
+}
+.killer-portrait.active {
+	opacity: 1;
+	transition: opacity .1s ease-out;
+	transform: translate(var(--killer-x), var(--killer-y)) rotate(calc(-8deg + var(--killer-r))) scale(var(--killer-s));
+}
+.killer-portrait img {
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+	clip-path: polygon(7% 0, 100% 0, 99% 100%, 0 94%);
+	display: block;
+	filter: drop-shadow(-12px 12px 0 rgba(0,0,0,.38)) drop-shadow(0 0 24px rgba(255,122,24,.28));
+	width: 100%;
+}
+.killer-portrait.active img {
+	animation: killerPortraitTremor .08s steps(2, end) infinite;
+}
+@keyframes killerPortraitTremor {
+	0% { transform: translate(0, 0) rotate(0deg); }
+	25% { transform: translate(.6%, -.45%) rotate(.4deg); }
+	50% { transform: translate(-.45%, .55%) rotate(-.35deg); }
+	75% { transform: translate(.35%, .3%) rotate(.25deg); }
+	100% { transform: translate(-.2%, -.35%) rotate(-.25deg); }
+}
+.pause-panel {
+	background: rgba(3, 3, 3, .9);
+	box-shadow: -14px 12px 0 rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(255, 255, 255, .08);
+	box-sizing: border-box;
+	clip-path: polygon(2% 4%, 97% 0, 100% 88%, 94% 100%, 0 94%);
+	display: none;
+	left: 50%;
+	padding: 30px 34px 34px;
+	position: absolute;
+	text-align: center;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: min(78%, 420px);
+	z-index: 5;
+}
+.pause-panel:before {
+	background:
+		radial-gradient(circle at 0 12%, #000 0 14px, transparent 15px),
+		radial-gradient(circle at 100% 92%, #000 0 18px, transparent 19px),
+		linear-gradient(90deg, transparent 0 6%, rgba(255,255,255,.08) 6% 7%, transparent 7% 100%);
+	content: "";
+	inset: -18px -24px;
+	opacity: .8;
+	position: absolute;
+}
+.pause-panel.active {
+	display: block;
+}
+.pause-title {
+	color: #FFF;
+	font: 800 clamp(42px, 7vw, 72px)/1 "Arial Black", Impact, sans-serif;
+	margin: 0;
+	position: relative;
+	text-shadow: 4px 5px 0 #000;
+	text-transform: uppercase;
+}
+@media (max-width: 760px) {
+	.hud-top {
+		right: 10px;
+		top: 12px;
+		width: 28%;
+	}
+	.boss-health {
+		top: 56px;
+		width: 54%;
+	}
+	.hud-status-stack {
+		left: 0;
+		width: 100%;
+	}
+}
+#game-ui {
+	align-items: center;
+	background: #000;
+	box-sizing: border-box;
+	display: none;
+	inset: 0;
+	justify-content: center;
+	padding: 24px;
+	position: fixed;
+	z-index: 5;
+}
+#game-ui:before {
+	display: none;
+}
+.landing-poster,
+.landing-video {
+	height: min(100vh, 177.777778vw);
+	left: 50%;
+	object-fit: cover;
+	pointer-events: none;
+	position: absolute;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: min(100vw, 56.25vh);
+}
+.landing-poster {
+	display: none;
+	z-index: 0;
+}
+#game-ui.use-poster .landing-poster {
+	display: block;
+}
+.landing-video {
+	background: transparent;
+	opacity: 0;
+	transition: opacity .18s linear;
+	z-index: 1;
+}
+.landing-video.ready {
+	opacity: 1;
+}
+#logo-screen {
+	align-items: center;
+	background: #000;
+	box-sizing: border-box;
+	display: none;
+	inset: 0;
+	justify-content: center;
+	opacity: 0;
+	overflow: hidden;
+	position: fixed;
+	transition: opacity 1s ease;
+	z-index: 9;
+}
+#logo-screen.active {
+	display: flex;
+}
+#logo-screen.visible {
+	opacity: 1;
+}
+.logo-image {
+	display: block;
+	height: min(100vh, 177.777778vw);
+	object-fit: cover;
+	width: min(100vw, 56.25vh);
+}
+#game-ui.active {
+	display: flex;
+}
+#game-ui.booting .landing-poster,
+#game-ui.booting .landing-video,
+#game-ui.boot-loading .landing-poster,
+#game-ui.boot-loading .landing-video {
+	display: none;
+}
+#game-ui.boot-loading #menu-panel,
+#game-ui.boot-loading #leaderboard-panel,
+#game-ui.boot-loading #upgrade-panel,
+#game-ui.boot-loading #gameover-panel,
+#game-ui.boot-loading .resolution-control {
+	display: none !important;
+}
+#game-ui.boot-loading #loading-panel.active {
+	display: block !important;
+}
+#game-ui.menu-reveal {
+	animation: bootMenuFadeIn .72s ease both;
+}
+@keyframes bootMenuFadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+#game-ui.booting .ui-panel,
+#game-ui.booting .resolution-control {
+	display: none !important;
+}
+html.skip-logo-intro #logo-screen {
+	display: none !important;
+}
+html.skip-logo-intro #game-ui.booting .ui-panel.active {
+	display: block !important;
+}
+html.skip-logo-intro #game-ui.booting .resolution-control {
+	display: flex !important;
+}
+#game-ui.combat-overlay {
+	background: rgba(0, 0, 0, .38);
+}
+#game-ui.combat-overlay:before,
+#game-ui.combat-overlay .landing-poster,
+#game-ui.combat-overlay .landing-video {
+	display: none;
+}
+#prebattle-overlay {
+	align-items: center;
+	background: radial-gradient(circle at 50% 50%, rgba(255, 122, 24, .04), rgba(0, 0, 0, .16) 58%, rgba(0, 0, 0, .36));
+	box-sizing: border-box;
+	display: none;
+	height: min(100vh, 177.777778vw);
+	justify-content: center;
+	left: 50%;
+	pointer-events: none;
+	position: fixed;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: min(100vw, 56.25vh);
+	z-index: 6;
+}
+#prebattle-overlay.active {
+	display: flex;
+}
+.prebattle-frame {
+	background: linear-gradient(135deg, rgba(0, 0, 0, .96), rgba(10, 10, 10, .92) 56%, rgba(0, 0, 0, .98));
+	border: 2px solid rgba(255, 255, 255, .12);
+	box-shadow: -14px 14px 0 rgba(0, 0, 0, .48), 0 0 26px rgba(0, 0, 0, .72), inset 0 0 0 1px rgba(255,255,255,.06), inset 0 0 42px rgba(255, 122, 24, .06);
+	box-sizing: border-box;
+	clip-path: polygon(4% 0, 94% 0, 100% 9%, 100% 91%, 95% 100%, 5% 100%, 0 91%, 0 9%);
+	padding: clamp(8px, 2vw, 18px);
+	position: relative;
+	width: min(88%, 720px);
+}
+.prebattle-frame:before,
+.prebattle-frame:after {
+	background: linear-gradient(90deg, transparent, rgba(255,255,255,.1) 18%, rgba(255, 122, 24, .42) 50%, rgba(255,255,255,.1) 82%, transparent);
+	content: "";
+	height: 2px;
+	left: 12%;
+	position: absolute;
+	right: 12%;
+}
+.prebattle-frame:before {
+	top: 8px;
+}
+.prebattle-frame:after {
+	bottom: 8px;
+}
+.prebattle-video {
+	background: #000;
+	box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+	clip-path: polygon(1.5% 0, 98% 0, 100% 6%, 100% 94%, 98% 100%, 1.5% 100%, 0 94%, 0 6%);
+	display: block;
+	width: 100%;
+}
+.ui-panel {
+	background: rgba(3, 3, 3, .9);
+	box-shadow: -14px 12px 0 rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(255, 255, 255, .08);
+	box-sizing: border-box;
+	clip-path: polygon(2% 4%, 97% 0, 100% 88%, 94% 100%, 0 94%);
+	display: none;
+	max-width: 620px;
+	padding: 30px 34px 34px;
+	position: relative;
+	text-align: left;
+	width: min(92vw, 620px);
+	z-index: 2;
+}
+.ui-panel:before {
+	background:
+		radial-gradient(circle at 0 12%, #000 0 14px, transparent 15px),
+		radial-gradient(circle at 100% 92%, #000 0 18px, transparent 19px),
+		linear-gradient(90deg, transparent 0 6%, rgba(255,255,255,.08) 6% 7%, transparent 7% 100%);
+	content: "";
+	inset: -18px -24px;
+	opacity: .8;
+	position: absolute;
+}
+.ui-panel > * {
+	position: relative;
+}
+.ui-panel.active {
+	display: block;
+}
+#loading-panel:before {
+	display: none;
+}
+#menu-panel {
+	background: none;
+	box-shadow: none;
+	clip-path: none;
+	display: none;
+	height: min(100vh, 177.777778vw);
+	left: 50%;
+	max-width: none;
+	padding: 0;
+	position: absolute;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: min(100vw, 56.25vh);
+	z-index: 2;
+}
+#menu-panel:before {
+	display: none;
+}
+#menu-panel.active {
+	display: block;
+}
+#menu-panel .ui-title,
+#menu-panel .ui-subtitle {
+	display: none;
+}
+#menu-panel .ui-actions {
+	display: block;
+	height: 100%;
+	position: relative;
+	width: 100%;
+}
+#menu-panel .ui-button {
+	background: none;
+	border: 0;
+	box-shadow: none;
+	clip-path: none;
+	color: transparent;
+	display: block;
+	font-size: 0;
+	overflow: visible;
+	padding: 0;
+	position: absolute;
+	text-shadow: none;
+	transition: filter .14s ease, transform .14s ease;
+}
+#menu-panel .ui-button img {
+	display: block;
+	height: auto;
+	pointer-events: none;
+	width: 100%;
+}
+#menu-panel .ui-button:hover,
+#menu-panel .ui-button:focus {
+	filter: none;
+	outline: none;
+	transform: translateY(-4px) scale(1.015);
+}
+#menu-panel .ui-button:active {
+	filter: none;
+	transform: translateY(3px) scale(.99);
+}
+#start-game {
+	left: 27%;
+	top: 61.7%;
+	width: 46%;
+}
+#show-leaderboard {
+	left: 31.5%;
+	top: 71.35%;
+	width: 37%;
+}
+.resolution-control {
+	align-items: center;
+	background: rgba(3, 3, 3, .74);
+	border: 2px solid rgba(255, 122, 24, .75);
+	box-shadow: -5px 5px 0 #050505;
+	box-sizing: border-box;
+	display: flex;
+	gap: 10px;
+	left: 50%;
+	min-height: 42px;
+	padding: 8px 10px;
+	pointer-events: auto;
+	position: absolute;
+	top: 84.8%;
+	transform: translateX(-50%);
+	width: min(38%, 250px);
+	z-index: 8;
+}
+.resolution-control label {
+	color: #FF7A18;
+	font: 800 clamp(10px, 2.2vw, 15px)/1 "Arial Black", Impact, sans-serif;
+	text-shadow: 2px 2px 0 #000;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+.resolution-control select {
+	appearance: auto;
+	-webkit-appearance: menulist-button;
+	background: #0B0B0B;
+	border: 1px solid rgba(255,255,255,.2);
+	box-sizing: border-box;
+	color: #FFF;
+	cursor: pointer;
+	flex: 1;
+	font: 700 clamp(10px, 2.1vw, 15px)/1.15 Consolas, monospace;
+	min-width: 0;
+	padding: 5px 4px;
+	text-align: center;
+}
+.resolution-control option {
+	background: #0B0B0B;
+	color: #FFF;
+}
+.ui-title {
+	color: #FFF;
+	font: 800 56px/1 "Arial Black", Impact, sans-serif;
+	margin: 0 0 14px;
+	text-align: center;
+	text-transform: uppercase;
+	text-shadow: 4px 5px 0 #000;
+}
+.ui-subtitle,
+.score-summary {
+	color: #FF7A18;
+	font: 800 19px/1 "Arial Black", Impact, sans-serif;
+	margin: 0 0 22px;
+	text-align: center;
+	text-transform: uppercase;
+}
+.loading-meter {
+	background: rgba(255, 255, 255, .08);
+	border: 3px solid #050505;
+	box-shadow: inset 0 0 0 1px rgba(255,255,255,.1), -5px 5px 0 #050505;
+	height: 24px;
+	margin: 18px 0 12px;
+	overflow: hidden;
+	transform: skewX(-12deg);
+}
+.loading-fill {
+	background: linear-gradient(90deg, #FF7A18, #FFD200);
+	display: block;
+	height: 100%;
+	transform: scaleX(0);
+	transform-origin: left center;
+	transition: transform .16s ease-out;
+	width: 100%;
+}
+.loading-copy {
+	color: #FFF;
+	font: 800 18px/1 "Arial Black", Impact, sans-serif;
+	text-align: right;
+	text-shadow: 3px 3px 0 #000;
+}
+.upgrade-grid {
+	display: grid;
+	gap: 14px;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.upgrade-grid.enemy-trait-grid {
+	gap: 10px;
+}
+.upgrade-card {
+	--upgrade-bg: rgba(255, 122, 24, .12);
+	--upgrade-border: #FF7A18;
+	--upgrade-shadow: -7px 7px 0 #050505, inset 0 0 0 1px rgba(255,255,255,.08);
+	background: none;
+	border: 0;
+	box-shadow: none;
+	color: #FFF;
+	cursor: pointer;
+	isolation: isolate;
+	min-height: 158px;
+	min-width: 0;
+	overflow: visible;
+	padding: 18px 14px;
+	position: relative;
+	text-align: left;
+	transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+}
+.upgrade-card:before {
+	background: var(--upgrade-bg);
+	border: 2px solid var(--upgrade-border);
+	box-shadow: var(--upgrade-shadow);
+	box-sizing: border-box;
+	clip-path: polygon(5% 0, 100% 4%, 94% 100%, 0 93%);
+	content: "";
+	inset: 0;
+	position: absolute;
+	z-index: -1;
+}
+.upgrade-card:hover,
+.upgrade-card:focus {
+	filter: brightness(1.12) saturate(1.08);
+	outline: none;
+	transform: translateY(-4px);
+}
+.upgrade-card:active {
+	transform: translate(-3px, 3px) scale(.98);
+}
+.upgrade-card:active:before {
+	box-shadow: -3px 3px 0 #050505, inset 0 3px 0 rgba(0,0,0,.22);
+}
+.upgrade-card strong {
+	color: #FF7A18;
+	display: block;
+	font: 800 18px/1 "Arial Black", Impact, sans-serif;
+	margin-bottom: 10px;
+	padding-left: 0;
+	position: relative;
+	text-shadow: 3px 3px 0 #000;
+	text-transform: uppercase;
+	white-space: nowrap;
+	z-index: 1;
+}
+.upgrade-card .upgrade-text {
+	color: #FFF;
+	display: block;
+	font: 800 12px/1.25 "Arial Black", Impact, sans-serif;
+	position: relative;
+	text-shadow: 2px 2px 0 #000;
+	text-transform: uppercase;
+	z-index: 1;
+}
+.upgrade-icon {
+	align-items: center;
+	display: flex;
+	height: 58px;
+	justify-content: center;
+	left: -18px;
+	position: absolute;
+	top: -18px;
+	width: 58px;
+	z-index: 2;
+}
+.upgrade-icon img {
+	display: block;
+	filter: drop-shadow(3px 3px 0 rgba(0,0,0,.7)) drop-shadow(0 0 8px rgba(255,255,255,.18));
+	height: 100%;
+	object-fit: contain;
+	pointer-events: none;
+	width: 100%;
+}
+.upgrade-icon.empty {
+	opacity: 0;
+}
+.upgrade-icon.trait-icon {
+	box-sizing: border-box;
+	color: #FF4A4A;
+	font: 800 17px/1 "Arial Black", Impact, sans-serif;
+	text-shadow: 2px 2px 0 #000, 0 0 10px rgba(255, 0, 0, .6);
+}
+.upgrade-card.primary {
+	--upgrade-bg: rgba(255, 122, 24, .12);
+	--upgrade-border: #FF7A18;
+}
+.upgrade-card.primary strong {
+	color: #FF7A18;
+}
+.upgrade-card.laser {
+	--upgrade-bg: rgba(31, 232, 255, .12);
+	--upgrade-border: #1FE8FF;
+}
+.upgrade-card.laser strong {
+	color: #1FE8FF;
+}
+.upgrade-card.bomb {
+	--upgrade-bg: rgba(180, 70, 255, .13);
+	--upgrade-border: #B446FF;
+}
+.upgrade-card.bomb strong {
+	color: #D887FF;
+}
+.upgrade-card.shield {
+	--upgrade-bg: rgba(30, 118, 255, .13);
+	--upgrade-border: #1E76FF;
+}
+.upgrade-card.shield strong {
+	color: #49A4FF;
+}
+.upgrade-card.speed {
+	--upgrade-bg: rgba(49, 232, 96, .14);
+	--upgrade-border: #31E860;
+}
+.upgrade-card.speed strong {
+	color: #76FF8E;
+}
+.upgrade-card.killer {
+	--upgrade-bg: rgba(255, 132, 24, .16);
+	--upgrade-border: #FF8A18;
+	--upgrade-shadow: -7px 7px 0 #050505, 0 0 22px rgba(255, 122, 24, .24), inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.upgrade-card.killer strong {
+	color: #FFB13B;
+}
+.upgrade-card.enemy-trait {
+	--upgrade-bg: linear-gradient(145deg, rgba(0, 0, 0, .96), rgba(28, 0, 0, .9));
+	--upgrade-border: #FF1F1F;
+	--upgrade-shadow: -7px 7px 0 #050505, 0 0 22px rgba(255, 20, 20, .22), inset 0 0 0 1px rgba(255,255,255,.06);
+	min-height: 146px;
+	padding: 22px 9px 14px;
+}
+.upgrade-card.enemy-trait:before {
+	background: var(--upgrade-bg);
+}
+.upgrade-card.enemy-trait strong {
+	color: #FF3535;
+	font-size: 13px;
+	text-shadow: 3px 3px 0 #000, 0 0 10px rgba(255, 0, 0, .45);
+}
+.upgrade-card.enemy-trait .upgrade-text {
+	color: #FFD8D8;
+	font-size: 10px;
+	line-height: 1.22;
+}
+.upgrade-card.enemy-trait:hover,
+.upgrade-card.enemy-trait:focus {
+	filter: brightness(1.08) saturate(1.18);
+}
+.ui-actions {
+	display: grid;
+	gap: 14px;
+}
+.ui-actions.row {
+	grid-template-columns: 1fr 1fr;
+}
+.ui-button {
+	background: #FF7A18;
+	border: 0;
+	box-shadow: -8px 8px 0 #050505, inset 0 -4px 0 rgba(0,0,0,.24);
+	clip-path: polygon(4% 0, 100% 8%, 96% 100%, 0 92%);
+	color: #050505;
+	cursor: pointer;
+	font: 800 22px/1 "Arial Black", Impact, sans-serif;
+	padding: 16px 18px;
+	position: relative;
+	text-transform: uppercase;
+	transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+}
+.ui-button:hover,
+.ui-button:focus {
+	filter: brightness(1.12) saturate(1.1);
+	outline: none;
+	transform: translateY(-3px) rotate(-1deg);
+}
+.ui-button:active {
+	box-shadow: -3px 3px 0 #050505, inset 0 3px 0 rgba(0,0,0,.22);
+	transform: translate(-3px, 3px) scale(.98);
+}
+.ui-input {
+	background: rgba(0, 0, 0, .72);
+	border: 2px solid #FF7A18;
+	box-sizing: border-box;
+	color: #FFF;
+	font: 800 18px/1 "Arial Black", Impact, sans-serif;
+	margin: 0 0 12px;
+	padding: 12px 14px;
+	width: 100%;
+}
+.score-list {
+	list-style: none;
+	margin: 0 0 20px;
+	padding: 0;
+}
+.score-list li {
+	border-bottom: 1px solid rgba(255, 122, 24, .28);
+	color: #FFF;
+	display: grid;
+	font: 800 17px/1.15 "Arial Black", Impact, sans-serif;
+	gap: 8px;
+	grid-template-columns: 1fr auto auto;
+	padding: 9px 0;
+	text-transform: uppercase;
+}
+.score-list strong {
+	color: #FF7A18;
+}
+.score-list em {
+	color: #FFD200;
+	font-style: normal;
+}
+.score-list .empty-score {
+	display: block;
+	text-align: center;
+}
+.leaderboard-status {
+	color: rgba(255,255,255,.72);
+	font: 800 12px/1.25 "Arial Black", Impact, sans-serif;
+	letter-spacing: 0;
+	margin: -8px 0 12px;
+	min-height: 16px;
+	text-align: center;
+	text-shadow: 2px 2px 0 #000;
+	text-transform: uppercase;
+}
+.leaderboard-status.online {
+	color: #48D8FF;
+}
+.leaderboard-status.local {
+	color: #FFD200;
+}
+.leaderboard-status.error {
+	color: #FF6A52;
+}
+.score-list li.highlight {
+	background: linear-gradient(90deg, rgba(255, 122, 24, .2), rgba(255, 210, 0, .08), transparent);
+	border-bottom-color: rgba(255, 210, 0, .7);
+	box-shadow: inset 4px 0 0 #FF7A18, 0 0 18px rgba(255, 122, 24, .24);
+	padding-left: 12px;
+}
+.gameover-page {
+	display: none;
+}
+.gameover-page.active {
+	display: block;
+}
+.result-stats {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(2, 1fr);
+	margin: 18px 0 22px;
+}
+.result-stat {
+	background: linear-gradient(135deg, rgba(255, 122, 24, .14), rgba(0, 0, 0, .64));
+	border: 1px solid rgba(255, 122, 24, .42);
+	box-shadow: -5px 5px 0 #050505, inset 0 0 0 1px rgba(255,255,255,.06);
+	box-sizing: border-box;
+	clip-path: polygon(5% 0, 100% 6%, 95% 100%, 0 92%);
+	min-height: 72px;
+	padding: 12px 14px;
+}
+.result-stat span {
+	color: #FFD200;
+	display: block;
+	font: 800 11px/1 "Arial Black", Impact, sans-serif;
+	margin-bottom: 8px;
+	text-shadow: 2px 2px 0 #000;
+	text-transform: uppercase;
+}
+.result-stat strong {
+	color: #FFF;
+	display: block;
+	font: 800 24px/1 "Arial Black", Impact, sans-serif;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	text-shadow: 3px 3px 0 #000;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+.result-row {
+	margin: 0 0 18px;
+}
+.result-row h3 {
+	color: #FF7A18;
+	font: 800 16px/1 "Arial Black", Impact, sans-serif;
+	margin: 0 0 10px;
+	text-shadow: 3px 3px 0 #000;
+	text-transform: uppercase;
+}
+.result-icons {
+	align-items: center;
+	background: rgba(0, 0, 0, .34);
+	border: 1px solid rgba(255, 122, 24, .22);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	min-height: 70px;
+	overflow: visible;
+	padding: 10px;
+}
+.result-icon {
+	align-items: center;
+	box-sizing: border-box;
+	display: flex;
+	flex: 0 0 auto;
+	height: 54px;
+	justify-content: center;
+	position: relative;
+	width: 54px;
+}
+.result-icon img {
+	display: block;
+	filter: drop-shadow(3px 3px 0 rgba(0,0,0,.7)) drop-shadow(0 0 8px rgba(255,255,255,.18));
+	height: 100%;
+	object-fit: contain;
+	width: 100%;
+}
+.result-icon.trait {
+	color: #FF4A4A;
+	font: 800 16px/1 "Arial Black", Impact, sans-serif;
+	text-shadow: 2px 2px 0 #000, 0 0 10px rgba(255, 0, 0, .6);
+}
+.result-empty {
+	color: rgba(255,255,255,.55);
+	font: 800 13px/1 "Arial Black", Impact, sans-serif;
+	text-transform: uppercase;
+}
+.gameover-next {
+	margin-top: 4px;
+	width: 100%;
+}
+@media (max-width: 560px) {
+	.ui-title {
+		font-size: 42px;
+	}
+	.ui-actions.row {
+		grid-template-columns: 1fr;
+	}
+	.upgrade-grid {
+		grid-template-columns: 1fr;
+	}
+	.upgrade-icon {
+		height: 52px;
+		width: 52px;
+	}
+	.result-stats {
+		grid-template-columns: 1fr;
+	}
+}
+</style>
+</head>
+<body>
+
+<div id="container">
+	<canvas width="2160" height="3840" id="c" moz-opaque>
+		<h1>Garuda</h1>
+		<p>This arcade space shooter requires a modern HTML5 enabled web browser and JavaScript enabled.
+		Created by DynamicWang on 2026-05-01.</p>
+	</canvas>
+	<p id="desc">
+		<a href="./" rel="bookmark" title="Permalink to this game">Garuda</a>
+		is a fullscreen STG Roguelike Game.
+		<span class="note">Created by DynamicWang.</span>
+		<span class="note">AWPlanet.</span>
+		<span class="note">2026-05-01.</span>
+		<span class="note">
+			Press X to fire,
+			<a href="#" onclick="return toggleFullscreen()">F for fullscreen</a>.
+		</span>
+		<a href="./" title="DynamicWang" class="logo">
+			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8">
+				<g fill="#08F" stroke="#000">
+					<path d="M7 3s1 1 0 2L5 7S4 8 3 7L1 5S0 4 1 3l2-2s1-1 2 0z" stroke-width=".3" />
+					<path d="M4 4h.5c1 0 1 1.6 0 1.6h-.9c-1.5 0-1.5-3.2 0-3.2h1.9" />
+				</g>
+			</svg>
+		</a>
+	</p>
+</div>
+
+<div id="hud">
+	<div class="hud-top">
+		<div class="hud-chip"><strong>SCORE:</strong><span id="hud-score">0</span></div>
+		<div class="hud-chip"><strong>WAVE:</strong><span id="hud-wave">0</span></div>
+	</div>
+	<div id="boss-health" class="boss-health" aria-hidden="true">
+		<div class="boss-health-label"><span>BOSS</span><span id="boss-health-text">100%</span></div>
+		<div class="boss-health-track"><span id="boss-health-fill" class="boss-health-fill"></span><span id="boss-health-shield-fill" class="boss-health-shield-fill"></span></div>
+	</div>
+	<div class="hud-status-stack" aria-label="Status">
+		<div class="hud-status-row hud-status-life"><img id="hud-health-image" src="assets/blood_full.png" alt="Life"></div>
+		<div class="hud-status-row hud-status-shield"><img id="hud-shield-image" src="assets/shield_full.png" alt="Shield"></div>
+		<div class="hud-status-row hud-status-special"><img id="hud-special-image" src="assets/special_full.png" alt="Special"></div>
+	</div>
+	<div id="killer-gauge" class="killer-gauge" aria-hidden="true">
+		<div class="killer-gauge-shell"><span class="killer-gauge-fill"></span></div>
+		<span class="killer-gauge-label">R</span>
+	</div>
+	<div id="killer-portrait" class="killer-portrait" aria-hidden="true">
+		<img src="assets/garuda_killermove.webp" alt="">
+	</div>
+	<div id="pause-panel" class="pause-panel" aria-hidden="true">
+		<h2 class="pause-title">Pause</h2>
+	</div>
+</div>
+
+<div id="stage-banner">
+	<div class="stage-splash">
+		<div class="stage-title"><img class="stage-title-art" src="assets/mission_start.png" alt="任务开始"></div>
+		<div class="stage-strip">
+			<strong id="stage-number">1-1</strong>
+			<span id="stage-name">Neo-Tokyo</span>
+		</div>
+	</div>
+</div>
+
+<div id="prebattle-overlay" aria-hidden="true">
+	<div class="prebattle-frame">
+		<video class="prebattle-video" id="prebattle-video" src="assets/start_anime_compressed.mp4" preload="auto" playsinline></video>
+	</div>
+</div>
+
+<div id="logo-screen" class="active" aria-hidden="true">
+	<img class="logo-image" src="assets/logo.jpg" alt="">
+</div>
+
+<div id="game-ui" class="active booting">
+	<img class="landing-poster" id="landing-poster" src="assets/Start.jpg" alt="" decoding="async" fetchpriority="high">
+	<video class="landing-video" id="landing-video" src="assets/garuda_menu.mp4" poster="assets/Start.jpg" autoplay muted loop playsinline preload="auto"></video>
+	<section id="menu-panel" class="ui-panel active">
+		<h1 class="ui-title">Garuda</h1>
+		<p class="ui-subtitle">Arcade Strike Mission</p>
+		<div class="ui-actions">
+			<button class="ui-button" id="start-game" type="button" aria-label="Game Start"><img src="assets/button_start.png" alt=""></button>
+			<button class="ui-button" id="show-leaderboard" type="button" aria-label="Rank"><img src="assets/button_rank.png" alt=""></button>
+		</div>
+	</section>
+	<div class="resolution-control">
+		<label for="resolution-select">Render</label>
+		<select id="resolution-select" aria-label="Render Resolution">
+			<option value="3840">2160 x 3840</option>
+			<option value="3200">1800 x 3200</option>
+			<option value="2560">1440 x 2560</option>
+			<option value="1920">1080 x 1920</option>
+		</select>
+	</div>
+	<section id="leaderboard-panel" class="ui-panel">
+		<h2 class="ui-title">Rank</h2>
+		<p class="leaderboard-status" id="leaderboard-status"></p>
+		<ol class="score-list" id="leaderboard-list"></ol>
+		<div class="ui-actions row">
+			<button class="ui-button" id="leaderboard-start" type="button">Game Start</button>
+			<button class="ui-button" id="leaderboard-back" type="button">Back</button>
+		</div>
+	</section>
+	<section id="loading-panel" class="ui-panel">
+		<h2 class="ui-title">Loading</h2>
+		<p class="score-summary">Assets</p>
+		<div class="loading-meter"><span class="loading-fill" id="loading-fill"></span></div>
+		<div class="loading-copy" id="loading-percent">0%</div>
+	</section>
+	<section id="upgrade-panel" class="ui-panel">
+		<h2 class="ui-title">Upgrade</h2>
+		<p class="score-summary" id="upgrade-summary">Choose One</p>
+		<div class="upgrade-grid" id="upgrade-cards"></div>
+	</section>
+	<section id="gameover-panel" class="ui-panel">
+		<div id="gameover-summary-page" class="gameover-page active">
+			<h2 class="ui-title">Mission End</h2>
+			<p class="score-summary" id="score-summary">SCORE 0 / WAVE 0</p>
+			<div class="result-stats">
+				<div class="result-stat"><span>Total Score</span><strong id="result-score">0</strong></div>
+				<div class="result-stat"><span>Play Time</span><strong id="result-time">00:00</strong></div>
+				<div class="result-stat"><span>Kills</span><strong id="result-kills">0</strong></div>
+				<div class="result-stat"><span>Top Skill</span><strong id="result-skill">Primary</strong></div>
+			</div>
+			<div class="result-row">
+				<h3>Talents</h3>
+				<div class="result-icons" id="result-upgrades"></div>
+			</div>
+			<div class="result-row">
+				<h3>Enemy Traits</h3>
+				<div class="result-icons" id="result-traits"></div>
+			</div>
+			<button class="ui-button gameover-next" id="gameover-next" type="button">Next</button>
+		</div>
+		<div id="gameover-rank-page" class="gameover-page">
+			<h2 class="ui-title">Rank</h2>
+			<p class="score-summary" id="rank-score-summary">SCORE 0 / WAVE 0</p>
+			<input class="ui-input" id="player-name" maxlength="16" placeholder="输入名字" autocomplete="off">
+			<div class="ui-actions row">
+				<button class="ui-button" id="save-score" type="button">Save</button>
+				<button class="ui-button" id="restart-game" type="button">Restart</button>
+			</div>
+			<p class="leaderboard-status" id="final-leaderboard-status"></p>
+			<ol class="score-list" id="final-leaderboard-list"></ol>
+		</div>
+	</section>
+</div>
+
+<p id="tweet">
+	<!-- The default message will be changed by the script -->
+	<a href="https://twitter.com/share?text=I+played+Garuda."
+		target="twitter">Click here to tweet your score</a><br>
+	or blog it:<br>
+	<input value="I played Garuda.">
+</p>
+
+<!-- I merged both scripts to a single file and used Closure Compiler to compress it. This also makes it run a lot faster. -->
+<script>
+window.GARUDA_LEADERBOARD_API = 'https://falling-sound-fb6a.dynamicwang-awplanet.workers.dev';
+</script>
+<script src="jsfxr.js"></script>
+<script src="garuda.js"></script>
+
+</body>
+</html>

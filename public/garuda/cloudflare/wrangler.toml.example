@@ -1,0 +1,8 @@
+name = "garuda-leaderboard"
+main = "cloudflare/leaderboard-worker.js"
+compatibility_date = "2026-05-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "garuda_leaderboard"
+database_id = "replace-with-your-d1-database-id"

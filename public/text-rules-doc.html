@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>紧凑卡片内容省略规则</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+    background: #f5f5f7;
+    color: #101218;
+    padding: 40px;
+    width: 1280px;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: rgba(16,18,24,0.55);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+
+  .rules-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .rule-card {
+    background: #fff;
+    border: 1px solid rgba(16,18,24,0.08);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .rule-card .num {
+    display: inline-flex;
+    width: 20px; height: 20px;
+    align-items: center; justify-content: center;
+    background: #101218; color: #fff;
+    border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    margin-right: 8px;
+  }
+  .rule-card .title {
+    font-size: 15px; font-weight: 600;
+    display: flex; align-items: center;
+    margin-bottom: 6px;
+  }
+  .rule-card .desc {
+    font-size: 12.5px;
+    color: rgba(16,18,24,0.55);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  .rule-card .cssline {
+    font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
+    font-size: 11.5px;
+    background: rgba(16,18,24,0.04);
+    padding: 8px 10px;
+    border-radius: 6px;
+    color: rgba(16,18,24,0.75);
+    line-height: 1.6;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rule-card .cssline .k { color: #5b21b6; }
+  .rule-card .cssline .v { color: #047857; }
+
+  .examples-section {
+    background: #fff;
+    border: 1px solid rgba(16,18,24,0.08);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .section-title {
+    font-size: 16px; font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .section-hint {
+    font-size: 12.5px;
+    color: rgba(16,18,24,0.55);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .examples-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .example {
+    width: 232px;
+  }
+  .example .label {
+    font-size: 12px;
+    color: rgba(16,18,24,0.55);
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+  .example .label .name {
+    color: #101218; font-weight: 600;
+  }
+
+  /* ───────── Card mock ───────── */
+  .card {
+    background: #fff;
+    border: 1px solid rgba(16,18,24,0.08);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 2px rgba(16,18,24,0.04);
+  }
+  .card .banner {
+    aspect-ratio: 632 / 272;
+    background: linear-gradient(135deg, #d6e4f5 0%, #c5cae9 50%, #e1cdf4 100%);
+  }
+  .card .body {
+    padding: 8px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  /* 1. Title: 1-line ellipsis */
+  .card .title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 22px;
+    color: #101218;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* 2. Tag row: never wraps; type/health fixed; category truncates */
+  .card .tags {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 5px;
+    overflow: hidden;
+  }
+  .card .tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+  }
+  .card .tag.type { flex-shrink: 0; white-space: nowrap; background: #ece9fe; color: #5720b7; }
+  .card .tag.cat {
+    flex-shrink: 1;
+    min-width: 0;
+    background: rgba(115,158,202,0.18);
+    color: #373d46;
+  }
+  .card .tag.cat .inner {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card .tag.health {
+    flex-shrink: 0;
+    white-space: nowrap;
+    gap: 6px;
+    padding: 1px 8px;
+    background: rgba(16,18,24,0.05);
+    color: rgba(16,18,24,0.8);
+  }
+  .card .tag.health::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 999px;
+    background: #10b981;
+  }
+  /* 3. Description: 1-line ellipsis */
+  .card .desc {
+    font-size: 12px;
+    line-height: 16px;
+    color: rgba(16,18,24,0.6);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* 4. Meta row: never wraps; owner name truncates; time/count fixed */
+  .card .meta {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: rgba(16,18,24,0.6);
+  }
+  .card .meta .owner {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 4px;
+  }
+  .card .meta .owner .avatar {
+    flex-shrink: 0;
+    width: 16px; height: 16px;
+    border-radius: 999px;
+    background: #393939;
+  }
+  .card .meta .owner .name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 18px;
+  }
+  .card .meta .divider {
+    flex-shrink: 0;
+    display: inline-block;
+    width: 1px; height: 10px;
+    background: rgba(16,18,24,0.15);
+  }
+  .card .meta .time,
+  .card .meta .count {
+    flex-shrink: 0;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 16px;
+  }
+  .card .meta .count .icon {
+    flex-shrink: 0;
+    width: 12px; height: 12px;
+    background: rgba(16,18,24,0.45);
+    -webkit-mask-image: radial-gradient(circle, currentColor 40%, transparent 41%);
+    border-radius: 2px;
+  }
+  /* Annotation tag — sits next to truncatable text */
+  .annot {
+    position: relative;
+  }
+  .annot-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    color: #d63384;
+    margin-top: 6px;
+  }
+  .annot-line .dot {
+    width: 4px; height: 4px;
+    border-radius: 999px;
+    background: #d63384;
+  }
+</style>
+</head>
+<body>
+
+<h1>紧凑卡片内容省略规则</h1>
+<p class="subtitle">
+  在 200–280px 列宽区间内，卡片内任何一行都<strong>不允许换行</strong>。每行内的元素分两类：
+  <strong>固定不缩 (shrink-0)</strong> 与 <strong>可压缩并省略 (truncate)</strong>。
+  下方枚举了 4 条规则，并配以窄宽对比示例。
+</p>
+
+<div class="rules-grid">
+
+  <div class="rule-card">
+    <div class="title"><span class="num">1</span>标题</div>
+    <div class="desc">单行展示，超出末尾以 <strong>…</strong> 截断。不换行。</div>
+    <div class="cssline"><span class="k">line-clamp</span>: <span class="v">1</span>; <span class="k">overflow</span>: <span class="v">hidden</span>; <span class="k">text-overflow</span>: <span class="v">ellipsis</span>;</div>
+  </div>
+
+  <div class="rule-card">
+    <div class="title"><span class="num">2</span>标签行 (类型 / 分类 / 健康度)</div>
+    <div class="desc">
+      行内不换行。<strong>类型 (Skill/MCP/知识库)</strong> 与 <strong>健康度</strong> 标签固定宽度，永远完整展示；
+      只有 <strong>分类</strong> 标签可压缩，内部文案 <strong>…</strong> 截断。
+    </div>
+    <div class="cssline"><span class="k">flex-wrap</span>: <span class="v">nowrap</span>; 类型/健康度 <span class="k">flex-shrink</span>:<span class="v">0</span>; 分类 <span class="k">flex-shrink</span>:<span class="v">1</span> + <span class="k">truncate</span></div>
+  </div>
+
+  <div class="rule-card">
+    <div class="title"><span class="num">3</span>描述</div>
+    <div class="desc">单行展示，超出末尾以 <strong>…</strong> 截断。不换行。</div>
+    <div class="cssline"><span class="k">line-clamp</span>: <span class="v">1</span>; <span class="k">overflow</span>: <span class="v">hidden</span>; <span class="k">text-overflow</span>: <span class="v">ellipsis</span>;</div>
+  </div>
+
+  <div class="rule-card">
+    <div class="title"><span class="num">4</span>元信息行 (来源 / 时间 / 调用量)</div>
+    <div class="desc">
+      行内不换行。<strong>时间</strong>、<strong>调用量</strong> 固定宽度，永远完整展示；
+      只有 <strong>来源 (用户名)</strong> 可压缩，内部文案 <strong>…</strong> 截断。
+    </div>
+    <div class="cssline"><span class="k">flex-wrap</span>: <span class="v">nowrap</span>; 时间/调用量 <span class="k">flex-shrink</span>:<span class="v">0</span>; 来源 <span class="k">min-width</span>:<span class="v">0</span> + <span class="k">truncate</span></div>
+  </div>
+
+</div>
+
+<div class="examples-section">
+  <div class="section-title">实例对照 · 同一卡片在不同内容长度下的截断表现</div>
+  <div class="section-hint">所有示例卡片宽度均为 <strong>200px</strong>（最窄列宽）。左列展示短文案完整态，右列展示长文案触发截断时的态。</div>
+
+  <div class="examples-row">
+
+    <div class="example">
+      <div class="label"><span class="name">① 标题</span> · 短文案（完整）</div>
+      <div class="card">
+        <div class="banner"></div>
+        <div class="body">
+          <div class="title">联网搜索</div>
+          <div class="tags"><span class="tag type">Skill</span><span class="tag cat"><span class="inner">联网搜索</span></span></div>
+          <div class="desc">一句话拉到最新数据。</div>
+          <div class="meta"><span class="owner"><span class="avatar"></span><span class="name">抖音官方</span></span><span class="divider"></span><span class="time">2 天前</span><span class="divider"></span><span class="count"><span class="icon"></span>1.2k</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="label"><span class="name">① 标题</span> · 长文案（…截断）</div>
+      <div class="card">
+        <div class="banner"></div>
+        <div class="body">
+          <div class="title">直播大盘综合数据分析归因报表</div>
+          <div class="tags"><span class="tag type">Skill</span><span class="tag cat"><span class="inner">联网搜索</span></span></div>
+          <div class="desc">一句话拉到最新数据。</div>
+          <div class="meta"><span class="owner"><span class="avatar"></span><span class="name">抖音官方</span></span><span class="divider"></span><span class="time">2 天前</span><span class="divider"></span><span class="count"><span class="icon"></span>1.2k</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="label"><span class="name">② 标签</span> · 分类短（完整）</div>
+      <div class="card">
+        <div class="banner"></div>
+        <div class="body">
+          <div class="title">异常监测</div>
+          <div class="tags"><span class="tag type">Skill</span><span class="tag cat"><span class="inner">系统</span></span><span class="tag health">健康</span></div>
+          <div class="desc">关键指标命中异常自动告警。</div>
+          <div class="meta"><span class="owner"><span class="avatar"></span><span class="name">抖音官方</span></span><span class="divider"></span><span class="time">3 天前</span><span class="divider"></span><span class="count"><span class="icon"></span>820</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="label"><span class="name">② 标签</span> · 分类长（仅分类截断）</div>
+      <div class="card">
+        <div class="banner"></div>
+        <div class="body">
+          <div class="title">异常监测</div>
+          <div class="tags"><span class="tag type">Skill</span><span class="tag cat"><span class="inner">数据分析与监控告警</span></span><span class="tag health">健康</span></div>
+          <div class="desc">关键指标命中异常自动告警。</div>
+          <div class="meta"><span class="owner"><span class="avatar"></span><span class="name">抖音官方</span></span><span class="divider"></span><span class="time">3 天前</span><span class="divider"></span><span class="count"><span class="icon"></span>820</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="label"><span class="name">③ 描述</span> · 短文案（完整）</div>
+      <div class="card">
+        <div class="banner"></div>
+        <div class="body">
+          <div class="title">榜单实时</div>
+          <div class="tags"><span class="tag type">MCP</span><span class="tag cat"><span class="inner">查询</span></span></div>
+          <div class="desc">一句话拉到最新榜单。</div>
+          <div class="meta"><span class="owner"><span class="avatar"></span><span class="name">抖音官方</span></span><span class="divider"></span><span class="time">昨天</span><span class="divider"></span><span class="count"><span class="icon"></span>3.4k</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="label"><span class="name">③ 描述</span> · 长文案（…截断）</div>
+      <div class="card">
+        <div class="banner"></div>
+        <div class="body">
+          <div class="title">榜单实时</div>
+          <div class="tags"><span class="tag type">MCP</span><span class="tag cat"><span class="inner">查询</span></span></div>
+          <div class="desc">一句话拉到最新榜单数据，无需登录后台逐项点查，AI 会自动整理成结构化输出。</div>
+          <div class="meta"><span class="owner"><span class="avatar"></span><span class="name">抖音官方</span></span><span class="divider"></span><span class="time">昨天</span><span class="divider"></span><span class="count"><span class="icon"></span>3.4k</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="label"><span class="name">④ 元信息</span> · 来源短（完整）</div>
+      <div class="card">
+        <div class="banner"></div>
+        <div class="body">
+          <div class="title">SOP 检索</div>
+          <div class="tags"><span class="tag type">知识</span><span class="tag cat"><span class="inner">SOP</span></span></div>
+          <div class="desc">引用团队规范作为对话上下文。</div>
+          <div class="meta"><span class="owner"><span class="avatar"></span><span class="name">抖音官方</span></span><span class="divider"></span><span class="time">5 天前</span><span class="divider"></span><span class="count"><span class="icon"></span>520</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="label"><span class="name">④ 元信息</span> · 来源长（仅来源截断）</div>
+      <div class="card">
+        <div class="banner"></div>
+        <div class="body">
+          <div class="title">SOP 检索</div>
+          <div class="tags"><span class="tag type">知识</span><span class="tag cat"><span class="inner">SOP</span></span></div>
+          <div class="desc">引用团队规范作为对话上下文。</div>
+          <div class="meta"><span class="owner"><span class="avatar"></span><span class="name">直播运营平台 · 内容运营组</span></span><span class="divider"></span><span class="time">5 天前</span><span class="divider"></span><span class="count"><span class="icon"></span>520</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
