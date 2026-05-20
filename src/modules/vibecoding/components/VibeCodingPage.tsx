@@ -3536,8 +3536,7 @@ export default function VibeCodingPage() {
     setTagsAddOpen(false)
     setFormSubmitted(false)
     // AI 分身 ships with one default trigger so the 触发器 section is
-    // populated on first open; other kinds start with none. Categories stay
-    // collapsed by default — the user expands them on demand.
+    // populated on first open; other kinds start with none.
     if (PROJECT_KINDS[name] === 'ai-avatar') {
       setTriggers([
         {
@@ -3584,6 +3583,16 @@ export default function VibeCodingPage() {
       setOpenTabs([
         { label: '预览', closable: false },
         { label: '素材', closable: false },
+      ])
+    } else if (PROJECT_KINDS[name] === 'ai-avatar') {
+      // AI 分身 opens 人设 / 技能 / 知识库 as top tabs by default (beside the
+      // 预览 phone), so the avatar's config surfaces are one click away.
+      setProposalStep('idle')
+      setOpenTabs([
+        { label: '预览', closable: false },
+        { label: '人设', closable: true },
+        { label: '技能', closable: true },
+        { label: '知识库', closable: true },
       ])
     } else {
       setProposalStep('idle')
@@ -4287,6 +4296,10 @@ export default function VibeCodingPage() {
   /** Right-side edit panel (web-game only) — opens a visualization editor
    *  alongside the game preview. */
   const [editPanelOpen, setEditPanelOpen] = useState(false)
+  // AI 分身 preview scene — toggled from the toolbar dropdown (left of the
+  // refresh icon): 'chat' = 私信/AI 聊天 surface; 'comment' = 评论区 surface.
+  const [avatarScene, setAvatarScene] = useState<'chat' | 'comment'>('chat')
+  const [avatarSceneMenuOpen, setAvatarSceneMenuOpen] = useState(false)
   const [editPanelWidth, setEditPanelWidth] = useState(340)
   const editPanelDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
   /** Preview-toolbar product switcher (web-game and friends). The left
@@ -5627,7 +5640,7 @@ export default function VibeCodingPage() {
     </PhoneMockup>
   ) : activeProjectKind === 'ai-avatar' ? (
     <PhoneMockup>
-      <AiPersonaChatPreview simulations={triggerSimulations} />
+      <AiPersonaChatPreview scene={avatarScene} simulations={triggerSimulations} />
     </PhoneMockup>
   ) : (
     <PhoneMockup>
@@ -8964,6 +8977,45 @@ export default function VibeCodingPage() {
               //    (发布 lives in the header) ──
               const toolbarActions = (
                 <>
+                  {activeProjectKind === 'ai-avatar' && (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setAvatarSceneMenuOpen((v) => !v)}
+                        onBlur={() => setTimeout(() => setAvatarSceneMenuOpen(false), 120)}
+                        className="flex items-center gap-1 rounded-lg border border-[var(--color-ink)]/8 px-2 py-1.5 text-[12px] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]"
+                        title="预览场景"
+                      >
+                        {avatarScene === 'chat' ? 'AI 聊天' : '评论区'}
+                        <ChevronDown size={13} strokeWidth={2} />
+                      </button>
+                      {avatarSceneMenuOpen && (
+                        <div className="absolute right-0 top-full z-50 mt-1 min-w-[112px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] py-1 shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]">
+                          {([
+                            ['chat', 'AI 聊天'],
+                            ['comment', '评论区'],
+                          ] as const).map(([value, label]) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => {
+                                setAvatarScene(value)
+                                setAvatarSceneMenuOpen(false)
+                              }}
+                              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] transition-colors hover:bg-[var(--fill-subtle)] ${
+                                avatarScene === value
+                                  ? 'font-medium text-[var(--color-ink)]'
+                                  : 'text-[var(--color-ink)]/75'
+                              }`}
+                            >
+                              {label}
+                              {avatarScene === value && <Check size={12} className="ml-auto text-[var(--color-ink)]/60" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <ToolbarAction icon={RefreshCw} label="重新加载" iconOnly onClick={() => setMiniAppKey((k) => k + 1)} />
                   <ToolbarAction icon={Smartphone} label="真机预览" iconOnly />
                   <ToolbarAction

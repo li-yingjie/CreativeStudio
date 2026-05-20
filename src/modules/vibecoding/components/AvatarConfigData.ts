@@ -82,7 +82,7 @@ export const AVATAR_CONFIGS: Record<string, AvatarAppConfig> = {
     appID: 'app_taobaibai_8f6e',
     name: '陶白白 Sensei',
     description: '12 星座情感解读 · 陪聊式星座占卜分身',
-    iconURL: '/bg/identity-v-portrait.png',
+    iconURL: '/tbb.jpeg',
     systemPrompt: TAOBAIBAI_PROMPT,
     modelInfo: { modelKey: 'doubao-pro-32k', modelName: 'Doubao-pro-32k' },
     toolInfoList: [

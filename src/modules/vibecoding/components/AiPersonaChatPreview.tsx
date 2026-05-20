@@ -43,8 +43,11 @@ export interface TriggerSimulation {
 }
 
 export default function AiPersonaChatPreview({
+  scene = 'chat',
   simulations = [],
 }: {
+  /** Which surface to render — 'chat' = 私信/AI 聊天; 'comment' = 评论区. */
+  scene?: 'chat' | 'comment'
   /** Trigger firings the parent has appended. Rendering only — the
    *  parent owns state and exposes the test controls outside the phone. */
   simulations?: TriggerSimulation[]
@@ -57,6 +60,7 @@ export default function AiPersonaChatPreview({
     const el = bodyRef.current
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
   }, [simulations.length])
+  if (scene === 'comment') return <CommentSceneView />
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#ededed] text-[#1f1f1f]">
       <PhoneStatusBar />
@@ -65,13 +69,12 @@ export default function AiPersonaChatPreview({
       <div className="relative z-10 flex shrink-0 items-center justify-between bg-[#ededed] px-3 py-1.5">
         <div className="flex min-w-0 items-center gap-1">
           <ArrowLeft size={18} strokeWidth={2} />
-          <span className="ml-0.5 text-[12px] text-[#1f1f1f]/60">6</span>
           <div
             className="ml-1 h-6 w-6 shrink-0 overflow-hidden rounded-full"
             style={{ background: AVATAR_GRADIENT }}
             aria-hidden
           >
-            <AvatarGlyph small />
+            <img src="/tbb.jpeg" alt="" className="h-full w-full object-cover" />
           </div>
           <span className="ml-1.5 truncate text-[14px] font-medium">陶白白Sensei</span>
         </div>
@@ -89,7 +92,7 @@ export default function AiPersonaChatPreview({
             className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full"
             style={{ background: AVATAR_GRADIENT }}
           >
-            <AvatarGlyph />
+            <img src="/tbb.jpeg" alt="" className="h-full w-full object-cover" />
           </div>
           <h3 className="mt-3 text-[16px] font-semibold">陶白白Sensei</h3>
           <p className="mt-1 text-[11.5px] leading-[1.6] text-[#6b6b6b]">
@@ -135,7 +138,7 @@ export default function AiPersonaChatPreview({
             className="h-6 w-6 shrink-0 overflow-hidden rounded-full"
             style={{ background: AVATAR_GRADIENT }}
           >
-            <AvatarGlyph small />
+            <img src="/tbb.jpeg" alt="" className="h-full w-full object-cover" />
           </div>
           <div className="flex max-w-[82%] flex-col items-start gap-1">
             <div className="rounded-[10px] bg-white px-3 py-2 text-[13px] leading-[1.55] text-[#1f1f1f] shadow-[0_1px_2px_rgba(16,18,24,0.05)]">
@@ -166,7 +169,7 @@ export default function AiPersonaChatPreview({
                 className="h-6 w-6 shrink-0 overflow-hidden rounded-full"
                 style={{ background: AVATAR_GRADIENT }}
               >
-                <AvatarGlyph small />
+                <img src="/tbb.jpeg" alt="" className="h-full w-full object-cover" />
               </div>
               <div className="flex max-w-[82%] flex-col items-start gap-1">
                 <div className="rounded-[10px] bg-white px-3 py-2 text-[13px] leading-[1.55] text-[#1f1f1f] shadow-[0_1px_2px_rgba(16,18,24,0.05)]">
@@ -214,35 +217,98 @@ export default function AiPersonaChatPreview({
   )
 }
 
-/** Simple CSS-only glyph that suggests the anime-style persona avatar
- *  in the reference screenshot without shipping a bitmap asset. */
-function AvatarGlyph({ small = false }: { small?: boolean }) {
+/** 评论区 surface — a Douyin-style comment thread where 陶白白Sensei (the
+ *  AI 分身) auto-replies to user comments. Static mock; mirrors the chat
+ *  scene's framing so toggling between the two reads as one product. */
+const COMMENT_THREAD: {
+  user: string
+  text: string
+  time: string
+  likes: string
+  reply: string
+}[] = [
+  {
+    user: '小鹿同学',
+    text: '最近和对象总是冷战，是不是不合适啊…',
+    time: '2 小时前',
+    likes: '328',
+    reply: '冷战不代表不合适，多半是表达方式没对上～试试先说感受再说需求，别上来就讲道理。',
+  },
+  {
+    user: '阿球',
+    text: '天蝎座到底是不是记仇王？',
+    time: '5 小时前',
+    likes: '1.2万',
+    reply: '与其说记仇，不如说在意。天蝎不是忘不掉，是希望你主动给个交代～',
+  },
+  {
+    user: 'momo',
+    text: '暗恋同事三个月了，要不要表白？',
+    time: '昨天',
+    likes: '906',
+    reply: '先别急着表白，先制造高质量相处。让对方习惯有你，比一句喜欢更有用。',
+  },
+]
+
+function CommentSceneView() {
   return (
-    <svg
-      viewBox="0 0 64 64"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-      className="h-full w-full"
-    >
-      {/* hair */}
-      <path
-        d="M14 30C14 18 22 10 32 10C42 10 50 18 50 30V42H14V30Z"
-        fill="#7fdfc6"
-      />
-      {/* face */}
-      <circle cx="32" cy="34" r="14" fill="#ffe7cf" />
-      {/* bangs */}
-      <path
-        d="M18 30 Q22 20 32 20 Q42 20 46 30 L46 34 Q42 28 32 28 Q22 28 18 34 Z"
-        fill="#67cdb3"
-      />
-      {/* cheeks */}
-      <circle cx="24" cy="39" r={small ? 1.2 : 2} fill="#f5a7a0" opacity="0.7" />
-      <circle cx="40" cy="39" r={small ? 1.2 : 2} fill="#f5a7a0" opacity="0.7" />
-      {/* eyes */}
-      <rect x="24" y="34" width="5" height="1.5" rx="0.75" fill="#2d2b2b" />
-      <rect x="35" y="34" width="5" height="1.5" rx="0.75" fill="#2d2b2b" />
-    </svg>
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-white text-[#1f1f1f]">
+      <PhoneStatusBar />
+
+      {/* Top nav */}
+      <div className="flex shrink-0 items-center justify-between border-b border-[#f0f0f0] px-3 py-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <ArrowLeft size={18} strokeWidth={2} />
+          <span className="text-[14px] font-medium">评论 156</span>
+        </div>
+        <MoreHorizontal size={16} strokeWidth={2} />
+      </div>
+
+      {/* Comment list */}
+      <div className="thin-scroll flex-1 overflow-y-auto px-3 py-2">
+        {COMMENT_THREAD.map((c) => (
+          <div key={c.user} className="flex gap-2 py-2.5">
+            <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-slate-200 to-slate-400">
+              <UserGlyph />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] text-[#9b9b9b]">{c.user}</div>
+              <p className="mt-0.5 text-[13px] leading-[1.5] text-[#1f1f1f]">{c.text}</p>
+              <div className="mt-1 flex items-center gap-3 text-[10.5px] text-[#9b9b9b]">
+                <span>{c.time}</span>
+                <span>回复</span>
+                <span className="ml-auto flex items-center gap-1">♥ {c.likes}</span>
+              </div>
+
+              {/* AI 分身 auto-reply */}
+              <div className="mt-2 flex gap-2 rounded-[10px] bg-[#f7f7f7] p-2">
+                <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full">
+                  <img src="/tbb.jpeg" alt="" className="h-full w-full object-cover" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-medium text-[#1f1f1f]">陶白白Sensei</span>
+                    <span className="rounded bg-[#ffe7cf] px-1 text-[9px] leading-[14px] text-[#b5701f]">作者</span>
+                    <span className="rounded bg-[#e6f0ff] px-1 text-[9px] leading-[14px] text-[#2f85ff]">AI 分身</span>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-[1.5] text-[#3f3f3f]">{c.reply}</p>
+                  <div className="mt-1 text-[10px] text-[#b5b5b5]">由 AI 分身生成</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Composer */}
+      <div className="relative z-10 flex shrink-0 items-center gap-2 border-t border-[#dcdcdc] bg-white px-3 py-2">
+        <div className="flex-1 rounded-full bg-[#f1f1f1] px-3 py-1.5 text-[12px] text-[#9b9b9b]">
+          留下你的精彩评论吧
+        </div>
+        <Smile size={18} strokeWidth={1.5} className="text-[#1f1f1f]" />
+        <Plus size={18} strokeWidth={1.5} className="text-[#1f1f1f]" />
+      </div>
+    </div>
   )
 }
 
