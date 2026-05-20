@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from '@/shared/icons'
 
 interface PlatformPlaceholderViewProps {
   icon: LucideIcon

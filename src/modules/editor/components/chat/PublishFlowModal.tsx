@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X } from 'lucide-react'
+import { X } from '@/shared/icons'
 import { usePersonaStore } from '../../store/persona-store'
 import { usePublishFlowStore } from '../../store/publish-flow-store'
 import PublishForm from './PublishForm'

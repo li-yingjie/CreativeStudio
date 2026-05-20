@@ -13,7 +13,6 @@ import {
   PUBLISH_SCENES,
   PUBLISH_SCENE_DESCRIPTIONS,
 } from '@/modules/editor/store/publish-flow-store'
-import PublishFlowModal from '@/modules/editor/components/chat/PublishFlowModal'
 import { useThemeStore } from '@/shared/storage/theme'
 import MiniAppPreview from './MiniAppPreview'
 import WebAppPreview from './WebAppPreview'
@@ -72,6 +71,7 @@ import {
   buildProductView,
   getProductPages,
   PRODUCT_CATEGORY_ICONS,
+  withProjectDoc,
   WEB_PAGES,
   type FileNode,
   type ProjectKind,
@@ -84,7 +84,7 @@ import MiniProgramAgentView from './MiniProgramAgentView'
 import MiniProgramSettingsForm from './MiniProgramSettingsForm'
 import AssetGridView from './AssetGridView'
 import MarketingDocEditor from './MarketingDocEditor'
-import MarketingH5PublishPanel from './MarketingH5PublishPanel'
+import PublishDrawer from './PublishDrawer'
 import { getMiniProgramConfig } from './MiniProgramConfigData'
 
 /** Each platform project has a `ProjectKind` (the concrete product /
@@ -155,7 +155,6 @@ function classifyProjectKind(prompt: string): ProjectKind {
 import {
   ArrowLeft,
   ArrowUp,
-  ArrowUpRight,
   BarChart3,
   Check,
   CheckCircle2,
@@ -188,7 +187,6 @@ import {
   PanelRightOpen,
   Share2,
   ListCollapse,
-  ListFilter,
   Search,
   Sparkles,
   Paperclip,
@@ -196,7 +194,9 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  Settings,
   Smartphone,
+  Trash2,
   Zap,
   Terminal,
   ThumbsDown,
@@ -214,6 +214,8 @@ import {
   MessageSquarePlus,
   MessageCircleHeart,
   Gamepad2,
+  Globe,
+  Bot,
   FileSearch,
   Flashlight,
   Video,
@@ -238,8 +240,8 @@ import {
   AppWindow,
   BriefcaseBusiness,
   Library,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+} from '@/shared/icons'
+import type { LucideIcon } from '@/shared/icons'
 
 /* ─── Types ─── */
 interface RadioOption {
@@ -1010,11 +1012,27 @@ function getFileIcon(name: string): typeof File {
   return File
 }
 
+/** Resolve the icon for a product-view tab / dropdown label so the top
+ *  tab strip and the + dropdown stay visually in sync with the left
+ *  sidebar's project list. Mirrors FileTreeView's `iconFor` logic:
+ *  category-scoped leaves (界面 / 知识库 / 技能) take a shared icon, the
+ *  rest resolve through PRODUCT_CATEGORY_ICONS, then fall back to the
+ *  extension-based file icon. `parent` is the dropdown row's category;
+ *  tab labels carry the category as a `知识·` / `技能·` prefix instead. */
+function productLabelIcon(label: string, parent?: string): LucideIcon {
+  if (parent === '界面' || label.startsWith('界面·')) return AppWindow
+  if (parent === '知识库' || label.startsWith('知识·')) return BookOpen
+  if (parent === '技能' || label.startsWith('技能·')) return Sparkles
+  const base = label.includes('·') ? label.slice(label.indexOf('·') + 1) : label
+  return PRODUCT_CATEGORY_ICONS[label] ?? PRODUCT_CATEGORY_ICONS[base] ?? getFileIcon(label)
+}
+
 function FileTreeView({
   nodes,
   expanded,
   onToggleDir,
   onOpenFile,
+  onOpenDir,
   depth,
   parentPath,
   railStartDepth = 0,
@@ -1025,6 +1043,10 @@ function FileTreeView({
   expanded: Set<string>
   onToggleDir: (path: string) => void
   onOpenFile: (name: string) => void
+  /** Optional dir-click handler — product-view categories use it so a
+   *  parent category (e.g. 界面) opens its own tab while still toggling
+   *  expansion. When omitted, clicking a dir only toggles. */
+  onOpenDir?: (node: FileNode, path: string) => void
   depth: number
   parentPath: string
   /** Lowest depth at which to draw an indent rail. Platform sidebar
@@ -1073,7 +1095,10 @@ function FileTreeView({
               <div className="relative">
                 {renderRails()}
                 <button
-                  onClick={() => onToggleDir(path)}
+                  onClick={() => {
+                    onToggleDir(path)
+                    onOpenDir?.(node, path)
+                  }}
                   className="flex w-full items-center gap-1.5 py-1 text-[12px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/95"
                   style={{ paddingLeft: pl }}
                 >
@@ -1093,6 +1118,7 @@ function FileTreeView({
                   expanded={expanded}
                   onToggleDir={onToggleDir}
                   onOpenFile={onOpenFile}
+                  onOpenDir={onOpenDir}
                   depth={depth + 1}
                   parentPath={path}
                   railStartDepth={railStartDepth}
@@ -1219,6 +1245,275 @@ const CHILDREN_DAY_PLAN_MD = `# 六一童趣抽奖 - H5活动页面大纲
 
 **【抖音搜索】**：六一儿童节
 `
+
+/* ─── 项目文档（每个项目的项目说明书 / 立项文档）───
+ * 每个项目在产物视图里都暴露一个「项目文档」leaf，点击后用
+ * MarketingDocEditor 打开。下面是按项目编造的文档正文；未命中的项目
+ * 走 buildDefaultProjectDoc 兜底生成。 */
+const TAOBAIBAI_DOC_MD = `# 陶白白 Sensei 分身 · 项目文档
+
+## 一、项目背景
+
+陶白白 Sensei 是抖音头部情感 / 星座创作者。粉丝量级大、私信与评论咨询
+密集，单靠真人无法实时响应。本项目基于创作者人设与历史内容，构建一个
+可对话的「AI 分身」，在直播预热、评论区答疑、私域社群中替身回复。
+
+## 二、目标
+
+- 7×24 小时承接星座运势、情感关系类高频咨询
+- 回复语气 100% 贴合「陶白白」人设：温柔、笃定、略带玄学感
+- 引导用户跳转直播间 / 关注 / 收藏，沉淀私域
+
+## 三、人设设定
+
+- **身份**：陶白白的 AI 分身，自称「白白」
+- **语气**：亲切、共情优先，先安抚情绪再给建议
+- **边界**：不做医疗 / 法律 / 投资建议；命理话术仅作娱乐
+
+## 四、能力 / 知识
+
+| 模块 | 说明 |
+| --- | --- |
+| 知识库 | 12 星座性格库、情感关系知识库、抖音星座内容数据 |
+| 技能 | 星座运势解读、情感陪伴对话、抖音热点查询、多模态内容分析 |
+| 触发器 | 关注 / 评论 / 点赞 / 送礼 / 投稿等事件自动话术 |
+
+## 五、里程碑
+
+1. 人设与语气校准（话术 100 条灰度）
+2. 知识库接入 + 检索增强
+3. 评论区 / 私信自动回复上线
+4. 直播预热场景联调
+
+## 六、风险与对策
+
+- **人设跑偏** → 固定 system prompt + 关键词兜底
+- **玄学合规** → 统一加「仅供娱乐」声明
+`
+
+const TAROT_MINIAPP_DOC_MD = `# 第五人格塔罗小程序 · 项目文档
+
+## 一、项目概述
+
+一款以《第五人格》世界观为皮肤的「每日塔罗运势」小程序。用户每天可抽取
+一张塔罗牌，获得今日运势解读，并沉淀历史牌面与牌意词典，强化日活与
+留存。
+
+## 二、目标用户
+
+- 《第五人格》玩家及泛二次元用户
+- 喜欢星座 / 塔罗 / 玄学轻互动的年轻群体
+
+## 三、核心页面
+
+| 页面 | 功能 |
+| --- | --- |
+| 首页 | 今日运势卡、开始占卜入口、运势日记 / 牌意词典 |
+| 塔罗 | 抽牌交互、翻面动效、今日牌面解读 |
+| 聊天 | AI 解牌问答 |
+| 个人 | 历史牌面、收藏、设置 |
+
+## 四、玩法设计
+
+- 每日一抽，零点刷新；分享可得额外抽取
+- 78 张韦特塔罗牌面，配第五人格主题美术
+- 牌意词典沉淀内容资产，提升停留时长
+
+## 五、视觉风格
+
+暗黑哥特 + 烛光暖色，呼应第五人格庄园氛围；卡牌翻面带 3D 动效。
+
+## 六、里程碑
+
+1. 牌库与牌意内容生产
+2. 抽牌 / 翻面交互开发
+3. AI 解牌问答接入
+4. 分享裂变与日历签到
+
+## 七、待定事项
+
+- 是否引入付费「深度牌阵」
+- 第五人格 IP 授权素材范围
+`
+
+const PORTFOLIO_DOC_MD = `# 个人作品集网站 · 项目文档
+
+## 一、项目目标
+
+为独立设计师 / 开发者搭建一个轻量、响应式的个人作品集站点，用于求职
+与商务合作展示，突出作品与个人风格。
+
+## 二、信息架构
+
+| 页面 | 内容 |
+| --- | --- |
+| 首页 | 个人简介、核心标签、精选作品入口 |
+| 作品 | 作品网格 + 详情，按类别筛选 |
+| 关于 | 经历、技能、合作流程 |
+| 联系 | 邮箱 / 社交链接 / 留言入口 |
+
+## 三、设计原则
+
+- 内容优先，留白克制，移动端优先
+- 统一的排版尺度与一套主题色变量
+- 首屏 3 秒内传达「我是谁、我能做什么」
+
+## 四、技术方案
+
+- React + Vite 单页应用
+- 路由：/、/works、/about、/contact
+- 部署：静态托管，支持自定义域名
+
+## 五、里程碑
+
+1. 视觉风格与组件库
+2. 作品数据结构与详情页
+3. 响应式适配与无障碍
+4. SEO / 分享卡片 / 上线
+
+## 六、验收标准
+
+- Lighthouse 性能 / 可访问性 ≥ 90
+- 三端（桌面 / 平板 / 手机）布局无错位
+`
+
+const GARUDA_DOC_MD = `# Garuda · 神明黄昏 · 项目文档
+
+## 一、项目简介
+
+《Garuda · 神明黄昏》是一款竖版弹幕射击 + Roguelike 的网页小游戏（H5 /
+单页 HTML5）。玩家操控机甲少女在「神明黄昏」世界中清屏、闯关、构筑
+build。
+
+## 二、核心玩法
+
+- **弹幕射击**：竖版走位躲弹，自动开火
+- **Roguelike**：每局从抽取池随机 3 个流派供选择（弹幕海 / 激光反射 /
+  无尽护盾 / 粒子 AOE / 导弹追踪 / 冰冻流）
+- **道具掉落**：回血 / 炸弹 / 护盾等即时道具
+
+## 三、数值配置
+
+| 项 | 默认 |
+| --- | --- |
+| 基础难度 | 3（1-5） |
+| 敌人密度 | 60% |
+| BOSS 间隔 | 90s |
+| 弹幕速度 | 75% |
+
+## 四、技术实现
+
+- 入口 index.html，主循环在 garuda.js
+- jsfxr.js 程序化生成音效；sw.js 缓存资源做离线访问
+- 全程 Canvas 渲染，渲染分辨率 2160×3840（竖屏）
+
+## 五、里程碑
+
+1. 主循环 + 弹幕系统
+2. Roguelike 抽取池与流派
+3. BOSS 战与难度曲线
+4. 音效 / 美术 / 真机调优
+
+## 六、待优化
+
+- 移动端触控手感
+- 流派平衡性回归测试
+`
+
+const HOTPOT_PROPOSAL_DOC_MD = `# 沪上火锅 · 五一种草提案 · 项目文档
+
+## 一、项目背景
+
+五一假期是本地餐饮的黄金窗口。沪上火锅希望借抖音达人种草 + 团购，拉动
+到店核销，提升五一期间翻台率与新客占比。
+
+## 二、营销目标
+
+- 五一期间到店核销 GMV 环比提升 30%
+- 新客占比 ≥ 45%
+- 沉淀可复用的达人 / 内容矩阵
+
+## 三、人群与诊断
+
+- 核心：18-35 岁本地及周边商圈白领、学生
+- 通过「人群诊断」拆解兴趣标签与内容偏好，定位高潜达人
+
+## 四、达人矩阵
+
+| 层级 | 角色 | 数量 |
+| --- | --- | --- |
+| 头部 | 造势 / 信任背书 | 1-2 |
+| 腰部 | 探店实拍种草 | 5-8 |
+| 尾部 | 团购转化 / 评论氛围 | 15+ |
+
+## 五、内容方向
+
+- 「沉浸式探店」+ 五一限定锅底 / 套餐
+- 突出性价比与排队体验，挂载团购组件
+
+## 六、交付物
+
+- 人群诊断报告、达人包配置、提案报告、数据看板
+
+## 七、节奏
+
+1. 预热（节前 7 天）：种草内容铺量
+2. 引爆（五一首日）：头部 + 团购集中投放
+3. 长尾（假期中后段）：尾部口碑 + 复购召回
+`
+
+const PROJECT_DOCS: Record<string, string> = {
+  '陶白白 Sensei 分身': TAOBAIBAI_DOC_MD,
+  '粉丝互动机器人': TAOBAIBAI_DOC_MD,
+  '第五人格塔罗小程序': TAROT_MINIAPP_DOC_MD,
+  '个人作品集网站': PORTFOLIO_DOC_MD,
+  'Garuda · 神明黄昏': GARUDA_DOC_MD,
+  '沪上火锅·五一种草提案': HOTPOT_PROPOSAL_DOC_MD,
+  '六一儿童节活动': CHILDREN_DAY_PLAN_MD,
+}
+
+/** Generic project doc for projects without a hand-written one — keeps the
+ *  「项目文档」leaf meaningful for every project. */
+function buildDefaultProjectDoc(title: string, kind: ProjectKind): string {
+  const kindLabel: Record<ProjectKind, string> = {
+    'mini-program': '小程序',
+    'ai-avatar': 'AI 分身',
+    'ops-proposal': '运营提案',
+    'web-app': '网站应用',
+    'web-game': '网页游戏',
+    'marketing-h5': '营销 H5',
+  }
+  return `# ${title} · 项目文档
+
+## 一、项目概述
+
+${title} 是一个「${kindLabel[kind]}」类项目，本文档记录其目标、范围与
+推进计划，便于团队对齐与后续迭代。
+
+## 二、目标
+
+- 明确核心用户与使用场景
+- 定义首版功能范围与验收标准
+- 规划里程碑与上线节奏
+
+## 三、范围
+
+- 列出本期要做的核心功能
+- 标注暂不纳入本期的需求
+
+## 四、里程碑
+
+1. 需求与方案确认
+2. 核心功能开发
+3. 联调与体验优化
+4. 验收与上线
+
+## 五、风险与对策
+
+- 范围蔓延 → 锁定本期范围，新增需求进下一期
+- 进度风险 → 关键路径优先，预留缓冲
+`
+}
 
 /* 活动素材 — H5 页面用到的视觉资源（与 MarketingH5Preview 的 src
  * 路径保持一致）。Grouped to match the 游戏 素材 layout (GarudaAssetsView). */
@@ -1460,15 +1755,88 @@ function FigmaIcon({ size = 16, className = '' }: { size?: number; className?: s
 
 /* ─── Platform home (new-project landing) ─── */
 
-const HOME_SUGGESTIONS = [
-  '做一款竖版弹幕射击 + Roguelike 太空游戏',
-  '生成运营活动社群的AI分身',
-  '生成推广《剑来》动画的异形卡',
-  '生成评论区回复用户问题的AI分身',
-  '视频漏放归因',
-  '治理标准条款查询',
-  '视频误伤分析',
-  '产出调研报告',
+/** Scene pills under the home composer. Clicking a pill opens a flyout of
+ *  that scene's quick commands; each command's `prompt` ghost-fills the
+ *  composer on hover and is sent on click. */
+type SceneCommand = { label: string; prompt: string }
+const HOME_SCENES: { label: string; icon: LucideIcon; commands: SceneCommand[] }[] = [
+  {
+    label: 'AI 分身',
+    icon: Bot,
+    commands: [
+      { label: '生成运营活动社群的 AI 分身', prompt: '帮我生成一个用于运营活动社群的 AI 分身，能在群里答疑、发活动通知、活跃气氛。' },
+      { label: '生成评论区回复用户问题的 AI 分身', prompt: '帮我生成一个能在评论区自动回复用户问题的 AI 分身。' },
+      { label: '做一个会聊星座情感的 AI 分身', prompt: '帮我做一个会聊星座和情感话题的 AI 分身，语气温柔治愈。' },
+      { label: '给分身配置自动欢迎语', prompt: '帮我给 AI 分身配置一套关注 / 进群时的自动欢迎语。' },
+      { label: '做一个客服答疑 AI 分身', prompt: '帮我做一个客服答疑 AI 分身，能回答常见售前售后问题。' },
+    ],
+  },
+  {
+    label: '小程序',
+    icon: LayoutGrid,
+    commands: [
+      { label: '做一个每日打卡小程序', prompt: '帮我做一个每日打卡小程序，支持连续打卡、提醒和成就徽章。' },
+      { label: '做一个第五人格主题塔罗小程序', prompt: '帮我做一个第五人格主题的塔罗运势小程序，每天可抽一张牌。' },
+      { label: '做一个抽奖小程序', prompt: '帮我做一个抽奖小程序，支持每日抽奖、分享得机会。' },
+      { label: '做一个会员积分小程序', prompt: '帮我做一个会员积分小程序，支持积分累计与兑换。' },
+      { label: '做一个预约报名小程序', prompt: '帮我做一个预约报名小程序，支持选时段、填信息和提醒。' },
+    ],
+  },
+  {
+    label: '营销活动',
+    icon: Sparkles,
+    commands: [
+      { label: '做一个节日抽奖 H5 活动', prompt: '帮我做一个节日主题的抽奖 H5 活动页，含倒计时、奖品楼层和分享。' },
+      { label: '做一个新品首发预约活动', prompt: '帮我做一个新品首发预约活动页，支持预约提醒和名额展示。' },
+      { label: '做一个邀请好友得奖励活动', prompt: '帮我做一个邀请好友得奖励的裂变活动页。' },
+      { label: '做一个限时秒杀活动', prompt: '帮我做一个限时秒杀活动页，含倒计时和库存进度。' },
+      { label: '做一个签到领奖活动', prompt: '帮我做一个连续签到领奖活动页，含进度和奖励展示。' },
+    ],
+  },
+  {
+    label: '营销视频',
+    icon: Video,
+    commands: [
+      { label: '生成一条新品种草短视频脚本', prompt: '帮我生成一条新品种草短视频脚本，含分镜、口播和字幕。' },
+      { label: '生成一条节日营销视频', prompt: '帮我生成一条节日营销主题的短视频脚本与分镜。' },
+      { label: '视频漏放归因', prompt: '帮我做视频漏放归因分析，找出影响曝光的关键因素。' },
+      { label: '视频误伤分析', prompt: '帮我做视频误伤分析，定位被误判限流的原因。' },
+      { label: '生成一条品牌 TVC 脚本', prompt: '帮我生成一条品牌 TVC 短片脚本，含分镜与旁白。' },
+    ],
+  },
+  {
+    label: '营销海报',
+    icon: ImageIcon,
+    commands: [
+      { label: '生成推广《剑来》动画的异形卡', prompt: '帮我生成一张推广《剑来》动画的异形卡海报。' },
+      { label: '做一张新品促销海报', prompt: '帮我做一张新品促销主视觉海报。' },
+      { label: '做一组节日祝福海报', prompt: '帮我做一组节日祝福系列海报。' },
+      { label: '生成活动主视觉 KV', prompt: '帮我生成一张活动主视觉 KV 海报。' },
+      { label: '做一张朋友圈九宫格海报', prompt: '帮我做一组朋友圈九宫格拼图海报。' },
+    ],
+  },
+  {
+    label: 'Web 网页',
+    icon: Globe,
+    commands: [
+      { label: '做一个个人作品集网站', prompt: '帮我做一个个人作品集网站，含首页、作品、关于和联系页。' },
+      { label: '做一个产品落地页', prompt: '帮我做一个产品落地页，突出卖点和转化。' },
+      { label: '做一个活动报名页', prompt: '帮我做一个活动报名页，含表单和议程。' },
+      { label: '做一个团队介绍页', prompt: '帮我做一个团队介绍页。' },
+      { label: '做一个公司官网首页', prompt: '帮我做一个公司官网首页，含品牌介绍与业务板块。' },
+    ],
+  },
+  {
+    label: '小游戏',
+    icon: Gamepad2,
+    commands: [
+      { label: '做一款竖版弹幕射击 + Roguelike 太空游戏', prompt: '帮我做一款竖版弹幕射击 + Roguelike 的太空小游戏。' },
+      { label: '做一个翻牌记忆小游戏', prompt: '帮我做一个翻牌记忆配对小游戏。' },
+      { label: '做一个跑酷小游戏', prompt: '帮我做一个横版跑酷小游戏。' },
+      { label: '做一个答题闯关小游戏', prompt: '帮我做一个答题闯关小游戏。' },
+      { label: '做一个消除类小游戏', prompt: '帮我做一个三消消除类小游戏。' },
+    ],
+  },
 ]
 
 type AiMode = 'coding' | 'business' | 'orchestration'
@@ -1525,9 +1893,29 @@ function PlatformHome({
   }, [aiMenuPos])
   const currentMode = AI_MODES.find((m) => m.id === aiMode) ?? AI_MODES[0]
   const CurrentIcon = currentMode.icon
+
+  /* Scene quick-command flyout. Clicking a scene pill opens a popover of
+   * that scene's commands; hovering a command ghost-fills the composer (via
+   * the placeholder, which renders grey), clicking sends it. */
+  const [activeScene, setActiveScene] = useState<string | null>(null)
+  const [ghostText, setGhostText] = useState<string | null>(null)
+  const sceneAreaRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!activeScene) return
+    const handler = (e: PointerEvent) => {
+      if (sceneAreaRef.current && !sceneAreaRef.current.contains(e.target as Node)) {
+        setActiveScene(null)
+        setGhostText(null)
+      }
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [activeScene])
+  const openScene = HOME_SCENES.find((s) => s.label === activeScene)
+
   return (
     <div
-      className={`relative my-3 mr-3 flex min-w-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-[16px] px-6 pb-24 pt-6 ${
+      className={`relative my-3 mr-3 flex min-w-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-[16px] px-6 pb-48 pt-6 ${
         isLight ? 'bg-white' : 'bg-[var(--color-surface-0)]'
       }`}
     >
@@ -1580,9 +1968,9 @@ function PlatformHome({
                   onSubmit(draft)
                 }
               }}
-              placeholder="请描述你遇到的具体业务痛点或需求..."
+              placeholder={ghostText ?? '请描述你遇到的具体业务痛点或需求...'}
               rows={1}
-              className="block w-full resize-none bg-transparent text-[14px] leading-[22px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/60"
+              className="block h-full w-full flex-1 resize-none bg-transparent text-[14px] leading-[22px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/45"
             />
           </div>
 
@@ -1647,25 +2035,96 @@ function PlatformHome({
         </div>
       </div>
 
-      {/* Suggestions header */}
-      <div className="relative mt-6 flex items-center gap-2 text-[var(--color-ink)]/60">
-        <Sparkles size={12} />
-        <p className="text-[14px] leading-[22px]">没有灵感？试试点击以下需求</p>
-      </div>
+      {/* Scene pills + per-scene quick-command flyout. The flyout is
+           absolutely positioned so opening it never shifts the composer. */}
+      <div
+        ref={sceneAreaRef}
+        className="relative z-20 mt-5 flex w-full max-w-[920px] flex-col items-center"
+      >
+        <div
+          className={`tab-scroll flex max-w-full flex-nowrap items-center justify-center gap-2 overflow-x-auto transition-opacity duration-150 ${
+            openScene ? 'pointer-events-none opacity-0' : 'opacity-100'
+          }`}
+        >
+          {HOME_SCENES.map(({ label, icon: Icon }) => {
+            const active = activeScene === label
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => {
+                  setActiveScene(active ? null : label)
+                  setGhostText(null)
+                }}
+                className={`flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13px] transition-colors ${
+                  active
+                    ? 'border-[var(--color-ink)]/30 bg-[var(--fill-subtle)] text-[var(--color-ink)]'
+                    : 'border-[var(--divider)] bg-[var(--color-surface-0)] text-[var(--color-ink)]/80 hover:border-[var(--color-ink)]/25 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
+                }`}
+              >
+                <Icon size={14} strokeWidth={1.8} className="shrink-0 text-[var(--color-ink)]/55" />
+                {label}
+              </button>
+            )
+          })}
+        </div>
 
-      {/* Suggestions */}
-      <div className="relative mt-4 flex w-full max-w-[810px] flex-wrap items-center justify-center gap-3">
-        {HOME_SUGGESTIONS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => onSubmit(s)}
-            className="flex h-[42px] items-center gap-2 rounded-[12px] bg-[var(--fill-subtle)] px-4 text-[14px] leading-5 text-[var(--color-ink)] transition-colors hover:bg-[var(--fill-hover)]"
-          >
-            <span>{s}</span>
-            <ArrowUpRight size={12} className="text-[var(--color-ink)]/60" />
-          </button>
-        ))}
+        <AnimatePresence>
+        {openScene && (() => {
+          const SceneIcon = openScene.icon
+          return (
+            <motion.div
+              key={openScene.label}
+              initial={{ opacity: 0, y: -6, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.985 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              style={{ transformOrigin: 'top center' }}
+              className="absolute left-1/2 top-0 z-30 w-[810px] max-w-[92vw] -translate-x-1/2 overflow-hidden rounded-2xl bg-[var(--color-surface-0)]"
+            >
+              <div className="flex items-center justify-between px-5 py-3">
+                <span className="flex items-center gap-1.5 text-[13px] text-[var(--color-ink)]/55">
+                  <SceneIcon size={14} strokeWidth={1.8} />
+                  {openScene.label}
+                </span>
+                <button
+                  type="button"
+                  aria-label="关闭"
+                  onClick={() => {
+                    setActiveScene(null)
+                    setGhostText(null)
+                  }}
+                  className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/45 transition-colors hover:bg-[var(--fill-soft)] hover:text-[var(--color-ink)]"
+                >
+                  <X size={14} strokeWidth={2} />
+                </button>
+              </div>
+              <div className="flex flex-col px-2 pb-2">
+                {openScene.commands.map((c) => (
+                  <button
+                    key={c.label}
+                    type="button"
+                    onMouseEnter={() => setGhostText(c.prompt)}
+                    onMouseLeave={() => setGhostText(null)}
+                    onClick={() => {
+                      onSubmit(c.prompt)
+                      setActiveScene(null)
+                      setGhostText(null)
+                    }}
+                    className="group flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-[14px] text-[var(--color-ink)] transition-colors hover:bg-[var(--fill-subtle)]"
+                  >
+                    <span className="min-w-0 truncate">{c.label}</span>
+                    <ChevronRight
+                      size={15}
+                      className="shrink-0 text-[var(--color-ink)]/35 opacity-0 transition-opacity group-hover:opacity-100"
+                    />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )
+        })()}
+        </AnimatePresence>
       </div>
 
       {/* AI mode dropdown — position: fixed so it escapes the composer's
@@ -1729,7 +2188,7 @@ function PlatformSidebar({
   projectTrees,
   expandedDirs,
   toggleDir,
-  openFileInTab,
+  onOpenProduct,
   onCollapse,
   onNewProject,
   openProjects,
@@ -1747,6 +2206,11 @@ function PlatformSidebar({
   activeSessionId,
   onSwitchSession,
   onNewSession,
+  onRenameSession,
+  projectDisplayNames,
+  onRenameProject,
+  deletedProjects,
+  onDeleteProject,
   layout,
   onChangeLayout,
   themeMode,
@@ -1758,7 +2222,9 @@ function PlatformSidebar({
   projectTrees: Record<string, FileNode[]>
   expandedDirs: Set<string>
   toggleDir: (path: string) => void
-  openFileInTab: (filename: string) => void
+  /** Open a product leaf scoped to its owning project — switches projects
+   *  first when the clicked node belongs to a non-active project. */
+  onOpenProduct: (projectName: string, filename: string) => void
   onCollapse: () => void
   onNewProject: () => void
   openProjects: Set<string>
@@ -1791,6 +2257,16 @@ function PlatformSidebar({
   activeSessionId: string
   onSwitchSession: (id: string) => void
   onNewSession: () => void
+  /** Rename a chat session by id (inline edit in the 对话 list). */
+  onRenameSession: (id: string, name: string) => void
+  /** Project display-name overrides (original key → label). */
+  projectDisplayNames: Record<string, string>
+  /** Rename a project (inline edit in the 项目列表). */
+  onRenameProject: (name: string, next: string) => void
+  /** Soft-deleted project names — filtered out of the list. */
+  deletedProjects: Set<string>
+  /** Delete (hide) a project from the list. */
+  onDeleteProject: (name: string) => void
   /** Layout + theme switcher — relocated from the (removed) top header. */
   layout: 'workspace' | 'editor' | 'code' | 'platform'
   onChangeLayout: (next: 'workspace' | 'editor' | 'code' | 'platform') => void
@@ -1802,6 +2278,21 @@ function PlatformSidebar({
 }) {
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false)
   const layoutMenuRef = useRef<HTMLDivElement>(null)
+  /* Inline-rename state for the 项目列表 / 对话 rows. */
+  const [renamingProject, setRenamingProject] = useState<string | null>(null)
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null)
+  /* Which project row's 更多 (重命名 / 删除) menu is open. */
+  const [moreMenuProject, setMoreMenuProject] = useState<string | null>(null)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!moreMenuProject) return
+    const onDocClick = (e: MouseEvent) => {
+      if (!moreMenuRef.current?.contains(e.target as Node)) setMoreMenuProject(null)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [moreMenuProject])
+  const projName = (n: string) => projectDisplayNames[n]?.trim() || n
   useEffect(() => {
     if (!layoutMenuOpen) return
     const onDocClick = (e: MouseEvent) => {
@@ -1838,7 +2329,6 @@ function PlatformSidebar({
   // swaps the panel for that one project's full file-view directory,
   // with a 返回 back to the list.
   const [drilledProject, setDrilledProject] = useState<string | null>(null)
-  const spaceBtnRef = useRef<HTMLButtonElement>(null)
   const toggleProject = (name: string) =>
     setOpenProjects((prev) => {
       const next = new Set(prev)
@@ -1865,7 +2355,7 @@ function PlatformSidebar({
     'Garuda · 神明黄昏',
     '六一儿童节活动',
     '沪上火锅·五一种草提案',
-  ]
+  ].filter((p) => !deletedProjects.has(p))
 
   return (
     <aside className="flex h-full w-full flex-col pt-6">
@@ -1895,106 +2385,8 @@ function PlatformSidebar({
             <path d="M8.33898 15.9313C9.2463 15.0239 10.4714 14.7789 11.0755 15.3831C11.6807 15.9872 11.4358 17.2134 10.5285 18.1207C9.62113 19.028 8.39493 19.273 7.79079 18.6689C7.18554 18.0636 7.43166 16.8386 8.33898 15.9313Z" fill="currentColor"/>
             <path d="M8.25097 0.831134C9.15829 -0.0761893 10.4348 -0.270856 11.1027 0.39705C11.7707 1.06496 11.576 2.34147 10.6687 3.2488C9.76135 4.15612 8.48481 4.34967 7.8169 3.68288C7.14899 3.01498 7.34365 1.73846 8.25097 0.831134Z" fill="currentColor"/>
           </svg>
-          <div className="h-4 w-px bg-[var(--divider)]" />
-          <button
-            ref={spaceBtnRef}
-            type="button"
-            onClick={() => {
-              if (spaceMenuPos) {
-                setSpaceMenuPos(null)
-                return
-              }
-              const rect = spaceBtnRef.current?.getBoundingClientRect()
-              if (rect) setSpaceMenuPos({ top: rect.bottom + 6, left: rect.left })
-            }}
-            className="flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded text-[12px] text-[var(--color-ink)]/55 transition-colors hover:text-[var(--color-ink)]/85"
-          >
-            {activeSpace}
-            <ChevronDown size={12} className={`transition-transform ${spaceMenuPos ? 'rotate-180' : ''}`} />
-          </button>
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
-          <div ref={layoutMenuRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setLayoutMenuOpen((v) => !v)}
-              title="布局 / 外观"
-              className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
-            >
-              <MoreHorizontal size={14} />
-            </button>
-            {layoutMenuOpen && (
-              <div className="absolute right-0 top-full z-50 mt-1 w-[220px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]">
-                <div className="px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--color-ink)]/40">
-                  布局
-                </div>
-                {(
-                  [
-                    { value: 'workspace' as const, label: '工作区视图', hint: '单视图 / 分屏 tabs', icon: Columns2 },
-                    { value: 'code' as const, label: '编辑视图 · 左 chat', hint: '左侧对话 · 文件 · 右侧预览', icon: Code2 },
-                    { value: 'editor' as const, label: '编辑视图 · chat 在右', hint: '常驻手机 · 独立文件区', icon: LayoutGrid },
-                    { value: 'platform' as const, label: '平台视图', hint: '多项目目录 · 对话 · 预览 + 控制台', icon: LayoutDashboard },
-                  ]
-                ).map((opt) => {
-                  const Icon = opt.icon
-                  const active = layout === opt.value
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => {
-                        onChangeLayout(opt.value)
-                        setLayoutMenuOpen(false)
-                      }}
-                      className={`flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors ${
-                        active ? 'bg-[var(--color-ink)]/[0.06]' : 'hover:bg-[var(--fill-subtle)]'
-                      }`}
-                    >
-                      <Icon size={14} className={`mt-0.5 shrink-0 ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/55'}`} />
-                      <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className={`text-[12px] ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/80'}`}>
-                          {opt.label}
-                          {active && <span className="ml-1.5 text-[10px] text-[var(--color-ink)]/45">当前</span>}
-                        </span>
-                        <span className="text-[10px] text-[var(--color-ink)]/40">{opt.hint}</span>
-                      </span>
-                    </button>
-                  )
-                })}
-                <div className="mt-1 border-t border-[var(--divider-soft)] px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--color-ink)]/40">
-                  外观
-                </div>
-                {(
-                  [
-                    { value: 'light' as const, label: '亮色模式', icon: Sun },
-                    { value: 'dark' as const, label: '暗色模式', icon: Moon },
-                  ]
-                ).map((opt) => {
-                  const Icon = opt.icon
-                  const active = themeMode === opt.value
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => {
-                        onChangeThemeMode(opt.value)
-                        setLayoutMenuOpen(false)
-                      }}
-                      className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
-                        active ? 'bg-[var(--color-ink)]/[0.06]' : 'hover:bg-[var(--fill-subtle)]'
-                      }`}
-                    >
-                      <Icon size={14} className={`shrink-0 ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/55'}`} />
-                      <span className={`text-[12px] ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/80'}`}>
-                        {opt.label}
-                        {active && <span className="ml-1.5 text-[10px] text-[var(--color-ink)]/45">当前</span>}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
           <button
             onClick={onCollapse}
             title="收起侧栏"
@@ -2090,7 +2482,7 @@ function PlatformSidebar({
                   nodes={tree}
                   expanded={expandedDirs}
                   onToggleDir={toggleDir}
-                  onOpenFile={openFileInTab}
+                  onOpenFile={(f) => onOpenProduct(drilledProject, f)}
                   depth={1}
                   parentPath=""
                   railStartDepth={1}
@@ -2141,42 +2533,101 @@ function PlatformSidebar({
                         : 'hover:bg-[var(--color-ink)]/[0.04]'
                     }`}
                   >
-                    <button
-                      onClick={() => {
-                        toggleProject(name)
-                        onSwitchProject(name)
-                      }}
-                      className={`flex min-w-0 flex-1 items-center gap-1.5 py-1.5 pl-2 pr-1 text-[12px] font-medium transition-colors ${
-                        isActive ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/85'
-                      }`}
+                    {renamingProject === name ? (
+                      <input
+                        autoFocus
+                        defaultValue={projName(name)}
+                        onClick={(e) => e.stopPropagation()}
+                        onBlur={(e) => {
+                          onRenameProject(name, e.target.value)
+                          setRenamingProject(null)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            onRenameProject(name, (e.target as HTMLInputElement).value)
+                            setRenamingProject(null)
+                          } else if (e.key === 'Escape') {
+                            setRenamingProject(null)
+                          }
+                        }}
+                        className="mx-2 my-1 min-w-0 flex-1 border-b border-[var(--color-ink)]/40 bg-transparent py-0.5 text-[12px] font-medium text-[var(--color-ink)] outline-none"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => {
+                          toggleProject(name)
+                          onSwitchProject(name)
+                        }}
+                        onDoubleClick={() => setRenamingProject(name)}
+                        title="双击重命名"
+                        className={`flex min-w-0 flex-1 items-center gap-1.5 py-1.5 pl-2 pr-1 text-[12px] font-medium transition-colors ${
+                          isActive ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/85'
+                        }`}
+                      >
+                        {open ? (
+                          <FolderOpen
+                            size={13}
+                            strokeWidth={1.7}
+                            className={`shrink-0 ${
+                              isActive ? 'text-[var(--color-ink)]/85' : 'text-[var(--color-ink)]/60'
+                            }`}
+                          />
+                        ) : (
+                          <FolderClosed
+                            size={13}
+                            strokeWidth={1.7}
+                            className={`shrink-0 ${
+                              isActive ? 'text-[var(--color-ink)]/85' : 'text-[var(--color-ink)]/60'
+                            }`}
+                          />
+                        )}
+                        <span className="truncate">{projName(name)}</span>
+                      </button>
+                    )}
+                    <div
+                      className="relative shrink-0"
+                      ref={moreMenuProject === name ? moreMenuRef : undefined}
                     >
-                      {open ? (
-                        <FolderOpen
-                          size={13}
-                          strokeWidth={1.7}
-                          className={`shrink-0 ${
-                            isActive ? 'text-[var(--color-ink)]/85' : 'text-[var(--color-ink)]/60'
-                          }`}
-                        />
-                      ) : (
-                        <FolderClosed
-                          size={13}
-                          strokeWidth={1.7}
-                          className={`shrink-0 ${
-                            isActive ? 'text-[var(--color-ink)]/85' : 'text-[var(--color-ink)]/60'
-                          }`}
-                        />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setMoreMenuProject((cur) => (cur === name ? null : name))
+                        }}
+                        title="更多"
+                        className={`flex h-5 w-5 items-center justify-center rounded text-[var(--color-ink)]/40 transition-opacity hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/75 focus-visible:opacity-100 group-hover:opacity-100 ${
+                          moreMenuProject === name ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      >
+                        <MoreHorizontal size={13} strokeWidth={1.8} />
+                      </button>
+                      {moreMenuProject === name && (
+                        <div className="absolute right-0 top-full z-50 mt-1 min-w-[120px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] py-1 shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMoreMenuProject(null)
+                              setRenamingProject(name)
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-subtle)] hover:text-[var(--color-ink)]"
+                          >
+                            <Pencil size={12} strokeWidth={1.8} className="shrink-0 text-[var(--color-ink)]/55" />
+                            重命名
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMoreMenuProject(null)
+                              onDeleteProject(name)
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-[#ff4d4f] transition-colors hover:bg-[#ff4d4f]/[0.08]"
+                          >
+                            <Trash2 size={12} strokeWidth={1.8} className="shrink-0" />
+                            删除
+                          </button>
+                        </div>
                       )}
-                      <span className="truncate">{name}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDrilledProject(name)}
-                      title="查看完整目录结构"
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--color-ink)]/40 opacity-0 transition-opacity hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/75 focus-visible:opacity-100 group-hover:opacity-100"
-                    >
-                      <FolderCode size={12} strokeWidth={1.8} />
-                    </button>
+                    </div>
                   </div>
                   {open && (() => {
                     const emptyStub = (
@@ -2188,7 +2639,7 @@ function PlatformSidebar({
                     const kind = PROJECT_KINDS[name] ?? 'mini-program'
                     // AI 分身 and 小程序 projects are config-driven;
                     // other kinds bucket the raw file tree.
-                    const productTree =
+                    const productTree = withProjectDoc(
                       kind === 'ai-avatar'
                         ? buildAvatarProductView(tree, getAvatarConfig(name))
                         : kind === 'mini-program'
@@ -2196,7 +2647,8 @@ function PlatformSidebar({
                               tree,
                               getMiniProgramConfig(name),
                             )
-                          : buildProductView(tree, kind)
+                          : buildProductView(tree, kind),
+                    )
                     if (productTree.length === 0) return emptyStub
                     return (
                       // Extra left inset so a project's contents read as
@@ -2206,7 +2658,14 @@ function PlatformSidebar({
                           nodes={productTree}
                           expanded={expandedDirs}
                           onToggleDir={toggleDir}
-                          onOpenFile={openFileInTab}
+                          // Scope clicks to this row's project so opening a
+                          // product under a non-active project switches to it
+                          // first (instead of opening in the active project).
+                          onOpenFile={(f) => onOpenProduct(name, f)}
+                          // Parent categories (界面 / 知识库 / …) open their
+                          // own tab on click while still expanding to list
+                          // their children.
+                          onOpenDir={(n) => onOpenProduct(name, n.name)}
                           depth={1}
                           // Distinct root so product-view expansion state
                           // never collides with file-view paths.
@@ -2278,11 +2737,45 @@ function PlatformSidebar({
         <div className="thin-scroll flex-1 overflow-y-auto px-3 pb-2">
           {sessions.map((s) => {
             const active = s.id === activeSessionId
+            if (renamingSessionId === s.id) {
+              return (
+                <div
+                  key={s.id}
+                  className="flex w-full items-center gap-1.5 rounded-md px-2 py-1"
+                >
+                  <MessageSquareText
+                    size={12}
+                    strokeWidth={1.8}
+                    className="shrink-0 text-[var(--color-ink)]/45"
+                  />
+                  <input
+                    autoFocus
+                    defaultValue={s.name}
+                    onClick={(e) => e.stopPropagation()}
+                    onBlur={(e) => {
+                      onRenameSession(s.id, e.target.value)
+                      setRenamingSessionId(null)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        onRenameSession(s.id, (e.target as HTMLInputElement).value)
+                        setRenamingSessionId(null)
+                      } else if (e.key === 'Escape') {
+                        setRenamingSessionId(null)
+                      }
+                    }}
+                    className="min-w-0 flex-1 border-b border-[var(--color-ink)]/40 bg-transparent text-[12px] text-[var(--color-ink)] outline-none"
+                  />
+                </div>
+              )
+            }
             return (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => onSwitchSession(s.id)}
+                onDoubleClick={() => setRenamingSessionId(s.id)}
+                title="双击重命名"
                 className={`flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-[12px] transition-colors ${
                   active
                     ? 'bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]/90'
@@ -2308,6 +2801,88 @@ function PlatformSidebar({
           张
         </div>
         <span className="text-[12px] text-[var(--color-ink)]/80">张俊</span>
+        {/* 设置（布局 / 外观）— relocated from the top bar; opens upward. */}
+        <div ref={layoutMenuRef} className="relative ml-auto">
+          <button
+            type="button"
+            onClick={() => setLayoutMenuOpen((v) => !v)}
+            title="设置"
+            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
+          >
+            <Settings size={14} />
+          </button>
+          {layoutMenuOpen && (
+            <div className="absolute bottom-full right-0 z-50 mb-1 w-[220px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]">
+              <div className="px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--color-ink)]/40">
+                布局
+              </div>
+              {(
+                [
+                  { value: 'workspace' as const, label: '工作区视图', hint: '单视图 / 分屏 tabs', icon: Columns2 },
+                  { value: 'code' as const, label: '编辑视图 · 左 chat', hint: '左侧对话 · 文件 · 右侧预览', icon: Code2 },
+                  { value: 'editor' as const, label: '编辑视图 · chat 在右', hint: '常驻手机 · 独立文件区', icon: LayoutGrid },
+                  { value: 'platform' as const, label: '平台视图', hint: '多项目目录 · 对话 · 预览 + 控制台', icon: LayoutDashboard },
+                ]
+              ).map((opt) => {
+                const Icon = opt.icon
+                const active = layout === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onChangeLayout(opt.value)
+                      setLayoutMenuOpen(false)
+                    }}
+                    className={`flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors ${
+                      active ? 'bg-[var(--color-ink)]/[0.06]' : 'hover:bg-[var(--fill-subtle)]'
+                    }`}
+                  >
+                    <Icon size={14} className={`mt-0.5 shrink-0 ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/55'}`} />
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className={`text-[12px] ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/80'}`}>
+                        {opt.label}
+                        {active && <span className="ml-1.5 text-[10px] text-[var(--color-ink)]/45">当前</span>}
+                      </span>
+                      <span className="text-[10px] text-[var(--color-ink)]/40">{opt.hint}</span>
+                    </span>
+                  </button>
+                )
+              })}
+              <div className="mt-1 border-t border-[var(--divider-soft)] px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--color-ink)]/40">
+                外观
+              </div>
+              {(
+                [
+                  { value: 'light' as const, label: '亮色模式', icon: Sun },
+                  { value: 'dark' as const, label: '暗色模式', icon: Moon },
+                ]
+              ).map((opt) => {
+                const Icon = opt.icon
+                const active = themeMode === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onChangeThemeMode(opt.value)
+                      setLayoutMenuOpen(false)
+                    }}
+                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
+                      active ? 'bg-[var(--color-ink)]/[0.06]' : 'hover:bg-[var(--fill-subtle)]'
+                    }`}
+                  >
+                    <Icon size={14} className={`shrink-0 ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/55'}`} />
+                    <span className={`text-[12px] ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/80'}`}>
+                      {opt.label}
+                      {active && <span className="ml-1.5 text-[10px] text-[var(--color-ink)]/45">当前</span>}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {spaceMenuPos && (
@@ -2674,7 +3249,7 @@ export default function VibeCodingPage() {
    * and the brand chrome (logo + 抖音AI工坊 + expand icon) relocates to
    * the card's top-left header. */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [platformSidebarWidth, setPlatformSidebarWidth] = useState(280)
+  const [platformSidebarWidth, setPlatformSidebarWidth] = useState(232)
   const effectiveSidebarWidth = sidebarCollapsed ? 12 : platformSidebarWidth
   const sidebarDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
   const onSidebarDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -2801,6 +3376,13 @@ export default function VibeCodingPage() {
   }
 
   const handleNewSession = () => {
+    // Already sitting on a fresh, empty 新会话 → just return to the chat
+    // home instead of stacking another empty session.
+    const active = sessions.find((s) => s.id === activeSessionId)
+    if (active && active.name === '新会话' && sentMessages.length === 0) {
+      resetChatState()
+      return
+    }
     const id = `s-${Date.now()}`
     setSessions((prev) => [{ id, name: '新会话' }, ...prev])
     setActiveSessionId(id)
@@ -3711,6 +4293,18 @@ export default function VibeCodingPage() {
     document.addEventListener('mousedown', onDocClick)
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [addTabMenuOpen])
+
+  /* ─── Product-view category tabs ───
+   * A parent category that holds multiple sub-products (界面 → 首页/作品…,
+   * 知识库 → …) opens as a single tab. The tab shows one child at a time;
+   * a directory dropdown in the toolbar header switches between them
+   * (mirrors the game's 素材 category control). `categoryChild` remembers
+   * the selected child per category; `dirMenuOpen` toggles the dropdown. */
+  const [categoryChild, setCategoryChild] = useState<Record<string, string>>({})
+  /* Per-project 项目文档 edits, keyed by project title (so switching
+   * projects keeps each doc separate). Falls back to PROJECT_DOCS / a
+   * generated default when untouched. */
+  const [projectDocEdits, setProjectDocEdits] = useState<Record<string, string>>({})
   /** Right-side edit panel (web-game only) — opens a visualization editor
    *  alongside the game preview. */
   const [editPanelOpen, setEditPanelOpen] = useState(false)
@@ -3733,11 +4327,6 @@ export default function VibeCodingPage() {
     document.addEventListener('pointerdown', handler)
     return () => document.removeEventListener('pointerdown', handler)
   }, [productMenuOpen])
-  /** 素材 tab — left category-filter side panel. Toggled by a list
-   *  icon-button in the preview toolbar; `assetCategoryFilter === null`
-   *  means "show all groups". */
-  const [assetPanelOpen, setAssetPanelOpen] = useState(false)
-  const [assetCategoryFilter, setAssetCategoryFilter] = useState<string | null>(null)
   const onEditPanelDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
     editPanelDragRef.current = { startX: e.clientX, startWidth: editPanelWidth }
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
@@ -3764,6 +4353,99 @@ export default function VibeCodingPage() {
       : `calc(${effectiveSidebarWidth}px + max(0px, (100vw - ${effectiveSidebarWidth}px - ${PREVIEW_HIDDEN_CHAT_MAX}px) / 2))`
     : effectiveSidebarWidth
 
+  /* ─── Category-tab helpers ─── */
+  /** The active project's product-view tree (synthetic plain-language
+   *  categories), recomputed per call so it tracks tree edits. */
+  const getActiveProductTree = (): FileNode[] => {
+    const tree = projectTrees[projectTitle]
+    if (!tree) return []
+    const kind = PROJECT_KINDS[projectTitle] ?? 'mini-program'
+    return withProjectDoc(
+      kind === 'ai-avatar'
+        ? buildAvatarProductView(tree, getAvatarConfig(projectTitle))
+        : kind === 'mini-program'
+          ? buildMiniProgramProductView(tree, getMiniProgramConfig(projectTitle))
+          : buildProductView(tree, kind),
+    )
+  }
+  /** Plain-name child leaves of a product-view category. */
+  const categoryChildrenOf = (category: string): string[] => {
+    const node = getActiveProductTree().find(
+      (n) => n.type === 'dir' && n.name === category,
+    )
+    return (node?.children ?? [])
+      .filter((c) => c.type === 'file')
+      .map((c) => c.name)
+  }
+  /** A category with ≥2 children renders as a single tab + directory
+   *  dropdown (the structure requested for all multi-product parents). */
+  const isMultiChildCategory = (name: string): boolean =>
+    categoryChildrenOf(name).length >= 2
+  /** Resolve the category that owns a given child leaf. */
+  const findParentCategory = (child: string): string | undefined =>
+    getActiveProductTree().find(
+      (n) =>
+        n.type === 'dir' &&
+        (n.children ?? []).some((c) => c.type === 'file' && c.name === child),
+    )?.name
+  /** Page categories drive the live preview route (phone / browser) rather
+   *  than a renderTab body. 界面 is the only such category today. */
+  const isPageCategory = (category: string): boolean => category === '界面'
+
+  /** Open (or focus) a category tab, selecting `child` (defaults to the
+   *  first child). Page categories also sync the preview route so the
+   *  phone/browser shows the chosen page immediately. */
+  const openCategoryTab = (category: string, child?: string) => {
+    const kids = categoryChildrenOf(category)
+    if (kids.length === 0) return
+    const sel = child && kids.includes(child) ? child : kids[0]
+    setCategoryChild((prev) => ({ ...prev, [category]: sel }))
+    if (isPageCategory(category)) setPreviewRoute(sel)
+    const existing = openTabs.findIndex((t) => t.label === category)
+    if (existing >= 0) {
+      setActivePreviewTab(existing)
+    } else {
+      const next = [...openTabs, { label: category, closable: true }]
+      setOpenTabs(next)
+      setActivePreviewTab(next.length - 1)
+    }
+  }
+
+  /** The child switcher shown in a category tab's toolbar header — renders
+   *  the category's children as inline text tabs (same style as the
+   *  小程序 / AI分身 / 小花技能 mode filters) so multi-product parents read
+   *  as a tab row rather than a dropdown. */
+  const renderCategoryTabs = (category: string) => {
+    const kids = categoryChildrenOf(category)
+    if (kids.length === 0) return null
+    const stored = categoryChild[category]
+    const sel = stored && kids.includes(stored) ? stored : kids[0]
+    return (
+      <div className="flex items-center gap-6 overflow-x-auto">
+        {kids.map((kid) => {
+          const active = kid === sel
+          return (
+            <button
+              key={kid}
+              type="button"
+              onClick={() => {
+                setCategoryChild((prev) => ({ ...prev, [category]: kid }))
+                if (isPageCategory(category)) setPreviewRoute(kid)
+              }}
+              className={`relative shrink-0 text-[13px] font-medium tracking-wide transition-colors ${
+                active
+                  ? 'text-[var(--color-ink)]'
+                  : 'text-[var(--color-ink)]/35 hover:text-[var(--color-ink)]/65'
+              }`}
+            >
+              {kid}
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+
   /** Find-or-focus a tab by label, pushing a new closable tab when
    *  absent. Used for AI-分身 structured tabs (基础信息 / 人设指令 /
    *  知识·* / 技能·*). */
@@ -3779,6 +4461,24 @@ export default function VibeCodingPage() {
   }
 
   const openFileInTab = (filename: string) => {
+    // Product-view structure: a multi-child category opens as its own tab
+    // (parent), and clicking one of its children opens the same parent tab
+    // with that child selected (directory dropdown lives in the toolbar).
+    if (isMultiChildCategory(filename)) {
+      openCategoryTab(filename)
+      return
+    }
+    const parentCategory = findParentCategory(filename)
+    if (parentCategory && isMultiChildCategory(parentCategory)) {
+      openCategoryTab(parentCategory, filename)
+      return
+    }
+    // 项目文档 — every project surfaces one; open it in the doc editor.
+    // marketing-h5 keeps its own (proposalDocs-backed) flow below.
+    if (filename === '项目文档' && activeProjectKind !== 'marketing-h5') {
+      openNamedTab('项目文档')
+      return
+    }
     // Product-view 页面 nodes aren't files — clicking one navigates the
     // right-side preview to that page and focuses the 产物预览 tab.
     const activeTree = projectTrees[projectTitle]
@@ -3811,7 +4511,8 @@ export default function VibeCodingPage() {
         'ASSET_LICENSE.md',
         'LICENSE',
       ]
-      const targetLabel = sourceFiles.includes(filename) ? '代码' : '素材'
+      const targetLabel =
+        filename === '代码' || sourceFiles.includes(filename) ? '代码' : '素材'
       const idx = openTabs.findIndex((t) => t.label === targetLabel)
       if (idx >= 0) {
         setActivePreviewTab(idx)
@@ -3849,7 +4550,7 @@ export default function VibeCodingPage() {
       miniProgramConfig &&
       (filename === '智能体' ||
         filename === '小程序设置' ||
-        filename === '静态素材')
+        filename === '素材')
     ) {
       openNamedTab(filename)
       return
@@ -4746,6 +5447,36 @@ export default function VibeCodingPage() {
         ? '六一儿童节活动'
         : '第五人格塔罗小程序',
   )
+
+  /* Open a product leaf in the context of *its owning project*. The sidebar
+   * lists every project's product view, so a click may target a project
+   * other than the active one — switch projects first (restoring that
+   * project's own tab set) and defer the open until the switch commits, so
+   * the tab lands in the right project's pane instead of bleeding into the
+   * previously-active one. */
+  const pendingProductOpenRef = useRef<string | null>(null)
+  const openProductInProject = (projectName: string, filename: string) => {
+    const onThisProject =
+      projectName === projectTitle &&
+      !platformHomeOpen &&
+      !platformResourceLibraryOpen &&
+      !platformSkillsOpen &&
+      !platformCreativeSquareOpen &&
+      !platformDataOpsOpen
+    if (onThisProject) {
+      openFileInTab(filename)
+      return
+    }
+    pendingProductOpenRef.current = filename
+    openProject(projectName)
+  }
+  useEffect(() => {
+    if (!pendingProductOpenRef.current) return
+    const f = pendingProductOpenRef.current
+    pendingProductOpenRef.current = null
+    openFileInTab(f)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectTitle])
   /* Derive the active project's "kind" from its title — controls which
    * preview renders on the right and what label the product tab shows.
    * Unknown project names default to mini-program so arbitrary renames
@@ -5029,6 +5760,28 @@ export default function VibeCodingPage() {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const renameSession = (id: string, name: string) =>
     setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, name } : s)))
+
+  /* Project display-name overrides. Project names are used as keys all over
+   * (projectTrees / PROJECT_KINDS / snapshots), so renaming maps an original
+   * key → a display label instead of mutating the key. */
+  const [projectDisplayNames, setProjectDisplayNames] = useState<Record<string, string>>({})
+  const displayProjectName = (name: string) =>
+    projectDisplayNames[name]?.trim() || name
+  const renameProject = (name: string, next: string) =>
+    setProjectDisplayNames((prev) => ({ ...prev, [name]: next }))
+
+  /* Soft-deleted projects — hidden from the list (demo doesn't drop the
+   * underlying data). Deleting the active project navigates back home. */
+  const [deletedProjects, setDeletedProjects] = useState<Set<string>>(new Set())
+  const deleteProject = (name: string) => {
+    setDeletedProjects((prev) => new Set(prev).add(name))
+    if (name === projectTitle) {
+      if (projectTitle && !platformHomeOpen) {
+        projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
+      }
+      setPlatformHomeOpen(true)
+    }
+  }
   // Preview-strip tabs. AI 分身 projects collapse to a single「AI分身」
   // tab (value stays 'mini-program' so previewSurface keeps dispatching
   // by activeProjectKind); other kinds keep the original three.
@@ -5139,7 +5892,7 @@ export default function VibeCodingPage() {
             }
             expandedDirs={expandedDirs}
             toggleDir={toggleDir}
-            openFileInTab={openFileInTab}
+            onOpenProduct={openProductInProject}
             onCollapse={() => setSidebarCollapsed(true)}
             onNewProject={handleNewProject}
             openProjects={platformOpenProjects}
@@ -5176,6 +5929,11 @@ export default function VibeCodingPage() {
               }
             }}
             onNewSession={handleNewSession}
+            onRenameSession={renameSession}
+            projectDisplayNames={projectDisplayNames}
+            onRenameProject={renameProject}
+            deletedProjects={deletedProjects}
+            onDeleteProject={deleteProject}
             layout={layout}
             onChangeLayout={setLayout}
             themeMode={themeMode}
@@ -5307,8 +6065,8 @@ export default function VibeCodingPage() {
           {editingProjectTitle ? (
             <input
               autoFocus
-              value={projectTitle}
-              onChange={(e) => setProjectTitle(e.target.value)}
+              value={projectDisplayNames[projectTitle] ?? projectTitle}
+              onChange={(e) => renameProject(projectTitle, e.target.value)}
               onBlur={() => setEditingProjectTitle(false)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === 'Escape') setEditingProjectTitle(false)
@@ -5317,7 +6075,7 @@ export default function VibeCodingPage() {
             />
           ) : (
             <span className="text-[12px] text-[var(--color-ink)]/70">
-              {projectTitle}
+              {displayProjectName(projectTitle)}
             </span>
           )}
           <button
@@ -5679,12 +6437,11 @@ export default function VibeCodingPage() {
             {(chatCleared || (!needsFlowActive && !showChatPublish && sentMessages.length === 0)) && proposalStep === 'idle' ? (
               <ChatEmptyState
                 suggestions={
-                  activeProjectKind === 'ai-avatar'
-                    ? AI_AVATAR_CHAT_SUGGESTIONS
-                    : CHAT_EMPTY_SUGGESTIONS
+                  CHAT_SUGGESTIONS_BY_PROJECT[projectTitle] ??
+                  CHAT_SUGGESTIONS_BY_KIND[activeProjectKind] ??
+                  CHAT_EMPTY_SUGGESTIONS
                 }
                 onPick={(t) => sendChat(t)}
-                activeProjectKind={activeProjectKind}
               />
             ) : (<>
 
@@ -7398,7 +8155,14 @@ export default function VibeCodingPage() {
                     onClick: () => setMiniAppKey((k) => k + 1),
                   },
                   { label: '真机预览', icon: Smartphone },
-                  { label: '发布', icon: Upload },
+                  {
+                    label: '发布',
+                    icon: Upload,
+                    onClick: () => {
+                      resetPublish()
+                      startPublish('modal')
+                    },
+                  },
                 ].map(({ label, icon: Icon, onClick }) => (
                   <button
                     key={label}
@@ -7454,7 +8218,7 @@ export default function VibeCodingPage() {
                       <button
                         key={`${tab.label}-${origIdx}`}
                         onClick={() => setActivePreviewTab(origIdx)}
-                        className={`flex h-full shrink-0 items-center gap-1.5 border-r border-[var(--divider-soft)] pl-4 pr-3 text-[13px] whitespace-nowrap transition-colors ${
+                        className={`group flex h-full shrink-0 items-center gap-1.5 border-r border-[var(--divider-soft)] pl-4 pr-3 text-[13px] whitespace-nowrap transition-colors ${
                           isActive
                             ? 'bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]/90'
                             : 'text-[var(--color-ink)]/35 hover:bg-[var(--color-ink)]/[0.03] hover:text-[var(--color-ink)]/55'
@@ -7463,7 +8227,7 @@ export default function VibeCodingPage() {
                         {tab.label}
                         <span
                           onClick={(e) => { e.stopPropagation(); closeTab(origIdx) }}
-                          className="ml-1 rounded p-0.5 text-[11px] text-[var(--color-ink)]/25 hover:bg-[var(--color-ink)]/10 hover:text-[var(--color-ink)]/50"
+                          className="ml-1 rounded p-0.5 text-[11px] text-[var(--color-ink)]/25 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-ink)]/10 hover:text-[var(--color-ink)]/50"
                         >
                           <X size={11} />
                         </span>
@@ -7583,7 +8347,7 @@ export default function VibeCodingPage() {
                       <button
                         key={`${tab.label}-${origIdx}`}
                         onClick={() => setActivePreviewTab(origIdx)}
-                        className={`flex h-full shrink-0 items-center gap-1.5 border-r border-[var(--code-divider)] pl-4 pr-3 text-[13px] whitespace-nowrap transition-colors ${
+                        className={`group flex h-full shrink-0 items-center gap-1.5 border-r border-[var(--code-divider)] pl-4 pr-3 text-[13px] whitespace-nowrap transition-colors ${
                           isActive
                             ? 'bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]/90'
                             : 'text-[var(--color-ink)]/35 hover:bg-[var(--color-ink)]/[0.03] hover:text-[var(--color-ink)]/55'
@@ -7592,7 +8356,7 @@ export default function VibeCodingPage() {
                         {tab.label}
                         <span
                           onClick={(e) => { e.stopPropagation(); closeTab(origIdx) }}
-                          className="ml-1 rounded p-0.5 text-[11px] text-[var(--color-ink)]/25 hover:bg-[var(--color-ink)]/10 hover:text-[var(--color-ink)]/50"
+                          className="ml-1 rounded p-0.5 text-[11px] text-[var(--color-ink)]/25 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-ink)]/10 hover:text-[var(--color-ink)]/50"
                         >
                           <X size={11} />
                         </span>
@@ -7867,21 +8631,23 @@ export default function VibeCodingPage() {
             <div className="tab-scroll flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto">
               {openTabs.map((tab, i) => {
                 const isActive = i === activePreviewTab || (!tab.closable && productPinned)
+                const TabIcon = productLabelIcon(tab.label)
                 return (
                   <button
                     key={`${tab.label}-${i}`}
                     onClick={() => setActivePreviewTab(i)}
-                    className={`flex h-7 shrink-0 items-center gap-1 rounded-md px-2.5 text-[12.5px] whitespace-nowrap transition-colors ${
+                    className={`group flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] whitespace-nowrap transition-colors ${
                       isActive
                         ? 'bg-[var(--color-ink)]/[0.07] text-[var(--color-ink)]/90'
                         : 'text-[var(--color-ink)]/50 hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/80'
                     }`}
                   >
+                    <TabIcon size={13} strokeWidth={1.8} className="shrink-0 opacity-70" />
                     {tab.label}
                     {tab.closable && (
                       <span
                         onClick={(e) => { e.stopPropagation(); closeTab(i) }}
-                        className="ml-0.5 rounded p-0.5 text-[10px] text-[var(--color-ink)]/25 hover:bg-[var(--color-ink)]/10 hover:text-[var(--color-ink)]/50"
+                        className="ml-0.5 rounded p-0.5 text-[10px] text-[var(--color-ink)]/25 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-ink)]/10 hover:text-[var(--color-ink)]/50"
                       >
                         <X size={10} />
                       </span>
@@ -7920,17 +8686,22 @@ export default function VibeCodingPage() {
                   const tree = projectTrees[projectTitle]
                   if (!tree) return null
                   const kind = PROJECT_KINDS[projectTitle] ?? 'mini-program'
-                  const productTree =
+                  const productTree = withProjectDoc(
                     kind === 'ai-avatar'
                       ? buildAvatarProductView(tree, getAvatarConfig(projectTitle))
                       : kind === 'mini-program'
                         ? buildMiniProgramProductView(tree, getMiniProgramConfig(projectTitle))
-                        : buildProductView(tree, kind)
+                        : buildProductView(tree, kind),
+                  )
                   const flat: { label: string; parent?: string }[] = []
                   for (const node of productTree) {
                     if (node.type === 'file') {
                       flat.push({ label: node.name })
                     } else if (node.children?.length) {
+                      // The category parent itself is selectable (opens its
+                      // tab on the first child); its children follow, each
+                      // jumping straight to that child within the same tab.
+                      flat.push({ label: node.name })
                       for (const child of node.children) {
                         if (child.type === 'file') {
                           flat.push({ label: child.name, parent: node.name })
@@ -7940,6 +8711,11 @@ export default function VibeCodingPage() {
                       flat.push({ label: node.name })
                     }
                   }
+                  // Code files never live in the left directory — web-game
+                  // exposes its source via a 代码 editor tab added here.
+                  if (kind === 'web-game') {
+                    flat.push({ label: '代码' })
+                  }
                   if (flat.length === 0) return null
                   if (!addTabMenuRef.current) return null
                   const r = addTabMenuRef.current.getBoundingClientRect()
@@ -7948,24 +8724,28 @@ export default function VibeCodingPage() {
                       style={{ position: 'fixed', top: r.bottom + 4, left: r.left }}
                       className="z-50 min-w-[180px] max-w-[260px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] py-1 shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]"
                     >
-                      {flat.map((item) => (
-                        <button
-                          key={`${item.parent ?? ''}/${item.label}`}
-                          type="button"
-                          onClick={() => {
-                            setAddTabMenuOpen(false)
-                            openFileInTab(item.label)
-                          }}
-                          className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-subtle)] hover:text-[var(--color-ink)]"
-                        >
-                          <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                          {item.parent && (
-                            <span className="shrink-0 text-[10.5px] text-[var(--color-ink)]/40">
-                              {item.parent}
-                            </span>
-                          )}
-                        </button>
-                      ))}
+                      {flat.map((item) => {
+                        const ItemIcon = productLabelIcon(item.label, item.parent)
+                        return (
+                          <button
+                            key={`${item.parent ?? ''}/${item.label}`}
+                            type="button"
+                            onClick={() => {
+                              setAddTabMenuOpen(false)
+                              openFileInTab(item.label)
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-subtle)] hover:text-[var(--color-ink)]"
+                          >
+                            <ItemIcon size={13} strokeWidth={1.8} className="shrink-0 text-[var(--color-ink)]/45" />
+                            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                            {item.parent && (
+                              <span className="shrink-0 text-[10.5px] text-[var(--color-ink)]/40">
+                                {item.parent}
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
                     </div>,
                     document.body,
                   )
@@ -8016,7 +8796,15 @@ export default function VibeCodingPage() {
             const previewToolbar = (
                 <div className="@container flex shrink-0 flex-wrap items-center justify-between gap-2 px-4 py-2">
                   {activeProjectKind === 'web-app' ? (
-                    addressBar
+                    <div className="flex min-w-0 flex-1 items-center gap-4">
+                      {(() => {
+                        const lbl = openTabs[activePreviewTab]?.label ?? ''
+                        return isPageCategory(lbl) && isMultiChildCategory(lbl)
+                          ? renderCategoryTabs(lbl)
+                          : null
+                      })()}
+                      {addressBar}
+                    </div>
                   ) : activeProjectKind === 'web-game' ? (
                     // Web-game: left side shows the current product's
                     // name with a chevron — clicking opens a dropdown of
@@ -8035,43 +8823,36 @@ export default function VibeCodingPage() {
                           <span className="px-1.5 py-1 text-[13px] font-medium text-[var(--color-ink)]">
                             {activeLabel || '产物'}
                           </span>
-                          {isAssetsTab && (
-                            <>
-                              <button
-                                type="button"
-                                title="分类筛选"
-                                onClick={() => setAssetPanelOpen((v) => !v)}
-                                className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
-                                  assetPanelOpen
-                                    ? 'bg-[var(--color-ink)]/[0.08] text-[var(--color-ink)]/85'
-                                    : 'text-[var(--color-ink)]/55 hover:bg-[var(--color-ink)]/[0.05] hover:text-[var(--color-ink)]/80'
-                                }`}
-                              >
-                                <ListFilter size={13} strokeWidth={1.8} />
-                              </button>
-                              <AssetStatsLine activeCategory={assetCategoryFilter} />
-                            </>
-                          )}
+                          {isAssetsTab && <AssetStatsLine />}
                         </div>
                       )
                     })()
-                  ) : (
-                    <div className="flex items-center gap-6">
-                      {filters.map((f) => (
-                        <button
-                          key={f.value}
-                          onClick={() => setActiveFilter(f.value)}
-                          className={`relative text-[13px] font-medium tracking-wide transition-colors ${
-                            f.value === activeFilter
-                              ? 'text-[var(--color-ink)]'
-                              : 'text-[var(--color-ink)]/35 hover:text-[var(--color-ink)]/65'
-                          }`}
-                        >
-                          {f.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  ) : (() => {
+                    // Page category (界面) tab: show its pages as inline
+                    // tabs (same style as the 小程序 / AI分身 / 小花技能 mode
+                    // filters). Other tabs keep the mode filters.
+                    const lbl = openTabs[activePreviewTab]?.label ?? ''
+                    if (isPageCategory(lbl) && isMultiChildCategory(lbl)) {
+                      return renderCategoryTabs(lbl)
+                    }
+                    return (
+                      <div className="flex items-center gap-6">
+                        {filters.map((f) => (
+                          <button
+                            key={f.value}
+                            onClick={() => setActiveFilter(f.value)}
+                            className={`relative text-[13px] font-medium tracking-wide transition-colors ${
+                              f.value === activeFilter
+                                ? 'text-[var(--color-ink)]'
+                                : 'text-[var(--color-ink)]/35 hover:text-[var(--color-ink)]/65'
+                            }`}
+                          >
+                            {f.label}
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  })()}
 
                   <div className="flex items-center gap-2">
                     {activeProjectKind === 'web-game' && (
@@ -8095,7 +8876,14 @@ export default function VibeCodingPage() {
                         onClick: () => setMiniAppKey((k) => k + 1),
                       },
                       { label: '真机预览', icon: Smartphone },
-                      { label: '发布', icon: Upload },
+                      {
+                        label: '发布',
+                        icon: Upload,
+                        onClick: () => {
+                          resetPublish()
+                          startPublish('modal')
+                        },
+                      },
                     ].map(({ label, icon: Icon, onClick }) => (
                       <button
                         key={label}
@@ -8297,6 +9085,23 @@ export default function VibeCodingPage() {
 
             const renderTab = (label: string) => {
               if (label === DIFF_TAB_LABEL) return diffView
+              // 项目文档 — every project's brief, opened in the doc editor.
+              // marketing-h5 keeps its own proposalDocs-backed branch below.
+              if (label === '项目文档' && activeProjectKind !== 'marketing-h5') {
+                const docValue =
+                  projectDocEdits[projectTitle] ??
+                  PROJECT_DOCS[projectTitle] ??
+                  buildDefaultProjectDoc(projectTitle, activeProjectKind)
+                return (
+                  <MarketingDocEditor
+                    title="项目文档"
+                    value={docValue}
+                    onChange={(next) =>
+                      setProjectDocEdits((prev) => ({ ...prev, [projectTitle]: next }))
+                    }
+                  />
+                )
+              }
               const trigger = triggers.find((t) => triggerTabLabel(t) === label)
               if (trigger) {
                 return (
@@ -8402,7 +9207,7 @@ export default function VibeCodingPage() {
                 if (label === '小程序设置') {
                   return <MiniProgramSettingsForm config={miniProgramConfig} />
                 }
-                if (label === '静态素材') {
+                if (label === '素材') {
                   return <AssetGridView assets={miniProgramConfig.assets} />
                 }
               }
@@ -8467,11 +9272,7 @@ export default function VibeCodingPage() {
                 return (
                   <>
                     {previewToolbar}
-                    <GarudaAssetsView
-                      panelOpen={assetPanelOpen}
-                      activeCategory={assetCategoryFilter}
-                      onSelectCategory={setAssetCategoryFilter}
-                    />
+                    <GarudaAssetsView />
                   </>
                 )
               if (activeLabel === '代码')
@@ -8481,6 +9282,47 @@ export default function VibeCodingPage() {
                     <GarudaCodeView />
                   </>
                 )
+            }
+            // Multi-child category tabs (界面 / 知识库 / 技能 / …): one tab
+            // showing a single child at a time, with a directory dropdown
+            // in the toolbar header to switch. Page categories reuse the
+            // route-driven productView (its toolbar already carries the
+            // dropdown); other categories get a dropdown header + the
+            // selected child's body via renderTab.
+            if (activeLabel && isMultiChildCategory(activeLabel)) {
+              if (isPageCategory(activeLabel)) return productView
+              const kids = categoryChildrenOf(activeLabel)
+              const stored = categoryChild[activeLabel]
+              const sel = stored && kids.includes(stored) ? stored : kids[0]
+              const childLabel =
+                activeLabel === '知识库'
+                  ? `知识·${sel}`
+                  : activeLabel === '技能'
+                    ? `技能·${sel}`
+                    : activeLabel === '触发器'
+                      ? (triggers.find(
+                          (t) =>
+                            `${t.event.id}-${t.id.slice(-6)}.trigger.json` === sel,
+                        )
+                          ? triggerTabLabel(
+                              triggers.find(
+                                (t) =>
+                                  `${t.event.id}-${t.id.slice(-6)}.trigger.json` ===
+                                  sel,
+                              )!,
+                            )
+                          : sel)
+                      : sel
+              return (
+                <>
+                  <div className="flex shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-4 py-2">
+                    {renderCategoryTabs(activeLabel)}
+                  </div>
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                    {renderTab(childLabel)}
+                  </div>
+                </>
+              )
             }
             return activeLabel === '产物预览'
               ? productView
@@ -8559,6 +9401,26 @@ export default function VibeCodingPage() {
             </button>
           )}
           </div>
+
+          {/* ── Edit panel — web-game projects only. Sits directly to the
+               right of the preview surface, BEFORE the file tree, so the
+               file/code panel always stays pinned to the far right edge. ── */}
+          {activeProjectKind === 'web-game' && editPanelOpen && (
+            <div className="relative shrink-0 border-l border-[var(--divider-soft)]" style={{ width: editPanelWidth }}>
+              <GarudaEditPanel onClose={() => setEditPanelOpen(false)} />
+              <div
+                role="separator"
+                aria-orientation="vertical"
+                onPointerDown={onEditPanelDragStart}
+                onPointerMove={onEditPanelDragMove}
+                onPointerUp={onEditPanelDragEnd}
+                onPointerCancel={onEditPanelDragEnd}
+                className="group absolute left-0 top-0 bottom-0 z-10 w-1 -translate-x-1/2 cursor-col-resize touch-none select-none"
+              >
+                <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
+              </div>
+            </div>
+          )}
 
           {fileTreeOpen && (
             <div className="relative shrink-0" style={{ width: fileTreeWidth }}>
@@ -8654,31 +9516,16 @@ export default function VibeCodingPage() {
             </div>
           )}
 
-          {/* ── Edit panel — web-game projects only. Slides in to the
-               right of the preview surface (and to the right of the file
-               tree if both open) with a left-edge drag handle. ── */}
-          {activeProjectKind === 'web-game' && editPanelOpen && (
-            <div className="relative shrink-0 border-l border-[var(--divider-soft)]" style={{ width: editPanelWidth }}>
-              <GarudaEditPanel onClose={() => setEditPanelOpen(false)} />
-              <div
-                role="separator"
-                aria-orientation="vertical"
-                onPointerDown={onEditPanelDragStart}
-                onPointerMove={onEditPanelDragMove}
-                onPointerUp={onEditPanelDragEnd}
-                onPointerCancel={onEditPanelDragEnd}
-                className="group absolute left-0 top-0 bottom-0 z-10 w-1 -translate-x-1/2 cursor-col-resize touch-none select-none"
-              >
-                <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
-              </div>
-            </div>
-          )}
           </div>
         </div>
         </motion.div>
         )}
         </AnimatePresence>
       </div>
+
+      {/* ── Unified publish drawer — all 发布 buttons open this from the
+           right; portaled, so a single top-level mount serves every CTA. ── */}
+      <PublishDrawer projectName={displayProjectName(projectTitle)} projectKind={activeProjectKind} />
 
       {/* ── Pin menu popover (fixed, so it escapes the tab bar overflow clip) ── */}
       {pinMenuOpen && (
@@ -8800,11 +9647,11 @@ const GENERIC_AI_REPLIES = [
 ]
 
 const CHAT_EMPTY_SUGGESTIONS = [
-  '我想做一个第五人格主题的塔罗运势小程序',
-  '做个每日打卡小程序',
   '换套更神秘的配色',
   '给卡片加上翻面动效',
   '再写两个塔罗牌面',
+  '加一个每日签到提醒',
+  '优化首页加载速度',
 ]
 
 /** AI-avatar project suggestions — each phrase matches the trigger
@@ -8818,14 +9665,62 @@ const AI_AVATAR_CHAT_SUGGESTIONS = [
   '用户投稿时推荐"新作品上线"',
 ]
 
+/** Quick-command chips shown in a project's empty chat — edit-oriented and
+ *  tailored to the product kind. ai-avatar keeps the trigger-matching set so
+ *  clicking a chip still fires the recognition flow. */
+const CHAT_SUGGESTIONS_BY_KIND: Record<ProjectKind, string[]> = {
+  'mini-program': CHAT_EMPTY_SUGGESTIONS,
+  'ai-avatar': AI_AVATAR_CHAT_SUGGESTIONS,
+  'web-app': [
+    '换个更简洁的主题色',
+    '作品页加上分类筛选',
+    '首页加一段自我介绍',
+    '联系页加个留言表单',
+    '适配一下移动端布局',
+  ],
+  'web-game': [
+    '把敌人密度调高一点',
+    '新增一个 Roguelike 流派',
+    '换个更燃的 BOSS 战音乐',
+    '加一个本地排行榜',
+    '优化手机端触控手感',
+  ],
+  'marketing-h5': [
+    '多加一个抽奖楼层',
+    '换成更童趣的配色',
+    '调整奖品和文案',
+    '加一个分享得抽奖机会',
+    '改一下活动时间',
+  ],
+  'ops-proposal': [
+    '多找几个腰部达人',
+    '调整种草投放节奏',
+    '换个内容种草方向',
+    '增加团购转化钩子',
+    '补充人群诊断维度',
+  ],
+}
+
+/** Per-project overrides — finer-grained chips for specific projects. */
+const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
+  '第五人格塔罗小程序': [
+    '换套更神秘的配色',
+    '给卡片加上翻面动效',
+    '再写两个塔罗牌面',
+    '牌意词典加个搜索',
+    '加一个每日签到',
+  ],
+  'Garuda · 神明黄昏': CHAT_SUGGESTIONS_BY_KIND['web-game'],
+  '六一儿童节活动': CHAT_SUGGESTIONS_BY_KIND['marketing-h5'],
+  '沪上火锅·五一种草提案': CHAT_SUGGESTIONS_BY_KIND['ops-proposal'],
+}
+
 function ChatEmptyState({
   suggestions,
   onPick,
-  activeProjectKind,
 }: {
   suggestions: string[]
   onPick: (text: string) => void
-  activeProjectKind: ProjectKind
 }) {
   const themeMode = useThemeStore((s) => s.mode)
   const isLight = themeMode === 'light'
@@ -8865,7 +9760,7 @@ function ChatEmptyState({
           嗨，我是你的 AI 助理
         </h2>
         <p className="text-[14px] leading-[24px] text-[var(--color-ink)]/60">
-          你可以让我改改小程序，下面这些都可以直接试试
+          你可以让我调整这个项目，下面这些你可以试试
         </p>
       </div>
       <div className="relative z-10 flex flex-wrap items-center justify-center gap-2">
@@ -8884,11 +9779,6 @@ function ChatEmptyState({
           </motion.button>
         ))}
       </div>
-      {activeProjectKind === 'marketing-h5' ? (
-        <MarketingH5PublishPanel />
-      ) : (
-        <PublishFlowModal />
-      )}
     </motion.div>
   )
 }

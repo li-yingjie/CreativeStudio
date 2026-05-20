@@ -7,7 +7,7 @@ import {
   MessagesSquare,
   Users,
   type LucideIcon,
-} from 'lucide-react'
+} from '@/shared/icons'
 import {
   PUBLISH_SCENES,
   PUBLISH_SCENE_DESCRIPTIONS,

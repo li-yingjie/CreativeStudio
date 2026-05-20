@@ -3,8 +3,8 @@ import {
   Boxes,
   ChevronDown,
   ChevronRight,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+} from '@/shared/icons'
+import type { LucideIcon } from '@/shared/icons'
 import { OFFICIAL_DOMAINS } from './ResourceLibraryData'
 import type {
   CategoryTreeNode,

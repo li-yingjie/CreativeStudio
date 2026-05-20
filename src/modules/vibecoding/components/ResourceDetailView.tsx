@@ -6,8 +6,8 @@ import {
   GitBranch,
   Sparkles,
   Wrench,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+} from '@/shared/icons'
+import type { LucideIcon } from '@/shared/icons'
 import type { Capability, CapabilityType, Resource } from './ResourceLibraryData'
 import { CAPABILITY_LABEL, projectsUsingPlatform } from './ResourceLibraryData'
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Pencil, Zap } from 'lucide-react'
+import { Pencil, Zap } from '@/shared/icons'
 
 interface TriggerConfig {
   id: string

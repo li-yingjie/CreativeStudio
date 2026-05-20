@@ -11,11 +11,13 @@
  * Leaf nodes are reused by reference, preserving their original `name` so
  * clicking still resolves the right file. Empty categories are omitted.
  */
-import type { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from '@/shared/icons'
 import {
   Bot,
+  FileCode2,
   FileSearch,
   FileText,
+  Gamepad2,
   Image as ImageIcon,
   Info,
   LayoutDashboard,
@@ -27,7 +29,7 @@ import {
   SquareUser,
   UsersRound,
   Zap,
-} from 'lucide-react'
+} from '@/shared/icons'
 import type { AvatarAppConfig } from './AvatarConfigData'
 import type { MiniProgramConfig } from './MiniProgramConfigData'
 
@@ -91,8 +93,13 @@ const PAGE_LABELS: Record<string, string> = {
  *  dir's icon (and page-leaf icons) through this map via its `iconFor`
  *  prop; names not present here fall back to the folder / file icon. */
 export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
+  // Every project surfaces a 项目文档 (project brief) leaf.
+  项目文档: FileText,
   界面: LayoutGrid,
-  素材图片: ImageIcon,
+  // web-game leaves — kept in sync with the top tab strip / + dropdown.
+  游戏预览: Gamepad2,
+  素材: ImageIcon,
+  代码: FileCode2,
   能力技能: Sparkles,
   人设: SquareUser,
   基础信息: Info,
@@ -103,13 +110,21 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   // mini-program sections
   智能体: Bot,
   小程序设置: Settings,
-  静态素材: ImageIcon,
   // ops-proposal sections
   诊断分析: FileSearch,
   达人包: UsersRound,
   报告: FileText,
   看板: LayoutDashboard,
   // page leaves (children of 界面) are iconed by path in the consumer.
+}
+
+/** Prepend a 项目文档 (project brief) leaf so every project's product
+ *  view opens with its document — unless one is already present (the
+ *  marketing-h5 view ships its own). The doc body is resolved per project
+ *  in the consumer; this only places the navigable leaf. */
+export function withProjectDoc(nodes: FileNode[]): FileNode[] {
+  if (nodes.some((n) => n.name === '项目文档')) return nodes
+  return [{ name: '项目文档', type: 'file' }, ...nodes]
 }
 
 /* ─── tree-walk helpers ─── */
@@ -174,7 +189,7 @@ function appLikeView(tree: FileNode[], assetsPath: string[]): FileNode[] {
           children: pages.map((p) => ({ name: p.label, type: 'file' as const })),
         } as FileNode)
       : null,
-    category('素材图片', childrenAt(tree, assetsPath)),
+    category('素材', childrenAt(tree, assetsPath)),
     category('能力技能', childrenAt(tree, ['.agent', 'skills'])),
   ].filter((c): c is FileNode => c != null)
 }
@@ -218,9 +233,10 @@ export function buildProductView(
     case 'web-app':
       return appLikeView(tree, ['public', 'assets'])
     case 'web-game':
-      // Two clickable leaves — no expansion. 游戏预览 jumps the right
-      // pane to the runnable game tab; 素材 jumps to the assets browser.
-      // The raw README / LICENSE / source files don't surface here.
+      // Two clickable leaves — no expansion. 游戏预览 jumps the right pane
+      // to the runnable game tab; 素材 jumps to the assets browser. Code
+      // files never surface in the left directory — the 代码 editor tab is
+      // added on demand from the preview's + menu instead.
       return [
         { name: '游戏预览', type: 'file' },
         { name: '素材', type: 'file' },
@@ -277,10 +293,10 @@ export function buildAvatarProductView(
 }
 
 /** Build the mini-program product view — four plain sections: 智能体 /
- *  小程序设置 / 界面 / 静态素材. 智能体 / 小程序设置 / 静态素材 are single
- *  leaves (open agent / settings / asset-grid views); 界面 is a category
- *  whose leaves are the src/pages routes. Falls back to the file-tree
- *  bucketing when no config is available. */
+ *  小程序设置 / 界面 / 素材. 智能体 / 小程序设置 / 素材 are single leaves
+ *  (open agent / settings / asset-grid views); 界面 is a category whose
+ *  leaves are the src/pages routes. Falls back to the file-tree bucketing
+ *  when no config is available. */
 export function buildMiniProgramProductView(
   tree: FileNode[],
   config: MiniProgramConfig | undefined,
@@ -299,7 +315,7 @@ export function buildMiniProgramProductView(
     })
   }
   if (config.assets.length > 0) {
-    out.push({ name: '静态素材', type: 'file' })
+    out.push({ name: '素材', type: 'file' })
   }
   return out
 }

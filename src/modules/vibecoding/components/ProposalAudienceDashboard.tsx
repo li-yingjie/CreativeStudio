@@ -6,8 +6,8 @@ import {
   Sparkles,
   Target,
   TrendingUp,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+} from '@/shared/icons'
+import type { LucideIcon } from '@/shared/icons'
 
 /**
  * Step 2 artefact — 人群与流量诊断看板. Renders the same audience /

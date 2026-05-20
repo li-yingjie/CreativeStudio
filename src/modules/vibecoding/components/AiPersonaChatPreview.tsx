@@ -11,7 +11,7 @@ import {
   Trash2,
   Video,
   Zap,
-} from 'lucide-react'
+} from '@/shared/icons'
 import PhoneStatusBar from '@/modules/editor/components/preview/PhoneStatusBar'
 
 /**

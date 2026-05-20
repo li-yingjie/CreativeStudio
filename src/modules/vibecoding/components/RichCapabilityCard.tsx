@@ -1,4 +1,4 @@
-import { Bot } from 'lucide-react'
+import { Bot } from '@/shared/icons'
 import type { Capability, Resource } from './ResourceLibraryData'
 import { inferCapabilityTag } from './ResourceLibraryData'
 import {

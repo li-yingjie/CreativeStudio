@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from '@/shared/icons'
 import {
   FileCode2,
   FolderCode,
@@ -7,7 +7,7 @@ import {
   Library,
   Wrench,
   Zap,
-} from 'lucide-react'
+} from '@/shared/icons'
 
 export interface MentionItem {
   id: string

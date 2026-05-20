@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { FileCode2, FileText } from 'lucide-react'
+import { FileCode2, FileText } from '@/shared/icons'
 
 /**
  * Garuda 代码视图

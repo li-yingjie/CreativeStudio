@@ -1,4 +1,4 @@
-import { ArrowUpRight, FileCode2, FileText, LayoutDashboard, Library } from 'lucide-react'
+import { ArrowUpRight, FileCode2, FileText, LayoutDashboard, Library } from '@/shared/icons'
 
 /** Static, inline @-mention chip for resource references inside AI bubbles.
  *  Self-contained styles (Tailwind) so the chip renders consistently

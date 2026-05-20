@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Calendar, ChevronDown, ChevronUp, CircleHelp, Plus, X } from 'lucide-react'
+import { Calendar, ChevronDown, ChevronUp, CircleHelp, Plus, X } from '@/shared/icons'
 import { usePublishFlowStore } from '@/modules/editor/store/publish-flow-store'
 
 /**

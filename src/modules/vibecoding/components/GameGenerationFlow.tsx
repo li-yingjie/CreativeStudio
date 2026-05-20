@@ -5,7 +5,7 @@ import {
   CheckCircle2,
   Loader2,
   ArrowUpRight,
-} from 'lucide-react'
+} from '@/shared/icons'
 import Stream, { RevealAfter, Sequential } from './Stream'
 import { ArtifactCard, ArtifactCardGroup } from './ProposalChips'
 import GameConfirmCard, { type GameSpecDraft } from './GameConfirmCard'

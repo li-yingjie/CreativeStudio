@@ -1,9 +1,9 @@
-import { ImagePlus } from 'lucide-react'
+import { ImagePlus } from '@/shared/icons'
 import type { MiniProgramAsset } from './MiniProgramConfigData'
 
 /**
- * 静态素材 — icons / images shown as a visual management grid.
- * Opened as a right-side tab from the product view's 静态素材 entry.
+ * 素材 — icons / images shown as a visual management grid.
+ * Opened as a right-side tab from the product view's 素材 entry.
  */
 interface AssetGridViewProps {
   assets: MiniProgramAsset[]
@@ -13,7 +13,7 @@ interface AssetGridViewProps {
 
 export default function AssetGridView({
   assets,
-  title = '静态素材',
+  title = '素材',
   description = (count) => `小程序用到的图标与图片，共 ${count} 张。`,
 }: AssetGridViewProps) {
   return (

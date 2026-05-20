@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ExternalLink, RotateCcw } from 'lucide-react'
+import { ExternalLink, RotateCcw } from '@/shared/icons'
 
 /**
  * Garuda 游戏预览

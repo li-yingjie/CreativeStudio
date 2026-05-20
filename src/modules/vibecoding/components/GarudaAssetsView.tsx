@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Music2, Image as ImageIcon, Film, Check } from 'lucide-react'
+import { Music2, Image as ImageIcon, Film } from '@/shared/icons'
 
 /**
  * Garuda 资产视图
@@ -34,7 +34,7 @@ const GROUPS: AssetGroup[] = [
       { src: '/garuda/assets/garuda_shield-webp/garuda_shield_000.webp', label: 'shield', frames: 101 },
       { src: '/garuda/assets/garuda_bomb-webp/garuda_bomb_000.webp', label: 'bomb', frames: 152 },
       { src: '/garuda/assets/garuda_special-webp/garuda_special_000.webp', label: 'special', frames: 202 },
-      { src: '/garuda/assets/garuda_killer_video-webp/garuda_killer_video_000.webp', label: 'killer', frames: 80 },
+      { src: '/garuda/assets/garuda_killer_video-webp/garuda_special_video_000.webp', label: 'killer', frames: 80 },
       { src: '/garuda/assets/garuda_killermove.webp', label: 'killermove' },
       { src: '/garuda/assets/garuda_shell_gif-webp/garuda_shell_gif_00.webp', label: 'shell', frames: 31 },
       { src: '/garuda/assets/garuda_bullet.png', label: 'bullet' },
@@ -114,13 +114,6 @@ const GROUPS: AssetGroup[] = [
 export type { AssetGroup, AssetItem }
 
 interface GarudaAssetsViewProps {
-  /** When true, the left category-filter side panel is mounted. The
-   *  parent toolbar's list-icon button toggles this. */
-  panelOpen?: boolean
-  /** Which group is currently filtered to. `null` shows every group. */
-  activeCategory?: string | null
-  /** Click handler for category rows in the side panel. */
-  onSelectCategory?: (category: string | null) => void
   /** Group/items to render. Defaults to the Garuda game's GROUPS so
    *  existing call sites stay unchanged; pass a project-specific list
    *  (e.g. H5 活动素材) to reuse the same layout for other surfaces. */
@@ -148,60 +141,69 @@ function computeStats(groups: AssetGroup[], activeCategory: string | null) {
   )
 }
 
+const KIND_META: Record<AssetKind, { label: string; icon: typeof ImageIcon }> = {
+  image: { label: '图像', icon: ImageIcon },
+  audio: { label: '音频', icon: Music2 },
+  video: { label: '视频', icon: Film },
+}
+
 export default function GarudaAssetsView({
-  panelOpen = false,
-  activeCategory = null,
-  onSelectCategory,
   groups = GROUPS,
 }: GarudaAssetsViewProps = {}) {
   const [zoomed, setZoomed] = useState<AssetItem | null>(null)
+  const [activeKind, setActiveKind] = useState<AssetKind>('image')
 
-  const visibleGroups = activeCategory
-    ? groups.filter((g) => g.title === activeCategory)
-    : groups
+  // Which kinds actually have assets — only those get a tab.
+  const kindCounts = groups.reduce(
+    (a, g) => {
+      g.items.forEach((it) => {
+        a[it.kind ?? 'image'] += 1
+      })
+      return a
+    },
+    { image: 0, audio: 0, video: 0 } as Record<AssetKind, number>,
+  )
+  const kindTabs = (['image', 'audio', 'video'] as AssetKind[]).filter(
+    (k) => kindCounts[k] > 0,
+  )
+  const effectiveKind = kindTabs.includes(activeKind) ? activeKind : kindTabs[0]
+
+  // Filter by the selected kind tab, dropping groups that end up empty.
+  const visibleGroups = groups
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((it) => (it.kind ?? 'image') === effectiveKind),
+    }))
+    .filter((g) => g.items.length > 0)
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden bg-[var(--color-surface-0)]">
-      {panelOpen && (
-        <aside className="thin-scroll flex w-[180px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-[var(--divider-soft)] bg-[var(--color-surface-1)] py-2">
-          <button
-            type="button"
-            onClick={() => onSelectCategory?.(null)}
-            className={`mx-2 flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition-colors ${
-              activeCategory === null
-                ? 'bg-[var(--color-ink)]/[0.08] text-[var(--color-ink)]'
-                : 'text-[var(--color-ink)]/70 hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]'
-            }`}
-          >
-            <span className="truncate">全部</span>
-            {activeCategory === null && (
-              <Check size={12} className="shrink-0 text-[var(--color-ink)]/60" />
-            )}
-          </button>
-          <div className="mx-3 my-1 h-px bg-[var(--divider-soft)]" />
-          {groups.map((g) => {
-            const isActive = activeCategory === g.title
+      <div className="thin-scroll flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+      {/* Kind tabs — 图像 / 音频 / 视频 */}
+      {kindTabs.length > 1 && (
+        <div className="sticky top-0 z-10 flex shrink-0 items-center gap-1 border-b border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-5 py-2">
+          {kindTabs.map((k) => {
+            const Icon = KIND_META[k].icon
+            const active = k === effectiveKind
             return (
               <button
-                key={g.title}
+                key={k}
                 type="button"
-                onClick={() => onSelectCategory?.(g.title)}
-                className={`mx-2 flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition-colors ${
-                  isActive
-                    ? 'bg-[var(--color-ink)]/[0.08] text-[var(--color-ink)]'
-                    : 'text-[var(--color-ink)]/70 hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]'
+                onClick={() => setActiveKind(k)}
+                className={`flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] transition-colors ${
+                  active
+                    ? 'bg-[var(--color-ink)]/[0.07] text-[var(--color-ink)]/90'
+                    : 'text-[var(--color-ink)]/50 hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/80'
                 }`}
               >
-                <span className="truncate">{g.title}</span>
-                <span className="shrink-0 text-[10px] text-[var(--color-ink)]/40">
-                  {g.items.length}
-                </span>
+                <Icon size={13} strokeWidth={1.8} className="shrink-0 opacity-70" />
+                {KIND_META[k].label}
+                <span className="text-[10.5px] text-[var(--color-ink)]/40">{kindCounts[k]}</span>
               </button>
             )
           })}
-        </aside>
+        </div>
       )}
-      <div className="thin-scroll flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
       <div className="space-y-7 px-5 py-5">
         {visibleGroups.map((g) => (
           <section key={g.title}>
@@ -314,9 +316,9 @@ function AssetThumb({ item, onZoom }: { item: AssetItem; onZoom: () => void }) {
       onClick={onZoom}
       className="group flex flex-col gap-1.5 overflow-hidden rounded-lg border border-[var(--divider-soft)] bg-[var(--fill-subtle)] p-1.5 text-left transition-colors hover:border-[var(--color-ink)]/25 hover:bg-[var(--fill-hover)]"
     >
-      <div className="relative aspect-square overflow-hidden rounded bg-black/60">
+      <div className="relative aspect-square overflow-hidden rounded bg-[var(--color-ink)]/[0.06]">
         {kind === 'audio' ? (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-white/55">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-[var(--color-ink)]/45">
             <Music2 size={18} strokeWidth={1.6} />
             <span className="text-[10px] uppercase tracking-wider">audio</span>
           </div>

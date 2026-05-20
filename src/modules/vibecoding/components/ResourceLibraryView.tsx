@@ -11,8 +11,8 @@ import {
   Plus,
   Search,
   Wrench,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+} from '@/shared/icons'
+import type { LucideIcon } from '@/shared/icons'
 import CapabilityDetailView from './CapabilityDetailView'
 import ResourceCategoryTree from './ResourceCategoryTree'
 import RichCapabilityCard from './RichCapabilityCard'

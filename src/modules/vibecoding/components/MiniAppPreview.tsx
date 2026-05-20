@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronRight, Home, MessageCircle, RefreshCw, Sparkles, User } from 'lucide-react'
+import { ChevronRight, Home, MessageCircle, RefreshCw, Sparkles, User } from '@/shared/icons'
 import PhoneStatusBar from '@/modules/editor/components/preview/PhoneStatusBar'
 import { getWorld } from '@/modules/editor/data/worlds'
 

@@ -1,4 +1,4 @@
-import { Cpu } from 'lucide-react'
+import { Cpu } from '@/shared/icons'
 import MarkdownView from './MarkdownView'
 import type { MiniProgramConfig } from './MiniProgramConfigData'
 

@@ -9,8 +9,8 @@ import {
   Play,
   ShieldAlert,
   Sparkles,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+} from '@/shared/icons'
+import type { LucideIcon } from '@/shared/icons'
 import MarkdownView from './MarkdownView'
 import CapabilityPreviewCanvas, {
   hasCapabilityPreview,

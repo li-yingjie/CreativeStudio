@@ -1,4 +1,4 @@
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight } from '@/shared/icons'
 import type { Resource } from './ResourceLibraryData'
 import { CAPABILITY_LABEL } from './ResourceLibraryData'
 

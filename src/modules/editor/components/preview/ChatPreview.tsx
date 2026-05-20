@@ -6,7 +6,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
-import { ArrowUp } from 'lucide-react'
+import { ArrowUp } from '@/shared/icons'
 import { usePersonaStore } from '../../store/persona-store'
 import { getWorld } from '../../data/worlds'
 import PhoneStatusBar from './PhoneStatusBar'

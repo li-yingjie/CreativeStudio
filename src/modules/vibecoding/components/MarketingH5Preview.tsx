@@ -1,4 +1,4 @@
-import { ChevronLeft, Search, Share2 } from 'lucide-react'
+import { ChevronLeft, Search, Share2 } from '@/shared/icons'
 
 const HERO_IMAGE = '/h5/children-day/hero-gifts.png'
 const LOTTERY_IMAGE = '/h5/children-day/lottery-cube.png'

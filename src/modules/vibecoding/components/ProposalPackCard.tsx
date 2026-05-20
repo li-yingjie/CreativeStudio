@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check } from '@/shared/icons'
 import { ChatFormCard, ChatFormSubmit } from './ChatFormCard'
 
 /**

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, Check } from 'lucide-react'
+import { ArrowRight, Check } from '@/shared/icons'
 
 /**
  * 游戏生成 — 用户确认卡

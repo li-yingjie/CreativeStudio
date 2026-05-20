@@ -1,4 +1,4 @@
-import { Clock, TrendingUp } from 'lucide-react'
+import { Clock, TrendingUp } from '@/shared/icons'
 import type { Capability, CapabilityType, Resource } from './ResourceLibraryData'
 import { CAPABILITY_LABEL, inferCapabilityTag } from './ResourceLibraryData'
 import { CAPABILITY_TYPE_TONE } from './ResourceIconMap'

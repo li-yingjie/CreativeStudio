@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Eye, Pencil, Columns2 } from 'lucide-react'
+import { Eye, Pencil, Columns2 } from '@/shared/icons'
 import MarkdownView from './MarkdownView'
 
 type Mode = 'edit' | 'preview' | 'split'

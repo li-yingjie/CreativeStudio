@@ -11,7 +11,7 @@ import {
   RefreshCw,
   Save,
   Gamepad2,
-} from 'lucide-react'
+} from '@/shared/icons'
 
 /**
  * Garuda 可视化编辑面板
