@@ -16,7 +16,7 @@ import {
 import { useThemeStore } from '@/shared/storage/theme'
 import MiniAppPreview from './MiniAppPreview'
 import XiaohuaFeedPreview from './XiaohuaFeedPreview'
-import WebAppPreview from './WebAppPreview'
+import AgentHubPreview from './AgentHubPreview'
 import MarketingH5Preview from './MarketingH5Preview'
 import GarudaGamePreview from './GarudaGamePreview'
 import GarudaAssetsView, {
@@ -83,7 +83,6 @@ import {
   buildProductView,
   getProductPages,
   PRODUCT_CATEGORY_ICONS,
-  withProjectDoc,
   WEB_PAGES,
   type FileNode,
   type ProjectKind,
@@ -121,13 +120,13 @@ type OutputShape = 'app' | 'artifact' | 'code'
 
 const PROJECT_KINDS: Record<string, ProjectKind> = {
   '每日打卡小程序': 'mini-program',
-  '第五人格塔罗小程序': 'mini-program',
+  '塔罗小程序': 'mini-program',
   '探店视频创作助手': 'mini-program',
   '粉丝互动机器人': 'ai-avatar',
   '陶白白 Sensei 分身': 'ai-avatar',
   '沪上火锅·五一种草提案': 'ops-proposal',
-  '个人作品集网站': 'web-app',
-  '肉鸽小游戏': 'web-game',
+  '抖音 AI 工坊设计探索': 'web-app',
+  '射击小游戏': 'web-game',
   '六一儿童节活动': 'marketing-h5',
 }
 
@@ -198,7 +197,9 @@ import {
   PanelRight,
   PanelRightOpen,
   Share2,
-  ListCollapse,
+  FoldVertical,
+  Pin,
+  PinOff,
   Search,
   Sparkles,
   Paperclip,
@@ -227,7 +228,6 @@ import {
   History,
   MessageCircleHeart,
   Gamepad2,
-  Globe,
   Bot,
   FileSearch,
   Flashlight,
@@ -251,7 +251,6 @@ import {
   WandSparkles,
   AppWindow,
   BriefcaseBusiness,
-  Library,
 } from '@/shared/icons'
 import type { LucideIcon } from '@/shared/icons'
 
@@ -1032,7 +1031,7 @@ function getFileIcon(name: string): typeof File {
  *  extension-based file icon. `parent` is the dropdown row's category;
  *  tab labels carry the category as a `知识·` / `技能·` prefix instead. */
 function productLabelIcon(label: string, parent?: string): LucideIcon {
-  if (parent === '界面' || label.startsWith('界面·')) return AppWindow
+  if (parent === '页面' || label.startsWith('页面·')) return AppWindow
   if (parent === '知识库' || label.startsWith('知识·')) return BookOpen
   if (parent === '技能' || label.startsWith('技能·')) return Sparkles
   const base = label.includes('·') ? label.slice(label.indexOf('·') + 1) : label
@@ -1384,7 +1383,7 @@ const TAOBAIBAI_DOC_MD = `# 陶白白 Sensei 分身 · 项目文档
 - **玄学合规** → 统一加「仅供娱乐」声明
 `
 
-const TAROT_MINIAPP_DOC_MD = `# 第五人格塔罗小程序 · 项目文档
+const TAROT_MINIAPP_DOC_MD = `# 塔罗小程序 · 项目文档
 
 ## 一、项目概述
 
@@ -1429,7 +1428,7 @@ const TAROT_MINIAPP_DOC_MD = `# 第五人格塔罗小程序 · 项目文档
 - 第五人格 IP 授权素材范围
 `
 
-const PORTFOLIO_DOC_MD = `# 个人作品集网站 · 项目文档
+const PORTFOLIO_DOC_MD = `# 抖音 AI 工坊设计探索 · 项目文档
 
 ## 一、项目目标
 
@@ -1470,11 +1469,11 @@ const PORTFOLIO_DOC_MD = `# 个人作品集网站 · 项目文档
 - 三端（桌面 / 平板 / 手机）布局无错位
 `
 
-const GARUDA_DOC_MD = `# 肉鸽小游戏 · 项目文档
+const GARUDA_DOC_MD = `# 射击小游戏 · 项目文档
 
 ## 一、项目简介
 
-《肉鸽小游戏》是一款竖版弹幕射击 + Roguelike 的网页小游戏（H5 /
+《射击小游戏》是一款竖版弹幕射击 + Roguelike 的网页小游戏（H5 /
 单页 HTML5）。玩家操控机甲少女在「神明黄昏」世界中清屏、闯关、构筑
 build。
 
@@ -1558,9 +1557,9 @@ const HOTPOT_PROPOSAL_DOC_MD = `# 沪上火锅 · 五一种草提案 · 项目�
 const PROJECT_DOCS: Record<string, string> = {
   '陶白白 Sensei 分身': TAOBAIBAI_DOC_MD,
   '粉丝互动机器人': TAOBAIBAI_DOC_MD,
-  '第五人格塔罗小程序': TAROT_MINIAPP_DOC_MD,
-  '个人作品集网站': PORTFOLIO_DOC_MD,
-  '肉鸽小游戏': GARUDA_DOC_MD,
+  '塔罗小程序': TAROT_MINIAPP_DOC_MD,
+  '抖音 AI 工坊设计探索': PORTFOLIO_DOC_MD,
+  '射击小游戏': GARUDA_DOC_MD,
   '沪上火锅·五一种草提案': HOTPOT_PROPOSAL_DOC_MD,
   '六一儿童节活动': CHILDREN_DAY_PLAN_MD,
 }
@@ -1879,54 +1878,31 @@ const HOME_SCENES: HomeScene[] = [
     ],
   },
   {
-    label: '营销活动',
-    icon: Sparkles,
-    svg: '/icons/announcement-01.svg',
-    commands: [
-      { label: '做一个节日抽奖 H5 活动', prompt: '帮我做一个节日主题的抽奖 H5 活动页，含倒计时、奖品楼层和分享。' },
-      { label: '做一个新品首发预约活动', prompt: '帮我做一个新品首发预约活动页，支持预约提醒和名额展示。' },
-      { label: '做一个邀请好友得奖励活动', prompt: '帮我做一个邀请好友得奖励的裂变活动页。' },
-      { label: '做一个限时秒杀活动', prompt: '帮我做一个限时秒杀活动页，含倒计时和库存进度。' },
-      { label: '做一个签到领奖活动', prompt: '帮我做一个连续签到领奖活动页，含进度和奖励展示。' },
-    ],
-  },
-  {
-    label: '营销视频',
-    icon: Video,
-    svg: '/icons/video-recorder.svg',
-    commands: [
-      { label: '生成一条新品种草短视频脚本', prompt: '帮我生成一条新品种草短视频脚本，含分镜、口播和字幕。' },
-      { label: '生成一条节日营销视频', prompt: '帮我生成一条节日营销主题的短视频脚本与分镜。' },
-      { label: '视频漏放归因', prompt: '帮我做视频漏放归因分析，找出影响曝光的关键因素。' },
-      { label: '视频误伤分析', prompt: '帮我做视频误伤分析，定位被误判限流的原因。' },
-      { label: '生成一条品牌 TVC 脚本', prompt: '帮我生成一条品牌 TVC 短片脚本，含分镜与旁白。' },
-    ],
-  },
-  {
-    label: '营销海报',
+    label: '营销设计',
     icon: ImageIcon,
     svg: '/icons/image-03.svg',
     commands: [
+      { label: '做一张新品促销主视觉海报', prompt: '帮我做一张新品促销主视觉海报。' },
       { label: '生成推广《剑来》动画的异形卡', prompt: '帮我生成一张推广《剑来》动画的异形卡海报。' },
-      { label: '做一张新品促销海报', prompt: '帮我做一张新品促销主视觉海报。' },
-      { label: '做一组节日祝福海报', prompt: '帮我做一组节日祝福系列海报。' },
-      { label: '生成活动主视觉 KV', prompt: '帮我生成一张活动主视觉 KV 海报。' },
-      { label: '做一张朋友圈九宫格海报', prompt: '帮我做一组朋友圈九宫格拼图海报。' },
+      { label: '做一个节日抽奖 H5 活动页', prompt: '帮我做一个节日主题的抽奖 H5 活动页，含倒计时、奖品楼层和分享。' },
+      { label: '生成一条新品种草短视频脚本', prompt: '帮我生成一条新品种草短视频脚本，含分镜、口播和字幕。' },
+      { label: '做一组朋友圈九宫格海报', prompt: '帮我做一组朋友圈九宫格拼图海报。' },
     ],
   },
   {
-    label: 'Web 网页',
-    icon: Globe,
+    label: '产品设计',
+    icon: AppWindow,
+    svg: '/icons/browser.svg',
     commands: [
-      { label: '做一个个人作品集网站', prompt: '帮我做一个个人作品集网站，含首页、作品、关于和联系页。' },
       { label: '做一个产品落地页', prompt: '帮我做一个产品落地页，突出卖点和转化。' },
-      { label: '做一个活动报名页', prompt: '帮我做一个活动报名页，含表单和议程。' },
-      { label: '做一个团队介绍页', prompt: '帮我做一个团队介绍页。' },
+      { label: '设计一套产品 UI 界面与组件规范', prompt: '帮我设计一套产品 UI 界面与组件规范，含配色、字体和常用组件。' },
+      { label: '设计一个产品功能原型图', prompt: '帮我设计一个产品核心功能的交互原型图。' },
+      { label: '做一个个人作品集网站', prompt: '帮我做一个个人作品集网站，含首页、作品、关于和联系页。' },
       { label: '做一个公司官网首页', prompt: '帮我做一个公司官网首页，含品牌介绍与业务板块。' },
     ],
   },
   {
-    label: '小游戏',
+    label: '游戏设计',
     icon: Gamepad2,
     svg: '/icons/gaming-pad-01.svg',
     commands: [
@@ -1936,28 +1912,6 @@ const HOME_SCENES: HomeScene[] = [
       { label: '做一个答题闯关小游戏', prompt: '帮我做一个答题闯关小游戏。' },
       { label: '做一个消除类小游戏', prompt: '帮我做一个三消消除类小游戏。' },
     ],
-  },
-]
-
-type AiMode = 'coding' | 'business' | 'orchestration'
-const AI_MODES: { id: AiMode; label: string; desc: string; icon: typeof Code2 }[] = [
-  {
-    id: 'coding',
-    label: 'AI Coding',
-    desc: '生成代码、组件、页面，适合开发型需求',
-    icon: Code2,
-  },
-  {
-    id: 'business',
-    label: 'AI 业务助手',
-    desc: '对话式完成业务流程，适合数据查询与问答',
-    icon: MessageSquare,
-  },
-  {
-    id: 'orchestration',
-    label: '智能编排',
-    desc: '串联多步任务与工具，适合复杂工作流',
-    icon: Blocks,
   },
 ]
 
@@ -1997,28 +1951,6 @@ function PlatformHome({
   onSubmit: (text: string) => void
 }) {
   const isLight = useThemeStore((s) => s.mode) === 'light'
-  const [aiMode, setAiMode] = useState<AiMode>('coding')
-  const [aiMenuPos, setAiMenuPos] = useState<{ top: number; left: number } | null>(null)
-  const aiBtnRef = useRef<HTMLButtonElement>(null)
-  const aiMenuRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!aiMenuPos) return
-    const handler = (e: PointerEvent) => {
-      const target = e.target as Node
-      if (
-        aiMenuRef.current &&
-        !aiMenuRef.current.contains(target) &&
-        aiBtnRef.current &&
-        !aiBtnRef.current.contains(target)
-      ) {
-        setAiMenuPos(null)
-      }
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
-  }, [aiMenuPos])
-  const currentMode = AI_MODES.find((m) => m.id === aiMode) ?? AI_MODES[0]
-  const CurrentIcon = currentMode.icon
 
   /* Scene quick-command flyout. Clicking a scene pill opens a popover of
    * that scene's commands; hovering a command ghost-fills the composer (via
@@ -2106,27 +2038,11 @@ function PlatformHome({
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
-                ref={aiBtnRef}
-                type="button"
-                onClick={() => {
-                  if (aiMenuPos) {
-                    setAiMenuPos(null)
-                    return
-                  }
-                  const rect = aiBtnRef.current?.getBoundingClientRect()
-                  if (rect) setAiMenuPos({ top: rect.bottom + 8, left: rect.left })
-                }}
-                className="flex h-9 items-center gap-1.5 rounded-full border border-[var(--divider)] px-4 text-[14px] font-semibold text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                <CurrentIcon size={16} strokeWidth={1.8} />
-                {currentMode.label}
-              </button>
-              <button
                 type="button"
                 className="flex h-9 items-center gap-1 rounded-full border border-[var(--divider)] px-4 text-[14px] font-semibold text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
               >
                 <FolderCode size={16} strokeWidth={1.8} />
-                资源
+                扩展
               </button>
               <button
                 type="button"
@@ -2209,6 +2125,10 @@ function PlatformHome({
               exit={{ opacity: 0, y: -6, scale: 0.985 }}
               transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
               style={{ transformOrigin: 'top center' }}
+              onClick={() => {
+                setActiveScene(null)
+                setGhostText(null)
+              }}
               className="absolute left-1/2 top-0 z-30 w-[810px] max-w-[92vw] -translate-x-1/2 overflow-hidden rounded-2xl bg-[var(--color-surface-0)]"
             >
               <div className="flex items-center justify-between px-5 py-3">
@@ -2255,53 +2175,6 @@ function PlatformHome({
         })()}
         </AnimatePresence>
       </div>
-
-      {/* AI mode dropdown — position: fixed so it escapes the composer's
-           overflow-hidden rounded-rect clipping. */}
-      {aiMenuPos && (
-        <div
-          ref={aiMenuRef}
-          style={{ position: 'fixed', top: aiMenuPos.top, left: aiMenuPos.left, zIndex: 70 }}
-          className="w-[312px] overflow-hidden rounded-xl border border-[var(--divider)] bg-[var(--color-surface-0)] shadow-[0_12px_28px_-8px_rgba(16,18,24,0.18)]"
-        >
-          {AI_MODES.map((m) => {
-            const Icon = m.icon
-            const isActive = m.id === aiMode
-            return (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => {
-                  setAiMode(m.id)
-                  setAiMenuPos(null)
-                }}
-                className={`flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors ${
-                  isActive ? 'bg-[var(--fill-subtle)]' : 'hover:bg-[var(--fill-subtle)]'
-                }`}
-              >
-                <span
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-                    isActive
-                      ? 'bg-[var(--color-ink)] text-[var(--color-ink-contrast)]'
-                      : 'bg-[var(--fill-hover)] text-[var(--color-ink)]/80'
-                  }`}
-                >
-                  <Icon size={14} strokeWidth={1.8} />
-                </span>
-                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-ink)]">
-                    {m.label}
-                    {isActive && <Check size={12} className="text-[var(--color-ink)]/70" />}
-                  </span>
-                  <span className="text-[11.5px] leading-[1.5] text-[var(--color-ink)]/55">
-                    {m.desc}
-                  </span>
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      )}
     </motion.div>
   )
 }
@@ -2331,13 +2204,10 @@ function PlatformSidebar({
   activeNav,
   activeRoute,
   activeProjectName,
-  sessions,
-  activeSessionId,
-  onSwitchSession,
-  onNewSession,
-  onRenameSession,
   projectDisplayNames,
   onRenameProject,
+  pinnedProjects,
+  onTogglePinProject,
   deletedProjects,
   onDeleteProject,
   categoryExtras,
@@ -2381,18 +2251,14 @@ function PlatformSidebar({
   /** Name of the currently-active project — page highlighting only
    *  applies to that project's product view. */
   activeProjectName: string
-  /** Chat session list — rendered as a 对话 section below 项目列表 so
-   *  users can switch sessions without opening the chat-header dropdown. */
-  sessions: { id: string; name: string }[]
-  activeSessionId: string
-  onSwitchSession: (id: string) => void
-  onNewSession: () => void
-  /** Rename a chat session by id (inline edit in the 对话 list). */
-  onRenameSession: (id: string, name: string) => void
   /** Project display-name overrides (original key → label). */
   projectDisplayNames: Record<string, string>
   /** Rename a project (inline edit in the 项目列表). */
   onRenameProject: (name: string, next: string) => void
+  /** Pinned project names (in pin order) — floated to the top of the list. */
+  pinnedProjects: string[]
+  /** Toggle a project's pinned state from its 更多 menu. */
+  onTogglePinProject: (name: string) => void
   /** Soft-deleted project names — filtered out of the list. */
   deletedProjects: Set<string>
   /** Delete (hide) a project from the list. */
@@ -2410,9 +2276,8 @@ function PlatformSidebar({
 }) {
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false)
   const layoutMenuRef = useRef<HTMLDivElement>(null)
-  /* Inline-rename state for the 项目列表 / 对话 rows. */
+  /* Inline-rename state for the 项目列表 rows. */
   const [renamingProject, setRenamingProject] = useState<string | null>(null)
-  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null)
   /* Which project row's 更多 (重命名 / 删除) menu is open. */
   const [moreMenuProject, setMoreMenuProject] = useState<string | null>(null)
   const moreMenuRef = useRef<HTMLDivElement>(null)
@@ -2434,27 +2299,6 @@ function PlatformSidebar({
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [layoutMenuOpen])
   const [spaceMenuPos, setSpaceMenuPos] = useState<{ top: number; left: number } | null>(null)
-  /** Height of the 对话 section in px. The 项目列表 above fills the rest
-   *  of the available height. Drag the divider between the two sections
-   *  to resize. */
-  const [conversationHeight, setConversationHeight] = useState(200)
-  const conversationDragRef = useRef<{ startY: number; startHeight: number } | null>(null)
-  const onConversationDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
-    conversationDragRef.current = { startY: e.clientY, startHeight: conversationHeight }
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-  }
-  const onConversationDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const s = conversationDragRef.current
-    if (!s) return
-    // Dragging up makes the conversation section taller; dragging down
-    // shrinks it. Clamp to a sensible range so neither side disappears.
-    const next = Math.min(480, Math.max(80, s.startHeight - (e.clientY - s.startY)))
-    setConversationHeight(next)
-  }
-  const onConversationDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
-    conversationDragRef.current = null
-    ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
-  }
   const [activeSpace, setActiveSpace] = useState('个人空间')
   // The project list is master/detail. The list shows every project's
   // plain-language 产物视图; drilling into a project (`drilledProject`)
@@ -2477,17 +2321,28 @@ function PlatformSidebar({
     // the home-flow this session — but we always want Garuda pinned in
     // the fixed list below, so filter it out of createdProjects to
     // avoid double-listing.
-    ...createdProjects.filter((p) => p !== '肉鸽小游戏'),
-    // Order: 分身 → 小程序 → 个人网站 → 游戏 → 营销设计·H5 → 营销提案.
+    ...createdProjects.filter((p) => p !== '射击小游戏'),
+    // Order: 分身 → 小程序 → H5 → 产品设计 → 游戏.
     // 粉丝互动机器人 / 探店视频创作助手 / 每日打卡小程序 are hidden —
     // config exists but there's no scripted demo flow for them yet.
     '陶白白 Sensei 分身',
-    '第五人格塔罗小程序',
-    '个人作品集网站',
-    '肉鸽小游戏',
+    '塔罗小程序',
     '六一儿童节活动',
+    '抖音 AI 工坊设计探索',
+    '射击小游戏',
     // '沪上火锅·五一种草提案' — 先隐藏（运营提案 demo 暂不展示）。
-  ].filter((p) => !deletedProjects.has(p))
+  ]
+    .filter((p) => !deletedProjects.has(p))
+    // Pinned projects float to the top (in pin order); the rest keep their
+    // natural order below.
+    .sort((a, b) => {
+      const ia = pinnedProjects.indexOf(a)
+      const ib = pinnedProjects.indexOf(b)
+      if (ia === -1 && ib === -1) return 0
+      if (ia === -1) return 1
+      if (ib === -1) return -1
+      return ia - ib
+    })
 
   return (
     <aside className="flex h-full w-full flex-col pt-6">
@@ -2607,7 +2462,7 @@ function PlatformSidebar({
               onClick={onCollapseAll}
               className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--color-ink)]/40 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
             >
-              <ListCollapse size={12} strokeWidth={1.8} />
+              <FoldVertical size={12} strokeWidth={1.8} />
             </button>
           </div>
           <div className="thin-scroll flex-1 overflow-y-auto pb-2">
@@ -2652,7 +2507,7 @@ function PlatformSidebar({
                 onClick={onCollapseAll}
                 className="flex h-5 w-5 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
               >
-                <ListCollapse size={12} strokeWidth={1.8} />
+                <FoldVertical size={12} strokeWidth={1.8} />
               </button>
             </div>
           </div>
@@ -2663,6 +2518,7 @@ function PlatformSidebar({
             {ALL_PROJECTS.map((name) => {
               const open = openProjects.has(name)
               const tree = projectTrees[name]
+              const isPinned = pinnedProjects.includes(name)
               const isActive =
                 name === activeProjectName &&
                 activeNav === null &&
@@ -2701,8 +2557,6 @@ function PlatformSidebar({
                           toggleProject(name)
                           onSwitchProject(name)
                         }}
-                        onDoubleClick={() => setRenamingProject(name)}
-                        title="双击重命名"
                         className={`flex min-w-0 flex-1 items-center gap-1.5 py-1.5 pl-2 pr-1 text-[12px] font-medium transition-colors ${
                           isActive ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/85'
                         }`}
@@ -2724,7 +2578,14 @@ function PlatformSidebar({
                             }`}
                           />
                         )}
-                        <span className="truncate">{projName(name)}</span>
+                        <span className="min-w-0 truncate">{projName(name)}</span>
+                        {isPinned && (
+                          <Pin
+                            size={11}
+                            strokeWidth={1.8}
+                            className="shrink-0 rotate-45 text-[var(--color-ink)]/40"
+                          />
+                        )}
                       </button>
                     )}
                     <div
@@ -2761,6 +2622,21 @@ function PlatformSidebar({
                             type="button"
                             onClick={() => {
                               setMoreMenuProject(null)
+                              onTogglePinProject(name)
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-subtle)] hover:text-[var(--color-ink)]"
+                          >
+                            {isPinned ? (
+                              <PinOff size={12} strokeWidth={1.8} className="shrink-0 text-[var(--color-ink)]/55" />
+                            ) : (
+                              <Pin size={12} strokeWidth={1.8} className="shrink-0 text-[var(--color-ink)]/55" />
+                            )}
+                            {isPinned ? '取消置顶' : '置顶'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMoreMenuProject(null)
                               onDeleteProject(name)
                             }}
                             className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-[#ff4d4f] transition-colors hover:bg-[#ff4d4f]/[0.08]"
@@ -2783,16 +2659,14 @@ function PlatformSidebar({
                     // AI 分身 and 小程序 projects are config-driven;
                     // other kinds bucket the raw file tree.
                     const productTree = mergeCategoryExtras(
-                      withProjectDoc(
-                        kind === 'ai-avatar'
-                          ? buildAvatarProductView(tree, getAvatarConfig(name))
-                          : kind === 'mini-program'
-                            ? buildMiniProgramProductView(
-                                tree,
-                                getMiniProgramConfig(name),
-                              )
-                            : buildProductView(tree, kind),
-                      ),
+                      kind === 'ai-avatar'
+                        ? buildAvatarProductView(tree, getAvatarConfig(name))
+                        : kind === 'mini-program'
+                          ? buildMiniProgramProductView(
+                              tree,
+                              getMiniProgramConfig(name),
+                            )
+                          : buildProductView(tree, kind),
                       categoryExtras,
                       name,
                     )
@@ -2819,10 +2693,10 @@ function PlatformSidebar({
                           parentPath="__product__"
                           railStartDepth={1}
                           iconFor={(n, path) =>
-                            // Path-keyed leaves first: every 界面 page
+                            // Path-keyed leaves first: every 页面 page
                             // shares the same page icon; 知识库 / 技能
                             // items their own. Else fall to the name map.
-                            path.includes('/界面/')
+                            path.includes('/页面/')
                               ? AppWindow
                               : path.includes('/知识库/')
                                 ? BookOpen
@@ -2844,102 +2718,6 @@ function PlatformSidebar({
             })}
           </div>
         </>
-      )}
-
-      {/* 对话列表 — relocated from the chat header dropdown. Sits between
-           项目列表 and the user footer; height is user-draggable via the
-           top-edge handle so the user can give either list more room.
-           Hidden entirely when no project is active (home / secondary
-           pages) — sessions are scoped per project, so there's nothing
-           meaningful to show without one. */}
-      {activeProjectName && (
-      <div
-        className="relative flex shrink-0 flex-col border-t border-[var(--divider-soft)]"
-        style={{ height: conversationHeight }}
-      >
-        {/* Drag handle — sits on top of the section's top edge, captures
-             pointer events to resize. */}
-        <div
-          role="separator"
-          aria-orientation="horizontal"
-          onPointerDown={onConversationDragStart}
-          onPointerMove={onConversationDragMove}
-          onPointerUp={onConversationDragEnd}
-          onPointerCancel={onConversationDragEnd}
-          className="group absolute inset-x-0 top-0 z-10 h-1.5 -translate-y-1/2 cursor-row-resize touch-none select-none"
-        >
-          <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
-        </div>
-        <div className="flex shrink-0 items-center justify-between px-5 pt-3 pb-1.5">
-          <span className="text-[12px] text-[var(--color-ink)]/55">对话</span>
-          <button
-            type="button"
-            title="新会话"
-            onClick={onNewSession}
-            className="flex h-5 w-5 items-center justify-center rounded text-[var(--color-ink)]/40 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
-          >
-            <MessageSquarePlus size={12} strokeWidth={1.8} />
-          </button>
-        </div>
-        <div className="thin-scroll flex-1 overflow-y-auto px-3 pb-2">
-          {sessions.map((s) => {
-            const active = s.id === activeSessionId
-            if (renamingSessionId === s.id) {
-              return (
-                <div
-                  key={s.id}
-                  className="flex w-full items-center gap-1.5 rounded-md px-2 py-1"
-                >
-                  <MessageSquareText
-                    size={12}
-                    strokeWidth={1.8}
-                    className="shrink-0 text-[var(--color-ink)]/45"
-                  />
-                  <input
-                    autoFocus
-                    defaultValue={s.name}
-                    onClick={(e) => e.stopPropagation()}
-                    onBlur={(e) => {
-                      onRenameSession(s.id, e.target.value)
-                      setRenamingSessionId(null)
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        onRenameSession(s.id, (e.target as HTMLInputElement).value)
-                        setRenamingSessionId(null)
-                      } else if (e.key === 'Escape') {
-                        setRenamingSessionId(null)
-                      }
-                    }}
-                    className="min-w-0 flex-1 border-b border-[var(--color-ink)]/40 bg-transparent text-[12px] text-[var(--color-ink)] outline-none"
-                  />
-                </div>
-              )
-            }
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => onSwitchSession(s.id)}
-                onDoubleClick={() => setRenamingSessionId(s.id)}
-                title="双击重命名"
-                className={`flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-[12px] transition-colors ${
-                  active
-                    ? 'bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]/90'
-                    : 'text-[var(--color-ink)]/70 hover:bg-[var(--fill-subtle)]'
-                }`}
-              >
-                <MessageSquareText
-                  size={12}
-                  strokeWidth={1.8}
-                  className={`shrink-0 ${active ? 'text-[var(--color-ink)]/80' : 'text-[var(--color-ink)]/45'}`}
-                />
-                <span className="min-w-0 flex-1 truncate">{s.name}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
       )}
 
       {/* User footer */}
@@ -3599,7 +3377,7 @@ export default function VibeCodingPage() {
       projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
     }
     const sid = `s-${Date.now()}`
-    setProjectTitle('肉鸽小游戏')
+    setProjectTitle('射击小游戏')
     setSessions([{ id: sid, name: '新会话' }])
     setActiveSessionId(sid)
     setPlatformHomeOpen(false)
@@ -3651,12 +3429,12 @@ export default function VibeCodingPage() {
   const confirmGameSpec = (spec: GameSpecDraft) => {
     setGameSpec(spec)
     setCreatedProjects((prev) =>
-      prev.includes('肉鸽小游戏') ? prev : ['肉鸽小游戏', ...prev],
+      prev.includes('射击小游戏') ? prev : ['射击小游戏', ...prev],
     )
     setPlatformOpenProjects((prev) => {
-      if (prev.has('肉鸽小游戏')) return prev
+      if (prev.has('射击小游戏')) return prev
       const next = new Set(prev)
-      next.add('肉鸽小游戏')
+      next.add('射击小游戏')
       return next
     })
     setGameStep('analyzing')
@@ -3757,7 +3535,24 @@ export default function VibeCodingPage() {
     setTagsStep('idle')
     setTagsAddOpen(false)
     setFormSubmitted(false)
-    setTriggers([])
+    // AI 分身 ships with one default trigger so the 触发器 section is
+    // populated on first open; other kinds start with none. Categories stay
+    // collapsed by default — the user expands them on demand.
+    if (PROJECT_KINDS[name] === 'ai-avatar') {
+      setTriggers([
+        {
+          id: 'user-follow-seed01',
+          name: TRIGGER_PRESETS['user-follow'].name,
+          event: TRIGGER_PRESETS['user-follow'].event,
+          action: {
+            ...DEFAULT_TRIGGER_ACTION,
+            description: '向用户发送"感谢关注，有情感或星座问题随时找我聊~"',
+          },
+        },
+      ])
+    } else {
+      setTriggers([])
+    }
     setTriggerStep('idle')
     setPendingTrigger(null)
     setLastConfirmedTrigger(null)
@@ -4201,7 +3996,7 @@ export default function VibeCodingPage() {
       : []),
   ]
 
-  /* File tree for the 个人作品集网站 project — a generic React + Vite
+  /* File tree for the 抖音 AI 工坊设计探索 project — a generic React + Vite
    * frontend site. Static structure: multi-page `src/pages`, components,
    * hooks, lib, styles + `public/assets` for static images. Mirrors a
    * mini-program structurally but is previewed in a browser frame. */
@@ -4397,7 +4192,7 @@ export default function VibeCodingPage() {
    * 提案报告.md, 复盘.md, 执行看板.json …) into the 'briefs' / 'reports'
    * folders as the chat-driven steps complete. */
   const [projectTrees, setProjectTrees] = useState<Record<string, FileNode[]>>({
-    '第五人格塔罗小程序': fileTree,
+    '塔罗小程序': fileTree,
     '陶白白 Sensei 分身': aiPersonaFileTree,
     '粉丝互动机器人': aiPersonaFileTree,
     // 六一儿童节 H5 — buildProductView('marketing-h5') will re-bucket
@@ -4409,8 +4204,8 @@ export default function VibeCodingPage() {
       { name: 'gameplay', type: 'dir', children: [{ name: '玩法配置.json', type: 'file' }] },
       { name: 'config', type: 'dir', children: [{ name: 'h5.config.json', type: 'file' }] },
     ],
-    '个人作品集网站': webAppFileTree,
-    '肉鸽小游戏': garudaFileTree,
+    '抖音 AI 工坊设计探索': webAppFileTree,
+    '射击小游戏': garudaFileTree,
     '沪上火锅·五一种草提案': [
       { name: 'briefs', type: 'dir', children: [] },
       { name: 'configs', type: 'dir', children: [] },
@@ -4545,13 +4340,11 @@ export default function VibeCodingPage() {
     if (!tree) return []
     const kind = PROJECT_KINDS[projectTitle] ?? 'mini-program'
     return mergeCategoryExtras(
-      withProjectDoc(
-        kind === 'ai-avatar'
-          ? buildAvatarProductView(tree, getAvatarConfig(projectTitle))
-          : kind === 'mini-program'
-            ? buildMiniProgramProductView(tree, getMiniProgramConfig(projectTitle))
-            : buildProductView(tree, kind),
-      ),
+      kind === 'ai-avatar'
+        ? buildAvatarProductView(tree, getAvatarConfig(projectTitle))
+        : kind === 'mini-program'
+          ? buildMiniProgramProductView(tree, getMiniProgramConfig(projectTitle))
+          : buildProductView(tree, kind),
       categoryExtras,
       projectTitle,
     )
@@ -4578,8 +4371,8 @@ export default function VibeCodingPage() {
         (n.children ?? []).some((c) => c.type === 'file' && c.name === child),
     )?.name
   /** Page categories drive the live preview route (phone / browser) rather
-   *  than a renderTab body. 界面 is the only such category today. */
-  const isPageCategory = (category: string): boolean => category === '界面'
+   *  than a renderTab body. 页面 is the only such category today. */
+  const isPageCategory = (category: string): boolean => category === '页面'
 
   /** Open (or focus) a category tab, selecting `child` (defaults to the
    *  first child). Page categories also sync the preview route so the
@@ -4691,8 +4484,7 @@ export default function VibeCodingPage() {
     // source file. Everything under assets/ or docs/ → 资产.
     if (PROJECT_KINDS[projectTitle] === 'web-game') {
       if (filename.startsWith('…')) return
-      // Product-view leaves drive the right pane directly: 游戏 → game
-      // runtime tab; 素材 → assets browser tab.
+      // 预览 / 素材 jump to the game's fixed runtime / assets tabs.
       if (filename === '预览' || filename === '素材') {
         const idx = openTabs.findIndex((t) => t.label === filename)
         if (idx >= 0) setActivePreviewTab(idx)
@@ -4708,23 +4500,21 @@ export default function VibeCodingPage() {
         'ASSET_LICENSE.md',
         'LICENSE',
       ]
-      const targetLabel =
-        filename === '代码' || sourceFiles.includes(filename) ? '代码' : '素材'
-      const idx = openTabs.findIndex((t) => t.label === targetLabel)
-      if (idx >= 0) {
-        setActivePreviewTab(idx)
-      } else if (targetLabel === '代码') {
-        const next = [...openTabs, { label: '代码', closable: true }]
-        setOpenTabs(next)
-        setActivePreviewTab(next.length - 1)
+      // Source files + 代码文件 open the game code editor; the remaining
+      // product-view leaves (基础信息 / 页面 / 文档 / 玩法 / 知识库 / 数据库)
+      // open a named tab routed through renderTab's shared-leaf handlers.
+      if (filename === '代码文件' || filename === '代码' || sourceFiles.includes(filename)) {
+        openNamedTab('代码文件')
+        return
       }
+      openNamedTab(filename)
       return
     }
     // AI 分身 product-view sections open structured tabs (form / doc /
     // capability detail) — never raw config files.
     const avatarConfig = getAvatarConfig(projectTitle)
     if (avatarConfig) {
-      if (filename === '基础信息' || filename === '人设指令') {
+      if (filename === '基础信息' || filename === '人设') {
         openNamedTab(filename)
         return
       }
@@ -4741,14 +4531,9 @@ export default function VibeCodingPage() {
         return
       }
     }
-    // 小程序 product-view sections open structured tabs too.
+    // 小程序 基础信息 opens the settings form tab.
     const miniProgramConfig = getMiniProgramConfig(projectTitle)
-    if (
-      miniProgramConfig &&
-      (filename === '智能体' ||
-        filename === '小程序设置' ||
-        filename === '素材')
-    ) {
+    if (miniProgramConfig && filename === '基础信息') {
       openNamedTab(filename)
       return
     }
@@ -4763,13 +4548,12 @@ export default function VibeCodingPage() {
         return
       }
     }
-    // Children's-day 项目文档 product-view leaf opens its editor tab. Keep
-    // the tab label aligned with the sidebar entry ('项目文档') and seed
-    // proposalDocs['项目文档'] with the doc body on first click; renderTab
+    // Children's-day 文档 product-view leaf opens its editor tab. Seed
+    // proposalDocs['文档'] with the doc body on first click; renderTab
     // dispatches the markdown source into <MarketingDocEditor>.
     if (
       activeProjectKind === 'marketing-h5' &&
-      filename === '项目文档' &&
+      filename === '文档' &&
       !proposalDocs[filename]
     ) {
       setProposalDocs((prev) => ({ ...prev, [filename]: CHILDREN_DAY_PLAN_MD }))
@@ -4784,7 +4568,7 @@ export default function VibeCodingPage() {
       const isProposalArtefact =
         filename in proposalDocs ||
         (activeProjectKind === 'marketing-h5' &&
-          (filename === '项目文档' || filename === '活动素材'))
+          (filename === '文档' || filename === '素材'))
       const next = [
         ...openTabs,
         { label: filename, closable: !isProposalArtefact },
@@ -5642,8 +5426,18 @@ export default function VibeCodingPage() {
       ? '沪上火锅·五一种草提案'
       : wantsChildrenDayProject
         ? '六一儿童节活动'
-        : '第五人格塔罗小程序',
+        : '塔罗小程序',
   )
+
+  // Keep the active AI 分身 project's tree in sync with the live triggers[]
+  // (the initial projectTrees snapshot is frozen before any triggers seed),
+  // so the product view's 触发器 section reflects the current config.
+  useEffect(() => {
+    if (PROJECT_KINDS[projectTitle] !== 'ai-avatar') return
+    setProjectTrees((prev) => ({ ...prev, [projectTitle]: aiPersonaFileTree }))
+    // aiPersonaFileTree is derived from `triggers`; resync whenever it changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [triggers, projectTitle])
 
   /* Open a product leaf in the context of *its owning project*. The sidebar
    * lists every project's product view, so a click may target a project
@@ -5811,12 +5605,8 @@ export default function VibeCodingPage() {
       )}
     </div>
   ) : activeProjectKind === 'web-app' ? (
-    <div className="thin-scroll min-h-0 w-full flex-1 overflow-y-auto bg-white">
-      <WebAppPreview
-        key={miniAppKey}
-        route={previewRoute}
-        onNavigate={setPreviewRoute}
-      />
+    <div className="@container thin-scroll relative min-h-0 w-full flex-1 overflow-y-auto bg-white">
+      <AgentHubPreview key={miniAppKey} />
     </div>
   ) : activeProjectKind === 'marketing-h5' ? (
     <PhoneMockup width={360} height={760} maxScale={1.4}>
@@ -6010,6 +5800,14 @@ export default function VibeCodingPage() {
   const renameProject = (name: string, next: string) =>
     setProjectDisplayNames((prev) => ({ ...prev, [name]: next }))
 
+  /* Pinned projects — float to the top of the list (in pin order) and show
+   * a pin glyph after the name. Toggled from the project row's 更多 menu. */
+  const [pinnedProjects, setPinnedProjects] = useState<string[]>([])
+  const togglePinProject = (name: string) =>
+    setPinnedProjects((prev) =>
+      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name],
+    )
+
   /* Soft-deleted projects — hidden from the list (demo doesn't drop the
    * underlying data). Deleting the active project navigates back home. */
   const [deletedProjects, setDeletedProjects] = useState<Set<string>>(new Set())
@@ -6123,7 +5921,7 @@ export default function VibeCodingPage() {
               // finished file list before the build animation completes.
               gameStep !== 'idle' && gameStep !== 'done'
                 ? (() => {
-                    const { '肉鸽小游戏': _omit, ...rest } = projectTrees
+                    const { '射击小游戏': _omit, ...rest } = projectTrees
                     void _omit
                     return rest
                   })()
@@ -6159,18 +5957,10 @@ export default function VibeCodingPage() {
             }
             activeRoute={previewRoute}
             activeProjectName={platformHomeOpen ? '' : projectTitle}
-            sessions={sessions}
-            activeSessionId={activeSessionId}
-            onSwitchSession={(id) => {
-              if (id !== activeSessionId) {
-                setActiveSessionId(id)
-                resetChatState()
-              }
-            }}
-            onNewSession={handleNewSession}
-            onRenameSession={renameSession}
             projectDisplayNames={projectDisplayNames}
             onRenameProject={renameProject}
+            pinnedProjects={pinnedProjects}
+            onTogglePinProject={togglePinProject}
             deletedProjects={deletedProjects}
             onDeleteProject={deleteProject}
             categoryExtras={categoryExtras}
@@ -6454,9 +6244,10 @@ export default function VibeCodingPage() {
           {!isPlatform && (
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                const r = e.currentTarget.getBoundingClientRect()
                 resetPublish()
-                startPublish('modal')
+                startPublish('modal', { top: r.top, left: r.left, right: r.right, bottom: r.bottom })
               }}
               style={{ ['--edge-alpha' as string]: 0.3 }}
               className="glass-edge ml-2 flex items-center gap-2 rounded-full bg-[rgba(28,28,32,0.35)] px-5 py-2 text-[14px] font-medium tracking-[0.55px] uppercase text-[var(--color-ink)]/90 shadow-[0_8px_22px_-8px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all hover:-translate-y-[1px] hover:bg-[rgba(40,40,44,0.45)] hover:text-[var(--color-ink)]"
@@ -8321,8 +8112,8 @@ export default function VibeCodingPage() {
                     onClick={openResourceLibraryPage}
                     className="flex h-8 items-center gap-1 rounded-full border border-[var(--divider)] px-3 text-[13px] font-medium text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
                   >
-                    <Library size={14} strokeWidth={1.8} />
-                    资源
+                    <FolderCode size={14} strokeWidth={1.8} />
+                    扩展
                   </button>
                   <button
                     type="button"
@@ -8455,9 +8246,10 @@ export default function VibeCodingPage() {
                   {
                     label: '发布',
                     icon: Upload,
-                    onClick: () => {
+                    onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
+                      const r = e.currentTarget.getBoundingClientRect()
                       resetPublish()
-                      startPublish('modal')
+                      startPublish('modal', { top: r.top, left: r.left, right: r.right, bottom: r.bottom })
                     },
                   },
                 ].map(({ label, icon: Icon, onClick }) => (
@@ -8890,10 +8682,10 @@ export default function VibeCodingPage() {
           // each with its display name + kind for the data dashboard.
           const published: DataOpsProject[] = [
             '陶白白 Sensei 分身',
-            '第五人格塔罗小程序',
-            '个人作品集网站',
-            '肉鸽小游戏',
+            '塔罗小程序',
             '六一儿童节活动',
+            '抖音 AI 工坊设计探索',
+            '射击小游戏',
           ]
             .filter((n) => !deletedProjects.has(n))
             .map((n) => ({
@@ -8999,13 +8791,12 @@ export default function VibeCodingPage() {
                   const tree = projectTrees[projectTitle]
                   if (!tree) return null
                   const kind = PROJECT_KINDS[projectTitle] ?? 'mini-program'
-                  const productTree = withProjectDoc(
+                  const productTree =
                     kind === 'ai-avatar'
                       ? buildAvatarProductView(tree, getAvatarConfig(projectTitle))
                       : kind === 'mini-program'
                         ? buildMiniProgramProductView(tree, getMiniProgramConfig(projectTitle))
-                        : buildProductView(tree, kind),
-                  )
+                        : buildProductView(tree, kind)
                   // The + menu mirrors the active project's top-level objects
                   // (exactly the rows shown in the left project list) — one
                   // row each, no expansion of a category's children. Clicking
@@ -9075,9 +8866,10 @@ export default function VibeCodingPage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect()
                   resetPublish()
-                  startPublish('modal')
+                  startPublish('modal', { top: r.top, left: r.left, right: r.right, bottom: r.bottom })
                 }}
                 className="flex h-7 items-center gap-1.5 rounded-md bg-[var(--color-ink)] px-2.5 text-[12px] font-medium text-[var(--color-ink-contrast)] transition-opacity hover:opacity-90"
                 title="发布"
@@ -9451,16 +9243,19 @@ export default function VibeCodingPage() {
 
             const renderTab = (label: string) => {
               if (label === DIFF_TAB_LABEL) return diffView
-              // 项目文档 — every project's brief, opened in the doc editor.
+              // 文档 — every project's brief, opened in the doc editor.
               // marketing-h5 keeps its own proposalDocs-backed branch below.
-              if (label === '项目文档' && activeProjectKind !== 'marketing-h5') {
+              if (
+                (label === '文档' || label === '项目文档') &&
+                activeProjectKind !== 'marketing-h5'
+              ) {
                 const docValue =
                   projectDocEdits[projectTitle] ??
                   PROJECT_DOCS[projectTitle] ??
                   buildDefaultProjectDoc(projectTitle, activeProjectKind)
                 return (
                   <MarketingDocEditor
-                    title="项目文档"
+                    title="文档"
                     value={docValue}
                     onChange={(next) =>
                       setProjectDocEdits((prev) => ({ ...prev, [projectTitle]: next }))
@@ -9506,7 +9301,7 @@ export default function VibeCodingPage() {
                 if (label === '基础信息') {
                   return <AvatarBasicInfoForm config={avatarConfig} />
                 }
-                if (label === '人设指令') {
+                if (label === '人设') {
                   return (
                     <AvatarSystemPromptView
                       avatarName={avatarConfig.name}
@@ -9543,39 +9338,66 @@ export default function VibeCodingPage() {
               }
               // marketing-h5 product-view sections.
               if (activeProjectKind === 'marketing-h5') {
-                // 项目文档 — rich markdown editor (edit / preview / split).
-                if (label === '项目文档') {
+                // 文档 — rich markdown editor (edit / preview / split).
+                if (label === '文档') {
                   return (
                     <MarketingDocEditor
-                      title="项目文档"
-                      value={proposalDocs['项目文档'] ?? CHILDREN_DAY_PLAN_MD}
+                      title="文档"
+                      value={proposalDocs['文档'] ?? CHILDREN_DAY_PLAN_MD}
                       onChange={(next) =>
-                        setProposalDocs((prev) => ({ ...prev, ['项目文档']: next }))
+                        setProposalDocs((prev) => ({ ...prev, ['文档']: next }))
                       }
                     />
                   )
                 }
-                // 活动素材 — visual asset grid using the same layout as
-                // 游戏 素材 (grouped sections, zoom modal). The Garuda view
-                // accepts a custom `groups` prop so the two surfaces stay
-                // in sync visually.
-                if (label === '活动素材') {
+                // 素材 — visual asset grid using the same layout as 游戏 素材
+                // (grouped sections, zoom modal).
+                if (label === '素材') {
                   return <GarudaAssetsView groups={CHILDREN_DAY_ASSET_GROUPS} />
                 }
               }
-              // 小程序 product-view sections — config-driven structured
-              // tabs (agent / settings / asset grid).
+              // 小程序 product-view sections — config-driven structured tabs.
               const miniProgramConfig = getMiniProgramConfig(projectTitle)
               if (miniProgramConfig) {
+                if (label === '基础信息') {
+                  return <MiniProgramSettingsForm config={miniProgramConfig} />
+                }
                 if (label === '智能体') {
                   return <MiniProgramAgentView config={miniProgramConfig} />
-                }
-                if (label === '小程序设置') {
-                  return <MiniProgramSettingsForm config={miniProgramConfig} />
                 }
                 if (label === '素材') {
                   return <AssetGridView assets={miniProgramConfig.assets} />
                 }
+              }
+              // 基础信息 fallback (kinds without a structured form) opens the
+              // project brief in the doc editor.
+              if (label === '基础信息') {
+                const docValue =
+                  projectDocEdits[projectTitle] ??
+                  PROJECT_DOCS[projectTitle] ??
+                  buildDefaultProjectDoc(projectTitle, activeProjectKind)
+                return (
+                  <MarketingDocEditor
+                    title="基础信息"
+                    value={docValue}
+                    onChange={(next) =>
+                      setProjectDocEdits((prev) => ({ ...prev, [projectTitle]: next }))
+                    }
+                  />
+                )
+              }
+              // Shared product-view leaves without a dedicated view (页面 /
+              // 素材 / 玩法 / 知识库 / 数据库 / 代码文件) reuse the in-tab code
+              // editor so they always surface real project content.
+              if (
+                label === '页面' ||
+                label === '素材' ||
+                label === '玩法' ||
+                label === '知识库' ||
+                label === '数据库' ||
+                label === '代码文件'
+              ) {
+                return projectCodeView()
               }
               return codeView(label)
             }
@@ -10138,14 +9960,14 @@ const CHAT_SUGGESTIONS_BY_KIND: Record<ProjectKind, string[]> = {
 
 /** Per-project overrides — finer-grained chips for specific projects. */
 const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
-  '第五人格塔罗小程序': [
+  '塔罗小程序': [
     '换套更神秘的配色',
     '给卡片加上翻面动效',
     '再写两个塔罗牌面',
     '牌意词典加个搜索',
     '加一个每日签到',
   ],
-  '肉鸽小游戏': CHAT_SUGGESTIONS_BY_KIND['web-game'],
+  '射击小游戏': CHAT_SUGGESTIONS_BY_KIND['web-game'],
   '六一儿童节活动': CHAT_SUGGESTIONS_BY_KIND['marketing-h5'],
   '沪上火锅·五一种草提案': CHAT_SUGGESTIONS_BY_KIND['ops-proposal'],
 }

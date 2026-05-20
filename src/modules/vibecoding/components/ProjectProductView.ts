@@ -13,10 +13,12 @@
  */
 import type { LucideIcon } from '@/shared/icons'
 import {
+  Database,
   Eye,
   FileCode2,
   FileSearch,
   FileText,
+  Gamepad2,
   Image as ImageIcon,
   Info,
   LayoutDashboard,
@@ -77,12 +79,12 @@ export const WEB_PAGES: WebPage[] = [
 /** Plain-language label for each src/pages folder, by project kind.
  *  Folders not listed fall back to their raw dir name. */
 const PAGE_LABELS: Record<string, string> = {
-  // web-app — 个人作品集网站
+  // web-app — 抖音 AI 工坊设计探索
   Home: '首页',
   Works: '作品',
   About: '关于',
   Contact: '联系',
-  // mini-program — 第五人格塔罗小程序
+  // mini-program — 塔罗小程序
   index: '首页',
   chat: '聊天',
   profile: '个人',
@@ -95,11 +97,16 @@ const PAGE_LABELS: Record<string, string> = {
 export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   // Every project surfaces a 项目文档 (project brief) leaf.
   项目文档: FileText,
+  文档: FileText,
   界面: LayoutGrid,
+  页面: LayoutGrid,
   // The primary 预览 tab — content varies by kind, one shared icon.
   预览: Eye,
   素材: ImageIcon,
   代码: FileCode2,
+  代码文件: FileCode2,
+  数据库: Database,
+  玩法: Gamepad2,
   能力技能: Sparkles,
   人设: SquareUser,
   基础信息: Info,
@@ -116,15 +123,6 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   报告: FileText,
   看板: LayoutDashboard,
   // page leaves (children of 界面) are iconed by path in the consumer.
-}
-
-/** Prepend a 项目文档 (project brief) leaf so every project's product
- *  view opens with its document — unless one is already present (the
- *  marketing-h5 view ships its own). The doc body is resolved per project
- *  in the consumer; this only places the navigable leaf. */
-export function withProjectDoc(nodes: FileNode[]): FileNode[] {
-  if (nodes.some((n) => n.name === '项目文档')) return nodes
-  return [{ name: '项目文档', type: 'file' }, ...nodes]
 }
 
 /* ─── tree-walk helpers ─── */
@@ -184,14 +182,55 @@ function appLikeView(tree: FileNode[], assetsPath: string[]): FileNode[] {
   return [
     pages.length > 0
       ? ({
-          name: '界面',
+          name: '页面',
           type: 'dir',
           children: pages.map((p) => ({ name: p.label, type: 'file' as const })),
         } as FileNode)
       : null,
     category('素材', childrenAt(tree, assetsPath)),
-    category('能力技能', childrenAt(tree, ['.agent', 'skills'])),
+    category('技能', childrenAt(tree, ['.agent', 'skills'])),
   ].filter((c): c is FileNode => c != null)
+}
+
+/** A page category (页面) built from the project's src/pages routes, or
+ *  null when the project has no pages. */
+function pageCategory(tree: FileNode[]): FileNode | null {
+  const pages = getProductPages(tree)
+  return pages.length > 0
+    ? {
+        name: '页面',
+        type: 'dir',
+        children: pages.map((p) => ({ name: p.label, type: 'file' as const })),
+      }
+    : null
+}
+
+/** 产品设计 (web-app): 基础信息 / 页面 / 文档 / 素材 / 数据库 / 代码文件. */
+function webAppView(tree: FileNode[]): FileNode[] {
+  return [
+    { name: '基础信息', type: 'file' as const },
+    pageCategory(tree),
+    { name: '文档', type: 'file' as const },
+    { name: '素材', type: 'file' as const },
+    { name: '数据库', type: 'file' as const },
+    { name: '代码文件', type: 'file' as const },
+  ].filter((c): c is FileNode => c != null)
+}
+
+/** 游戏 (web-game): 基础信息 / 页面 / 文档 / 素材 / 玩法 / 知识库 / 数据库 /
+ *  代码文件. Game projects have no src/pages tree, so every entry is a flat
+ *  clickable leaf routed to a reused view in the consumer. */
+function gameView(): FileNode[] {
+  return [
+    { name: '基础信息', type: 'file' },
+    { name: '页面', type: 'file' },
+    { name: '文档', type: 'file' },
+    { name: '素材', type: 'file' },
+    { name: '玩法', type: 'file' },
+    { name: '知识库', type: 'file' },
+    { name: '数据库', type: 'file' },
+    { name: '代码文件', type: 'file' },
+  ]
 }
 
 function aiAvatarView(tree: FileNode[]): FileNode[] {
@@ -205,7 +244,7 @@ function aiAvatarView(tree: FileNode[]): FileNode[] {
 
   return [
     category('人设', filesByName(tree, ['persona.yaml', 'greeting.md', 'voice-guide.md'])),
-    category('能力技能', skills),
+    category('技能', skills),
     category('知识库', childrenAt(tree, ['knowledge'])),
     category('触发器', childrenAt(tree, ['triggers'])),
   ].filter((c): c is FileNode => c != null)
@@ -231,23 +270,17 @@ export function buildProductView(
     case 'mini-program':
       return appLikeView(tree, ['src', 'assets'])
     case 'web-app':
-      return appLikeView(tree, ['public', 'assets'])
+      return webAppView(tree)
     case 'web-game':
-      // Two clickable leaves — no expansion. 预览 jumps the right pane
-      // to the runnable game tab; 素材 jumps to the assets browser. Code
-      // files never surface in the left directory — the 代码 editor tab is
-      // added on demand from the preview's + menu instead.
-      return [
-        { name: '预览', type: 'file' },
-        { name: '素材', type: 'file' },
-      ]
+      return gameView()
     case 'marketing-h5':
-      // H5 活动页 — 子产物按用户矩阵展平为四条 leaf。
+      // H5 活动页: 基础信息 / 文档 / 素材 / 玩法 / 代码文件。
       return [
-        { name: '项目文档', type: 'file' },
-        { name: '活动素材', type: 'file' },
-        { name: '活动玩法', type: 'file' },
-        { name: '代码配置文件', type: 'file' },
+        { name: '基础信息', type: 'file' },
+        { name: '文档', type: 'file' },
+        { name: '素材', type: 'file' },
+        { name: '玩法', type: 'file' },
+        { name: '代码文件', type: 'file' },
       ]
     case 'ai-avatar':
       return aiAvatarView(tree)
@@ -271,19 +304,19 @@ export function buildAvatarProductView(
   if (!config) return aiAvatarView(tree)
   const out: FileNode[] = [
     { name: '基础信息', type: 'file' },
-    { name: '人设指令', type: 'file' },
+    { name: '人设', type: 'file' },
   ]
-  const knowledge = config.knowledgeInfoList.map(
-    (k): FileNode => ({ name: k.name, type: 'file' }),
-  )
-  if (knowledge.length > 0) {
-    out.push({ name: '知识库', type: 'dir', children: knowledge })
-  }
   const skills = [...config.skillInfoList, ...config.toolInfoList].map(
     (s): FileNode => ({ name: s.name, type: 'file' }),
   )
   if (skills.length > 0) {
     out.push({ name: '技能', type: 'dir', children: skills })
+  }
+  const knowledge = config.knowledgeInfoList.map(
+    (k): FileNode => ({ name: k.name, type: 'file' }),
+  )
+  if (knowledge.length > 0) {
+    out.push({ name: '知识库', type: 'dir', children: knowledge })
   }
   const triggers = childrenAt(tree, ['triggers'])
   if (triggers.length > 0) {
@@ -292,30 +325,21 @@ export function buildAvatarProductView(
   return out
 }
 
-/** Build the mini-program product view — four plain sections: 智能体 /
- *  小程序设置 / 界面 / 素材. 智能体 / 小程序设置 / 素材 are single leaves
- *  (open agent / settings / asset-grid views); 界面 is a category whose
- *  leaves are the src/pages routes. Falls back to the file-tree bucketing
- *  when no config is available. */
+/** Build the mini-program product view — 基础信息 / 页面 / 文档 / 技能 /
+ *  数据库 / 代码文件. 基础信息 opens the settings form; 页面 is a category
+ *  whose leaves are the src/pages routes; the rest reuse shared views in
+ *  the consumer. Falls back to the file-tree bucketing when no config. */
 export function buildMiniProgramProductView(
   tree: FileNode[],
   config: MiniProgramConfig | undefined,
 ): FileNode[] {
   if (!config) return appLikeView(tree, ['src', 'assets'])
-  const out: FileNode[] = [
-    { name: '智能体', type: 'file' },
-    { name: '小程序设置', type: 'file' },
-  ]
-  const pages = getProductPages(tree)
-  if (pages.length > 0) {
-    out.push({
-      name: '界面',
-      type: 'dir',
-      children: pages.map((p) => ({ name: p.label, type: 'file' as const })),
-    })
-  }
-  if (config.assets.length > 0) {
-    out.push({ name: '素材', type: 'file' })
-  }
-  return out
+  return [
+    { name: '基础信息', type: 'file' as const },
+    pageCategory(tree),
+    { name: '文档', type: 'file' as const },
+    { name: '技能', type: 'file' as const },
+    { name: '数据库', type: 'file' as const },
+    { name: '代码文件', type: 'file' as const },
+  ].filter((c): c is FileNode => c != null)
 }

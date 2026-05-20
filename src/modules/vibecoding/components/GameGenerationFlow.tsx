@@ -490,7 +490,7 @@ function GameProductCard({ onOpen }: { onOpen?: () => void }) {
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-[13.5px] font-semibold text-[var(--color-ink)]">
-            肉鸽小游戏
+            射击小游戏
           </span>
           <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[var(--fill-subtle)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-ink)]/65">
             <CheckCircle2 size={9} strokeWidth={2.4} />
@@ -565,7 +565,7 @@ export function GameBuildProgress({ step }: { step: GameStep }) {
             <span className="text-[12px] uppercase tracking-[0.2em] text-[var(--color-ink)]/55">
               {isWaiting
                 ? '等待确认方案'
-                : '正在生成 肉鸽小游戏'}
+                : '正在生成 射击小游戏'}
             </span>
           </div>
           {isWaiting ? (

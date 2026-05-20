@@ -92,8 +92,8 @@ function assets(names: string[]): MiniProgramAsset[] {
 }
 
 export const MINIPROGRAM_CONFIGS: Record<string, MiniProgramConfig> = {
-  '第五人格塔罗小程序': {
-    name: '第五人格塔罗',
+  '塔罗小程序': {
+    name: '塔罗',
     appID: 'wx_tarot_5f6e2a',
     description: '第五人格主题的塔罗运势小程序，每日抽卡解读运势。',
     agent: {

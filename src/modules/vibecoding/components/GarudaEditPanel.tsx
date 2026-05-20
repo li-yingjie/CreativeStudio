@@ -90,7 +90,7 @@ export default function GarudaEditPanel({ onClose }: Props) {
         <span className="text-[12.5px] font-semibold text-[var(--color-ink)]">
           可视化编辑
         </span>
-        <span className="text-[11px] text-[var(--color-ink)]/40">肉鸽小游戏</span>
+        <span className="text-[11px] text-[var(--color-ink)]/40">射击小游戏</span>
         <button
           type="button"
           onClick={onClose}

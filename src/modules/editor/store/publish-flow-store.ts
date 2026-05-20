@@ -5,6 +5,10 @@ export type PublishStep = 'idle' | 'select' | 'review' | 'confirmed'
  *  `modal` = centered overlay over the editor canvas. */
 export type PublishMode = 'chat' | 'modal'
 
+/** Screen-space rect of the 发布 button that opened the flow, so the modal
+ *  popover can float directly beneath it. */
+export type PublishAnchor = { top: number; left: number; right: number; bottom: number }
+
 interface PublishFlowState {
   /** Current step in the publish-to-douyin flow. */
   step: PublishStep
@@ -12,9 +16,12 @@ interface PublishFlowState {
   mode: PublishMode
   /** Selected Douyin scenes the user wants to publish to. */
   scenes: string[]
-  /** Open the flow. Top-right 发布/更新 buttons pass `'modal'`; in-chat
-   *  triggers (e.g. assistant suggestion) pass `'chat'`. */
-  start: (mode: PublishMode) => void
+  /** Anchor rect of the triggering 发布 button (modal mode only). */
+  anchor: PublishAnchor | null
+  /** Open the flow. Top-right 发布/更新 buttons pass `'modal'` (plus the
+   *  button's rect so the popover floats below it); in-chat triggers pass
+   *  `'chat'`. */
+  start: (mode: PublishMode, anchor?: PublishAnchor | null) => void
   toggleScene: (s: string) => void
   /** First-step submit: moves from 'select' → 'review'. */
   submit: () => void
@@ -32,7 +39,8 @@ export const usePublishFlowStore = create<PublishFlowState>((set, get) => ({
   step: 'idle',
   mode: 'chat',
   scenes: [],
-  start: (mode) => set({ step: 'select', mode }),
+  anchor: null,
+  start: (mode, anchor = null) => set({ step: 'select', mode, anchor }),
   toggleScene: (s) => {
     const cur = get().scenes
     set({
@@ -44,8 +52,8 @@ export const usePublishFlowStore = create<PublishFlowState>((set, get) => ({
     set({ step: 'review' })
   },
   confirm: () => set({ step: 'confirmed' }),
-  reset: () => set({ step: 'idle', scenes: [], mode: 'chat' }),
-  closeModal: () => set({ step: 'idle', scenes: [], mode: 'chat' }),
+  reset: () => set({ step: 'idle', scenes: [], mode: 'chat', anchor: null }),
+  closeModal: () => set({ step: 'idle', scenes: [], mode: 'chat', anchor: null }),
 }))
 
 export const PUBLISH_SCENES = ['AI 聊天', '评论区', '群聊', '私信'] as const

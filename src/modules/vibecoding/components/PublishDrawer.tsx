@@ -110,6 +110,7 @@ export default function PublishDrawer({
 }) {
   const step = usePublishFlowStore((s) => s.step)
   const mode = usePublishFlowStore((s) => s.mode)
+  const anchor = usePublishFlowStore((s) => s.anchor)
   const confirm = usePublishFlowStore((s) => s.confirm)
   const closeModal = usePublishFlowStore((s) => s.closeModal)
 
@@ -153,20 +154,32 @@ export default function PublishDrawer({
   const meta = KIND_META[projectKind]
   const ObjectIcon = meta.icon
 
+  // Float the popover just below the triggering 发布 button, right-aligned to
+  // it. Clamp within the viewport so it never spills off-screen. Falls back to
+  // the top-right corner when no anchor was captured.
+  const POPOVER_W = 320
+  const GAP = 8
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1280
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800
+  const top = anchor ? anchor.bottom + GAP : 56
+  const rightEdge = anchor ? anchor.right : vw - 16
+  const left = Math.max(12, Math.min(rightEdge - POPOVER_W, vw - POPOVER_W - 12))
+  const maxH = Math.min(460, vh - top - 16)
+
   const renderSceneGroups = () => (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
       {SCENE_GROUPS.map((group) => (
         <div key={group.platform}>
-          <div className="mb-2 text-[12px] text-[var(--color-ink)]/45">{group.platform}</div>
-          <div className="space-y-2.5">
+          <div className="mb-1.5 text-[11.5px] text-[var(--color-ink)]/45">{group.platform}</div>
+          <div className="space-y-1.5">
             {group.scenes.map((s) => (
               <div
                 key={s.id}
-                className="flex items-start gap-3 rounded-xl bg-[var(--fill-subtle)] px-4 py-3"
+                className="flex items-start gap-2.5 rounded-lg bg-[var(--fill-subtle)] px-3 py-2"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="text-[14px] font-medium text-[var(--color-ink)]">{s.title}</div>
-                  <div className="mt-1 text-[12px] leading-[1.5] text-[var(--color-ink)]/45">
+                  <div className="text-[13px] font-medium text-[var(--color-ink)]">{s.title}</div>
+                  <div className="mt-0.5 text-[11px] leading-[1.45] text-[var(--color-ink)]/45">
                     {s.desc}
                   </div>
                 </div>
@@ -315,20 +328,26 @@ export default function PublishDrawer({
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+          {/* Transparent click-catcher — dismiss on outside click without a
+              page dim, so it reads as a lightweight popover. */}
+          <div
             onClick={closeModal}
-            className="fixed inset-0 z-[290] bg-black/20"
+            className="fixed inset-0 z-[290]"
           />
           <motion.aside
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-y-0 right-0 z-[300] flex w-[420px] max-w-[92vw] flex-col border-l border-[var(--divider)] bg-[var(--color-surface-1)] shadow-[-12px_0_40px_-12px_rgba(0,0,0,0.25)]"
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            style={{
+              top,
+              left,
+              width: POPOVER_W,
+              maxWidth: 'calc(100vw - 24px)',
+              maxHeight: maxH,
+              transformOrigin: 'top right',
+            }}
+            className="fixed z-[300] flex flex-col overflow-hidden rounded-2xl border border-[var(--divider)] bg-[var(--color-surface-1)] shadow-[0_20px_50px_-16px_rgba(0,0,0,0.4)]"
           >
             {/* Header */}
             <header className="flex shrink-0 items-center justify-between px-4 pt-3">
@@ -380,15 +399,15 @@ export default function PublishDrawer({
             ) : (
               <>
                 {/* Body — config */}
-                <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4">
+                <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-3.5 py-3">
                   {/* 1) 发布产物对象确认 */}
-                  <div className="mb-5">
+                  <div className="mb-3.5">
                     <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-ink)]/45">
                       发布产物
                     </div>
-                    <div className="flex items-center gap-3 rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2.5">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--fill-subtle)] text-[var(--color-ink)]/70">
-                        <ObjectIcon size={17} strokeWidth={1.8} />
+                    <div className="flex items-center gap-2.5 rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--fill-subtle)] text-[var(--color-ink)]/70">
+                        <ObjectIcon size={16} strokeWidth={1.8} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[13px] font-medium text-[var(--color-ink)]">
