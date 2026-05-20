@@ -27,6 +27,7 @@ import GarudaAssetsView, {
   type AssetItem,
 } from './GarudaAssetsView'
 import AssetEditPanel from './AssetEditPanel'
+import VideoEditor from './VideoEditor'
 import H5LayerEditPanel, { type H5LayerId } from './H5LayerEditPanel'
 import OpsDataDrawer from './OpsDataDrawer'
 import GarudaCodeView from './GarudaCodeView'
@@ -9720,7 +9721,18 @@ export default function VibeCodingPage() {
             const activeLabel = openTabs[activePreviewTab]?.label
             if (activeProjectKind === 'web-game') {
               if (activeLabel === '预览') return productView
-              if (activeLabel === '素材')
+              if (activeLabel === '素材') {
+                // Editing a 视频 asset opens a dedicated simplified video
+                // editor that takes over the whole preview area (timeline at
+                // the bottom), instead of the right-side AssetEditPanel.
+                if (editPanelOpen && gameSelectedAsset?.kind === 'video') {
+                  return (
+                    <VideoEditor
+                      item={gameSelectedAsset}
+                      onClose={() => setEditPanelOpen(false)}
+                    />
+                  )
+                }
                 return (
                   <>
                     {previewToolbar}
@@ -9736,6 +9748,7 @@ export default function VibeCodingPage() {
                     />
                   </>
                 )
+              }
               if (activeLabel === '代码文件') return <GarudaCodeView />
             }
             // 代码文件 — generic in-tab code editor for non-game projects:
@@ -9879,7 +9892,7 @@ export default function VibeCodingPage() {
                product. web-game uses the game-specific GarudaEditPanel; every
                other kind gets the config-driven ProductEditPanel. Sits before
                the file tree so the file/code panel stays pinned far right. ── */}
-          {editPanelOpen && (
+          {editPanelOpen && !(activeProjectKind === 'web-game' && gameSelectedAsset?.kind === 'video') && (
             <div className="relative shrink-0 border-l border-[var(--divider-soft)]" style={{ width: editPanelWidth }}>
               {activeProjectKind === 'web-game' ? (
                 // When an asset canvas is open, 编辑 binds to that specific
