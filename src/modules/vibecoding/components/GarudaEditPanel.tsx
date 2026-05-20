@@ -90,7 +90,7 @@ export default function GarudaEditPanel({ onClose }: Props) {
         <span className="text-[12.5px] font-semibold text-[var(--color-ink)]">
           可视化编辑
         </span>
-        <span className="text-[11px] text-[var(--color-ink)]/40">Garuda · 神明黄昏</span>
+        <span className="text-[11px] text-[var(--color-ink)]/40">肉鸽小游戏</span>
         <button
           type="button"
           onClick={onClose}
@@ -190,7 +190,7 @@ export default function GarudaEditPanel({ onClose }: Props) {
                       <span>{b.label}</span>
                       <span
                         className={`inline-block h-3 w-3 rounded-full ${
-                          on ? 'bg-emerald-500' : 'bg-[var(--color-ink)]/15'
+                          on ? 'bg-[#3478ff]' : 'bg-[var(--color-ink)]/15'
                         }`}
                       />
                     </button>
@@ -493,7 +493,7 @@ function Toggle({
       </div>
       <span
         className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${
-          value ? 'bg-emerald-500' : 'bg-[var(--color-ink)]/20'
+          value ? 'bg-[#3478ff]' : 'bg-[var(--color-ink)]/20'
         }`}
       >
         <span

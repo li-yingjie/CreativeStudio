@@ -13,16 +13,16 @@
  */
 import type { LucideIcon } from '@/shared/icons'
 import {
-  Bot,
+  Eye,
   FileCode2,
   FileSearch,
   FileText,
-  Gamepad2,
   Image as ImageIcon,
   Info,
   LayoutDashboard,
   LayoutGrid,
   Library,
+  MessageCircle,
   ScrollText,
   Settings,
   Sparkles,
@@ -96,8 +96,8 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   // Every project surfaces a 项目文档 (project brief) leaf.
   项目文档: FileText,
   界面: LayoutGrid,
-  // web-game leaves — kept in sync with the top tab strip / + dropdown.
-  游戏预览: Gamepad2,
+  // The primary 预览 tab — content varies by kind, one shared icon.
+  预览: Eye,
   素材: ImageIcon,
   代码: FileCode2,
   能力技能: Sparkles,
@@ -108,7 +108,7 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   知识库: Library,
   触发器: Zap,
   // mini-program sections
-  智能体: Bot,
+  智能体: MessageCircle,
   小程序设置: Settings,
   // ops-proposal sections
   诊断分析: FileSearch,
@@ -233,12 +233,12 @@ export function buildProductView(
     case 'web-app':
       return appLikeView(tree, ['public', 'assets'])
     case 'web-game':
-      // Two clickable leaves — no expansion. 游戏预览 jumps the right pane
+      // Two clickable leaves — no expansion. 预览 jumps the right pane
       // to the runnable game tab; 素材 jumps to the assets browser. Code
       // files never surface in the left directory — the 代码 editor tab is
       // added on demand from the preview's + menu instead.
       return [
-        { name: '游戏预览', type: 'file' },
+        { name: '预览', type: 'file' },
         { name: '素材', type: 'file' },
       ]
     case 'marketing-h5':

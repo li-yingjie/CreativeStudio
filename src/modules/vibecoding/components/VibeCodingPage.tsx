@@ -1,4 +1,4 @@
-import { Fragment, useState, useRef, useEffect, useCallback } from 'react'
+import { Fragment, useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -15,12 +15,23 @@ import {
 } from '@/modules/editor/store/publish-flow-store'
 import { useThemeStore } from '@/shared/storage/theme'
 import MiniAppPreview from './MiniAppPreview'
+import XiaohuaFeedPreview from './XiaohuaFeedPreview'
 import WebAppPreview from './WebAppPreview'
 import MarketingH5Preview from './MarketingH5Preview'
 import GarudaGamePreview from './GarudaGamePreview'
-import GarudaAssetsView, { AssetStatsLine, type AssetGroup } from './GarudaAssetsView'
+import GarudaAssetsView, {
+  KIND_META as ASSET_KIND_META,
+  garudaKindTabs,
+  type AssetGroup,
+  type AssetKind,
+  type AssetItem,
+} from './GarudaAssetsView'
+import AssetEditPanel from './AssetEditPanel'
+import H5LayerEditPanel, { type H5LayerId } from './H5LayerEditPanel'
+import OpsDataDrawer from './OpsDataDrawer'
 import GarudaCodeView from './GarudaCodeView'
 import GarudaEditPanel from './GarudaEditPanel'
+import ProductEditPanel from './ProductEditPanel'
 import GameGenerationFlow, { GameBuildProgress } from './GameGenerationFlow'
 import type { GameSpecDraft } from './GameConfirmCard'
 import AiPersonaChatPreview, { type TriggerSimulation } from './AiPersonaChatPreview'
@@ -31,6 +42,7 @@ import ResourceLibraryView, {
   type TypeFilter as ResourceLibraryTypeFilter,
 } from './ResourceLibraryView'
 import PlatformPlaceholderView from './PlatformPlaceholderView'
+import DataOpsView, { type DataOpsProject } from './DataOpsView'
 import ProposalGoalCard, { type ProposalGoalDraft } from './ProposalGoalCard'
 import ProposalDiagnosisCard from './ProposalDiagnosisCard'
 import ProposalAudienceDashboard from './ProposalAudienceDashboard'
@@ -115,7 +127,7 @@ const PROJECT_KINDS: Record<string, ProjectKind> = {
   '陶白白 Sensei 分身': 'ai-avatar',
   '沪上火锅·五一种草提案': 'ops-proposal',
   '个人作品集网站': 'web-app',
-  'Garuda · 神明黄昏': 'web-game',
+  '肉鸽小游戏': 'web-game',
   '六一儿童节活动': 'marketing-h5',
 }
 
@@ -212,6 +224,7 @@ import {
   Type,
   MessageSquareText,
   MessageSquarePlus,
+  History,
   MessageCircleHeart,
   Gamepad2,
   Globe,
@@ -236,7 +249,6 @@ import {
   PencilLine,
   Flag,
   WandSparkles,
-  Wand2,
   AppWindow,
   BriefcaseBusiness,
   Library,
@@ -1027,6 +1039,87 @@ function productLabelIcon(label: string, parent?: string): LucideIcon {
   return PRODUCT_CATEGORY_ICONS[label] ?? PRODUCT_CATEGORY_ICONS[base] ?? getFileIcon(label)
 }
 
+/** Second-layer product toolbar — a consistent row with the multi-object
+ *  tabs on the left and contextual actions on the right. Every preview
+ *  surface (phone / 界面 / 素材 / 代码 / 知识库 …) renders through this so the
+ *  spacing, divider and alignment stay identical. */
+function ProductToolbar({
+  leading,
+  tabs,
+  actions,
+}: {
+  /** Far-left actions, pinned before the tab row (e.g. 编辑). */
+  leading?: ReactNode
+  tabs: ReactNode
+  actions?: ReactNode
+}) {
+  return (
+    <div className="@container flex min-h-[44px] shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--divider-soft)] px-4 py-2">
+      <div className="flex min-w-0 items-center gap-3">
+        {leading ? <div className="flex shrink-0 items-center gap-2">{leading}</div> : null}
+        <div className="tab-scroll flex min-w-0 items-center gap-3 overflow-x-auto">{tabs}</div>
+      </div>
+      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+    </div>
+  )
+}
+
+/** A single right-side toolbar action (icon + label, collapses to icon-only
+ *  on narrow toolbars). Shared by every product toolbar so the buttons read
+ *  the same everywhere. */
+function ToolbarAction({
+  icon: Icon,
+  label,
+  onClick,
+  active = false,
+  iconOnly = false,
+}: {
+  icon: LucideIcon
+  label: string
+  onClick?: () => void
+  active?: boolean
+  /** Render as a square icon-only button (label kept as the tooltip). */
+  iconOnly?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      onClick={onClick}
+      className={`flex items-center rounded-lg border text-[12px] transition-colors ${
+        iconOnly ? 'gap-0 px-2 py-1.5' : 'gap-0 px-2 py-1.5 @[520px]:gap-1.5 @[520px]:px-3'
+      } ${
+        active
+          ? 'border-[var(--color-ink)]/25 bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]'
+          : 'border-[var(--color-ink)]/8 text-[var(--color-ink)]/60 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]'
+      }`}
+    >
+      <Icon size={13} />
+      {!iconOnly && <span className="hidden @[520px]:inline">{label}</span>}
+    </button>
+  )
+}
+
+/** Merge user-added objects into a product tree's category dirs. Extras are
+ *  keyed `${projectName}::${category}` and appended as file leaves so newly
+ *  created objects show up both in the sidebar and the category tab. */
+function mergeCategoryExtras(
+  nodes: FileNode[],
+  extras: Record<string, string[]>,
+  projectName: string,
+): FileNode[] {
+  return nodes.map((n) => {
+    if (n.type !== 'dir') return n
+    const add = extras[`${projectName}::${n.name}`]
+    if (!add || add.length === 0) return n
+    const have = new Set((n.children ?? []).map((c) => c.name))
+    const extraNodes = add
+      .filter((x) => !have.has(x))
+      .map((x): FileNode => ({ name: x, type: 'file' }))
+    return { ...n, children: [...(n.children ?? []), ...extraNodes] }
+  })
+}
+
 function FileTreeView({
   nodes,
   expanded,
@@ -1377,11 +1470,11 @@ const PORTFOLIO_DOC_MD = `# 个人作品集网站 · 项目文档
 - 三端（桌面 / 平板 / 手机）布局无错位
 `
 
-const GARUDA_DOC_MD = `# Garuda · 神明黄昏 · 项目文档
+const GARUDA_DOC_MD = `# 肉鸽小游戏 · 项目文档
 
 ## 一、项目简介
 
-《Garuda · 神明黄昏》是一款竖版弹幕射击 + Roguelike 的网页小游戏（H5 /
+《肉鸽小游戏》是一款竖版弹幕射击 + Roguelike 的网页小游戏（H5 /
 单页 HTML5）。玩家操控机甲少女在「神明黄昏」世界中清屏、闯关、构筑
 build。
 
@@ -1467,7 +1560,7 @@ const PROJECT_DOCS: Record<string, string> = {
   '粉丝互动机器人': TAOBAIBAI_DOC_MD,
   '第五人格塔罗小程序': TAROT_MINIAPP_DOC_MD,
   '个人作品集网站': PORTFOLIO_DOC_MD,
-  'Garuda · 神明黄昏': GARUDA_DOC_MD,
+  '肉鸽小游戏': GARUDA_DOC_MD,
   '沪上火锅·五一种草提案': HOTPOT_PROPOSAL_DOC_MD,
   '六一儿童节活动': CHILDREN_DAY_PLAN_MD,
 }
@@ -1759,10 +1852,12 @@ function FigmaIcon({ size = 16, className = '' }: { size?: number; className?: s
  *  that scene's quick commands; each command's `prompt` ghost-fills the
  *  composer on hover and is sent on click. */
 type SceneCommand = { label: string; prompt: string }
-const HOME_SCENES: { label: string; icon: LucideIcon; commands: SceneCommand[] }[] = [
+type HomeScene = { label: string; icon: LucideIcon; svg?: string; commands: SceneCommand[] }
+const HOME_SCENES: HomeScene[] = [
   {
     label: 'AI 分身',
     icon: Bot,
+    svg: '/icons/bot-smile.svg',
     commands: [
       { label: '生成运营活动社群的 AI 分身', prompt: '帮我生成一个用于运营活动社群的 AI 分身，能在群里答疑、发活动通知、活跃气氛。' },
       { label: '生成评论区回复用户问题的 AI 分身', prompt: '帮我生成一个能在评论区自动回复用户问题的 AI 分身。' },
@@ -1774,6 +1869,7 @@ const HOME_SCENES: { label: string; icon: LucideIcon; commands: SceneCommand[] }
   {
     label: '小程序',
     icon: LayoutGrid,
+    svg: '/icons/mini-programs.svg',
     commands: [
       { label: '做一个每日打卡小程序', prompt: '帮我做一个每日打卡小程序，支持连续打卡、提醒和成就徽章。' },
       { label: '做一个第五人格主题塔罗小程序', prompt: '帮我做一个第五人格主题的塔罗运势小程序，每天可抽一张牌。' },
@@ -1785,6 +1881,7 @@ const HOME_SCENES: { label: string; icon: LucideIcon; commands: SceneCommand[] }
   {
     label: '营销活动',
     icon: Sparkles,
+    svg: '/icons/announcement-01.svg',
     commands: [
       { label: '做一个节日抽奖 H5 活动', prompt: '帮我做一个节日主题的抽奖 H5 活动页，含倒计时、奖品楼层和分享。' },
       { label: '做一个新品首发预约活动', prompt: '帮我做一个新品首发预约活动页，支持预约提醒和名额展示。' },
@@ -1796,6 +1893,7 @@ const HOME_SCENES: { label: string; icon: LucideIcon; commands: SceneCommand[] }
   {
     label: '营销视频',
     icon: Video,
+    svg: '/icons/video-recorder.svg',
     commands: [
       { label: '生成一条新品种草短视频脚本', prompt: '帮我生成一条新品种草短视频脚本，含分镜、口播和字幕。' },
       { label: '生成一条节日营销视频', prompt: '帮我生成一条节日营销主题的短视频脚本与分镜。' },
@@ -1807,6 +1905,7 @@ const HOME_SCENES: { label: string; icon: LucideIcon; commands: SceneCommand[] }
   {
     label: '营销海报',
     icon: ImageIcon,
+    svg: '/icons/image-03.svg',
     commands: [
       { label: '生成推广《剑来》动画的异形卡', prompt: '帮我生成一张推广《剑来》动画的异形卡海报。' },
       { label: '做一张新品促销海报', prompt: '帮我做一张新品促销主视觉海报。' },
@@ -1829,6 +1928,7 @@ const HOME_SCENES: { label: string; icon: LucideIcon; commands: SceneCommand[] }
   {
     label: '小游戏',
     icon: Gamepad2,
+    svg: '/icons/gaming-pad-01.svg',
     commands: [
       { label: '做一款竖版弹幕射击 + Roguelike 太空游戏', prompt: '帮我做一款竖版弹幕射击 + Roguelike 的太空小游戏。' },
       { label: '做一个翻牌记忆小游戏', prompt: '帮我做一个翻牌记忆配对小游戏。' },
@@ -1860,6 +1960,32 @@ const AI_MODES: { id: AiMode; label: string; desc: string; icon: typeof Code2 }[
     icon: Blocks,
   },
 ]
+
+/** Scene icon — renders the project-provided SVG via a CSS mask so it picks
+ *  up the ink color (theme-adaptive) regardless of the file's own fills.
+ *  Falls back to the lucide/Tabler icon when no SVG is supplied. */
+function SceneGlyph({ scene }: { scene: HomeScene }) {
+  if (scene.svg) {
+    return (
+      <span
+        aria-hidden
+        className="h-[15px] w-[15px] shrink-0 bg-[var(--color-ink)]/55"
+        style={{
+          maskImage: `url(${scene.svg})`,
+          WebkitMaskImage: `url(${scene.svg})`,
+          maskSize: 'contain',
+          WebkitMaskSize: 'contain',
+          maskRepeat: 'no-repeat',
+          WebkitMaskRepeat: 'no-repeat',
+          maskPosition: 'center',
+          WebkitMaskPosition: 'center',
+        }}
+      />
+    )
+  }
+  const Icon = scene.icon
+  return <Icon size={14} strokeWidth={1.8} className="shrink-0 text-[var(--color-ink)]/55" />
+}
 
 function PlatformHome({
   draft,
@@ -1914,7 +2040,10 @@ function PlatformHome({
   const openScene = HOME_SCENES.find((s) => s.label === activeScene)
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
       className={`relative my-3 mr-3 flex min-w-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-[16px] px-6 pb-48 pt-6 ${
         isLight ? 'bg-white' : 'bg-[var(--color-surface-0)]'
       }`}
@@ -2046,7 +2175,8 @@ function PlatformHome({
             openScene ? 'pointer-events-none opacity-0' : 'opacity-100'
           }`}
         >
-          {HOME_SCENES.map(({ label, icon: Icon }) => {
+          {HOME_SCENES.map((scene) => {
+            const { label } = scene
             const active = activeScene === label
             return (
               <button
@@ -2062,7 +2192,7 @@ function PlatformHome({
                     : 'border-[var(--divider)] bg-[var(--color-surface-0)] text-[var(--color-ink)]/80 hover:border-[var(--color-ink)]/25 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
                 }`}
               >
-                <Icon size={14} strokeWidth={1.8} className="shrink-0 text-[var(--color-ink)]/55" />
+                <SceneGlyph scene={scene} />
                 {label}
               </button>
             )
@@ -2071,7 +2201,6 @@ function PlatformHome({
 
         <AnimatePresence>
         {openScene && (() => {
-          const SceneIcon = openScene.icon
           return (
             <motion.div
               key={openScene.label}
@@ -2084,7 +2213,7 @@ function PlatformHome({
             >
               <div className="flex items-center justify-between px-5 py-3">
                 <span className="flex items-center gap-1.5 text-[13px] text-[var(--color-ink)]/55">
-                  <SceneIcon size={14} strokeWidth={1.8} />
+                  <SceneGlyph scene={openScene} />
                   {openScene.label}
                 </span>
                 <button
@@ -2173,7 +2302,7 @@ function PlatformHome({
           })}
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }
 
@@ -2211,6 +2340,7 @@ function PlatformSidebar({
   onRenameProject,
   deletedProjects,
   onDeleteProject,
+  categoryExtras,
   layout,
   onChangeLayout,
   themeMode,
@@ -2244,7 +2374,7 @@ function PlatformSidebar({
   /** Open the 数据运营 placeholder page. */
   onOpenDataOps: () => void
   /** Which top-level nav is currently active — drives the highlight. */
-  activeNav: 'Skills' | '资源库' | '创意广场' | '数据运营' | null
+  activeNav: 'Skills' | '资源库' | '创意广场' | '运营数据' | null
   /** Active preview page label — highlights the matching 页面 node in
    *  the product view. null falls back to the default page (首页). */
   activeRoute: string | null
@@ -2267,6 +2397,8 @@ function PlatformSidebar({
   deletedProjects: Set<string>
   /** Delete (hide) a project from the list. */
   onDeleteProject: (name: string) => void
+  /** User-added category objects, keyed `${project}::${category}`. */
+  categoryExtras: Record<string, string[]>
   /** Layout + theme switcher — relocated from the (removed) top header. */
   layout: 'workspace' | 'editor' | 'code' | 'platform'
   onChangeLayout: (next: 'workspace' | 'editor' | 'code' | 'platform') => void
@@ -2345,16 +2477,16 @@ function PlatformSidebar({
     // the home-flow this session — but we always want Garuda pinned in
     // the fixed list below, so filter it out of createdProjects to
     // avoid double-listing.
-    ...createdProjects.filter((p) => p !== 'Garuda · 神明黄昏'),
+    ...createdProjects.filter((p) => p !== '肉鸽小游戏'),
     // Order: 分身 → 小程序 → 个人网站 → 游戏 → 营销设计·H5 → 营销提案.
     // 粉丝互动机器人 / 探店视频创作助手 / 每日打卡小程序 are hidden —
     // config exists but there's no scripted demo flow for them yet.
     '陶白白 Sensei 分身',
     '第五人格塔罗小程序',
     '个人作品集网站',
-    'Garuda · 神明黄昏',
+    '肉鸽小游戏',
     '六一儿童节活动',
-    '沪上火锅·五一种草提案',
+    // '沪上火锅·五一种草提案' — 先隐藏（运营提案 demo 暂不展示）。
   ].filter((p) => !deletedProjects.has(p))
 
   return (
@@ -2397,15 +2529,26 @@ function PlatformSidebar({
         </div>
       </div>
 
-      {/* + 新建项目 */}
+      {/* + 新建项目 — 彩虹阴影 on hover */}
       <div className="px-3 pt-4">
-        <button
-          onClick={onNewProject}
-          className="flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-[var(--color-ink)] text-[13px] font-medium text-[var(--color-ink-contrast)] transition-opacity hover:opacity-90"
-        >
-          <Plus size={14} strokeWidth={2} />
-          新建项目
-        </button>
+        <div className="group relative">
+          {/* rainbow glow halo, revealed on hover */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -inset-px rounded-full opacity-0 blur-[5px] transition-opacity duration-300 group-hover:opacity-70"
+            style={{
+              background:
+                'linear-gradient(95deg,#ffd633,#ffe680,#aef0a8,#88dcff,#c2a8ff,#ffa9d6)',
+            }}
+          />
+          <button
+            onClick={onNewProject}
+            className="relative flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-[var(--color-ink)] text-[13px] font-medium text-[var(--color-ink-contrast)]"
+          >
+            <Plus size={14} strokeWidth={2} />
+            新建项目
+          </button>
+        </div>
       </div>
 
       {/* Platform nav — pill-shaped rows with cool-gray tint when selected.
@@ -2416,7 +2559,7 @@ function PlatformSidebar({
           [
             { label: 'Skills', icon: FolderCode },
             { label: '资源库', icon: Inbox },
-            { label: '数据运营', icon: BarChart3 },
+            { label: '运营数据', icon: BarChart3 },
             { label: '创意广场', icon: Home },
           ] as const
         ).map(({ label, icon: Icon }) => {
@@ -2428,7 +2571,7 @@ function PlatformSidebar({
                 if (label === '资源库') onOpenResourceLibrary()
                 else if (label === 'Skills') onOpenSkills()
                 else if (label === '创意广场') onOpenCreativeSquare()
-                else if (label === '数据运营') onOpenDataOps()
+                else if (label === '运营数据') onOpenDataOps()
               }}
               className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[13px] font-semibold leading-5 text-[var(--color-ink)] transition-colors ${
                 active
@@ -2639,15 +2782,19 @@ function PlatformSidebar({
                     const kind = PROJECT_KINDS[name] ?? 'mini-program'
                     // AI 分身 and 小程序 projects are config-driven;
                     // other kinds bucket the raw file tree.
-                    const productTree = withProjectDoc(
-                      kind === 'ai-avatar'
-                        ? buildAvatarProductView(tree, getAvatarConfig(name))
-                        : kind === 'mini-program'
-                          ? buildMiniProgramProductView(
-                              tree,
-                              getMiniProgramConfig(name),
-                            )
-                          : buildProductView(tree, kind),
+                    const productTree = mergeCategoryExtras(
+                      withProjectDoc(
+                        kind === 'ai-avatar'
+                          ? buildAvatarProductView(tree, getAvatarConfig(name))
+                          : kind === 'mini-program'
+                            ? buildMiniProgramProductView(
+                                tree,
+                                getMiniProgramConfig(name),
+                              )
+                            : buildProductView(tree, kind),
+                      ),
+                      categoryExtras,
+                      name,
                     )
                     if (productTree.length === 0) return emptyStub
                     return (
@@ -3062,6 +3209,9 @@ export default function VibeCodingPage() {
   const [activeSessionId, setActiveSessionId] = useState('s-current')
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false)
   const sessionMenuRef = useRef<HTMLDivElement>(null)
+  // 历史对话 dropdown (chat-header icon, right of 新建对话)
+  const [historyMenuOpen, setHistoryMenuOpen] = useState(false)
+  const historyMenuRef = useRef<HTMLDivElement>(null)
   /* Per-project chat snapshots. Whenever the user switches projects we
    * stash the outgoing project's full chat state here (messages,
    * sessions, proposal/game/trigger flow state, open preview tabs, ...)
@@ -3212,7 +3362,7 @@ export default function VibeCodingPage() {
       prev.length > 0
         ? prev
         : [
-            { label: '游戏预览', closable: false },
+            { label: '预览', closable: false },
             { label: '素材', closable: false },
           ],
     )
@@ -3449,7 +3599,7 @@ export default function VibeCodingPage() {
       projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
     }
     const sid = `s-${Date.now()}`
-    setProjectTitle('Garuda · 神明黄昏')
+    setProjectTitle('肉鸽小游戏')
     setSessions([{ id: sid, name: '新会话' }])
     setActiveSessionId(sid)
     setPlatformHomeOpen(false)
@@ -3501,12 +3651,12 @@ export default function VibeCodingPage() {
   const confirmGameSpec = (spec: GameSpecDraft) => {
     setGameSpec(spec)
     setCreatedProjects((prev) =>
-      prev.includes('Garuda · 神明黄昏') ? prev : ['Garuda · 神明黄昏', ...prev],
+      prev.includes('肉鸽小游戏') ? prev : ['肉鸽小游戏', ...prev],
     )
     setPlatformOpenProjects((prev) => {
-      if (prev.has('Garuda · 神明黄昏')) return prev
+      if (prev.has('肉鸽小游戏')) return prev
       const next = new Set(prev)
-      next.add('Garuda · 神明黄昏')
+      next.add('肉鸽小游戏')
       return next
     })
     setGameStep('analyzing')
@@ -3589,7 +3739,7 @@ export default function VibeCodingPage() {
   /** Initialise a fresh first-visit snapshot for `name` based on its
    *  project kind. ops-proposal pre-seeds the goal-collection bubble +
    *  empty preview tabs; web-game gets 预览/资产 tabs; everything else
-   *  gets the generic 产物预览 tab. Called from `openProject` when no
+   *  gets the generic 预览 tab. Called from `openProject` when no
    *  prior snapshot exists for the target project. */
   const initProjectDefaults = (name: string) => {
     const sid = `s-${Date.now()}`
@@ -3637,12 +3787,12 @@ export default function VibeCodingPage() {
     } else if (PROJECT_KINDS[name] === 'web-game') {
       setProposalStep('idle')
       setOpenTabs([
-        { label: '游戏预览', closable: false },
+        { label: '预览', closable: false },
         { label: '素材', closable: false },
       ])
     } else {
       setProposalStep('idle')
-      setOpenTabs([{ label: '产物预览', closable: false }])
+      setOpenTabs([{ label: '预览', closable: false }])
     }
   }
 
@@ -3683,6 +3833,17 @@ export default function VibeCodingPage() {
     document.addEventListener('pointerdown', handler)
     return () => document.removeEventListener('pointerdown', handler)
   }, [sessionMenuOpen])
+
+  useEffect(() => {
+    if (!historyMenuOpen) return
+    const handler = (e: PointerEvent) => {
+      if (historyMenuRef.current && !historyMenuRef.current.contains(e.target as Node)) {
+        setHistoryMenuOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [historyMenuOpen])
 
   /** Send a chat message. Triggers:
    *  - 发布/更新 → publish flow
@@ -3828,6 +3989,24 @@ export default function VibeCodingPage() {
 
   /* file tree */
   const [fileTreeOpen, setFileTreeOpen] = useState(false)
+  // Selected file inside the in-tab 代码文件 editor (left tree + right code).
+  const [codeSelectedFile, setCodeSelectedFile] = useState<string>('')
+  // 游戏 素材 kind filter (图像/音频/视频) — lifted so the preview toolbar
+  // owns the switcher and GarudaAssetsView renders it controlled.
+  const [gameAssetKind, setGameAssetKind] = useState<AssetKind>('image')
+  // The game asset currently opened on the canvas — lifted so the 编辑
+  // panel can bind to this specific object instead of the whole game.
+  const [gameSelectedAsset, setGameSelectedAsset] = useState<AssetItem | null>(null)
+  // The H5 layer currently selected in the preview (edit mode) — the 编辑
+  // panel refreshes to match. null = no element selected → 整体活动配置.
+  const [h5SelectedLayer, setH5SelectedLayer] = useState<H5LayerId | null>(null)
+  // 运营数据 drawer (opens from the 发布 button's left-side entry).
+  const [opsDataOpen, setOpsDataOpen] = useState(false)
+  // Projects that have completed a publish — only then does 运营数据 unlock
+  // (there's no data before the product is live).
+  const [publishedProjects, setPublishedProjects] = useState<Set<string>>(new Set())
+  // Project to pre-select when jumping into the 运营数据 menu from the drawer.
+  const [dataOpsFocusProject, setDataOpsFocusProject] = useState<string | null>(null)
   const [fileTreeWidth, setFileTreeWidth] = useState(220)
   const fileTreeDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
   /* File-tree panel is split into two accordion sections that can be
@@ -4231,7 +4410,7 @@ export default function VibeCodingPage() {
       { name: 'config', type: 'dir', children: [{ name: 'h5.config.json', type: 'file' }] },
     ],
     '个人作品集网站': webAppFileTree,
-    'Garuda · 神明黄昏': garudaFileTree,
+    '肉鸽小游戏': garudaFileTree,
     '沪上火锅·五一种草提案': [
       { name: 'briefs', type: 'dir', children: [] },
       { name: 'configs', type: 'dir', children: [] },
@@ -4243,7 +4422,7 @@ export default function VibeCodingPage() {
   /* preview tab */
   // For proposal deep-link entries the right preview starts empty
   // (artefact tabs auto-append later via the proposalDocs effect). For
-  // other project kinds we seed the standard 产物预览 + soul.md +
+  // other project kinds we seed the standard 预览 + soul.md +
   // app.tsx tabs.
   const wantsProposalDeepLink =
     typeof window !== 'undefined' &&
@@ -4257,15 +4436,15 @@ export default function VibeCodingPage() {
     wantsProposalDeepLink
       ? []
       : wantsChildrenDayDeepLink
-        ? [{ label: '产物预览', closable: false }]
+        ? [{ label: '预览', closable: false }]
       : [
-          { label: '产物预览', closable: false },
+          { label: '预览', closable: false },
           { label: 'soul.md', closable: true },
           { label: 'app.tsx', closable: true },
         ],
   )
   // Default: 打开 soul.md（AI 分身定义）作为第一眼看到的文件，其次 app.tsx
-  // 可关。工作区布局下，产物预览 tab 也通过 productPinned 保持高亮。
+  // 可关。工作区布局下，预览 tab 也通过 productPinned 保持高亮。
   const [activePreviewTab, setActivePreviewTab] = useState(
     wantsProposalDeepLink || wantsChildrenDayDeepLink ? 0 : 1,
   )
@@ -4277,7 +4456,7 @@ export default function VibeCodingPage() {
   // monitors. Both `width` and `left` are recomputed so the column reads
   // as a single centered surface with empty padding on both sides.
   // openTabs being empty is the sentinel; only proposal mode reaches it
-  // since other shapes seed a 产物预览 tab.
+  // since other shapes seed a 预览 tab.
   const PREVIEW_HIDDEN_CHAT_MAX = 760
   /** User-toggled collapse of the right preview pane (separate from the
    *  artifact-no-tabs sentinel — both fold the pane). */
@@ -4301,6 +4480,11 @@ export default function VibeCodingPage() {
    * (mirrors the game's 素材 category control). `categoryChild` remembers
    * the selected child per category; `dirMenuOpen` toggles the dropdown. */
   const [categoryChild, setCategoryChild] = useState<Record<string, string>>({})
+  /* User-added objects under a category, keyed `${projectTitle}::${category}`.
+   * Retained as a no-op merge hook (currently always empty) so the product
+   * tree / sidebar plumbing stays in place; the + menu now opens existing
+   * objects rather than creating new ones. */
+  const [categoryExtras] = useState<Record<string, string[]>>({})
   /* Per-project 项目文档 edits, keyed by project title (so switching
    * projects keeps each doc separate). Falls back to PROJECT_DOCS / a
    * generated default when untouched. */
@@ -4360,14 +4544,19 @@ export default function VibeCodingPage() {
     const tree = projectTrees[projectTitle]
     if (!tree) return []
     const kind = PROJECT_KINDS[projectTitle] ?? 'mini-program'
-    return withProjectDoc(
-      kind === 'ai-avatar'
-        ? buildAvatarProductView(tree, getAvatarConfig(projectTitle))
-        : kind === 'mini-program'
-          ? buildMiniProgramProductView(tree, getMiniProgramConfig(projectTitle))
-          : buildProductView(tree, kind),
+    return mergeCategoryExtras(
+      withProjectDoc(
+        kind === 'ai-avatar'
+          ? buildAvatarProductView(tree, getAvatarConfig(projectTitle))
+          : kind === 'mini-program'
+            ? buildMiniProgramProductView(tree, getMiniProgramConfig(projectTitle))
+            : buildProductView(tree, kind),
+      ),
+      categoryExtras,
+      projectTitle,
     )
   }
+
   /** Plain-name child leaves of a product-view category. */
   const categoryChildrenOf = (category: string): string[] => {
     const node = getActiveProductTree().find(
@@ -4397,8 +4586,10 @@ export default function VibeCodingPage() {
    *  phone/browser shows the chosen page immediately. */
   const openCategoryTab = (category: string, child?: string) => {
     const kids = categoryChildrenOf(category)
-    if (kids.length === 0) return
-    const sel = child && kids.includes(child) ? child : kids[0]
+    // `child` may be a just-created object not yet reflected in `kids`
+    // (state commits next tick) — trust it when provided.
+    const sel = child ?? kids[0]
+    if (!sel) return
     setCategoryChild((prev) => ({ ...prev, [category]: sel }))
     if (isPageCategory(category)) setPreviewRoute(sel)
     const existing = openTabs.findIndex((t) => t.label === category)
@@ -4461,6 +4652,12 @@ export default function VibeCodingPage() {
   }
 
   const openFileInTab = (filename: string) => {
+    // 代码文件 — the in-tab code editor (real source tree + code). Added from
+    // the + menu for every project; routed before kind-specific handling.
+    if (filename === '代码文件') {
+      openNamedTab('代码文件')
+      return
+    }
     // Product-view structure: a multi-child category opens as its own tab
     // (parent), and clicking one of its children opens the same parent tab
     // with that child selected (directory dropdown lives in the toolbar).
@@ -4480,11 +4677,11 @@ export default function VibeCodingPage() {
       return
     }
     // Product-view 页面 nodes aren't files — clicking one navigates the
-    // right-side preview to that page and focuses the 产物预览 tab.
+    // right-side preview to that page and focuses the 预览 tab.
     const activeTree = projectTrees[projectTitle]
     if (activeTree && getProductPages(activeTree).some((p) => p.label === filename)) {
       setPreviewRoute(filename)
-      const idx = openTabs.findIndex((t) => t.label === '产物预览')
+      const idx = openTabs.findIndex((t) => t.label === '预览')
       setActivePreviewTab(idx >= 0 ? idx : 0)
       return
     }
@@ -4496,7 +4693,7 @@ export default function VibeCodingPage() {
       if (filename.startsWith('…')) return
       // Product-view leaves drive the right pane directly: 游戏 → game
       // runtime tab; 素材 → assets browser tab.
-      if (filename === '游戏预览' || filename === '素材') {
+      if (filename === '预览' || filename === '素材') {
         const idx = openTabs.findIndex((t) => t.label === filename)
         if (idx >= 0) setActivePreviewTab(idx)
         return
@@ -4583,7 +4780,7 @@ export default function VibeCodingPage() {
     } else {
       // Proposal-flow artefacts (人群诊断.md, 人群诊断看板, 提案报告.md…)
       // pin as non-closable so the right preview reads as a stable
-      // "产物总览" surface — once an artefact exists it stays.
+      // "预览" surface — once an artefact exists it stays.
       const isProposalArtefact =
         filename in proposalDocs ||
         (activeProjectKind === 'marketing-h5' &&
@@ -5471,12 +5668,46 @@ export default function VibeCodingPage() {
     openProject(projectName)
   }
   useEffect(() => {
-    if (!pendingProductOpenRef.current) return
-    const f = pendingProductOpenRef.current
-    pendingProductOpenRef.current = null
-    openFileInTab(f)
+    // A project switch always collapses the visual-edit panel — its
+    // contents are scoped to the previous project's kind.
+    setEditPanelOpen(false)
+    // Switching to a specific product leaf takes priority…
+    if (pendingProductOpenRef.current) {
+      const f = pendingProductOpenRef.current
+      pendingProductOpenRef.current = null
+      openFileInTab(f)
+      return
+    }
+    // …otherwise a plain project-name switch lands on the 预览 tab.
+    setActivePreviewTab((cur) => {
+      const idx = openTabs.findIndex((t) => t.label === '预览')
+      return idx >= 0 ? idx : cur
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectTitle])
+  // The visual-edit panel is bound to the currently-active object/tab — so
+  // switching tabs collapses it (re-open it explicitly on the new tab) and
+  // clears any opened game-asset canvas selection.
+  useEffect(() => {
+    setEditPanelOpen(false)
+    setGameSelectedAsset(null)
+    setH5SelectedLayer(null)
+  }, [activePreviewTab])
+  // Each time the H5 edit panel closes, drop the layer selection so the next
+  // open starts on the 整体活动配置 (overall) view rather than a stale element.
+  useEffect(() => {
+    if (!editPanelOpen) setH5SelectedLayer(null)
+  }, [editPanelOpen])
+  // A confirmed publish unlocks the active project's 运营数据.
+  useEffect(() => {
+    if (publishStep !== 'confirmed') return
+    setPublishedProjects((prev) => {
+      if (prev.has(projectTitle)) return prev
+      const next = new Set(prev)
+      next.add(projectTitle)
+      return next
+    })
+  }, [publishStep, projectTitle])
   /* Derive the active project's "kind" from its title — controls which
    * preview renders on the right and what label the product tab shows.
    * Unknown project names default to mini-program so arbitrary renames
@@ -5488,10 +5719,10 @@ export default function VibeCodingPage() {
    *  both live under 'app'). */
   const activeOutputShape: OutputShape = SHAPE_BY_KIND[activeProjectKind]
   // productTabLabel was used by the (removed) X-column tab header. Kept
-  // here as the canonical label for the synthetic "产物预览" / "产物总览"
+  // here as the canonical label for the synthetic "预览" / "预览"
   // tab so any future re-introduction of the tab strip can read it.
   const _productTabLabel =
-    activeOutputShape === 'artifact' ? '产物总览' : '产物预览'
+    activeOutputShape === 'artifact' ? '预览' : '预览'
   void _productTabLabel
   /* True when the active project has actual scaffolded content — drives
    * whether the right-side preview renders the phone mock or an empty
@@ -5589,11 +5820,20 @@ export default function VibeCodingPage() {
     </div>
   ) : activeProjectKind === 'marketing-h5' ? (
     <PhoneMockup width={360} height={760} maxScale={1.4}>
-      <MarketingH5Preview key={miniAppKey} />
+      <MarketingH5Preview
+        key={miniAppKey}
+        editing={editPanelOpen}
+        selectedLayer={h5SelectedLayer}
+        onSelectLayer={setH5SelectedLayer}
+      />
     </PhoneMockup>
   ) : activeFilter === 'ai-avatar' ? (
     <PhoneMockup>
       <ChatPreview worldOverride="identity-v" />
+    </PhoneMockup>
+  ) : activeFilter === 'xiaohua' ? (
+    <PhoneMockup>
+      <XiaohuaFeedPreview />
     </PhoneMockup>
   ) : activeProjectKind === 'ai-avatar' ? (
     <PhoneMockup>
@@ -5792,8 +6032,7 @@ export default function VibeCodingPage() {
         ? [{ label: 'H5活动', value: 'mini-program' }]
       : [
           { label: '小程序', value: 'mini-program' },
-          { label: 'AI分身', value: 'ai-avatar' },
-          { label: '小花技能', value: 'xiaohua' },
+          { label: 'Feed 卡', value: 'xiaohua' },
         ]
 
   /* console */
@@ -5884,7 +6123,7 @@ export default function VibeCodingPage() {
               // finished file list before the build animation completes.
               gameStep !== 'idle' && gameStep !== 'done'
                 ? (() => {
-                    const { 'Garuda · 神明黄昏': _omit, ...rest } = projectTrees
+                    const { '肉鸽小游戏': _omit, ...rest } = projectTrees
                     void _omit
                     return rest
                   })()
@@ -5915,7 +6154,7 @@ export default function VibeCodingPage() {
                   : platformCreativeSquareOpen
                     ? '创意广场'
                     : platformDataOpsOpen
-                      ? '数据运营'
+                      ? '运营数据'
                       : null
             }
             activeRoute={previewRoute}
@@ -5934,6 +6173,7 @@ export default function VibeCodingPage() {
             onRenameProject={renameProject}
             deletedProjects={deletedProjects}
             onDeleteProject={deleteProject}
+            categoryExtras={categoryExtras}
             layout={layout}
             onChangeLayout={setLayout}
             themeMode={themeMode}
@@ -6235,9 +6475,13 @@ export default function VibeCodingPage() {
            applied via inline style since Tailwind arbitrary values are
            compile-time. */}
       <div
-        className={`relative z-10 flex min-h-0 flex-1 overflow-hidden transition-[margin] duration-300 ease-out ${
-          chatCollapsed || isPlatform ? '' : bodyMarginClass
-        } ${isPlatform && !platformHomeOpen && !platformSecondaryPageOpen ? 'pt-3' : ''}`}
+        className={`relative z-10 flex min-h-0 flex-1 overflow-hidden ${
+          isPlatform && (platformHomeOpen || platformSecondaryPageOpen)
+            ? ''
+            : 'transition-[margin] duration-300 ease-out'
+        } ${chatCollapsed || isPlatform ? '' : bodyMarginClass} ${
+          isPlatform && !platformHomeOpen && !platformSecondaryPageOpen ? 'pt-3' : ''
+        }`}
         style={
           isPlatform
             ? {
@@ -6403,6 +6647,59 @@ export default function VibeCodingPage() {
               >
                 <MessageSquarePlus size={13} strokeWidth={1.8} />
               </button>
+              {/* 历史对话 — floating dropdown of past sessions */}
+              <div ref={historyMenuRef} className="relative">
+                <button
+                  type="button"
+                  title="历史对话"
+                  onClick={() => setHistoryMenuOpen((v) => !v)}
+                  className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                    historyMenuOpen
+                      ? 'bg-[var(--fill-hover)] text-[var(--color-ink)]/85'
+                      : 'text-[var(--color-ink)]/55 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
+                  }`}
+                >
+                  <History size={13} strokeWidth={1.8} />
+                </button>
+                {historyMenuOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[240px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]">
+                    <div className="px-3 py-2 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-ink)]/45">
+                      历史对话
+                    </div>
+                    <div className="thin-scroll max-h-[320px] overflow-y-auto pb-1">
+                      {sessions.length === 0 ? (
+                        <div className="px-3 py-3 text-[12px] text-[var(--color-ink)]/40">暂无历史对话</div>
+                      ) : (
+                        sessions.map((s) => {
+                          const isActive = s.id === activeSessionId
+                          return (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => {
+                                if (s.id !== activeSessionId) {
+                                  setActiveSessionId(s.id)
+                                  resetChatState()
+                                }
+                                setHistoryMenuOpen(false)
+                              }}
+                              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] transition-colors ${
+                                isActive
+                                  ? 'bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]/85'
+                                  : 'text-[var(--color-ink)]/70 hover:bg-[var(--fill-subtle)]'
+                              }`}
+                            >
+                              <MessageSquare size={12} className="shrink-0 text-[var(--color-ink)]/35" />
+                              <span className="min-w-0 flex-1 truncate">{s.name}</span>
+                              {isActive && <Check size={12} className="shrink-0 text-[var(--color-ink)]/60" />}
+                            </button>
+                          )
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 title="分享"
@@ -6419,7 +6716,7 @@ export default function VibeCodingPage() {
               {previewCollapsed && (
                 <button
                   type="button"
-                  title="展开产物预览"
+                  title="展开预览"
                   onClick={() => setPreviewCollapsed(false)}
                   className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
                 >
@@ -6476,7 +6773,7 @@ export default function VibeCodingPage() {
                 step={gameStep}
                 spec={gameSpec}
                 onOpenGame={() => {
-                  const idx = openTabs.findIndex((t) => t.label === '游戏预览')
+                  const idx = openTabs.findIndex((t) => t.label === '预览')
                   if (idx >= 0) setActivePreviewTab(idx)
                 }}
                 onConfirmSpec={confirmGameSpec}
@@ -8588,17 +8885,34 @@ export default function VibeCodingPage() {
           </div>
         )}
 
-        {isPlatform && platformDataOpsOpen && (
-          <div className="mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px]">
-            <PlatformPlaceholderView
-              icon={BarChart3}
-              title="数据运营"
-              description="项目的运行指标、曝光 / 转化 / 留存看板都在这里 — 接入数据后追踪上线后的表现。"
-            />
-          </div>
-        )}
+        {isPlatform && platformDataOpsOpen && (() => {
+          // 已发布项目 — the live platform projects (minus soft-deleted),
+          // each with its display name + kind for the data dashboard.
+          const published: DataOpsProject[] = [
+            '陶白白 Sensei 分身',
+            '第五人格塔罗小程序',
+            '个人作品集网站',
+            '肉鸽小游戏',
+            '六一儿童节活动',
+          ]
+            .filter((n) => !deletedProjects.has(n))
+            .map((n) => ({
+              name: n,
+              label: displayProjectName(n),
+              kind: PROJECT_KINDS[n] ?? 'mini-program',
+            }))
+          return (
+            <div className="mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px] border border-[var(--divider-soft)]">
+              <DataOpsView projects={published} focusName={dataOpsFocusProject} />
+            </div>
+          )
+        })()}
 
-        <AnimatePresence>
+        {/* No AnimatePresence: the preview pane unmounts instantly when
+            leaving for home / a secondary page, so the home content isn't
+            briefly squeezed by an exiting flex sibling. A plain fade-in on
+            mount keeps opening a project / finishing a game build gentle —
+            no horizontal slide that fights the layout reflow. */}
         {(layout === 'workspace' ||
           (isPlatform && !platformHomeOpen && !platformSecondaryPageOpen)) &&
           // No artefact yet → no X header / panel either. Covers both
@@ -8609,10 +8923,9 @@ export default function VibeCodingPage() {
           !previewCollapsed && (
           <motion.div
             key="preview-pane"
-            initial={{ opacity: 0, x: 28 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 28 }}
-            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             className="flex min-h-0 min-w-0 flex-1"
           >
 
@@ -8693,42 +9006,44 @@ export default function VibeCodingPage() {
                         ? buildMiniProgramProductView(tree, getMiniProgramConfig(projectTitle))
                         : buildProductView(tree, kind),
                   )
-                  const flat: { label: string; parent?: string }[] = []
+                  // The + menu mirrors the active project's top-level objects
+                  // (exactly the rows shown in the left project list) — one
+                  // row each, no expansion of a category's children. Clicking
+                  // a row opens that object in a tab via openFileInTab, which
+                  // routes by kind (category → its tab w/ first child; leaf →
+                  // structured / doc tab).
+                  const flat: { label: string }[] = []
                   for (const node of productTree) {
-                    if (node.type === 'file') {
-                      flat.push({ label: node.name })
-                    } else if (node.children?.length) {
-                      // The category parent itself is selectable (opens its
-                      // tab on the first child); its children follow, each
-                      // jumping straight to that child within the same tab.
-                      flat.push({ label: node.name })
-                      for (const child of node.children) {
-                        if (child.type === 'file') {
-                          flat.push({ label: child.name, parent: node.name })
-                        }
-                      }
-                    } else {
-                      flat.push({ label: node.name })
-                    }
+                    flat.push({ label: node.name })
                   }
-                  // Code files never live in the left directory — web-game
-                  // exposes its source via a 代码 editor tab added here.
-                  if (kind === 'web-game') {
-                    flat.push({ label: '代码' })
-                  }
-                  if (flat.length === 0) return null
+                  // Code never lives in the left product directory — every
+                  // project exposes its real source tree via a 代码文件 editor
+                  // tab added from here (left directory + code on the right).
+                  flat.push({ label: '代码文件' })
                   if (!addTabMenuRef.current) return null
                   const r = addTabMenuRef.current.getBoundingClientRect()
                   return createPortal(
                     <div
                       style={{ position: 'fixed', top: r.bottom + 4, left: r.left }}
+                      // The menu lives in a body portal — outside addTabMenuRef
+                      // — and the outside-click guard closes on `mousedown`.
+                      // Without this, a real mouse press on a row would close
+                      // the menu (unmounting this button) BEFORE its `click`
+                      // could fire, so the row's action never ran. Swallow the
+                      // mousedown here; rows close the menu via onClick instead.
+                      onMouseDown={(e) => e.stopPropagation()}
                       className="z-50 min-w-[180px] max-w-[260px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] py-1 shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]"
                     >
+                      {flat.length === 0 && (
+                        <div className="px-3 py-2 text-[12px] text-[var(--color-ink)]/40">
+                          暂无可添加项
+                        </div>
+                      )}
                       {flat.map((item) => {
-                        const ItemIcon = productLabelIcon(item.label, item.parent)
+                        const ItemIcon = productLabelIcon(item.label)
                         return (
                           <button
-                            key={`${item.parent ?? ''}/${item.label}`}
+                            key={item.label}
                             type="button"
                             onClick={() => {
                               setAddTabMenuOpen(false)
@@ -8738,11 +9053,6 @@ export default function VibeCodingPage() {
                           >
                             <ItemIcon size={13} strokeWidth={1.8} className="shrink-0 text-[var(--color-ink)]/45" />
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                            {item.parent && (
-                              <span className="shrink-0 text-[10.5px] text-[var(--color-ink)]/40">
-                                {item.parent}
-                              </span>
-                            )}
                           </button>
                         )
                       })}
@@ -8753,6 +9063,16 @@ export default function VibeCodingPage() {
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                disabled={!publishedProjects.has(projectTitle)}
+                onClick={() => setOpsDataOpen(true)}
+                className="flex h-7 items-center gap-1.5 rounded-md border border-[var(--divider)] px-2.5 text-[12px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--color-ink)]/75"
+                title={publishedProjects.has(projectTitle) ? '运营数据' : '发布后可查看运营数据'}
+              >
+                <BarChart3 size={12} strokeWidth={1.8} />
+                运营数据
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -8766,22 +9086,13 @@ export default function VibeCodingPage() {
                 发布
               </button>
               <div className="flex items-center gap-0.5">
-                <button
-                  onClick={() => setFileTreeOpen((v) => !v)}
-                  className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
-                    fileTreeOpen
-                      ? 'bg-[var(--color-ink)]/[0.08] text-[var(--color-ink)]/80'
-                      : 'text-[var(--color-ink)]/45 hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/75'
-                  }`}
-                  title="项目文件"
-                >
-                  <FolderOpen size={13} />
-                </button>
+                {/* 项目文件 panel toggle hidden — code now lives in the
+                    在 + 菜单里打开的「代码文件」editor tab instead. */}
                 <button
                   type="button"
                   onClick={() => setPreviewCollapsed(true)}
                   className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink)]/45 transition-colors hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/75"
-                  title="收起产物预览"
+                  title="收起预览"
                 >
                   <PanelRightOpen size={13} strokeWidth={1.8} />
                 </button>
@@ -8793,111 +9104,86 @@ export default function VibeCodingPage() {
           <div className="flex min-h-0 flex-1 overflow-hidden">
           <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
           {(() => {
-            const previewToolbar = (
-                <div className="@container flex shrink-0 flex-wrap items-center justify-between gap-2 px-4 py-2">
-                  {activeProjectKind === 'web-app' ? (
-                    <div className="flex min-w-0 flex-1 items-center gap-4">
-                      {(() => {
-                        const lbl = openTabs[activePreviewTab]?.label ?? ''
-                        return isPageCategory(lbl) && isMultiChildCategory(lbl)
-                          ? renderCategoryTabs(lbl)
-                          : null
-                      })()}
-                      {addressBar}
+            const previewToolbar = (() => {
+              const lbl = openTabs[activePreviewTab]?.label ?? ''
+              const isPageTab = isPageCategory(lbl) && isMultiChildCategory(lbl)
+              // ── LEFT: object tabs / mode filters / surface label ──
+              let toolbarTabs: ReactNode
+              if (activeProjectKind === 'web-app') {
+                toolbarTabs = (
+                  <div className="flex min-w-0 flex-1 items-center gap-4">
+                    <span className="shrink-0 px-1.5 py-1 text-[13px] font-medium text-[var(--color-ink)]">
+                      网站
+                    </span>
+                    {isPageTab ? renderCategoryTabs(lbl) : null}
+                    {addressBar}
+                  </div>
+                )
+              } else if (activeProjectKind === 'web-game') {
+                // 素材 tab → 图像/音频/视频 filters live in the toolbar (same
+                // style as 小程序/Feed 卡); other tabs show a plain label.
+                toolbarTabs =
+                  lbl === '素材' ? (
+                    <div className="flex items-center gap-6">
+                      {garudaKindTabs().map((k) => (
+                        <button
+                          key={k}
+                          onClick={() => {
+                            setGameAssetKind(k)
+                            setGameSelectedAsset(null)
+                          }}
+                          className={`relative text-[13px] font-medium tracking-wide transition-colors ${
+                            k === gameAssetKind
+                              ? 'text-[var(--color-ink)]'
+                              : 'text-[var(--color-ink)]/35 hover:text-[var(--color-ink)]/65'
+                          }`}
+                        >
+                          {ASSET_KIND_META[k].label}
+                        </button>
+                      ))}
                     </div>
-                  ) : activeProjectKind === 'web-game' ? (
-                    // Web-game: left side shows the current product's
-                    // name with a chevron — clicking opens a dropdown of
-                    // all products (every non-closable tab) so the user
-                    // can switch surface without reaching for the tab
-                    // strip. Closable on-demand tabs (e.g. opened code
-                    // files) are filtered out.
-                    (() => {
-                      const activeLabel = openTabs[activePreviewTab]?.label ?? ''
-                      const isAssetsTab = activeLabel === '素材'
-                      // Both 游戏预览 and 素材 just label their surface
-                      // — switching between them is the job of the tab
-                      // strip above. No dropdown needed.
-                      return (
-                        <div className="flex items-center gap-2">
-                          <span className="px-1.5 py-1 text-[13px] font-medium text-[var(--color-ink)]">
-                            {activeLabel || '产物'}
-                          </span>
-                          {isAssetsTab && <AssetStatsLine />}
-                        </div>
-                      )
-                    })()
-                  ) : (() => {
-                    // Page category (界面) tab: show its pages as inline
-                    // tabs (same style as the 小程序 / AI分身 / 小花技能 mode
-                    // filters). Other tabs keep the mode filters.
-                    const lbl = openTabs[activePreviewTab]?.label ?? ''
-                    if (isPageCategory(lbl) && isMultiChildCategory(lbl)) {
-                      return renderCategoryTabs(lbl)
-                    }
-                    return (
-                      <div className="flex items-center gap-6">
-                        {filters.map((f) => (
-                          <button
-                            key={f.value}
-                            onClick={() => setActiveFilter(f.value)}
-                            className={`relative text-[13px] font-medium tracking-wide transition-colors ${
-                              f.value === activeFilter
-                                ? 'text-[var(--color-ink)]'
-                                : 'text-[var(--color-ink)]/35 hover:text-[var(--color-ink)]/65'
-                            }`}
-                          >
-                            {f.label}
-                          </button>
-                        ))}
-                      </div>
-                    )
-                  })()}
-
-                  <div className="flex items-center gap-2">
-                    {activeProjectKind === 'web-game' && (
+                  ) : (
+                    <span className="px-1.5 py-1 text-[13px] font-medium text-[var(--color-ink)]">
+                      {lbl === '预览' ? '游戏' : lbl || '产物'}
+                    </span>
+                  )
+              } else if (isPageTab) {
+                toolbarTabs = renderCategoryTabs(lbl)
+              } else {
+                toolbarTabs = (
+                  <div className="flex items-center gap-6">
+                    {filters.map((f) => (
                       <button
-                        title="可视化编辑"
-                        onClick={() => setEditPanelOpen((v) => !v)}
-                        className={`flex items-center gap-0 rounded-lg border px-2 py-1.5 text-[12px] transition-colors @[520px]:gap-1.5 @[520px]:px-3 ${
-                          editPanelOpen
-                            ? 'border-[var(--color-ink)]/25 bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]'
-                            : 'border-[var(--color-ink)]/8 text-[var(--color-ink)]/60 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]'
+                        key={f.value}
+                        onClick={() => setActiveFilter(f.value)}
+                        className={`relative text-[13px] font-medium tracking-wide transition-colors ${
+                          f.value === activeFilter
+                            ? 'text-[var(--color-ink)]'
+                            : 'text-[var(--color-ink)]/35 hover:text-[var(--color-ink)]/65'
                         }`}
                       >
-                        <Wand2 size={13} />
-                        <span className="hidden @[520px]:inline">编辑</span>
-                      </button>
-                    )}
-                    {[
-                      {
-                        label: '重新加载',
-                        icon: RefreshCw,
-                        onClick: () => setMiniAppKey((k) => k + 1),
-                      },
-                      { label: '真机预览', icon: Smartphone },
-                      {
-                        label: '发布',
-                        icon: Upload,
-                        onClick: () => {
-                          resetPublish()
-                          startPublish('modal')
-                        },
-                      },
-                    ].map(({ label, icon: Icon, onClick }) => (
-                      <button
-                        key={label}
-                        title={label}
-                        onClick={onClick}
-                        className="flex items-center gap-0 rounded-lg border border-[var(--color-ink)]/8 px-2 py-1.5 text-[12px] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] @[520px]:gap-1.5 @[520px]:px-3"
-                      >
-                        <Icon size={13} />
-                        <span className="hidden @[520px]:inline">{label}</span>
+                        {f.label}
                       </button>
                     ))}
                   </div>
-                </div>
-            )
+                )
+              }
+              // ── RIGHT: icon-only utilities then 编辑 pinned far-right
+              //    (发布 lives in the header) ──
+              const toolbarActions = (
+                <>
+                  <ToolbarAction icon={RefreshCw} label="重新加载" iconOnly onClick={() => setMiniAppKey((k) => k + 1)} />
+                  <ToolbarAction icon={Smartphone} label="真机预览" iconOnly />
+                  <ToolbarAction
+                    icon={Pencil}
+                    label="编辑"
+                    active={editPanelOpen}
+                    onClick={() => setEditPanelOpen((v) => !v)}
+                  />
+                </>
+              )
+              return <ProductToolbar tabs={toolbarTabs} actions={toolbarActions} />
+            })()
             const phoneView = (
               <>
                 {previewToolbar}
@@ -8954,7 +9240,7 @@ export default function VibeCodingPage() {
             )
 
             // Right-side preview dispatcher. Artifact-shape projects
-            // don't have a dedicated 产物总览 view — each generated artefact
+            // don't have a dedicated 预览 view — each generated artefact
             // becomes its own non-closable tab via the proposalDocs effect,
             // and the right pane is hidden entirely until at least one
             // exists. So the dispatcher just falls back to the phone view
@@ -9082,6 +9368,86 @@ export default function VibeCodingPage() {
                 </div>
               </div>
             )
+
+            // 代码文件 — a self-contained code editor: the project's real
+            // source tree on the left, the selected file's code on the right.
+            // Mirrors the (now-hidden) far-right 项目代码库 panel, moved into a
+            // tab opened from the + menu.
+            const projectCodeView = () => {
+              const tree = projectTrees[projectTitle] ?? fileTree
+              const leaves: string[] = []
+              const walk = (ns: FileNode[]) =>
+                ns.forEach((n) =>
+                  n.type === 'dir' ? walk(n.children ?? []) : leaves.push(n.name),
+                )
+              walk(tree)
+              const codeLeaves = leaves.filter((l) => codeFiles[l])
+              const sel =
+                codeSelectedFile && codeFiles[codeSelectedFile]
+                  ? codeSelectedFile
+                  : codeLeaves[0] ?? ''
+              const data = sel ? codeFiles[sel] : undefined
+              return (
+                <div className="flex min-h-0 flex-1 overflow-hidden bg-[var(--color-surface-0)]">
+                  {/* Left: real source tree */}
+                  <aside className="thin-scroll w-[240px] shrink-0 overflow-y-auto border-r border-[var(--divider-soft)] py-1.5">
+                    <div className="px-3 pb-1 text-[10.5px] font-mono uppercase tracking-[0.14em] text-[var(--color-ink)]/40">
+                      项目目录
+                    </div>
+                    <FileTreeView
+                      nodes={tree}
+                      expanded={expandedDirs}
+                      onToggleDir={toggleDir}
+                      onOpenFile={(f) => setCodeSelectedFile(f)}
+                      depth={0}
+                      parentPath="__code__"
+                      isActive={(n) => n.name === sel}
+                    />
+                  </aside>
+                  {/* Right: code body */}
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    {data ? (
+                      <>
+                        <div className="flex shrink-0 items-center gap-3 border-b border-[var(--divider-soft)] px-4 py-2">
+                          <span className="font-mono text-[12px] text-[var(--color-ink)]/85">
+                            {sel}
+                          </span>
+                          <span className="text-[10.5px] text-[var(--color-ink)]/40">
+                            {data.lang}
+                          </span>
+                        </div>
+                        <div className="thin-scroll flex-1 overflow-auto bg-[var(--color-surface-0)]/50">
+                          <table className="w-full border-collapse font-mono text-[13px] leading-6">
+                            <tbody>
+                              {data.lines.map((line) => (
+                                <tr key={line.num} className="group hover:bg-[var(--color-ink)]/[0.03]">
+                                  <td className="w-12 shrink-0 select-none pr-4 text-right text-[var(--color-ink)]/35 group-hover:text-[var(--color-ink)]/55">
+                                    {line.num}
+                                  </td>
+                                  <td className="whitespace-pre">
+                                    {line.tokens.length === 0 ? (
+                                      <span>&nbsp;</span>
+                                    ) : (
+                                      line.tokens.map((t, j) => (
+                                        <span key={j} className={t.color}>{t.text}</span>
+                                      ))
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="grid flex-1 place-items-center text-[12px] text-[var(--color-ink)]/30">
+                        从左侧选择一个文件查看代码
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            }
 
             const renderTab = (label: string) => {
               if (label === DIFF_TAB_LABEL) return diffView
@@ -9259,7 +9625,7 @@ export default function VibeCodingPage() {
               )
             }
 
-            // Dispatch by the active tab's label. The synthetic 产物预览
+            // Dispatch by the active tab's label. The synthetic 预览
             // tab still falls through to productView (phone/AI-avatar);
             // game projects use 预览 / 资产 / 代码 as their fixed tabs.
             // Every other tab — code files, MD artefacts, dashboards —
@@ -9267,22 +9633,28 @@ export default function VibeCodingPage() {
             // kind from its filename.
             const activeLabel = openTabs[activePreviewTab]?.label
             if (activeProjectKind === 'web-game') {
-              if (activeLabel === '游戏预览') return productView
+              if (activeLabel === '预览') return productView
               if (activeLabel === '素材')
                 return (
                   <>
                     {previewToolbar}
-                    <GarudaAssetsView />
+                    <GarudaAssetsView
+                      activeKind={gameAssetKind}
+                      onKindChange={setGameAssetKind}
+                      selectedAsset={gameSelectedAsset}
+                      onSelectAsset={(a) => {
+                        setGameSelectedAsset(a)
+                        // closing the asset unbinds its 编辑 panel
+                        if (!a) setEditPanelOpen(false)
+                      }}
+                    />
                   </>
                 )
-              if (activeLabel === '代码')
-                return (
-                  <>
-                    {previewToolbar}
-                    <GarudaCodeView />
-                  </>
-                )
+              if (activeLabel === '代码文件') return <GarudaCodeView />
             }
+            // 代码文件 — generic in-tab code editor for non-game projects:
+            // the project's real source tree on the left, code on the right.
+            if (activeLabel === '代码文件') return projectCodeView()
             // Multi-child category tabs (界面 / 知识库 / 技能 / …): one tab
             // showing a single child at a time, with a directory dropdown
             // in the toolbar header to switch. Page categories reuse the
@@ -9315,16 +9687,24 @@ export default function VibeCodingPage() {
                       : sel
               return (
                 <>
-                  <div className="flex shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-4 py-2">
-                    {renderCategoryTabs(activeLabel)}
-                  </div>
+                  <ProductToolbar
+                    tabs={renderCategoryTabs(activeLabel)}
+                    actions={
+                      <ToolbarAction
+                        icon={Pencil}
+                        label="编辑"
+                        active={editPanelOpen}
+                        onClick={() => setEditPanelOpen((v) => !v)}
+                      />
+                    }
+                  />
                   <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                     {renderTab(childLabel)}
                   </div>
                 </>
               )
             }
-            return activeLabel === '产物预览'
+            return activeLabel === '预览'
               ? productView
               : activeLabel
                 ? renderTab(activeLabel)
@@ -9402,12 +9782,54 @@ export default function VibeCodingPage() {
           )}
           </div>
 
-          {/* ── Edit panel — web-game projects only. Sits directly to the
-               right of the preview surface, BEFORE the file tree, so the
-               file/code panel always stays pinned to the far right edge. ── */}
-          {activeProjectKind === 'web-game' && editPanelOpen && (
+          {/* ── Visual edit panel — opens to the right of the preview for any
+               product. web-game uses the game-specific GarudaEditPanel; every
+               other kind gets the config-driven ProductEditPanel. Sits before
+               the file tree so the file/code panel stays pinned far right. ── */}
+          {editPanelOpen && (
             <div className="relative shrink-0 border-l border-[var(--divider-soft)]" style={{ width: editPanelWidth }}>
-              <GarudaEditPanel onClose={() => setEditPanelOpen(false)} />
+              {activeProjectKind === 'web-game' ? (
+                // When an asset canvas is open, 编辑 binds to that specific
+                // asset object; otherwise it edits the whole game.
+                gameSelectedAsset ? (
+                  <AssetEditPanel
+                    item={gameSelectedAsset}
+                    onClose={() => setEditPanelOpen(false)}
+                  />
+                ) : (
+                  <GarudaEditPanel onClose={() => setEditPanelOpen(false)} />
+                )
+              ) : activeProjectKind === 'marketing-h5' ? (
+                // H5 编辑 follows the layer selected in the preview.
+                <H5LayerEditPanel
+                  layer={h5SelectedLayer}
+                  onClose={() => setEditPanelOpen(false)}
+                />
+              ) : (
+                (() => {
+                  // AI 分身 seeds its 基础信息 (头像 / 名称 / 描述) from the
+                  // real config so the panel reflects the actual product.
+                  const avatarCfg =
+                    activeProjectKind === 'ai-avatar'
+                      ? getAvatarConfig(projectTitle)
+                      : undefined
+                  const prefill = avatarCfg
+                    ? {
+                        avatar: avatarCfg.iconURL,
+                        name: avatarCfg.name,
+                        desc: avatarCfg.description,
+                      }
+                    : undefined
+                  return (
+                    <ProductEditPanel
+                      kind={activeProjectKind}
+                      projectName={displayProjectName(projectTitle)}
+                      onClose={() => setEditPanelOpen(false)}
+                      prefill={prefill}
+                    />
+                  )
+                })()
+              )}
               <div
                 role="separator"
                 aria-orientation="vertical"
@@ -9422,7 +9844,9 @@ export default function VibeCodingPage() {
             </div>
           )}
 
-          {fileTreeOpen && (
+          {/* Right-side 项目代码库 panel hidden — code moved into the
+              「代码文件」editor tab (opened from the + menu). */}
+          {false && fileTreeOpen && (
             <div className="relative shrink-0" style={{ width: fileTreeWidth }}>
               <div className="thin-scroll flex h-full flex-col overflow-y-auto border-l border-[var(--divider-soft)] bg-[var(--color-surface-0)]/50">
                 {/* ── Section 1 — 对话上下文 (referenced skills / knowledge) ── */}
@@ -9520,12 +9944,23 @@ export default function VibeCodingPage() {
         </div>
         </motion.div>
         )}
-        </AnimatePresence>
       </div>
 
       {/* ── Unified publish drawer — all 发布 buttons open this from the
            right; portaled, so a single top-level mount serves every CTA. ── */}
       <PublishDrawer projectName={displayProjectName(projectTitle)} projectKind={activeProjectKind} />
+
+      {/* ── 运营数据 drawer — opens from the 发布 button's left-side entry ── */}
+      <OpsDataDrawer
+        open={opsDataOpen}
+        onClose={() => setOpsDataOpen(false)}
+        projectName={displayProjectName(projectTitle)}
+        onViewMore={() => {
+          setDataOpsFocusProject(projectTitle)
+          setOpsDataOpen(false)
+          openPlatformDataOpsPage()
+        }}
+      />
 
       {/* ── Pin menu popover (fixed, so it escapes the tab bar overflow clip) ── */}
       {pinMenuOpen && (
@@ -9710,7 +10145,7 @@ const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
     '牌意词典加个搜索',
     '加一个每日签到',
   ],
-  'Garuda · 神明黄昏': CHAT_SUGGESTIONS_BY_KIND['web-game'],
+  '肉鸽小游戏': CHAT_SUGGESTIONS_BY_KIND['web-game'],
   '六一儿童节活动': CHAT_SUGGESTIONS_BY_KIND['marketing-h5'],
   '沪上火锅·五一种草提案': CHAT_SUGGESTIONS_BY_KIND['ops-proposal'],
 }

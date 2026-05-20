@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Music2, Image as ImageIcon, Film } from '@/shared/icons'
+import { useEffect, useRef, useState } from 'react'
+import { Music2, Image as ImageIcon, Film, ArrowLeft } from '@/shared/icons'
 
 /**
  * Garuda 资产视图
@@ -111,13 +111,74 @@ const GROUPS: AssetGroup[] = [
   },
 ]
 
-export type { AssetGroup, AssetItem }
+export type { AssetGroup, AssetItem, AssetKind }
 
 interface GarudaAssetsViewProps {
   /** Group/items to render. Defaults to the Garuda game's GROUPS so
    *  existing call sites stay unchanged; pass a project-specific list
    *  (e.g. H5 活动素材) to reuse the same layout for other surfaces. */
   groups?: AssetGroup[]
+  /** Controlled active kind. When provided, the component renders no
+   *  internal kind tab-bar — the parent (toolbar) owns the 图像/音频/视频
+   *  switcher and feeds the selection down. */
+  activeKind?: AssetKind
+  onKindChange?: (k: AssetKind) => void
+  /** Controlled selected asset (the one opened on the canvas). When
+   *  `onSelectAsset` is provided the parent owns the selection so its
+   *  toolbar / edit panel can bind to the specific asset object. */
+  selectedAsset?: AssetItem | null
+  onSelectAsset?: (a: AssetItem | null) => void
+}
+
+/** Derive frame-N's path from the frame-0 src by re-padding the trailing
+ *  number, e.g. `..._00.webp` + 7 → `..._07.webp`. */
+function framePath(src: string, i: number): string {
+  const m = src.match(/^(.*?)(\d+)(\.[a-z0-9]+)$/i)
+  if (!m) return src
+  const [, prefix, num, ext] = m
+  return `${prefix}${String(i).padStart(num.length, '0')}${ext}`
+}
+
+/** An <img> that, when `playing` and the item is a frame sequence, loops
+ *  through its frames (~15fps). Otherwise shows the static frame-0 src.
+ *  Shared by the grid thumb (hover) and the canvas (always playing). */
+function FrameImage({
+  item,
+  playing,
+  className,
+}: {
+  item: AssetItem
+  playing: boolean
+  className?: string
+}) {
+  const ref = useRef<HTMLImageElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (!playing || !item.frames || (item.kind ?? 'image') !== 'image') {
+      el.src = item.src
+      return
+    }
+    let i = 0
+    const id = window.setInterval(() => {
+      i = (i + 1) % item.frames!
+      el.src = framePath(item.src, i)
+    }, 1000 / 15)
+    return () => {
+      clearInterval(id)
+      if (ref.current) ref.current.src = item.src
+    }
+  }, [playing, item])
+  return <img ref={ref} src={item.src} alt={item.label} loading="lazy" className={className} />
+}
+
+/** Which asset kinds the groups actually contain (image/audio/video),
+ *  preserving display order. Used by the parent toolbar to build the
+ *  kind tabs without re-deriving GROUPS. */
+export function garudaKindTabs(groups: AssetGroup[] = GROUPS): AssetKind[] {
+  const counts = { image: 0, audio: 0, video: 0 } as Record<AssetKind, number>
+  groups.forEach((g) => g.items.forEach((it) => { counts[it.kind ?? 'image'] += 1 }))
+  return (['image', 'audio', 'video'] as AssetKind[]).filter((k) => counts[k] > 0)
 }
 
 /** Aggregate per-kind / frame counts across the provided groups. When
@@ -141,7 +202,7 @@ function computeStats(groups: AssetGroup[], activeCategory: string | null) {
   )
 }
 
-const KIND_META: Record<AssetKind, { label: string; icon: typeof ImageIcon }> = {
+export const KIND_META: Record<AssetKind, { label: string; icon: typeof ImageIcon }> = {
   image: { label: '图像', icon: ImageIcon },
   audio: { label: '音频', icon: Music2 },
   video: { label: '视频', icon: Film },
@@ -149,9 +210,28 @@ const KIND_META: Record<AssetKind, { label: string; icon: typeof ImageIcon }> = 
 
 export default function GarudaAssetsView({
   groups = GROUPS,
+  activeKind: controlledKind,
+  onKindChange,
+  selectedAsset: controlledSel,
+  onSelectAsset,
 }: GarudaAssetsViewProps = {}) {
-  const [zoomed, setZoomed] = useState<AssetItem | null>(null)
-  const [activeKind, setActiveKind] = useState<AssetKind>('image')
+  const [internalKind, setInternalKind] = useState<AssetKind>('image')
+  const [internalSel, setInternalSel] = useState<AssetItem | null>(null)
+  // Controlled when the parent (toolbar) drives the kind selection.
+  const controlled = controlledKind !== undefined
+  const activeKind = controlled ? controlledKind : internalKind
+  const setActiveKind = (k: AssetKind) => {
+    onKindChange?.(k)
+    if (!controlled) setInternalKind(k)
+  }
+  // Selection (the asset opened on the canvas) — controlled when the
+  // parent passes onSelectAsset so its toolbar / 编辑 panel can bind to it.
+  const selControlled = onSelectAsset !== undefined
+  const selected = selControlled ? controlledSel ?? null : internalSel
+  const setSelected = (a: AssetItem | null) => {
+    onSelectAsset?.(a)
+    if (!selControlled) setInternalSel(a)
+  }
 
   // Which kinds actually have assets — only those get a tab.
   const kindCounts = groups.reduce(
@@ -176,11 +256,17 @@ export default function GarudaAssetsView({
     }))
     .filter((g) => g.items.length > 0)
 
+  // Asset opened → show the inline canvas (not a fullscreen overlay).
+  if (selected) {
+    return <AssetCanvas item={selected} onBack={() => setSelected(null)} />
+  }
+
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden bg-[var(--color-surface-0)]">
       <div className="thin-scroll flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-      {/* Kind tabs — 图像 / 音频 / 视频 */}
-      {kindTabs.length > 1 && (
+      {/* Kind tabs — 图像 / 音频 / 视频 (hidden when the parent toolbar
+          owns the switcher) */}
+      {!controlled && kindTabs.length > 1 && (
         <div className="sticky top-0 z-10 flex shrink-0 items-center gap-1 border-b border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-5 py-2">
           {kindTabs.map((k) => {
             const Icon = KIND_META[k].icon
@@ -218,46 +304,72 @@ export default function GarudaAssetsView({
             </div>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3">
               {g.items.map((it) => (
-                <AssetThumb key={it.src} item={it} onZoom={() => setZoomed(it)} />
+                <AssetThumb key={it.src} item={it} onOpen={() => setSelected(it)} />
               ))}
             </div>
           </section>
         ))}
       </div>
+      </div>
+    </div>
+  )
+}
 
-      {zoomed && (
+/** Checkerboard "canvas" detail — the clicked asset shown large, frame
+ *  sequences auto-looping. Replaces the old fullscreen overlay. */
+function AssetCanvas({ item, onBack }: { item: AssetItem; onBack: () => void }) {
+  const kind = item.kind ?? 'image'
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-surface-0)]">
+      {/* canvas header — back + asset identity */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-4 py-2">
         <button
           type="button"
-          onClick={() => setZoomed(null)}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md"
+          onClick={onBack}
+          className="flex h-7 items-center gap-1 rounded-md px-2 text-[12px] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
         >
-          <div className="max-h-[80vh] max-w-[80vw] overflow-hidden rounded-xl border border-white/10 bg-black/50">
-            {(zoomed.kind ?? 'image') === 'video' ? (
-              <video
-                src={zoomed.src}
-                controls
-                autoPlay
-                className="max-h-[80vh] max-w-[80vw]"
-              />
-            ) : (zoomed.kind ?? 'image') === 'audio' ? (
-              <div className="flex flex-col items-center gap-3 p-6">
-                <Music2 size={32} className="text-white/80" strokeWidth={1.5} />
-                <span className="text-[13px] font-mono text-white/85">{zoomed.label}</span>
-                <audio src={zoomed.src} controls autoPlay />
-              </div>
-            ) : (
-              <img
-                src={zoomed.src}
-                alt={zoomed.label}
-                className="block max-h-[80vh] max-w-[80vw] object-contain"
-              />
-            )}
-          </div>
-          <span className="pointer-events-none fixed bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[12px] text-white/70 backdrop-blur">
-            点击关闭
-          </span>
+          <ArrowLeft size={13} strokeWidth={1.8} />
+          返回素材
         </button>
-      )}
+        <span className="font-mono text-[12px] text-[var(--color-ink)]/85">{item.label}</span>
+        {item.frames && (
+          <span className="rounded-md bg-[var(--fill-subtle)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-ink)]/55">
+            {item.frames} 帧
+          </span>
+        )}
+      </div>
+      {/* canvas surface */}
+      <div
+        className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-8"
+        style={{
+          backgroundColor: '#ffffff',
+          backgroundImage:
+            'linear-gradient(45deg,#eceef2 25%,transparent 25%),linear-gradient(-45deg,#eceef2 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#eceef2 75%),linear-gradient(-45deg,transparent 75%,#eceef2 75%)',
+          backgroundSize: '22px 22px',
+          backgroundPosition: '0 0,0 11px,11px -11px,-11px 0',
+        }}
+      >
+        {kind === 'video' ? (
+          <video
+            src={item.src}
+            controls
+            autoPlay
+            loop
+            className="max-h-full max-w-full rounded-lg shadow-2xl"
+          />
+        ) : kind === 'audio' ? (
+          <div className="flex flex-col items-center gap-4 rounded-2xl bg-black/40 px-8 py-7">
+            <Music2 size={40} className="text-white/80" strokeWidth={1.4} />
+            <span className="font-mono text-[13px] text-white/85">{item.label}</span>
+            <audio src={item.src} controls autoPlay />
+          </div>
+        ) : (
+          <FrameImage
+            item={item}
+            playing
+            className="max-h-full max-w-full object-contain drop-shadow-2xl"
+          />
+        )}
       </div>
     </div>
   )
@@ -308,12 +420,15 @@ function Stat({
   )
 }
 
-function AssetThumb({ item, onZoom }: { item: AssetItem; onZoom: () => void }) {
+function AssetThumb({ item, onOpen }: { item: AssetItem; onOpen: () => void }) {
   const kind = item.kind ?? 'image'
+  const [hover, setHover] = useState(false)
   return (
     <button
       type="button"
-      onClick={onZoom}
+      onClick={onOpen}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       className="group flex flex-col gap-1.5 overflow-hidden rounded-lg border border-[var(--divider-soft)] bg-[var(--fill-subtle)] p-1.5 text-left transition-colors hover:border-[var(--color-ink)]/25 hover:bg-[var(--fill-hover)]"
     >
       <div className="relative aspect-square overflow-hidden rounded bg-[var(--color-ink)]/[0.06]">
@@ -337,10 +452,10 @@ function AssetThumb({ item, onZoom }: { item: AssetItem; onZoom: () => void }) {
             }}
           />
         ) : (
-          <img
-            src={item.src}
-            alt={item.label}
-            loading="lazy"
+          // Frame sequences loop-play on hover; static images just sit.
+          <FrameImage
+            item={item}
+            playing={hover}
             className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.04]"
           />
         )}
