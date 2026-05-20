@@ -18,6 +18,7 @@ import {
   FileCode2,
   FileSearch,
   FileText,
+  FolderCode,
   Gamepad2,
   Image as ImageIcon,
   Info,
@@ -27,7 +28,6 @@ import {
   MessageCircle,
   ScrollText,
   Settings,
-  Sparkles,
   SquareUser,
   UsersRound,
   Zap,
@@ -107,11 +107,11 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   代码文件: FileCode2,
   数据库: Database,
   玩法: Gamepad2,
-  能力技能: Sparkles,
+  能力技能: FolderCode,
   人设: SquareUser,
   基础信息: Info,
   人设指令: ScrollText,
-  技能: Sparkles,
+  技能: FolderCode,
   知识库: Library,
   触发器: Zap,
   // mini-program sections
@@ -217,9 +217,29 @@ function webAppView(tree: FileNode[]): FileNode[] {
   ].filter((c): c is FileNode => c != null)
 }
 
+/** Static child items for 技能 / 知识库 categories on non-config projects, so
+ *  they render as the same category-tab + capability-detail surface the AI
+ *  分身 uses (keeps same-type objects visually consistent across projects). */
+export const GAME_KNOWLEDGE_ITEMS = [
+  '关卡设计规范',
+  '数值平衡表',
+  '美术风格指南',
+  '音效素材库',
+  '弹幕模式参考',
+]
+export const MINIPROGRAM_SKILL_ITEMS = [
+  '每日塔罗抽牌',
+  '牌意词典查询',
+  '订阅消息提醒',
+  '分享得抽牌次数',
+]
+
+function namedCategory(name: string, items: string[]): FileNode {
+  return { name, type: 'dir', children: items.map((n) => ({ name: n, type: 'file' as const })) }
+}
+
 /** 游戏 (web-game): 基础信息 / 页面 / 文档 / 素材 / 玩法 / 知识库 / 数据库 /
- *  代码文件. Game projects have no src/pages tree, so every entry is a flat
- *  clickable leaf routed to a reused view in the consumer. */
+ *  代码文件. 知识库 is a category (capability-detail children) to match 分身. */
 function gameView(): FileNode[] {
   return [
     { name: '基础信息', type: 'file' },
@@ -227,7 +247,7 @@ function gameView(): FileNode[] {
     { name: '文档', type: 'file' },
     { name: '素材', type: 'file' },
     { name: '玩法', type: 'file' },
-    { name: '知识库', type: 'file' },
+    namedCategory('知识库', GAME_KNOWLEDGE_ITEMS),
     { name: '数据库', type: 'file' },
     { name: '代码文件', type: 'file' },
   ]
@@ -338,7 +358,8 @@ export function buildMiniProgramProductView(
     { name: '基础信息', type: 'file' as const },
     pageCategory(tree),
     { name: '文档', type: 'file' as const },
-    { name: '技能', type: 'file' as const },
+    // 技能 is a category (capability-detail children) to match 分身.
+    namedCategory('技能', MINIPROGRAM_SKILL_ITEMS),
     { name: '数据库', type: 'file' as const },
     { name: '代码文件', type: 'file' as const },
   ].filter((c): c is FileNode => c != null)

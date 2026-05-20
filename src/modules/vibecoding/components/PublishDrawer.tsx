@@ -171,17 +171,14 @@ export default function PublishDrawer({
       {SCENE_GROUPS.map((group) => (
         <div key={group.platform}>
           <div className="mb-1.5 text-[11.5px] text-[var(--color-ink)]/45">{group.platform}</div>
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {group.scenes.map((s) => (
               <div
                 key={s.id}
-                className="flex items-start gap-2.5 rounded-lg bg-[var(--fill-subtle)] px-3 py-2"
+                className="flex items-center gap-2.5 rounded-lg bg-[var(--fill-subtle)] px-3 py-1.5"
               >
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-medium text-[var(--color-ink)]">{s.title}</div>
-                  <div className="mt-0.5 text-[11px] leading-[1.45] text-[var(--color-ink)]/45">
-                    {s.desc}
-                  </div>
                 </div>
                 <Switch
                   on={sceneOn[s.id]}
@@ -586,6 +583,7 @@ function TabPill({
   )
 }
 
+/** macOS-style toggle — compact (31×19), green when on, knob slides. */
 function Switch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
@@ -593,13 +591,13 @@ function Switch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       role="switch"
       aria-checked={on}
       onClick={() => onChange(!on)}
-      className={`relative mt-0.5 h-[22px] w-[40px] shrink-0 rounded-full transition-colors ${
-        on ? 'bg-[#3478ff]' : 'bg-[var(--color-ink)]/20'
+      className={`relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors duration-200 ${
+        on ? 'bg-[#34c759]' : 'bg-[var(--color-ink)]/20'
       }`}
     >
       <span
-        className={`absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-all ${
-          on ? 'left-[20px]' : 'left-[2px]'
+        className={`absolute top-[1.5px] h-[15px] w-[15px] rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-all duration-200 ${
+          on ? 'left-[13px]' : 'left-[1.5px]'
         }`}
       />
     </button>

@@ -413,12 +413,11 @@ export default function AgentHubPreview() {
 
   return (
     <main
-      className="min-h-full w-full text-[#222727]"
+      className="flex h-full w-full text-[#222727]"
       style={{ background: 'linear-gradient(90deg, #ffffff 0%, #fcfcfd 22%, #f8f9fb 100%)' }}
     >
-      <div className="flex min-h-full w-full">
-        {/* ── Left rail ── */}
-        <aside className="sticky top-0 z-[30] hidden h-full w-[220px] shrink-0 px-2 py-2 @[700px]:block">
+        {/* ── Left rail —— fills the visible pane height; content scrolls. ── */}
+        <aside className="hidden h-full w-[220px] shrink-0 px-2 py-2 @[700px]:block">
           <nav className="relative flex h-full flex-col justify-between rounded-[24px] bg-[#f2f2f7] px-4 py-4">
             <div className="w-full">
               <div className="flex items-center justify-between gap-2">
@@ -494,8 +493,8 @@ export default function AgentHubPreview() {
           </nav>
         </aside>
 
-        {/* ── Content ── */}
-        <div className="min-w-0 flex-1 px-4 py-6 @[700px]:px-8">
+        {/* ── Content (scrolls; rail stays fixed) ── */}
+        <div className="thin-scroll relative min-w-0 flex-1 overflow-y-auto px-4 py-6 @[700px]:px-8">
           <div className="mx-auto flex w-full max-w-none flex-col">
             <div className="flex flex-col gap-4 @[700px]:flex-row @[700px]:items-center @[700px]:justify-between">
               <h1 className="text-[20px] font-semibold leading-7">智能体广场</h1>
@@ -655,17 +654,16 @@ export default function AgentHubPreview() {
               </div>
             </motion.section>
           </div>
-        </div>
-      </div>
 
-      <div className="pointer-events-none sticky bottom-0 z-10 -mt-[72px] flex justify-end px-6 pb-6">
-        <button
-          type="button"
-          className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(45,66,107,0.12)] bg-white text-[#1c1f23] shadow-[0_12px_24px_rgba(0,0,0,0.08)]"
-        >
-          <ArrowUp className="h-5 w-5" strokeWidth={2.2} />
-        </button>
-      </div>
+          <div className="pointer-events-none sticky bottom-0 z-10 -mt-[72px] flex justify-end pb-2 pr-2">
+            <button
+              type="button"
+              className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(45,66,107,0.12)] bg-white text-[#1c1f23] shadow-[0_12px_24px_rgba(0,0,0,0.08)]"
+            >
+              <ArrowUp className="h-5 w-5" strokeWidth={2.2} />
+            </button>
+          </div>
+        </div>
     </main>
   )
 }

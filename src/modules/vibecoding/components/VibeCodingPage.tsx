@@ -35,6 +35,7 @@ import ProductEditPanel from './ProductEditPanel'
 import GameGenerationFlow, { GameBuildProgress } from './GameGenerationFlow'
 import type { GameSpecDraft } from './GameConfirmCard'
 import AiPersonaChatPreview, { type TriggerSimulation } from './AiPersonaChatPreview'
+import { ProjectObjectView } from './ProjectObjectViews'
 import MentionPicker, { type MentionItem } from './MentionPicker'
 import TriggerDetailView from './TriggerDetailView'
 import { ChatFormCard, ChatFormStep, ChatFormSubmit } from './ChatFormCard'
@@ -197,7 +198,7 @@ import {
   PanelRight,
   PanelRightOpen,
   Share2,
-  Fold,
+  Menu4,
   Pin,
   PinOff,
   Search,
@@ -1032,7 +1033,7 @@ function getFileIcon(name: string): typeof File {
 function productLabelIcon(label: string, parent?: string): LucideIcon {
   if (parent === '页面' || label.startsWith('页面·')) return AppWindow
   if (parent === '知识库' || label.startsWith('知识·')) return BookOpen
-  if (parent === '技能' || label.startsWith('技能·')) return Sparkles
+  if (parent === '技能' || label.startsWith('技能·')) return FolderCode
   const base = label.includes('·') ? label.slice(label.indexOf('·') + 1) : label
   return PRODUCT_CATEGORY_ICONS[label] ?? PRODUCT_CATEGORY_ICONS[base] ?? getFileIcon(label)
 }
@@ -1615,6 +1616,31 @@ const CHILDREN_DAY_ASSET_GROUPS: AssetGroup[] = [
     items: [
       { src: '/h5/children-day/hero-gifts.png', label: 'hero-gifts' },
       { src: '/h5/children-day/lottery-cube.png', label: 'lottery-cube' },
+    ],
+  },
+]
+
+/* 素材 for the 抖音 AI 工坊设计探索 站点 — reuses the shared GarudaAssetsView
+ * so 素材 looks the same across H5 / 游戏 / 网站。 */
+const WEBAPP_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '主视觉 / Banner',
+    desc: '首页主视觉与 Hero 配图',
+    items: [
+      { src: '/assets/banner.jpeg', label: '首页 Banner' },
+      { src: '/assets/agent-hub/hero-banner.webp', label: 'Hero 主视觉' },
+    ],
+  },
+  {
+    title: '卡片配图',
+    desc: '智能体卡片与头像素材',
+    items: [
+      { src: '/assets/agent-hub/featured-platform-assistant.webp', label: '平台助手' },
+      { src: '/assets/agent-hub/featured-shenbi.webp', label: '神笔' },
+      { src: '/assets/agent-hub/featured-feishu-report.webp', label: '飞书报告' },
+      { src: '/assets/agent-hub/featured-lazygoat.webp', label: '懒羊羊' },
+      { src: '/assets/agent-hub/featured-douyin-assistant.webp', label: '抖音助手' },
+      { src: '/assets/agent-hub/card-avatar.webp', label: '默认头像' },
     ],
   },
 ]
@@ -2461,7 +2487,7 @@ function PlatformSidebar({
               onClick={onCollapseAll}
               className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--color-ink)]/40 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
             >
-              <Fold size={12} strokeWidth={1.8} />
+              <Menu4 size={12} strokeWidth={1.8} />
             </button>
           </div>
           <div className="thin-scroll flex-1 overflow-y-auto pb-2">
@@ -2506,7 +2532,7 @@ function PlatformSidebar({
                 onClick={onCollapseAll}
                 className="flex h-5 w-5 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
               >
-                <Fold size={12} strokeWidth={1.8} />
+                <Menu4 size={12} strokeWidth={1.8} />
               </button>
             </div>
           </div>
@@ -2700,7 +2726,7 @@ function PlatformSidebar({
                               : path.includes('/知识库/')
                                 ? BookOpen
                                 : path.includes('/技能/')
-                                  ? Sparkles
+                                  ? FolderCode
                                   : PRODUCT_CATEGORY_ICONS[n.name]
                           }
                           isActive={
@@ -5566,7 +5592,7 @@ export default function VibeCodingPage() {
       )}
     </div>
   ) : activeProjectKind === 'web-app' ? (
-    <div className="@container thin-scroll relative min-h-0 w-full flex-1 overflow-y-auto bg-white">
+    <div className="@container relative min-h-0 w-full flex-1 overflow-hidden bg-white">
       <AgentHubPreview key={miniAppKey} />
     </div>
   ) : activeProjectKind === 'marketing-h5' ? (
@@ -9303,32 +9329,39 @@ export default function VibeCodingPage() {
                     />
                   )
                 }
-                if (label.startsWith('知识·') || label.startsWith('技能·')) {
-                  const isKnow = label.startsWith('知识·')
-                  const itemName = label.slice(3)
-                  const isTool =
-                    !isKnow &&
-                    avatarConfig.toolInfoList.some((t) => t.name === itemName)
-                  const capability: Capability = {
-                    type: isKnow ? 'knowledge' : isTool ? 'tool' : 'skill',
-                    name: itemName,
-                  }
-                  const platform: Resource = {
-                    id: `avatar-${avatarConfig.appID}`,
-                    name: avatarConfig.name,
-                    description: avatarConfig.description,
-                    primaryCategory: '空间',
-                    secondaryCategory: avatarConfig.name,
-                    capabilities: [],
-                  }
-                  return (
-                    <CapabilityDetailView
-                      capability={capability}
-                      platform={platform}
-                      embedded
-                    />
-                  )
+              }
+              // 技能 / 知识库 capability detail — shared by 分身 (config-driven)
+              // and other projects (小程序 技能 / 游戏 知识库), so the same-type
+              // presentation stays consistent everywhere.
+              if (label.startsWith('知识·') || label.startsWith('技能·')) {
+                const isKnow = label.startsWith('知识·')
+                const itemName = label.slice(3)
+                const isTool =
+                  !isKnow && !!avatarConfig?.toolInfoList.some((t) => t.name === itemName)
+                const capability: Capability = {
+                  type: isKnow ? 'knowledge' : isTool ? 'tool' : 'skill',
+                  name: itemName,
                 }
+                const platform: Resource = avatarConfig
+                  ? {
+                      id: `avatar-${avatarConfig.appID}`,
+                      name: avatarConfig.name,
+                      description: avatarConfig.description,
+                      primaryCategory: '空间',
+                      secondaryCategory: avatarConfig.name,
+                      capabilities: [],
+                    }
+                  : {
+                      id: `proj-${projectTitle}`,
+                      name: displayProjectName(projectTitle),
+                      description: '',
+                      primaryCategory: '空间',
+                      secondaryCategory: displayProjectName(projectTitle),
+                      capabilities: [],
+                    }
+                return (
+                  <CapabilityDetailView capability={capability} platform={platform} embedded />
+                )
               }
               // marketing-h5 product-view sections.
               if (activeProjectKind === 'marketing-h5') {
@@ -9363,8 +9396,20 @@ export default function VibeCodingPage() {
                   return <AssetGridView assets={miniProgramConfig.assets} />
                 }
               }
-              // 基础信息 fallback (kinds without a structured form) opens the
-              // project brief in the doc editor.
+              // 网站 素材 — same GarudaAssetsView surface as H5 / 游戏 素材.
+              if (activeProjectKind === 'web-app' && label === '素材') {
+                return <GarudaAssetsView groups={WEBAPP_ASSET_GROUPS} />
+              }
+              // Project-specific object content (基础信息 / 页面 / 玩法 / 技能 /
+              // 知识库 / 数据库 / 素材) — realistic, kind-appropriate mocks.
+              const objectView = ProjectObjectView({
+                projectTitle,
+                kind: activeProjectKind,
+                label,
+              })
+              if (objectView) return objectView
+              // 基础信息 fallback (kinds without a structured form / mock) opens
+              // the project brief in the doc editor.
               if (label === '基础信息') {
                 const docValue =
                   projectDocEdits[projectTitle] ??
