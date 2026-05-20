@@ -197,7 +197,7 @@ import {
   PanelRight,
   PanelRightOpen,
   Share2,
-  FoldVertical,
+  Fold,
   Pin,
   PinOff,
   Search,
@@ -210,7 +210,6 @@ import {
   Settings,
   Smartphone,
   Trash2,
-  Zap,
   Terminal,
   ThumbsDown,
   ThumbsUp,
@@ -2462,7 +2461,7 @@ function PlatformSidebar({
               onClick={onCollapseAll}
               className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--color-ink)]/40 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
             >
-              <FoldVertical size={12} strokeWidth={1.8} />
+              <Fold size={12} strokeWidth={1.8} />
             </button>
           </div>
           <div className="thin-scroll flex-1 overflow-y-auto pb-2">
@@ -2507,7 +2506,7 @@ function PlatformSidebar({
                 onClick={onCollapseAll}
                 className="flex h-5 w-5 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
               >
-                <FoldVertical size={12} strokeWidth={1.8} />
+                <Fold size={12} strokeWidth={1.8} />
               </button>
             </div>
           </div>
@@ -4983,20 +4982,6 @@ export default function VibeCodingPage() {
     setPendingTrigger(null)
     setTriggerStep('idle')
   }
-  /** Simulate a configured trigger firing in the phone preview. Appends
-   *  a new entry to `triggerSimulations`; the preview scrolls the new
-   *  reply into view via its own effect. */
-  const simulateTrigger = (t: TriggerConfig) => {
-    setTriggerSimulations((prev) => [
-      ...prev,
-      {
-        key: `${t.id}-${Date.now()}`,
-        eventId: t.event.id,
-        eventLabel: t.event.label,
-        actionDescription: t.action.description,
-      },
-    ])
-  }
   /* helper to build a code line */
   const L = (num: number, ...tokens: [string, string][]) => ({
     num,
@@ -5551,43 +5536,6 @@ export default function VibeCodingPage() {
       </div>
     </div>
   )
-  /** Single "触发器测试" button rendered alongside the other preview
-   *  controls (重新加载 / 真机预览 / …). Hovering it pops a dropdown
-   *  listing every configured trigger; clicking an item fires the
-   *  simulation inside the phone. Kept outside the phone frame so the
-   *  preview stays visually authentic. */
-  const triggerSimBar =
-    activeProjectKind === 'ai-avatar' && triggers.length > 0 ? (
-      <div className="group relative inline-flex">
-        <button
-          type="button"
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-soft)] hover:text-[var(--color-ink)]/85 group-hover:bg-[var(--fill-soft)] group-hover:text-[var(--color-ink)]/85"
-        >
-          <Zap size={11} strokeWidth={1.8} className="text-amber-500" />
-          <span>触发器测试</span>
-          <ChevronUp size={10} strokeWidth={1.8} className="text-[var(--color-ink)]/40" />
-        </button>
-        <div
-          className="pointer-events-none invisible absolute bottom-full left-1/2 z-50 mb-1.5 w-[220px] -translate-x-1/2 translate-y-1 rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] py-1 opacity-0 shadow-[0_10px_24px_-10px_rgba(16,18,24,0.25)] transition-all duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:translate-y-0 group-hover:opacity-100"
-        >
-          <div className="px-3 py-1 text-[10px] text-[var(--color-ink)]/45">
-            点击模拟触发
-          </div>
-          {triggers.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => simulateTrigger(t)}
-              className="flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-[12px] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-            >
-              <Zap size={10} strokeWidth={1.8} className="shrink-0 text-amber-500" />
-              <span className="truncate">模拟 {t.event.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    ) : null
-
   /* Browser-style address bar shown in the preview's top strip for
    * web-app projects — it replaces the 小程序/AI分身/小花技能 mode tabs,
    * which don't apply to a website. Keeps the web preview unified with
@@ -8277,11 +8225,6 @@ export default function VibeCodingPage() {
                   </button>
                 ))}
               </div>
-              {triggerSimBar && (
-                <div className="mt-2 flex w-full shrink-0 justify-center">
-                  {triggerSimBar}
-                </div>
-              )}
             </div>
 
             {/* Drag handle to resize the preview column */}
@@ -8618,11 +8561,6 @@ export default function VibeCodingPage() {
                   </button>
                 ))}
               </div>
-              {triggerSimBar && (
-                <div className="mt-2 flex w-full shrink-0 justify-center">
-                  {triggerSimBar}
-                </div>
-              )}
             </div>
             </div>
           </div>
@@ -8760,16 +8698,25 @@ export default function VibeCodingPage() {
                         : 'text-[var(--color-ink)]/50 hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/80'
                     }`}
                   >
-                    <TabIcon size={13} strokeWidth={1.8} className="shrink-0 opacity-70" />
+                    {/* Leading slot: shows the tab icon by default; for
+                        closable tabs the close button overlays it on hover, so
+                        every tab keeps the same width and icon position. */}
+                    <span className="relative flex h-[14px] w-[14px] shrink-0 items-center justify-center">
+                      <TabIcon
+                        size={13}
+                        strokeWidth={1.8}
+                        className={`opacity-70 ${tab.closable ? 'transition-opacity group-hover:opacity-0' : ''}`}
+                      />
+                      {tab.closable && (
+                        <span
+                          onClick={(e) => { e.stopPropagation(); closeTab(i) }}
+                          className="absolute inset-0 flex items-center justify-center rounded text-[var(--color-ink)]/40 opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--color-ink)]/80"
+                        >
+                          <X size={12} strokeWidth={2.2} />
+                        </span>
+                      )}
+                    </span>
                     {tab.label}
-                    {tab.closable && (
-                      <span
-                        onClick={(e) => { e.stopPropagation(); closeTab(i) }}
-                        className="ml-0.5 rounded p-0.5 text-[10px] text-[var(--color-ink)]/25 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-ink)]/10 hover:text-[var(--color-ink)]/50"
-                      >
-                        <X size={10} />
-                      </span>
-                    )}
                   </button>
                 )
               })}
@@ -9073,11 +9020,6 @@ export default function VibeCodingPage() {
                     <div className="flex min-h-0 flex-1">
                       {previewSurface}
                     </div>
-                    {triggerSimBar && (
-                      <div className="mt-2 flex w-full shrink-0 justify-center">
-                        {triggerSimBar}
-                      </div>
-                    )}
                   </div>
                 </div>
               </>
@@ -9564,12 +9506,18 @@ export default function VibeCodingPage() {
                   <ProductToolbar
                     tabs={renderCategoryTabs(activeLabel)}
                     actions={
-                      <ToolbarAction
-                        icon={Pencil}
-                        label="编辑"
-                        active={editPanelOpen}
-                        onClick={() => setEditPanelOpen((v) => !v)}
-                      />
+                      activeProjectKind === 'ai-avatar' &&
+                      (activeLabel === '技能' || activeLabel === '知识库') ? (
+                        // AI 分身 技能 / 知识库 → 添加 (no-op for now).
+                        <ToolbarAction icon={Plus} label="添加" />
+                      ) : (
+                        <ToolbarAction
+                          icon={Pencil}
+                          label="编辑"
+                          active={editPanelOpen}
+                          onClick={() => setEditPanelOpen((v) => !v)}
+                        />
+                      )
                     }
                   />
                   <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
