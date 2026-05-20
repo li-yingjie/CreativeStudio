@@ -87,7 +87,7 @@ const TANDIAN_PROMPT = `# 角色
 function assets(names: string[]): MiniProgramAsset[] {
   return names.map((name, i) => ({
     name,
-    url: `/bg/cards/random${String(i + 1).padStart(3, '0')}.png`,
+    url: `/bg/cards/banner-${i + 1}.png`,
   }))
 }
 

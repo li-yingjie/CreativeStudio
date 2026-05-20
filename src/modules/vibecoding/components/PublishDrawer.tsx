@@ -17,12 +17,13 @@ import {
   RotateCcw,
   Rocket,
   Sparkles,
-  Tag,
   X,
   type LucideIcon,
 } from '@/shared/icons'
 import { usePublishFlowStore } from '@/modules/editor/store/publish-flow-store'
 import type { ProjectKind } from './ProjectProductView'
+import { getAvatarConfig } from './AvatarConfigData'
+import { getMiniProgramConfig } from './MiniProgramConfigData'
 
 /**
  * 统一发布抽屉 — 所有「发布」按钮点击后从右侧滑出。顶部切换「发布配置 /
@@ -82,6 +83,30 @@ type HistoryEntry = {
   current?: boolean
   scenes?: { label: string; ok: boolean }[]
 }
+
+type PublishObjectVisual =
+  | {
+      type: 'image'
+      src: string
+      alt: string
+      rounded: 'full' | 'lg'
+      fit?: 'cover' | 'contain'
+    }
+  | {
+      type: 'text'
+      text: string
+      alt: string
+      rounded: 'full' | 'lg'
+      className: string
+    }
+  | {
+      type: 'icon'
+      icon: LucideIcon
+      alt: string
+      rounded: 'full' | 'lg'
+      className?: string
+    }
+
 const PUBLISH_HISTORY: HistoryEntry[] = [
   { time: '2026-01-09 11:33:44', author: '莉莉安', current: true },
   {
@@ -103,9 +128,11 @@ const PUBLISH_HISTORY: HistoryEntry[] = [
 
 export default function PublishDrawer({
   projectName,
+  projectKey = projectName,
   projectKind,
 }: {
   projectName: string
+  projectKey?: string
   projectKind: ProjectKind
 }) {
   const step = usePublishFlowStore((s) => s.step)
@@ -152,7 +179,7 @@ export default function PublishDrawer({
   if (typeof document === 'undefined') return null
 
   const meta = KIND_META[projectKind]
-  const ObjectIcon = meta.icon
+  const objectVisual = getPublishObjectVisual(projectKind, projectKey, meta.icon)
 
   // Float the popover just below the triggering 发布 button, right-aligned to
   // it. Clamp within the viewport so it never spills off-screen. Falls back to
@@ -391,7 +418,7 @@ export default function PublishDrawer({
               </div>
             ) : tab === 'history' ? (
               <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4">
-                <HistoryTimeline productLabel={meta.label} />
+                <HistoryTimeline projectName={projectName} objectVisual={objectVisual} />
               </div>
             ) : (
               <>
@@ -403,9 +430,7 @@ export default function PublishDrawer({
                       发布产物
                     </div>
                     <div className="flex items-center gap-2.5 rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--fill-subtle)] text-[var(--color-ink)]/70">
-                        <ObjectIcon size={16} strokeWidth={1.8} />
-                      </div>
+                      <PublishObjectVisualThumb visual={objectVisual} size="lg" />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[13px] font-medium text-[var(--color-ink)]">
                           {projectName}
@@ -457,7 +482,134 @@ export default function PublishDrawer({
 
 /* ─── publish history ─── */
 
-function HistoryTimeline({ productLabel }: { productLabel: string }) {
+function getPublishObjectVisual(
+  projectKind: ProjectKind,
+  projectKey: string,
+  fallbackIcon: LucideIcon,
+): PublishObjectVisual {
+  if (projectKind === 'ai-avatar') {
+    const avatarConfig = getAvatarConfig(projectKey)
+    if (avatarConfig?.iconURL) {
+      return {
+        type: 'image',
+        src: avatarConfig.iconURL,
+        alt: avatarConfig.name,
+        rounded: 'full',
+      }
+    }
+  }
+
+  if (projectKind === 'mini-program') {
+    const miniProgramConfig = getMiniProgramConfig(projectKey)
+    const logoAsset =
+      miniProgramConfig?.assets.find((asset) => /(logo|icon)/i.test(asset.name)) ??
+      miniProgramConfig?.assets[0]
+    if (logoAsset?.url) {
+      return {
+        type: 'image',
+        src: logoAsset.url,
+        alt: logoAsset.name,
+        rounded: 'lg',
+      }
+    }
+  }
+
+  if (projectKind === 'web-game') {
+    return {
+      type: 'image',
+      src: '/garuda/assets/Start.jpg',
+      alt: 'Garuda 游戏封面',
+      rounded: 'lg',
+    }
+  }
+
+  if (projectKind === 'marketing-h5') {
+    return {
+      type: 'image',
+      src: '/h5/children-day/hero-gifts.png',
+      alt: '六一儿童节活动头图',
+      rounded: 'lg',
+    }
+  }
+
+  if (projectKind === 'web-app') {
+    return {
+      type: 'text',
+      text: 'S°',
+      alt: 'STUDIO°',
+      rounded: 'lg',
+      className: 'bg-[#16161a] text-white',
+    }
+  }
+
+  if (projectKind === 'ops-proposal') {
+    return {
+      type: 'text',
+      text: '提',
+      alt: '提案',
+      rounded: 'lg',
+      className: 'bg-[#fff2cc] text-[#9a6700]',
+    }
+  }
+
+  return { type: 'icon', icon: fallbackIcon, alt: '产物', rounded: 'lg' }
+}
+
+function PublishObjectVisualThumb({
+  visual,
+  size = 'sm',
+}: {
+  visual: PublishObjectVisual
+  size?: 'sm' | 'lg'
+}) {
+  const sizeClass = size === 'lg' ? 'h-8 w-8' : 'h-[18px] w-[18px]'
+  const roundedClass = visual.rounded === 'full' ? 'rounded-full' : 'rounded-md'
+
+  if (visual.type === 'image') {
+    return (
+      <div
+        className={`flex shrink-0 items-center justify-center overflow-hidden bg-[var(--fill-subtle)] ${sizeClass} ${roundedClass}`}
+      >
+        <img
+          src={visual.src}
+          alt={visual.alt}
+          className={`h-full w-full ${visual.fit === 'contain' ? 'object-contain' : 'object-cover'}`}
+        />
+      </div>
+    )
+  }
+
+  if (visual.type === 'text') {
+    return (
+      <div
+        className={`flex shrink-0 items-center justify-center text-[10px] font-semibold tracking-tight ${sizeClass} ${roundedClass} ${visual.className}`}
+        aria-label={visual.alt}
+        title={visual.alt}
+      >
+        {visual.text}
+      </div>
+    )
+  }
+
+  const Icon = visual.icon
+  return (
+    <div
+      className={`flex shrink-0 items-center justify-center bg-[var(--fill-subtle)] text-[var(--color-ink)]/70 ${sizeClass} ${roundedClass} ${visual.className ?? ''}`}
+      aria-label={visual.alt}
+      title={visual.alt}
+    >
+      <Icon size={size === 'lg' ? 16 : 11} strokeWidth={1.8} />
+    </div>
+  )
+}
+
+function HistoryTimeline({
+  projectName,
+  objectVisual,
+}: {
+  projectName: string
+  objectVisual: PublishObjectVisual
+}) {
   return (
     <div className="relative">
       {PUBLISH_HISTORY.map((entry, i) => {
@@ -503,9 +655,9 @@ function HistoryTimeline({ productLabel }: { productLabel: string }) {
                   </div>
                   <div className="mt-2 text-[12px] text-[var(--color-ink)]/45">产物发布</div>
                   <div className="mt-1">
-                    <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-[var(--divider)] px-2 py-1 text-[12px] text-[var(--color-ink)]/75">
-                      <Tag size={11} strokeWidth={1.8} className="text-[var(--color-ink)]/45" />
-                      {productLabel}
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-[var(--divider)] px-2 py-1 text-[12px] text-[var(--color-ink)]/75">
+                      <PublishObjectVisualThumb visual={objectVisual} />
+                      <span className="max-w-[180px] truncate">{projectName}</span>
                     </span>
                   </div>
                   {entry.scenes && (

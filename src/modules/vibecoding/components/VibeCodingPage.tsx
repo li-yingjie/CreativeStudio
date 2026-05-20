@@ -89,7 +89,9 @@ import {
   type ProjectKind,
 } from './ProjectProductView'
 import AvatarBasicInfoForm from './AvatarBasicInfoForm'
-import AvatarSystemPromptView from './AvatarSystemPromptView'
+import AvatarSystemPromptView, {
+  type AvatarPromptCapability,
+} from './AvatarSystemPromptView'
 import CapabilityDetailView from './CapabilityDetailView'
 import { getAvatarConfig } from './AvatarConfigData'
 import MiniProgramAgentView from './MiniProgramAgentView'
@@ -168,6 +170,7 @@ import {
   ArrowLeft,
   ArrowUp,
   BarChart3,
+  Bell,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -190,17 +193,16 @@ import {
   FolderClosed,
   FolderCode,
   FolderOpen,
+  Headset,
   Headphones,
   Home,
   Inbox,
   LayoutDashboard,
-  PanelLeft,
-  PanelRight,
-  PanelRightOpen,
   Share2,
   Menu4,
   Pin,
   PinOff,
+  Save,
   Search,
   Sparkles,
   Paperclip,
@@ -249,6 +251,7 @@ import {
   PencilLine,
   Flag,
   WandSparkles,
+  Zap,
   AppWindow,
   BriefcaseBusiness,
 } from '@/shared/icons'
@@ -504,6 +507,14 @@ interface TriggerConfig {
     executionScene: string
     description: string
   }
+}
+
+function triggerProductLabel(t: TriggerConfig): string {
+  return `发起·${t.event.label}`
+}
+
+function triggerConfigFilename(t: TriggerConfig): string {
+  return `${t.event.id}-${t.id.slice(-6)}.trigger.json`
 }
 
 /** Platform preset triggers. Chat keywords match into these; the detail
@@ -1034,8 +1045,31 @@ function productLabelIcon(label: string, parent?: string): LucideIcon {
   if (parent === '页面' || label.startsWith('页面·')) return AppWindow
   if (parent === '知识库' || label.startsWith('知识·')) return BookOpen
   if (parent === '技能' || label.startsWith('技能·')) return FolderCode
+  if (parent === '触发器' || label.startsWith('发起·')) return Zap
   const base = label.includes('·') ? label.slice(label.indexOf('·') + 1) : label
   return PRODUCT_CATEGORY_ICONS[label] ?? PRODUCT_CATEGORY_ICONS[base] ?? getFileIcon(label)
+}
+
+function FlexAlignGlyph({
+  side,
+  size = 13,
+}: {
+  side: 'left' | 'right'
+  size?: number
+}) {
+  const mask = `url(/icons/flex-align-${side}.svg) center / contain no-repeat`
+  return (
+    <span
+      aria-hidden
+      className="inline-block shrink-0 bg-current"
+      style={{
+        width: size,
+        height: size,
+        WebkitMask: mask,
+        mask,
+      }}
+    />
+  )
 }
 
 /** Second-layer product toolbar — a consistent row with the multi-object
@@ -1125,9 +1159,12 @@ function FileTreeView({
   onToggleDir,
   onOpenFile,
   onOpenDir,
+  showDirChildren = true,
   depth,
   parentPath,
   railStartDepth = 0,
+  rowBleedLeft = 0,
+  roundedRows = false,
   iconFor,
   isActive,
 }: {
@@ -1139,12 +1176,23 @@ function FileTreeView({
    *  parent category (e.g. 界面) opens its own tab while still toggling
    *  expansion. When omitted, clicking a dir only toggles. */
   onOpenDir?: (node: FileNode, path: string) => void
+  /** When false, directory rows act as object launchers and do not reveal
+   *  their children. Used by the platform project list so object children
+   *  stay in the right-side toolbar, not in the left navigation. */
+  showDirChildren?: boolean
   depth: number
   parentPath: string
   /** Lowest depth at which to draw an indent rail. Platform sidebar
    *  passes 1 so the outermost rail connecting files to the project
    *  header is suppressed. */
   railStartDepth?: number
+  /** Extends row hover/active backgrounds leftward when the tree itself is
+   *  nested inside an inset container. Platform project objects use this
+   *  so selected object rows align with selected project rows. */
+  rowBleedLeft?: number
+  /** Round the row hover/active backgrounds — used by the platform sidebar
+   *  so selected object rows match the project row's rounded highlight. */
+  roundedRows?: boolean
   /** Optional per-node icon override — the product view uses it to paint
    *  synthetic category folders and page leaves with their own icon.
    *  Returns undefined to fall back to the default folder / file icon.
@@ -1180,6 +1228,9 @@ function FileTreeView({
         const path = parentPath ? `${parentPath}/${node.name}` : node.name
         const isExpanded = expanded.has(path)
         const pl = 12 + depth * 14
+        const rowStyle = rowBleedLeft
+          ? { paddingLeft: pl + rowBleedLeft, marginLeft: -rowBleedLeft }
+          : { paddingLeft: pl }
         if (node.type === 'dir') {
           const DirIcon = iconFor?.(node, path, depth)
           return (
@@ -1188,11 +1239,13 @@ function FileTreeView({
                 {renderRails()}
                 <button
                   onClick={() => {
-                    onToggleDir(path)
+                    if (showDirChildren) onToggleDir(path)
                     onOpenDir?.(node, path)
                   }}
-                  className="flex w-full items-center gap-1.5 py-1 text-[12px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/95"
-                  style={{ paddingLeft: pl }}
+                  className={`box-border flex w-full items-center gap-1.5 py-1 text-[12px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/95 ${
+                    roundedRows ? 'rounded-md' : ''
+                  }`}
+                  style={rowStyle}
                 >
                   {DirIcon ? (
                     <DirIcon size={13} className="shrink-0 text-[var(--color-ink)]/60" />
@@ -1204,13 +1257,16 @@ function FileTreeView({
                   {node.name}
                 </button>
               </div>
-              {isExpanded && node.children && (
+              {showDirChildren && isExpanded && node.children && (
                 <FileTreeView
                   nodes={node.children}
                   expanded={expanded}
                   onToggleDir={onToggleDir}
                   onOpenFile={onOpenFile}
                   onOpenDir={onOpenDir}
+                  showDirChildren={showDirChildren}
+                  rowBleedLeft={rowBleedLeft}
+                  roundedRows={roundedRows}
                   depth={depth + 1}
                   parentPath={path}
                   railStartDepth={railStartDepth}
@@ -1228,12 +1284,14 @@ function FileTreeView({
             {renderRails()}
             <button
               onClick={() => onOpenFile(node.name)}
-              className={`flex w-full items-center gap-1.5 py-1 text-[12px] transition-colors ${
+              className={`box-border flex w-full items-center gap-1.5 py-1 text-[12px] transition-colors ${
+                roundedRows ? 'rounded-md' : ''
+              } ${
                 active
                   ? 'bg-[var(--color-ink)]/[0.07] text-[var(--color-ink)]'
                   : 'text-[var(--color-ink)]/75 hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/95'
               }`}
-              style={{ paddingLeft: pl }}
+              style={rowStyle}
             >
               <Icon
                 size={12}
@@ -2370,9 +2428,9 @@ function PlatformSidebar({
     })
 
   return (
-    <aside className="flex h-full w-full flex-col pt-6">
+    <aside className="flex h-full w-full flex-col pt-3">
       {/* Brand header */}
-      <div className="flex h-8 shrink-0 items-center justify-between gap-2 px-5">
+      <div className="flex h-10 shrink-0 items-center justify-between gap-2 px-5">
         <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           <svg
             width="108"
@@ -2404,7 +2462,7 @@ function PlatformSidebar({
             title="收起侧栏"
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
           >
-            <PanelLeft size={13} strokeWidth={1.8} />
+            <FlexAlignGlyph side="left" size={13} />
           </button>
         </div>
       </div>
@@ -2415,7 +2473,7 @@ function PlatformSidebar({
           {/* rainbow glow halo, revealed on hover */}
           <div
             aria-hidden
-            className="pointer-events-none absolute -inset-px rounded-full opacity-0 blur-[5px] transition-opacity duration-300 group-hover:opacity-70"
+            className="pointer-events-none absolute -inset-0.5 rounded-full opacity-0 blur-[7px] transition-opacity duration-200 group-hover:opacity-90"
             style={{
               background:
                 'linear-gradient(95deg,#ffd633,#ffe680,#aef0a8,#88dcff,#c2a8ff,#ffa9d6)',
@@ -2697,9 +2755,9 @@ function PlatformSidebar({
                     )
                     if (productTree.length === 0) return emptyStub
                     return (
-                      // Extra left inset so a project's contents read as
-                      // nested under its project row.
-                      <div className="pl-2">
+                      // Match the project row's mx-3 inset so selected object
+                      // rows share the same left/right padding as the project.
+                      <div className="mx-3">
                         <FileTreeView
                           nodes={productTree}
                           expanded={expandedDirs}
@@ -2709,13 +2767,18 @@ function PlatformSidebar({
                           // first (instead of opening in the active project).
                           onOpenFile={(f) => onOpenProduct(name, f)}
                           // Parent categories (界面 / 知识库 / …) open their
-                          // own tab on click while still expanding to list
-                          // their children.
+                          // own tab on click. Their children stay hidden in
+                          // the left project list and are switched from the
+                          // right-side toolbar instead.
                           onOpenDir={(n) => onOpenProduct(name, n.name)}
+                          showDirChildren={false}
+                          roundedRows
                           depth={1}
-                          // Distinct root so product-view expansion state
-                          // never collides with file-view paths.
-                          parentPath="__product__"
+                          // Distinct, per-project root so opening a
+                          // multi-object category in one project does not
+                          // make same-named categories expand by default in
+                          // every other project.
+                          parentPath={`__product__/${name}`}
                           railStartDepth={1}
                           iconFor={(n, path) =>
                             // Path-keyed leaves first: every 页面 page
@@ -2727,6 +2790,8 @@ function PlatformSidebar({
                                 ? BookOpen
                                 : path.includes('/技能/')
                                   ? FolderCode
+                                  : path.includes('/触发器/')
+                                    ? Zap
                                   : PRODUCT_CATEGORY_ICONS[n.name]
                           }
                           isActive={
@@ -2751,8 +2816,24 @@ function PlatformSidebar({
           张
         </div>
         <span className="text-[12px] text-[var(--color-ink)]/80">张俊</span>
+        <button
+          type="button"
+          title="通知"
+          aria-label="通知"
+          className="ml-auto flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
+        >
+          <Bell size={13} strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          title="客服"
+          aria-label="客服"
+          className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
+        >
+          <Headset size={13} strokeWidth={1.8} />
+        </button>
         {/* 设置（布局 / 外观）— relocated from the top bar; opens upward. */}
-        <div ref={layoutMenuRef} className="relative ml-auto">
+        <div ref={layoutMenuRef} className="relative">
           <button
             type="button"
             onClick={() => setLayoutMenuOpen((v) => !v)}
@@ -4014,15 +4095,15 @@ export default function VibeCodingPage() {
       ],
     },
     // triggers/ folder only appears once the user configures at least
-    // one trigger via the chat flow. Each file maps 1:1 to an entry in
-    // `triggers[]` via the filename suffix (last 6 chars of the id).
+    // one trigger via the chat flow. Product view exposes friendly
+    // object names, not the serialized .trigger.json filenames.
     ...(triggers.length > 0
       ? [
           {
             name: 'triggers',
             type: 'dir' as const,
             children: triggers.map((t) => ({
-              name: `${t.event.id}-${t.id.slice(-6)}.trigger.json`,
+              name: triggerProductLabel(t),
               type: 'file' as const,
             })),
           },
@@ -4318,6 +4399,9 @@ export default function VibeCodingPage() {
    * projects keeps each doc separate). Falls back to PROJECT_DOCS / a
    * generated default when untouched. */
   const [projectDocEdits, setProjectDocEdits] = useState<Record<string, string>>({})
+  const [avatarPromptEdits, setAvatarPromptEdits] = useState<Record<string, string>>({})
+  const [avatarPromptDrafts, setAvatarPromptDrafts] = useState<Record<string, string>>({})
+  const [avatarPromptEditing, setAvatarPromptEditing] = useState(false)
   /** Right-side edit panel (web-game only) — opens a visualization editor
    *  alongside the game preview. */
   const [editPanelOpen, setEditPanelOpen] = useState(false)
@@ -4400,7 +4484,7 @@ export default function VibeCodingPage() {
   /** A category with ≥2 children renders as a single tab + directory
    *  dropdown (the structure requested for all multi-product parents). */
   const isMultiChildCategory = (name: string): boolean =>
-    categoryChildrenOf(name).length >= 2
+    name !== '触发器' && categoryChildrenOf(name).length >= 2
   /** Resolve the category that owns a given child leaf. */
   const findParentCategory = (child: string): string | undefined =>
     getActiveProductTree().find(
@@ -4489,6 +4573,29 @@ export default function VibeCodingPage() {
       openNamedTab('代码文件')
       return
     }
+    // AI 分身: clicking the 触发器 category should land directly on the
+    // configured trigger detail. With the seeded project this is
+    // 触发器·用户关注账号, avoiding a dead generic "触发器" tab.
+    if (activeProjectKind === 'ai-avatar' && filename === '触发器') {
+      const defaultTrigger =
+        triggers.find((t) => t.event.id === 'user-follow') ?? triggers[0]
+      if (defaultTrigger) {
+        openTriggerTab(defaultTrigger)
+        return
+      }
+    }
+    if (activeProjectKind === 'ai-avatar') {
+      const clickedTrigger = triggers.find(
+        (t) =>
+          triggerProductLabel(t) === filename ||
+          triggerConfigFilename(t) === filename ||
+          triggerTabLabel(t) === filename,
+      )
+      if (clickedTrigger) {
+        openTriggerTab(clickedTrigger)
+        return
+      }
+    }
     // Product-view structure: a multi-child category opens as its own tab
     // (parent), and clicking one of its children opens the same parent tab
     // with that child selected (directory dropdown lives in the toolbar).
@@ -4576,10 +4683,10 @@ export default function VibeCodingPage() {
       return
     }
     // Trigger files route to the structured detail view, not codeFiles.
-    // Filename pattern: `${event.id}-${id.slice(-6)}.trigger.json`.
+    // Keep the legacy filename matcher so old snapshots still open.
     if (filename.endsWith('.trigger.json')) {
       const match = triggers.find(
-        (t) => `${t.event.id}-${t.id.slice(-6)}.trigger.json` === filename,
+        (t) => triggerConfigFilename(t) === filename,
       )
       if (match) {
         openTriggerTab(match)
@@ -5489,6 +5596,7 @@ export default function VibeCodingPage() {
     // A project switch always collapses the visual-edit panel — its
     // contents are scoped to the previous project's kind.
     setEditPanelOpen(false)
+    setAvatarPromptEditing(false)
     // Switching to a specific product leaf takes priority…
     if (pendingProductOpenRef.current) {
       const f = pendingProductOpenRef.current
@@ -5508,6 +5616,7 @@ export default function VibeCodingPage() {
   // clears any opened game-asset canvas selection.
   useEffect(() => {
     setEditPanelOpen(false)
+    setAvatarPromptEditing(false)
     setGameSelectedAsset(null)
     setH5SelectedLayer(null)
   }, [activePreviewTab])
@@ -5989,6 +6098,18 @@ export default function VibeCodingPage() {
         />
       )}
 
+      {isPlatform && sidebarCollapsed && (platformHomeOpen || platformSecondaryPageOpen) && (
+        <button
+          type="button"
+          onClick={() => setSidebarCollapsed(false)}
+          title="展开侧栏"
+          aria-label="展开侧栏"
+          className="fixed left-6 top-5 z-50 flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
+        >
+          <FlexAlignGlyph side="left" size={13} />
+        </button>
+      )}
+
       {/* ── Ambient glow derived from the preview product (persona portrait) —
            hidden in code/platform layouts so the page reads flat. ── */}
       {layout !== 'code' && !isPlatform && (
@@ -6074,7 +6195,7 @@ export default function VibeCodingPage() {
                 title="展开侧栏"
                 className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
               >
-                <PanelLeft size={13} strokeWidth={1.8} />
+                <FlexAlignGlyph side="left" size={13} />
               </button>
               <div className="mx-1 h-4 w-px bg-[var(--divider)]" />
             </>
@@ -6331,7 +6452,7 @@ export default function VibeCodingPage() {
                   title="展开侧栏"
                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
                 >
-                  <PanelLeft size={13} strokeWidth={1.8} />
+                  <FlexAlignGlyph side="left" size={13} />
                 </button>
               )}
               <div ref={sessionMenuRef} className="relative flex min-w-0 items-center">
@@ -6498,7 +6619,7 @@ export default function VibeCodingPage() {
                   onClick={() => setPreviewCollapsed(false)}
                   className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
                 >
-                  <PanelRightOpen size={13} strokeWidth={1.8} />
+                  <FlexAlignGlyph side="right" size={13} />
                 </button>
               )}
             </div>
@@ -8872,7 +8993,7 @@ export default function VibeCodingPage() {
                   className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink)]/45 transition-colors hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/75"
                   title="收起预览"
                 >
-                  <PanelRightOpen size={13} strokeWidth={1.8} />
+                  <FlexAlignGlyph side="right" size={13} />
                 </button>
               </div>
             </div>
@@ -9286,14 +9407,35 @@ export default function VibeCodingPage() {
               const trigger = triggers.find((t) => triggerTabLabel(t) === label)
               if (trigger) {
                 return (
-                  <TriggerDetailView
-                    trigger={trigger}
-                    editingName={editingTriggerNameId === trigger.id}
-                    onStartEditName={() => setEditingTriggerNameId(trigger.id)}
-                    onStopEditName={() => setEditingTriggerNameId(null)}
-                    onRename={renameTrigger}
-                    onDelete={deleteTrigger}
-                  />
+                  <>
+                    <ProductToolbar
+                      tabs={
+                        <span className="text-[13px] font-medium text-[var(--color-ink)]">
+                          {triggerProductLabel(trigger)}
+                        </span>
+                      }
+                      actions={
+                        <ToolbarAction
+                          icon={Pencil}
+                          label="编辑"
+                          active={editingTriggerNameId === trigger.id}
+                          onClick={() =>
+                            setEditingTriggerNameId((cur) =>
+                              cur === trigger.id ? null : trigger.id,
+                            )
+                          }
+                        />
+                      }
+                    />
+                    <TriggerDetailView
+                      trigger={trigger}
+                      editingName={editingTriggerNameId === trigger.id}
+                      onStartEditName={() => setEditingTriggerNameId(trigger.id)}
+                      onStopEditName={() => setEditingTriggerNameId(null)}
+                      onRename={renameTrigger}
+                      onDelete={deleteTrigger}
+                    />
+                  </>
                 )
               }
               // Proposal-flow visual dashboards: render the rich BI view
@@ -9322,11 +9464,78 @@ export default function VibeCodingPage() {
                   return <AvatarBasicInfoForm config={avatarConfig} />
                 }
                 if (label === '人设') {
+                  const savedPrompt =
+                    avatarPromptEdits[projectTitle] ?? avatarConfig.systemPrompt
+                  const draftPrompt =
+                    avatarPromptDrafts[projectTitle] ?? savedPrompt
+                  const promptDirty = draftPrompt !== savedPrompt
+                  const promptCapabilities: AvatarPromptCapability[] = [
+                    ...avatarConfig.skillInfoList.map((cap) => ({
+                      ...cap,
+                      kind: 'skill' as const,
+                    })),
+                    ...avatarConfig.toolInfoList.map((cap) => ({
+                      ...cap,
+                      kind: 'tool' as const,
+                    })),
+                    ...avatarConfig.knowledgeInfoList.map((cap) => ({
+                      ...cap,
+                      kind: 'knowledge' as const,
+                    })),
+                  ]
                   return (
-                    <AvatarSystemPromptView
-                      avatarName={avatarConfig.name}
-                      prompt={avatarConfig.systemPrompt}
-                    />
+                    <>
+                      <ProductToolbar
+                        tabs={
+                          <span className="text-[13px] font-medium text-[var(--color-ink)]">
+                            人设
+                          </span>
+                        }
+                        actions={
+                          <ToolbarAction
+                            icon={avatarPromptEditing ? Save : Pencil}
+                            label={avatarPromptEditing ? '保存' : '编辑'}
+                            active={avatarPromptEditing}
+                            onClick={() => {
+                              if (avatarPromptEditing) {
+                                if (promptDirty) {
+                                  setAvatarPromptEdits((prev) => ({
+                                    ...prev,
+                                    [projectTitle]: draftPrompt,
+                                  }))
+                                }
+                                setAvatarPromptEditing(false)
+                                return
+                              }
+                              setAvatarPromptDrafts((prev) => ({
+                                ...prev,
+                                [projectTitle]: draftPrompt,
+                              }))
+                              setAvatarPromptEditing(true)
+                            }}
+                          />
+                        }
+                      />
+                      <AvatarSystemPromptView
+                        avatarName={avatarConfig.name}
+                        prompt={avatarPromptEditing ? draftPrompt : savedPrompt}
+                        capabilities={promptCapabilities}
+                        editing={avatarPromptEditing}
+                        onPromptChange={(next) =>
+                          setAvatarPromptDrafts((prev) => ({
+                            ...prev,
+                            [projectTitle]: next,
+                          }))
+                        }
+                        onOpenCapability={(capability) =>
+                          openNamedTab(
+                            capability.kind === 'knowledge'
+                              ? `知识·${capability.name}`
+                              : `技能·${capability.name}`,
+                          )
+                        }
+                      />
+                    </>
                   )
                 }
               }
@@ -9535,13 +9744,14 @@ export default function VibeCodingPage() {
                     : activeLabel === '触发器'
                       ? (triggers.find(
                           (t) =>
-                            `${t.event.id}-${t.id.slice(-6)}.trigger.json` === sel,
+                            triggerProductLabel(t) === sel ||
+                            triggerConfigFilename(t) === sel,
                         )
                           ? triggerTabLabel(
                               triggers.find(
                                 (t) =>
-                                  `${t.event.id}-${t.id.slice(-6)}.trigger.json` ===
-                                  sel,
+                                  triggerProductLabel(t) === sel ||
+                                  triggerConfigFilename(t) === sel,
                               )!,
                             )
                           : sel)
@@ -9815,7 +10025,11 @@ export default function VibeCodingPage() {
 
       {/* ── Unified publish drawer — all 发布 buttons open this from the
            right; portaled, so a single top-level mount serves every CTA. ── */}
-      <PublishDrawer projectName={displayProjectName(projectTitle)} projectKind={activeProjectKind} />
+      <PublishDrawer
+        projectName={displayProjectName(projectTitle)}
+        projectKey={projectTitle}
+        projectKind={activeProjectKind}
+      />
 
       {/* ── 运营数据 drawer — opens from the 发布 button's left-side entry ── */}
       <OpsDataDrawer
@@ -9849,7 +10063,7 @@ export default function VibeCodingPage() {
                 : 'text-[var(--color-ink)]/70'
             }`}
           >
-            <PanelLeft size={12} />
+            <FlexAlignGlyph side="left" size={12} />
             钉在左侧
             {productPinned && productSide === 'left' && (
               <span className="ml-auto text-[10px] text-[var(--color-ink)]/45">当前</span>
@@ -9868,7 +10082,7 @@ export default function VibeCodingPage() {
                 : 'text-[var(--color-ink)]/70'
             }`}
           >
-            <PanelRight size={12} />
+            <FlexAlignGlyph side="right" size={12} />
             钉在右侧
             {productPinned && productSide === 'right' && (
               <span className="ml-auto text-[10px] text-[var(--color-ink)]/45">当前</span>
