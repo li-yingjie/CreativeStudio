@@ -3136,6 +3136,11 @@ export default function VibeCodingPage() {
     activeFilter: string
   }
   const projectChatsRef = useRef<Map<string, ProjectChatSnapshot>>(new Map())
+  /* Tracks which generic AI replies have already played their "thinking"
+   * intro, keyed by project + message index. Re-opening a project remounts
+   * the chat, so without this every prior reply would replay its typing
+   * animation — this keeps restored conversations static. */
+  const seenRepliesRef = useRef<Set<string>>(new Set())
   /* Platform "home" / new-project landing view — shown on first load
    * (no project selected yet) and whenever the user clicks + 新建项目.
    * Contains a hero title + a large prompt composer + suggestion pills.
@@ -4493,8 +4498,10 @@ export default function VibeCodingPage() {
         (n.children ?? []).some((c) => c.type === 'file' && c.name === child),
     )?.name
   /** Page categories drive the live preview route (phone / browser) rather
-   *  than a renderTab body. 页面 is the only such category today. */
-  const isPageCategory = (category: string): boolean => category === '页面'
+   *  than a renderTab body. web-game has no per-screen route (its preview is
+   *  one playable canvas), so its 页面 children render as renderTab bodies. */
+  const isPageCategory = (category: string): boolean =>
+    category === '页面' && activeProjectKind !== 'web-game'
 
   /** Open (or focus) a category tab, selecting `child` (defaults to the
    *  first child). Page categories also sync the preview route so the
@@ -6627,7 +6634,7 @@ export default function VibeCodingPage() {
           {/* ── Chat body: messages + composer. Lives under the Header
                in its own flex-col so the Header above can stay edge-to-
                edge while the body retains its inner padding. ── */}
-          <div className={`flex min-h-0 flex-1 flex-col ${isPlatform ? 'pb-2' : chatOnLeft ? '' : 'px-1.5 pt-3 pb-1.5'} ${isPlatform && previewHidden ? 'mx-auto w-full max-w-[760px]' : ''}`}>
+          <div className={`flex min-h-0 flex-1 flex-col ${isPlatform ? 'pb-2' : chatOnLeft ? '' : 'px-1.5 pt-3 pb-1.5'} ${isPlatform ? 'mx-auto w-full max-w-[760px]' : ''}`}>
           {/* Scrollable messages */}
           <div ref={chatScrollRef} className={`thin-scroll flex-1 overflow-y-auto px-2.5 pt-8 pb-8 ${chatCleared ? '' : 'space-y-6'} ${fadeClassFromEdges(chatScrollEdges)}`}>
             {(chatCleared || (!needsFlowActive && !showChatPublish && sentMessages.length === 0)) && proposalStep === 'idle' ? (
@@ -6657,9 +6664,17 @@ export default function VibeCodingPage() {
                     {m.text}
                   </div>
                 </motion.div>
-                {m.trigger === 'none' && (
-                  <GenericAiReply text={GENERIC_AI_REPLIES[i % GENERIC_AI_REPLIES.length]} />
-                )}
+                {m.trigger === 'none' && (() => {
+                  const replyKey = `${projectTitle}#${i}`
+                  const alreadyShown = seenRepliesRef.current.has(replyKey)
+                  return (
+                    <GenericAiReply
+                      text={GENERIC_AI_REPLIES[i % GENERIC_AI_REPLIES.length]}
+                      instant={alreadyShown}
+                      onShown={() => seenRepliesRef.current.add(replyKey)}
+                    />
+                  )
+                })()}
               </Fragment>
             ))}
 
@@ -9112,6 +9127,7 @@ export default function VibeCodingPage() {
                   )}
                   <ToolbarAction icon={RefreshCw} label="重新加载" iconOnly onClick={() => setMiniAppKey((k) => k + 1)} />
                   <ToolbarAction icon={Smartphone} label="真机预览" iconOnly />
+                  {lbl === '素材' && <ToolbarAction icon={Upload} label="上传" />}
                   <ToolbarAction
                     icon={Pencil}
                     label="编辑"
@@ -10114,12 +10130,40 @@ export default function VibeCodingPage() {
  *  unmounts once faded so it doesn't claim a space-y slot), then the
  *  reply text. Kept as its own component so each message can own its
  *  own "thinking" lifecycle without a parent-level Set of timers. */
-function GenericAiReply({ text }: { text: string }) {
-  const [thinking, setThinking] = useState(true)
+function GenericAiReply({
+  text,
+  instant = false,
+  onShown,
+}: {
+  text: string
+  /** Skip the thinking intro + fade — used when re-opening a project so a
+   *  finished reply doesn't replay its animation on every remount. */
+  instant?: boolean
+  /** Called once on mount so the parent can remember this reply has played
+   *  and pass `instant` on subsequent remounts. */
+  onShown?: () => void
+}) {
+  const [thinking, setThinking] = useState(!instant)
+  // Hold the latest onShown in a ref so the timer effect only depends on
+  // `instant` — otherwise the parent's per-render callback identity would
+  // reset the thinking timer before it fires.
+  const onShownRef = useRef(onShown)
   useEffect(() => {
-    const t = setTimeout(() => setThinking(false), 900)
+    onShownRef.current = onShown
+  })
+  useEffect(() => {
+    if (instant) {
+      onShownRef.current?.()
+      return
+    }
+    // Mark as shown only once the intro finishes, so `instant` doesn't flip
+    // mid-animation (which would cancel the timer and freeze the dots).
+    const t = setTimeout(() => {
+      setThinking(false)
+      onShownRef.current?.()
+    }, 900)
     return () => clearTimeout(t)
-  }, [])
+  }, [instant])
   return (
     <div className="space-y-2.5">
       {thinking && (
@@ -10141,9 +10185,9 @@ function GenericAiReply({ text }: { text: string }) {
         </motion.div>
       )}
       <motion.p
-        initial={{ opacity: 0, y: 6 }}
+        initial={instant ? false : { opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        transition={instant ? { duration: 0 } : { delay: 0.6, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         className="text-[14px] leading-[20px] text-[var(--color-ink)]"
       >
         {text}

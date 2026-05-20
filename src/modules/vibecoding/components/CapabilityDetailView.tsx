@@ -4,8 +4,8 @@ import {
   ArrowUpRight,
   BookText,
   CheckCircle2,
+  FileInfo,
   GitBranch,
-  Info,
   Play,
   ShieldAlert,
   Sparkles,
@@ -230,7 +230,7 @@ export default function CapabilityDetailView({
           {/* ── Right column (~30%) — sticky; hidden in embedded mode ── */}
           {!embedded && (
           <div className="thin-scroll sticky top-0 flex max-h-[calc(100vh-120px)] min-w-0 flex-col divide-y divide-[var(--divider-soft)] self-start overflow-y-auto">
-            <Section title="基础信息" icon={Info} pad="pb-5">
+            <Section title="基础信息" icon={FileInfo} pad="pb-5">
               <div className="flex flex-col gap-2">
                 <Field label="创建人">
                   <span className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--color-ink)]/85">

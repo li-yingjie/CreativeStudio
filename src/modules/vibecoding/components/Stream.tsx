@@ -38,20 +38,28 @@ export function Sequential({
 export function RevealAfter({
   delay = 150,
   onDone,
+  instant = false,
   children,
 }: {
   delay?: number
   onDone?: () => void
+  /** Skip the delay and reveal immediately — used when a flow is being
+   *  restored (e.g. re-opening a project) so nothing replays its reveal. */
+  instant?: boolean
   children: ReactNode
 }) {
-  const [shown, setShown] = useState(false)
+  const [shown, setShown] = useState(instant)
   useEffect(() => {
+    if (instant) {
+      onDone?.()
+      return
+    }
     const tid = setTimeout(() => {
       setShown(true)
       onDone?.()
     }, delay)
     return () => clearTimeout(tid)
-  }, [delay, onDone])
+  }, [delay, onDone, instant])
   if (!shown) return null
   return <>{children}</>
 }
@@ -103,6 +111,10 @@ interface StreamProps {
   /** Called once when the full content has been revealed. Use to chain
    *  the next paragraph / card / form so siblings appear sequentially. */
   onDone?: () => void
+  /** Render the full content immediately (no typing). Used when a flow is
+   *  being restored (e.g. re-opening a project) so finished messages don't
+   *  re-stream from scratch on every remount. */
+  instant?: boolean
 }
 
 export default function Stream({
@@ -111,6 +123,7 @@ export default function Stream({
   nodePause = 70,
   cursor = true,
   onDone,
+  instant = false,
 }: StreamProps) {
   const tokens = useMemo(() => tokenize(children), [children])
   const totalSteps = useMemo(
@@ -121,7 +134,7 @@ export default function Stream({
       ),
     [tokens],
   )
-  const [progress, setProgress] = useState(0)
+  const [progress, setProgress] = useState(instant ? totalSteps : 0)
 
   // Hold the latest tokens / onDone in refs so the timer effect only
   // re-runs when progress / totalSteps actually change. Otherwise every

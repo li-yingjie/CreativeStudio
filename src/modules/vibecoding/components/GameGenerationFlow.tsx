@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   Sparkles,
@@ -78,6 +79,12 @@ interface Props {
 }
 
 export default function GameGenerationFlow({ step, spec, onOpenGame, onConfirmSpec }: Props) {
+  // Capture the step at mount. A fresh run mounts at 'confirming' and walks
+  // forward, so each phase streams as it arrives. A restored run (re-opening
+  // the project) mounts already at a later step — every phase that was done
+  // before mount renders instantly instead of re-typing from scratch.
+  const mountStepRef = useRef<GameStep>(step)
+  const wasReady = (target: GameStep) => atOrPast(mountStepRef.current, target)
   return (
     <div className="space-y-6">
       {/* ── Step 0: 确认方案 — only shown while the user is still picking.
@@ -146,14 +153,14 @@ export default function GameGenerationFlow({ step, spec, onOpenGame, onConfirmSp
             {(s, next) => (
               <>
                 <p className="text-[14px] leading-[20px] text-[var(--color-ink)]">
-                  <Stream onDone={next}>
+                  <Stream instant={wasReady('analyzing')} onDone={next}>
                     {'我已经解析了你的需求，准备按这条流水线把它做出来：'}
                     <strong>STG + Roguelike</strong>
                     {' · 60fps · HTML5 跨端 · 浏览器即开即玩。'}
                   </Stream>
                 </p>
                 {s >= 2 && (
-                  <RevealAfter delay={120} onDone={next}>
+                  <RevealAfter delay={120} instant={wasReady('analyzing')} onDone={next}>
                     <PlanGrid />
                   </RevealAfter>
                 )}
@@ -177,7 +184,7 @@ export default function GameGenerationFlow({ step, spec, onOpenGame, onConfirmSp
                 <Phase
                   done={atOrPast(step, 'art')}
                   text={
-                    <Stream onDone={next}>
+                    <Stream instant={wasReady('scaffolding')} onDone={next}>
                       {'调用 '}
                       <strong>代码生成工具</strong>
                       {' 搭建项目骨架 — 单页入口 + 主循环 + 资源加载器 + Service Worker 离线缓存。'}
@@ -185,7 +192,7 @@ export default function GameGenerationFlow({ step, spec, onOpenGame, onConfirmSp
                   }
                 />
                 {s >= 2 && (
-                  <RevealAfter delay={120} onDone={next}>
+                  <RevealAfter delay={120} instant={wasReady('scaffolding')} onDone={next}>
                     <ArtifactCardGroup>
                       <ArtifactCard
                         filename="index.html"
@@ -228,7 +235,7 @@ export default function GameGenerationFlow({ step, spec, onOpenGame, onConfirmSp
                 <Phase
                   done={atOrPast(step, 'gameplay')}
                   text={
-                    <Stream onDone={next}>
+                    <Stream instant={wasReady('art')} onDone={next}>
                       {'调用 '}
                       <strong>图像生成工具</strong>
                       {' 生成主角 / 敌人 / 道具单帧，'}
@@ -238,7 +245,7 @@ export default function GameGenerationFlow({ step, spec, onOpenGame, onConfirmSp
                   }
                 />
                 {s >= 2 && (
-                  <RevealAfter delay={120} onDone={next}>
+                  <RevealAfter delay={120} instant={wasReady('art')} onDone={next}>
                     <ArtGrid />
                   </RevealAfter>
                 )}
@@ -262,7 +269,7 @@ export default function GameGenerationFlow({ step, spec, onOpenGame, onConfirmSp
                 <Phase
                   done={atOrPast(step, 'audio')}
                   text={
-                    <Stream onDone={next}>
+                    <Stream instant={wasReady('gameplay')} onDone={next}>
                       {'调用 '}
                       <strong>玩法编排工具</strong>
                       {' 注入 '}
@@ -272,7 +279,7 @@ export default function GameGenerationFlow({ step, spec, onOpenGame, onConfirmSp
                   }
                 />
                 {s >= 2 && (
-                  <RevealAfter delay={120} onDone={next}>
+                  <RevealAfter delay={120} instant={wasReady('gameplay')} onDone={next}>
                     <BuildsGrid />
                   </RevealAfter>
                 )}
@@ -296,7 +303,7 @@ export default function GameGenerationFlow({ step, spec, onOpenGame, onConfirmSp
                 <Phase
                   done={atOrPast(step, 'done')}
                   text={
-                    <Stream onDone={next}>
+                    <Stream instant={wasReady('audio')} onDone={next}>
                       {'调用 '}
                       <strong>音效生成工具</strong>
                       {' 编排爆破 / 激光 / 护盾启动等程序化音效，主菜单 BGM 直接走 mp3。'}
@@ -304,7 +311,7 @@ export default function GameGenerationFlow({ step, spec, onOpenGame, onConfirmSp
                   }
                 />
                 {s >= 2 && (
-                  <RevealAfter delay={120}>
+                  <RevealAfter delay={120} instant={wasReady('audio')}>
                     <SfxStrip />
                   </RevealAfter>
                 )}
@@ -332,7 +339,7 @@ export default function GameGenerationFlow({ step, spec, onOpenGame, onConfirmSp
                     strokeWidth={2}
                   />
                   <p>
-                    <Stream onDone={next}>
+                    <Stream instant={wasReady('done')} onDone={next}>
                       {'游戏已生成完成，可以先在本地试玩，确认无误后再点右上「发布」 — 点下方产物卡片或右侧 '}
                       <strong>预览</strong>
                       {' 即可开玩，方向键移动、空格射击、Q 护盾、E 炸弹、R 必杀。'}
@@ -340,7 +347,7 @@ export default function GameGenerationFlow({ step, spec, onOpenGame, onConfirmSp
                   </p>
                 </div>
                 {s >= 2 && (
-                  <RevealAfter delay={120}>
+                  <RevealAfter delay={120} instant={wasReady('done')}>
                     <GameProductCard onOpen={onOpenGame} />
                   </RevealAfter>
                 )}

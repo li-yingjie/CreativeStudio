@@ -16,16 +16,16 @@ import {
   Database,
   Eye,
   FileCode2,
+  FileInfo,
   FileSearch,
   FileText,
   FolderCode,
   Gamepad2,
   Image as ImageIcon,
-  Info,
   LayoutDashboard,
   LayoutGrid,
-  Library,
   MessageCircle,
+  Notebook,
   ScrollText,
   Settings,
   SquareUser,
@@ -109,10 +109,10 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   玩法: Gamepad2,
   能力技能: FolderCode,
   人设: SquareUser,
-  基础信息: Info,
+  基础信息: FileInfo,
   人设指令: ScrollText,
   技能: FolderCode,
-  知识库: Library,
+  知识库: Notebook,
   触发器: Zap,
   // mini-program sections
   智能体: MessageCircle,
@@ -233,20 +233,23 @@ export const MINIPROGRAM_SKILL_ITEMS = [
   '订阅消息提醒',
   '分享得抽牌次数',
 ]
+/** Key in-game screens surfaced as 页面 sub-items. The secondary screens
+ *  (暂停面板 / 排行榜 / 商店) are intentionally folded away. */
+export const GAME_KEY_PAGES = ['开始界面', '游戏进行中', '结算界面']
 
 function namedCategory(name: string, items: string[]): FileNode {
   return { name, type: 'dir', children: items.map((n) => ({ name: n, type: 'file' as const })) }
 }
 
-/** 游戏 (web-game): 基础信息 / 页面 / 文档 / 素材 / 玩法 / 知识库 / 数据库 /
- *  代码文件. 知识库 is a category (capability-detail children) to match 分身. */
+/** 游戏 (web-game): 基础信息 / 页面 / 文档 / 素材 / 知识库 / 数据库 / 代码文件.
+ *  页面 is a category whose children are the key in-game screens; 知识库 is a
+ *  category (capability-detail children) to match 分身. 玩法 is hidden for now. */
 function gameView(): FileNode[] {
   return [
     { name: '基础信息', type: 'file' },
-    { name: '页面', type: 'file' },
+    namedCategory('页面', GAME_KEY_PAGES),
     { name: '文档', type: 'file' },
     { name: '素材', type: 'file' },
-    { name: '玩法', type: 'file' },
     namedCategory('知识库', GAME_KNOWLEDGE_ITEMS),
     { name: '数据库', type: 'file' },
     { name: '代码文件', type: 'file' },
