@@ -61,7 +61,7 @@ export const TOOLS: ToolItem[] = [
 
 /* ─────────────────────── 知识库 ─────────────────────── */
 
-export const KNOWLEDGE_FILTERS = ['全部', '文件知识库', '结构化知识库', '数据知识库'] as const
+export const KNOWLEDGE_FILTERS = ['全部', '数据知识库', '结构化知识库'] as const
 export type KnowledgeFilter = (typeof KNOWLEDGE_FILTERS)[number]
 
 export interface KnowledgeBase {
@@ -70,22 +70,24 @@ export interface KnowledgeBase {
   desc: string
   kind: Exclude<KnowledgeFilter, '全部'>
   count: string
+  /** Photo banner + the small rounded glyph rendered centered on it. */
+  image: string
+  icon: string
 }
 
+const KB_IMG = '/assets/resource-hub/knowledge'
+
+// A curated slice of the 标准知识库; banners + glyphs are exported from the
+// design and downscaled into KB_IMG.
 export const KNOWLEDGE_BASES: KnowledgeBase[] = [
-  { id: 'k-video', name: '抖音视频', desc: '本知识库提供了抖音视频相关数据，可以查询…', kind: '数据知识库', count: '2K' },
-  { id: 'k-b', name: '抖音 B 号', desc: '本知识库提供了抖音 B 号的相关数据，可以查询…', kind: '数据知识库', count: '422' },
-  { id: 'k-c', name: '抖音 C 号', desc: '本知识库提供了抖音 C 号的相关数据，可以查询…', kind: '数据知识库', count: '423' },
-  { id: 'k-live', name: '抖音直播', desc: '本知识库提供了抖音直播相关的数据，可以查询…', kind: '数据知识库', count: '385' },
-  { id: 'k-video-gov', name: '视频处置', desc: '本知识库提供了视频处置相关的数据，可以查询…', kind: '结构化知识库', count: '165' },
-  { id: 'k-acct-gov', name: '账号处置', desc: '本知识库提供了账号处置相关的数据，可以查询…', kind: '结构化知识库', count: '91' },
-  { id: 'k-live-gov', name: '直播处置', desc: '本知识库提供了直播处置相关的数据，可以查询…', kind: '结构化知识库', count: '157' },
-  { id: 'k-miniapp', name: '抖音小程序', desc: '本知识库提供了小程序相关的数据，可以查询…', kind: '数据知识库', count: '118' },
-  { id: 'k-faq', name: '平台 FAQ', desc: '常见问题与官方答疑，可在回复中引用。', kind: '文件知识库', count: '240' },
-  { id: 'k-policy', name: '运营政策', desc: '平台运营规则与政策文档库。', kind: '文件知识库', count: '88' },
-  { id: 'k-astro', name: '12 星座知识库', desc: '星座性格、运势与情感关系知识。', kind: '文件知识库', count: '312' },
-  { id: 'k-brand', name: '品牌资料库', desc: '品牌调性、话术与素材规范。', kind: '文件知识库', count: '64' },
-  { id: 'k-hotspot', name: '热点内容库', desc: '历史爆款选题与脚本结构沉淀。', kind: '结构化知识库', count: '209' },
+  { id: 'k-video', name: '抖音视频', kind: '数据知识库', count: '2K', image: `${KB_IMG}/video.webp`, icon: `${KB_IMG}/video-i.webp`, desc: '本知识库提供了抖音视频相关数据，可以查询视频投稿信息、视频标签、视频互动数据、视频作者信息等多方面的信息。本知识库内的数据为T+1更新。' },
+  { id: 'k-b', name: '抖音B号', kind: '数据知识库', count: '422', image: `${KB_IMG}/b.webp`, icon: `${KB_IMG}/b-i.webp`, desc: '本知识库提供了抖音B号的相关数据，可以查询抖音账号信息、抖音账号的互动数据、抖音B号认证信息等多方面的信息。本知识库内的数据为T+1更新。' },
+  { id: 'k-c', name: '抖音C号', kind: '数据知识库', count: '423', image: `${KB_IMG}/c.webp`, icon: `${KB_IMG}/c-i.webp`, desc: '本知识库提供了抖音C号的相关数据，可以查询抖音账号信息、抖音账号的互动数据、抖音C号认证身份等多方面的信息。本知识库内的数据为T+1更新。' },
+  { id: 'k-live', name: '抖音直播', kind: '数据知识库', count: '385', image: `${KB_IMG}/live.webp`, icon: `${KB_IMG}/live-i.webp`, desc: '本知识库提供了抖音直播相关的数据，可以查询直播间信息、主播信息等多方面的信息，同时提供关播后生成的直播回放。本知识库内的数据为T+1更新。' },
+  { id: 'k-video-gov', name: '视频处置', kind: '结构化知识库', count: '165', image: `${KB_IMG}/video-gov.webp`, icon: `${KB_IMG}/video-gov-i.webp`, desc: '本知识库提供了视频处置相关的数据，可以查询处置单信息、处置状态等多方面的信息。本知识库内的数据为T+1更新。' },
+  { id: 'k-acct-gov', name: '账号处置', kind: '结构化知识库', count: '91', image: `${KB_IMG}/acct-gov.webp`, icon: `${KB_IMG}/acct-gov-i.webp`, desc: '本知识库提供了账号处置相关的数据，可以查询处置单信息、处置状态等多方面的信息。本知识库内的数据为T+1更新。' },
+  { id: 'k-allhot', name: '全网热点', kind: '数据知识库', count: '755', image: `${KB_IMG}/allhot.webp`, icon: `${KB_IMG}/allhot-i.webp`, desc: '提供微博热榜、快手热榜、小红书热点、Bilibili热搜、知乎热榜等的热点事件信息，包括事件标题和在榜排名。' },
+  { id: 'k-douyinhot', name: '抖音热点', kind: '数据知识库', count: '749', image: `${KB_IMG}/douyinhot.webp`, icon: `${KB_IMG}/douyinhot-i.webp`, desc: '提供抖音热榜、抖音上升榜的热点事件信息，包括事件标题和在榜排名。' },
 ]
 
 /* ─────────────────────── 模型库 ─────────────────────── */

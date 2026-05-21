@@ -19,12 +19,13 @@ import {
   CardBody,
   CardShell,
   Chips,
-  CountPill,
   FilterGroup,
   GlyphBanner,
   ImageBanner,
+  KnowledgeBanner,
   SectionTitle,
   ToolFooter,
+  UsageCount,
   WordmarkBanner,
 } from './cards'
 
@@ -132,10 +133,16 @@ export default function ResourceHub() {
               <SectionTitle title="标准知识库" count={KNOWLEDGE_BASES.length} />
             </div>
             <div className={`mt-4 ${grid}`}>
-              {KNOWLEDGE_BASES.filter((k) => (kbFilter === '全部' || k.kind === kbFilter) && match(k.name, k.desc)).map((k, i) => (
+              {KNOWLEDGE_BASES.filter((k) => (kbFilter === '全部' || k.kind === kbFilter) && match(k.name, k.desc)).map((k) => (
                 <CardShell key={k.id}>
-                  <GlyphBanner gradient={gradientFor(i + 2)} glyph="📚" />
-                  <CardBody title={k.name} desc={k.desc} trailing={<CountPill value={k.count} />} />
+                  <KnowledgeBanner image={k.image} icon={k.icon} />
+                  <div className="flex min-w-0 flex-col px-4 pb-4 pt-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="min-w-0 flex-1 truncate text-[15px] font-semibold text-[var(--color-ink)]">{k.name}</h3>
+                      <UsageCount value={k.count} />
+                    </div>
+                    <p className="mt-1.5 truncate text-[12px] text-[var(--color-ink)]/55">{k.desc}</p>
+                  </div>
                 </CardShell>
               ))}
             </div>

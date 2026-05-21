@@ -8345,6 +8345,16 @@ export default function VibeCodingPage() {
                   for (const node of productTree) {
                     flat.push({ label: node.name })
                   }
+                  // 玩法 is intentionally hidden from the game's left product
+                  // list, but the gameplay-design object can still be opened on
+                  // demand from here (routes through openFileInTab → 玩法 tab).
+                  // Slot it just before 代码文件 so it groups with the other
+                  // product objects rather than trailing the code editor.
+                  if (kind === 'web-game' && !flat.some((f) => f.label === '玩法')) {
+                    const codeIdx = flat.findIndex((f) => f.label === '代码文件')
+                    if (codeIdx >= 0) flat.splice(codeIdx, 0, { label: '玩法' })
+                    else flat.push({ label: '玩法' })
+                  }
                   // Code never lives in the left product directory — every
                   // project exposes its real source tree via a 代码文件 editor
                   // tab added from here (left directory + code on the right).

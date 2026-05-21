@@ -4,6 +4,22 @@
 
 ## 2026-05-21
 
+- 游戏「玩法」对象加回到标签页的「+ 添加」菜单(不放回左侧产品列表):gameView
+  仍隐藏 玩法,但 VibeCodingPage 的 + 菜单对 web-game 额外插入「玩法」行(排在
+  代码文件前)。点开即打开 玩法 标签页(ProjectObjectViews 已有的核心循环/武器
+  系统/敌人波次/Roguelike/Boss/道具掉落卡片视图)。预览实测 + 菜单出现玩法、左侧
+  无玩法、点开渲染正常。(未提交)
+- 修复游戏画布编辑(ImageCanvasEditor)选中图片的浮动工具条不跟随的问题:原来
+  工具条固定在画布顶部居中(`left-1/2 top-3`)。改为按选中图片定位——浮在图片
+  上方(空间不足时翻到下方)、随拖动与画布滚动跟随,并在视口内夹取(条比画布宽
+  时居中)。新增 scroll 状态 + onScroll,工具条用 useLayoutEffect 量自身宽度做
+  夹取。预览实测拖动时工具条跟随。(未提交)
+- 资源库「知识库」按设计稿落地图片卡:照片 banner + 居中 48px 圆角图标浮层 +
+  标题/数量(同行)/描述。从标准知识库取 8 张(数据 6 + 结构化 2),照片缩到
+  584px、图标缩到 96px 存 `public/assets/resource-hub/knowledge/`;KnowledgeBase
+  数据加 `image`/`icon` 字段,KNOWLEDGE_FILTERS 裁剪为 全部/数据知识库/结构化
+  知识库;cards.tsx 新增 `KnowledgeBanner`、抽出复用的 `UsageCount`,删除弃用的
+  `CountPill`。预览实测卡片渲染与分类筛选正常。(未提交)
 - 统一右侧面板底色为 `--color-surface-0`(#fafbfc):创意广场 AgentHubPreview
   去掉白→#f8f9fb 渐变 + 创意广场 wrapper `bg-white`→surface-0;Skills
   ResourceLibraryView 根容器与两处 sticky 头由 `bg-white`→surface-0(资源库/

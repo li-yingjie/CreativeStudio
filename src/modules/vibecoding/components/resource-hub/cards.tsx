@@ -129,6 +129,19 @@ function DouyinMark() {
   )
 }
 
+/** Small usage/count metric with a calendar glyph — 工具箱 / 知识库. */
+export function UsageCount({ value }: { value: string }) {
+  return (
+    <span className="flex shrink-0 items-center gap-1 text-[12px] text-[var(--color-ink)]/55">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="opacity-60">
+        <path d="M8 10a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0v-3a1 1 0 0 1 1-1Zm9 1a1 1 0 1 0-2 0v3a1 1 0 1 0 2 0v-3Z" fill="currentColor" />
+        <path fillRule="evenodd" clipRule="evenodd" d="M17 1a1 1 0 0 1 1 1v2h1a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H5a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4h1V2a1 1 0 0 1 2 0v2h8V2a1 1 0 0 1 1-1ZM5 6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5Z" fill="currentColor" />
+      </svg>
+      {value}
+    </span>
+  )
+}
+
 /** 工具箱 card footer: 抖音官方 · date · usage. */
 export function ToolFooter({ source, date, usage }: { source: string; date: string; usage: string }) {
   const divider = <span className="mx-1.5 h-2.5 w-px shrink-0 bg-[var(--divider)]" />
@@ -139,13 +152,27 @@ export function ToolFooter({ source, date, usage }: { source: string; date: stri
       {divider}
       <span className="shrink-0">{date}</span>
       {divider}
-      <span className="flex shrink-0 items-center gap-1">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="opacity-60">
-          <path d="M8 10a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0v-3a1 1 0 0 1 1-1Zm9 1a1 1 0 1 0-2 0v3a1 1 0 1 0 2 0v-3Z" fill="currentColor" />
-          <path fillRule="evenodd" clipRule="evenodd" d="M17 1a1 1 0 0 1 1 1v2h1a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H5a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4h1V2a1 1 0 0 1 2 0v2h8V2a1 1 0 0 1 1-1ZM5 6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5Z" fill="currentColor" />
-        </svg>
-        {usage}
-      </span>
+      <UsageCount value={usage} />
+    </div>
+  )
+}
+
+/** 知识库 banner: a photo with the rounded glyph centered on it. */
+export function KnowledgeBanner({ image, icon }: { image: string; icon: string }) {
+  return (
+    <div className="relative aspect-[16/7] w-full overflow-hidden bg-[var(--fill-subtle)]">
+      <img
+        src={image}
+        alt=""
+        loading="lazy"
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+      />
+      <img
+        src={icon}
+        alt=""
+        loading="lazy"
+        className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-xl"
+      />
     </div>
   )
 }
@@ -219,15 +246,5 @@ export function CardBody({
       </div>
       <p className="line-clamp-2 text-[12px] leading-[1.5] text-[var(--color-ink)]/50">{desc}</p>
     </div>
-  )
-}
-
-/** Count pill (e.g. usage / item count). */
-export function CountPill({ value }: { value: string }) {
-  return (
-    <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-ink)]/45">
-      <span className="inline-block h-3 w-3 rounded-[3px] border border-current opacity-60" />
-      {value}
-    </span>
   )
 }

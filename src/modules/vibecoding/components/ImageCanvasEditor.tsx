@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nanoid } from 'nanoid'
 import {
   ArrowLeft,
@@ -82,6 +82,9 @@ export default function ImageCanvasEditor({
   const [labels, setLabels] = useState<RowLabel[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
+  // Scroll offset of the canvas — the floating toolbar is positioned in
+  // viewport space, so it must re-anchor when the canvas scrolls.
+  const [scroll, setScroll] = useState({ left: 0, top: 0 })
 
   // Preload every image to measure its aspect ratio, then lay out once so
   // each row's items keep their natural proportions.
@@ -200,6 +203,8 @@ export default function ImageCanvasEditor({
     setSelectedId(null)
   }
 
+  const selectedItem = selectedId ? items.find((it) => it.id === selectedId) ?? null : null
+
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--color-surface-0)]">
       {/* Header */}
@@ -238,14 +243,23 @@ export default function ImageCanvasEditor({
         </div>
       </div>
 
-      {/* Canvas area (relative so the selection toolbar can float at the top) */}
+      {/* Canvas area (relative so the selection toolbar can float over the
+          selected image and track it while dragging / scrolling) */}
       <div className="relative min-h-0 flex-1">
-        {selectedId && <SelectionToolbar />}
+        {selectedItem && (
+          <SelectionToolbar
+            centerX={selectedItem.x + selectedItem.w / 2 - scroll.left}
+            imgTop={selectedItem.y - scroll.top}
+            imgBottom={selectedItem.y + selectedItem.h - scroll.top}
+            viewportW={wrapRef.current?.clientWidth ?? 0}
+          />
+        )}
         <div
           ref={wrapRef}
           onPointerDown={() => setSelectedId(null)}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
+          onScroll={(e) => setScroll({ left: e.currentTarget.scrollLeft, top: e.currentTarget.scrollTop })}
           className="absolute inset-0 overflow-auto"
           style={{
             backgroundColor: '#ffffff',
@@ -313,12 +327,46 @@ export default function ImageCanvasEditor({
 
 /* ─── Floating selection toolbar (mock — buttons are visual only) ─── */
 
-function SelectionToolbar() {
+function SelectionToolbar({
+  centerX,
+  imgTop,
+  imgBottom,
+  viewportW,
+}: {
+  centerX: number
+  imgTop: number
+  imgBottom: number
+  viewportW: number
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [w, setW] = useState(0)
+  useLayoutEffect(() => {
+    if (ref.current) setW(ref.current.offsetWidth)
+  }, [])
+
+  const GAP = 10
+  const MARGIN = 8
+  const EST_H = 48
+  // Float above the image; flip below when there isn't room above.
+  const above = imgTop - GAP - EST_H >= MARGIN
+  const top = above ? imgTop - GAP : imgBottom + GAP
+  // Center on the image but keep the whole bar inside the viewport. When the
+  // bar is wider than the canvas it can't track horizontally — center it.
+  const half = w / 2
+  let left = centerX
+  if (w && viewportW) {
+    const lo = MARGIN + half
+    const hi = viewportW - MARGIN - half
+    left = lo > hi ? viewportW / 2 : Math.min(Math.max(centerX, lo), hi)
+  }
+
   return (
     <div
+      ref={ref}
       // Keep clicks inside the bar from clearing the selection.
       onPointerDown={(e) => e.stopPropagation()}
-      className="absolute left-1/2 top-3 z-20 flex max-w-[calc(100%-24px)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]"
+      style={{ left, top, transform: above ? 'translate(-50%, -100%)' : 'translate(-50%, 0)' }}
+      className="absolute z-20 flex max-w-[calc(100%-24px)] items-center gap-1 overflow-x-auto rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]"
     >
       {/* 快捷编辑 — leads with the 抖音AI工坊 brand mark */}
       <button
