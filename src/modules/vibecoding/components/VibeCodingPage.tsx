@@ -1,6 +1,7 @@
 import { Fragment, useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import * as Popover from '@radix-ui/react-popover'
 import { toast } from 'sonner'
 import ChatPreview from '@/modules/editor/components/preview/ChatPreview'
 import GlassIconButton from '@/modules/editor/components/layout/GlassIconButton'
@@ -40,6 +41,11 @@ import GameGenerationFlow, { GameBuildProgress } from './GameGenerationFlow'
 import type { GameSpecDraft } from './GameConfirmCard'
 import AiPersonaChatPreview, { type TriggerSimulation } from './AiPersonaChatPreview'
 import { ProjectObjectView } from './ProjectObjectViews'
+import { PROJECT_DOCS, CHILDREN_DAY_PLAN_MD } from './data/project-docs'
+import { GENERIC_AI_REPLIES, CHAT_EMPTY_SUGGESTIONS, CHAT_SUGGESTIONS_BY_KIND, CHAT_SUGGESTIONS_BY_PROJECT } from './data/chat-suggestions'
+import { PROJECT_KINDS, SHAPE_BY_KIND, PROJECT_KIND_LABELS, type OutputShape } from './data/project-kinds'
+import { FlexAlignGlyph, ProductToolbar, ToolbarAction } from './Toolbar'
+import { getFileIcon, FileTreeView } from './FileTreeView'
 import MentionPicker, { type MentionItem } from './MentionPicker'
 import TriggerDetailView from './TriggerDetailView'
 import { ChatFormCard, ChatFormStep, ChatFormSubmit } from './ChatFormCard'
@@ -123,28 +129,6 @@ import { getMiniProgramConfig } from './MiniProgramConfigData'
  */
 // `ProjectKind` is defined in ./ProjectProductView (shared with the
 // product-view bucketing) and imported above.
-type OutputShape = 'app' | 'artifact' | 'code'
-
-const PROJECT_KINDS: Record<string, ProjectKind> = {
-  '每日打卡小程序': 'mini-program',
-  '塔罗小程序': 'mini-program',
-  '探店视频创作助手': 'mini-program',
-  '粉丝互动机器人': 'ai-avatar',
-  '陶白白 Sensei 分身': 'ai-avatar',
-  '沪上火锅·五一种草提案': 'ops-proposal',
-  '抖音 AI 工坊设计探索': 'web-app',
-  '射击小游戏': 'web-game',
-  '六一儿童节活动': 'marketing-h5',
-}
-
-const SHAPE_BY_KIND: Record<ProjectKind, OutputShape> = {
-  'mini-program': 'app',
-  'ai-avatar': 'app',
-  'ops-proposal': 'artifact',
-  'web-app': 'app',
-  'web-game': 'app',
-  'marketing-h5': 'app',
-}
 
 /** Heuristic kind classifier — used when the home screen takes a free
  *  prompt and we need to pick a shape before the project is named.
@@ -181,18 +165,12 @@ import {
   ChevronUp,
   ChevronRight,
   Clock,
-  Code2,
-  Columns2,
   LayoutGrid,
   MoreHorizontal,
   Moon,
   Sun,
   Copy,
   Database,
-  File,
-  FileCode2,
-  FileCog,
-  FileJson,
   FileText,
   FolderClosed,
   FolderCode,
@@ -201,7 +179,6 @@ import {
   Headphones,
   Home,
   Inbox,
-  LayoutDashboard,
   Share2,
   Menu4,
   Pin,
@@ -243,7 +220,6 @@ import {
   Camera,
   SquareUser,
   Brush,
-  Palette,
   MonitorPlay,
   MessageSquare,
   Image as ImageIcon,
@@ -1028,17 +1004,6 @@ function flattenFileTreeForMention(
   return out
 }
 
-function getFileIcon(name: string): typeof File {
-  const lower = name.toLowerCase()
-  if (/\.(tsx|ts|jsx|js|mjs|cjs)$/.test(lower)) return FileCode2
-  if (/\.json$/.test(lower)) return FileJson
-  if (/\.(css|less|scss|sass|styl)$/.test(lower)) return Palette
-  if (/\.(yaml|yml|toml|ini|env)$/.test(lower)) return FileCog
-  if (/\.(md|mdx|txt)$/.test(lower)) return FileText
-  if (/\.(png|jpe?g|gif|webp|svg|avif)$/.test(lower)) return ImageIcon
-  return File
-}
-
 /** Resolve the icon for a product-view tab / dropdown label so the top
  *  tab strip and the + dropdown stay visually in sync with the left
  *  sidebar's project list. Mirrors FileTreeView's `iconFor` logic:
@@ -1053,89 +1018,6 @@ function productLabelIcon(label: string, parent?: string): LucideIcon {
   if (parent === '触发器' || label.startsWith('发起·')) return Zap
   const base = label.includes('·') ? label.slice(label.indexOf('·') + 1) : label
   return PRODUCT_CATEGORY_ICONS[label] ?? PRODUCT_CATEGORY_ICONS[base] ?? getFileIcon(label)
-}
-
-function FlexAlignGlyph({
-  side,
-  size = 13,
-}: {
-  side: 'left' | 'right'
-  size?: number
-}) {
-  const mask = `url(/icons/flex-align-${side}.svg) center / contain no-repeat`
-  return (
-    <span
-      aria-hidden
-      className="inline-block shrink-0 bg-current"
-      style={{
-        width: size,
-        height: size,
-        WebkitMask: mask,
-        mask,
-      }}
-    />
-  )
-}
-
-/** Second-layer product toolbar — a consistent row with the multi-object
- *  tabs on the left and contextual actions on the right. Every preview
- *  surface (phone / 界面 / 素材 / 代码 / 知识库 …) renders through this so the
- *  spacing, divider and alignment stay identical. */
-function ProductToolbar({
-  leading,
-  tabs,
-  actions,
-}: {
-  /** Far-left actions, pinned before the tab row (e.g. 编辑). */
-  leading?: ReactNode
-  tabs: ReactNode
-  actions?: ReactNode
-}) {
-  return (
-    <div className="@container flex min-h-[44px] shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--divider-soft)] px-4 py-2">
-      <div className="flex min-w-0 items-center gap-3">
-        {leading ? <div className="flex shrink-0 items-center gap-2">{leading}</div> : null}
-        <div className="tab-scroll flex min-w-0 items-center gap-3 overflow-x-auto">{tabs}</div>
-      </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
-    </div>
-  )
-}
-
-/** A single right-side toolbar action (icon + label, collapses to icon-only
- *  on narrow toolbars). Shared by every product toolbar so the buttons read
- *  the same everywhere. */
-function ToolbarAction({
-  icon: Icon,
-  label,
-  onClick,
-  active = false,
-  iconOnly = false,
-}: {
-  icon: LucideIcon
-  label: string
-  onClick?: () => void
-  active?: boolean
-  /** Render as a square icon-only button (label kept as the tooltip). */
-  iconOnly?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      onClick={onClick}
-      className={`flex items-center rounded-lg border text-[12px] transition-colors ${
-        iconOnly ? 'gap-0 px-2 py-1.5' : 'gap-0 px-2 py-1.5 @[520px]:gap-1.5 @[520px]:px-3'
-      } ${
-        active
-          ? 'border-[var(--color-ink)]/25 bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]'
-          : 'border-[var(--color-ink)]/8 text-[var(--color-ink)]/60 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]'
-      }`}
-    >
-      <Icon size={13} />
-      {!iconOnly && <span className="hidden @[520px]:inline">{label}</span>}
-    </button>
-  )
 }
 
 /** Merge user-added objects into a product tree's category dirs. Extras are
@@ -1158,494 +1040,11 @@ function mergeCategoryExtras(
   })
 }
 
-function FileTreeView({
-  nodes,
-  expanded,
-  onToggleDir,
-  onOpenFile,
-  onOpenDir,
-  showDirChildren = true,
-  defaultExpanded = false,
-  depth,
-  parentPath,
-  railStartDepth = 0,
-  rowBleedLeft = 0,
-  roundedRows = false,
-  iconFor,
-  isActive,
-}: {
-  nodes: FileNode[]
-  expanded: Set<string>
-  onToggleDir: (path: string) => void
-  onOpenFile: (name: string) => void
-  /** Optional dir-click handler — product-view categories use it so a
-   *  parent category (e.g. 界面) opens its own tab while still toggling
-   *  expansion. When omitted, clicking a dir only toggles. */
-  onOpenDir?: (node: FileNode, path: string) => void
-  /** When false, directory rows act as object launchers and do not reveal
-   *  their children. Used by the platform project list so object children
-   *  stay in the right-side toolbar, not in the left navigation. */
-  showDirChildren?: boolean
-  /** Invert the `expanded` set so dirs render expanded by default and the
-   *  set tracks the *collapsed* ones instead. The platform project list uses
-   *  this so every object's children show with their indent rail up front;
-   *  product paths are namespaced (`__product__/…`) so they never collide
-   *  with the code tree's expanded paths in the same shared set. */
-  defaultExpanded?: boolean
-  depth: number
-  parentPath: string
-  /** Lowest depth at which to draw an indent rail. Platform sidebar
-   *  passes 1 so the outermost rail connecting files to the project
-   *  header is suppressed. */
-  railStartDepth?: number
-  /** Extends row hover/active backgrounds leftward when the tree itself is
-   *  nested inside an inset container. Platform project objects use this
-   *  so selected object rows align with selected project rows. */
-  rowBleedLeft?: number
-  /** Round the row hover/active backgrounds — used by the platform sidebar
-   *  so selected object rows match the project row's rounded highlight. */
-  roundedRows?: boolean
-  /** Optional per-node icon override — the product view uses it to paint
-   *  synthetic category folders and page leaves with their own icon.
-   *  Returns undefined to fall back to the default folder / file icon.
-   *  Applies to both dir and file nodes. */
-  iconFor?: (node: FileNode, path: string, depth: number) => LucideIcon | undefined
-  /** Optional leaf-active predicate — the product view uses it to
-   *  highlight the page node matching the current preview route. */
-  isActive?: (node: FileNode, path: string) => boolean
-}) {
-  // Each row carries `depth` absolutely-positioned rails — one per
-  // ancestor level — so the user can trace a child back to its parent
-  // folder. Rails only render for rows at depth ≥ 1 (root rows have no
-  // parent to connect to), and since rows stack contiguously the rails
-  // visually fuse into continuous vertical guides for each open branch.
-  const renderRails = () =>
-    depth === 0
-      ? null
-      : Array.from({ length: depth })
-          .map((_, i) => i)
-          .filter((i) => i >= railStartDepth)
-          .map((i) => (
-            <span
-              key={i}
-              aria-hidden
-              className="pointer-events-none absolute top-0 bottom-0 w-px bg-[var(--color-ink)]/[0.06]"
-              style={{ left: 12 + i * 14 + 6 }}
-            />
-          ))
-
-  return (
-    <>
-      {nodes.map((node) => {
-        const path = parentPath ? `${parentPath}/${node.name}` : node.name
-        // With defaultExpanded the set tracks collapsed paths, so flip it.
-        const isExpanded = defaultExpanded ? !expanded.has(path) : expanded.has(path)
-        const pl = 12 + depth * 14
-        const rowStyle = rowBleedLeft
-          ? { paddingLeft: pl + rowBleedLeft, marginLeft: -rowBleedLeft }
-          : { paddingLeft: pl }
-        if (node.type === 'dir') {
-          const DirIcon = iconFor?.(node, path, depth)
-          return (
-            <div key={path}>
-              <div className="relative">
-                {renderRails()}
-                <button
-                  onClick={() => {
-                    if (showDirChildren) onToggleDir(path)
-                    onOpenDir?.(node, path)
-                  }}
-                  className={`box-border flex w-full items-center gap-1.5 py-1 text-[12px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/95 ${
-                    roundedRows ? 'rounded-md' : ''
-                  }`}
-                  style={rowStyle}
-                >
-                  {DirIcon ? (
-                    <DirIcon size={13} className="shrink-0 text-[var(--color-ink)]/60" />
-                  ) : isExpanded ? (
-                    <FolderOpen size={13} className="shrink-0 text-[var(--color-ink)]/60" />
-                  ) : (
-                    <FolderClosed size={13} className="shrink-0 text-[var(--color-ink)]/60" />
-                  )}
-                  {node.name}
-                </button>
-              </div>
-              {showDirChildren && isExpanded && node.children && (
-                <FileTreeView
-                  nodes={node.children}
-                  expanded={expanded}
-                  onToggleDir={onToggleDir}
-                  onOpenFile={onOpenFile}
-                  onOpenDir={onOpenDir}
-                  showDirChildren={showDirChildren}
-                  defaultExpanded={defaultExpanded}
-                  rowBleedLeft={rowBleedLeft}
-                  roundedRows={roundedRows}
-                  depth={depth + 1}
-                  parentPath={path}
-                  railStartDepth={railStartDepth}
-                  iconFor={iconFor}
-                  isActive={isActive}
-                />
-              )}
-            </div>
-          )
-        }
-        const Icon = iconFor?.(node, path, depth) ?? getFileIcon(node.name)
-        const active = isActive?.(node, path) ?? false
-        return (
-          <div key={path} className="relative">
-            {renderRails()}
-            <button
-              onClick={() => onOpenFile(node.name)}
-              className={`box-border flex w-full items-center gap-1.5 py-1 text-[12px] transition-colors ${
-                roundedRows ? 'rounded-md' : ''
-              } ${
-                active
-                  ? 'bg-[var(--color-ink)]/[0.07] text-[var(--color-ink)]'
-                  : 'text-[var(--color-ink)]/75 hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/95'
-              }`}
-              style={rowStyle}
-            >
-              <Icon
-                size={12}
-                className={`shrink-0 ${active ? 'text-[var(--color-ink)]/80' : 'text-[var(--color-ink)]/55'}`}
-              />
-              {node.name}
-            </button>
-          </div>
-        )
-      })}
-    </>
-  )
-}
-
 /* ─── Phone mockup that scales to fit container ─── */
 const PHONE_W = 286
 const PHONE_H = 620
 
-/* ─── 六一儿童节 H5 活动方案文档 ─── */
-const CHILDREN_DAY_PLAN_MD = `# 六一童趣抽奖 - H5活动页面大纲
 
-## 楼层1
-
-**【计时器】**
-
-## 楼层2
-
-**【标题】**：六一童趣节，好礼送不停
-
-**【文案】**：
-
-童年是最美好的时光，陪伴是最珍贵的礼物。
-
-这个六一儿童节，抖音为你准备了超多惊喜好礼！参与活动即有机会赢取丰厚奖品，让你的节日更加精彩纷呈。
-
-## 楼层3
-
-**【标题】**：精美奖品
-
-**【奖励icon+文案】**：儿童智能手表、精美玩具礼盒、学习用品套装
-
-**【奖励icon+文案】**：抖音限定公仔、专属表情包、虚拟钻石礼包
-
-## 楼层4
-
-**【标题】**：参与方式
-
-**【文案】**：
-
-### 如何参与
-
-活动期间，完成以下任务即可获得抽奖机会：
-
-- 每日签到，领取一次抽奖机会
-- 观看指定直播，额外获得抽奖机会
-- 邀请好友参与，双方均可获得额外奖励
-
-### 活动时间
-
-2026年6月1日 - 2026年6月7日
-
-### 温馨提示
-
-- 每人每日最多可获得3次抽奖机会
-- 奖品以实物为准，图片仅供参考
-- 中奖后请及时填写收货信息
-
-## 楼层5
-
-**【标题】**：活动规则
-
-**【文案】**：
-
-### 活动对象
-
-抖音全体用户均可参与
-
-### 参与方式
-
-1. 活动期间登录抖音APP，进入活动页面即可参与
-2. 完成指定任务可获得抽奖机会
-3. 中奖后请在规定时间内填写收货信息
-
-### 奖品发放
-
-- 虚拟奖品（钻石、表情包等）将在中奖后24小时内发放至账户
-- 实物奖品将在活动结束后7个工作日内寄出
-- 请确保收货信息准确，因信息错误导致奖品无法送达，平台不承担责任
-
-### 注意事项
-
-- 每人每日抽奖次数有限，请合理参与
-- 如发现作弊行为，平台有权取消参与资格
-- 本活动最终解释权归抖音所有
-
-### 客服联系
-
-如有疑问请联系抖音官方客服
-
-## 楼层6
-
-**【抖音搜索】**：六一儿童节
-`
-
-/* ─── 项目文档（每个项目的项目说明书 / 立项文档）───
- * 每个项目在产物视图里都暴露一个「项目文档」leaf，点击后用
- * MarketingDocEditor 打开。下面是按项目编造的文档正文；未命中的项目
- * 走 buildDefaultProjectDoc 兜底生成。 */
-const TAOBAIBAI_DOC_MD = `# 陶白白 Sensei 分身 · 项目文档
-
-## 一、项目背景
-
-陶白白 Sensei 是抖音头部情感 / 星座创作者。粉丝量级大、私信与评论咨询
-密集，单靠真人无法实时响应。本项目基于创作者人设与历史内容，构建一个
-可对话的「AI 分身」，在直播预热、评论区答疑、私域社群中替身回复。
-
-## 二、目标
-
-- 7×24 小时承接星座运势、情感关系类高频咨询
-- 回复语气 100% 贴合「陶白白」人设：温柔、笃定、略带玄学感
-- 引导用户跳转直播间 / 关注 / 收藏，沉淀私域
-
-## 三、人设设定
-
-- **身份**：陶白白的 AI 分身，自称「白白」
-- **语气**：亲切、共情优先，先安抚情绪再给建议
-- **边界**：不做医疗 / 法律 / 投资建议；命理话术仅作娱乐
-
-## 四、能力 / 知识
-
-| 模块 | 说明 |
-| --- | --- |
-| 知识库 | 12 星座性格库、情感关系知识库、抖音星座内容数据 |
-| 技能 | 星座运势解读、情感陪伴对话、抖音热点查询、多模态内容分析 |
-| 触发器 | 关注 / 评论 / 点赞 / 送礼 / 投稿等事件自动话术 |
-
-## 五、里程碑
-
-1. 人设与语气校准（话术 100 条灰度）
-2. 知识库接入 + 检索增强
-3. 评论区 / 私信自动回复上线
-4. 直播预热场景联调
-
-## 六、风险与对策
-
-- **人设跑偏** → 固定 system prompt + 关键词兜底
-- **玄学合规** → 统一加「仅供娱乐」声明
-`
-
-const TAROT_MINIAPP_DOC_MD = `# 塔罗小程序 · 项目文档
-
-## 一、项目概述
-
-一款以《第五人格》世界观为皮肤的「每日塔罗运势」小程序。用户每天可抽取
-一张塔罗牌，获得今日运势解读，并沉淀历史牌面与牌意词典，强化日活与
-留存。
-
-## 二、目标用户
-
-- 《第五人格》玩家及泛二次元用户
-- 喜欢星座 / 塔罗 / 玄学轻互动的年轻群体
-
-## 三、核心页面
-
-| 页面 | 功能 |
-| --- | --- |
-| 首页 | 今日运势卡、开始占卜入口、运势日记 / 牌意词典 |
-| 塔罗 | 抽牌交互、翻面动效、今日牌面解读 |
-| 聊天 | AI 解牌问答 |
-| 个人 | 历史牌面、收藏、设置 |
-
-## 四、玩法设计
-
-- 每日一抽，零点刷新；分享可得额外抽取
-- 78 张韦特塔罗牌面，配第五人格主题美术
-- 牌意词典沉淀内容资产，提升停留时长
-
-## 五、视觉风格
-
-暗黑哥特 + 烛光暖色，呼应第五人格庄园氛围；卡牌翻面带 3D 动效。
-
-## 六、里程碑
-
-1. 牌库与牌意内容生产
-2. 抽牌 / 翻面交互开发
-3. AI 解牌问答接入
-4. 分享裂变与日历签到
-
-## 七、待定事项
-
-- 是否引入付费「深度牌阵」
-- 第五人格 IP 授权素材范围
-`
-
-const PORTFOLIO_DOC_MD = `# 抖音 AI 工坊设计探索 · 项目文档
-
-## 一、项目目标
-
-为独立设计师 / 开发者搭建一个轻量、响应式的个人作品集站点，用于求职
-与商务合作展示，突出作品与个人风格。
-
-## 二、信息架构
-
-| 页面 | 内容 |
-| --- | --- |
-| 首页 | 个人简介、核心标签、精选作品入口 |
-| 作品 | 作品网格 + 详情，按类别筛选 |
-| 关于 | 经历、技能、合作流程 |
-| 联系 | 邮箱 / 社交链接 / 留言入口 |
-
-## 三、设计原则
-
-- 内容优先，留白克制，移动端优先
-- 统一的排版尺度与一套主题色变量
-- 首屏 3 秒内传达「我是谁、我能做什么」
-
-## 四、技术方案
-
-- React + Vite 单页应用
-- 路由：/、/works、/about、/contact
-- 部署：静态托管，支持自定义域名
-
-## 五、里程碑
-
-1. 视觉风格与组件库
-2. 作品数据结构与详情页
-3. 响应式适配与无障碍
-4. SEO / 分享卡片 / 上线
-
-## 六、验收标准
-
-- Lighthouse 性能 / 可访问性 ≥ 90
-- 三端（桌面 / 平板 / 手机）布局无错位
-`
-
-const GARUDA_DOC_MD = `# 射击小游戏 · 项目文档
-
-## 一、项目简介
-
-《射击小游戏》是一款竖版弹幕射击 + Roguelike 的网页小游戏（H5 /
-单页 HTML5）。玩家操控机甲少女在「神明黄昏」世界中清屏、闯关、构筑
-build。
-
-## 二、核心玩法
-
-- **弹幕射击**：竖版走位躲弹，自动开火
-- **Roguelike**：每局从抽取池随机 3 个流派供选择（弹幕海 / 激光反射 /
-  无尽护盾 / 粒子 AOE / 导弹追踪 / 冰冻流）
-- **道具掉落**：回血 / 炸弹 / 护盾等即时道具
-
-## 三、数值配置
-
-| 项 | 默认 |
-| --- | --- |
-| 基础难度 | 3（1-5） |
-| 敌人密度 | 60% |
-| BOSS 间隔 | 90s |
-| 弹幕速度 | 75% |
-
-## 四、技术实现
-
-- 入口 index.html，主循环在 garuda.js
-- jsfxr.js 程序化生成音效；sw.js 缓存资源做离线访问
-- 全程 Canvas 渲染，渲染分辨率 2160×3840（竖屏）
-
-## 五、里程碑
-
-1. 主循环 + 弹幕系统
-2. Roguelike 抽取池与流派
-3. BOSS 战与难度曲线
-4. 音效 / 美术 / 真机调优
-
-## 六、待优化
-
-- 移动端触控手感
-- 流派平衡性回归测试
-`
-
-const HOTPOT_PROPOSAL_DOC_MD = `# 沪上火锅 · 五一种草提案 · 项目文档
-
-## 一、项目背景
-
-五一假期是本地餐饮的黄金窗口。沪上火锅希望借抖音达人种草 + 团购，拉动
-到店核销，提升五一期间翻台率与新客占比。
-
-## 二、营销目标
-
-- 五一期间到店核销 GMV 环比提升 30%
-- 新客占比 ≥ 45%
-- 沉淀可复用的达人 / 内容矩阵
-
-## 三、人群与诊断
-
-- 核心：18-35 岁本地及周边商圈白领、学生
-- 通过「人群诊断」拆解兴趣标签与内容偏好，定位高潜达人
-
-## 四、达人矩阵
-
-| 层级 | 角色 | 数量 |
-| --- | --- | --- |
-| 头部 | 造势 / 信任背书 | 1-2 |
-| 腰部 | 探店实拍种草 | 5-8 |
-| 尾部 | 团购转化 / 评论氛围 | 15+ |
-
-## 五、内容方向
-
-- 「沉浸式探店」+ 五一限定锅底 / 套餐
-- 突出性价比与排队体验，挂载团购组件
-
-## 六、交付物
-
-- 人群诊断报告、达人包配置、提案报告、数据看板
-
-## 七、节奏
-
-1. 预热（节前 7 天）：种草内容铺量
-2. 引爆（五一首日）：头部 + 团购集中投放
-3. 长尾（假期中后段）：尾部口碑 + 复购召回
-`
-
-const PROJECT_DOCS: Record<string, string> = {
-  '陶白白 Sensei 分身': TAOBAIBAI_DOC_MD,
-  '粉丝互动机器人': TAOBAIBAI_DOC_MD,
-  '塔罗小程序': TAROT_MINIAPP_DOC_MD,
-  '抖音 AI 工坊设计探索': PORTFOLIO_DOC_MD,
-  '射击小游戏': GARUDA_DOC_MD,
-  '沪上火锅·五一种草提案': HOTPOT_PROPOSAL_DOC_MD,
-  '六一儿童节活动': CHILDREN_DAY_PLAN_MD,
-}
-
-/** Human-readable label for each project kind — used in docs and the chat
- *  system prompt so the assistant knows what it's helping build. */
-const PROJECT_KIND_LABELS: Record<ProjectKind, string> = {
-  'mini-program': '小程序',
-  'ai-avatar': 'AI 分身',
-  'ops-proposal': '运营提案',
-  'web-app': '网站应用',
-  'web-game': '网页游戏',
-  'marketing-h5': '营销 H5',
-}
 
 /** Generic project doc for projects without a hand-written one — keeps the
  *  「项目文档」leaf meaningful for every project. */
@@ -2312,8 +1711,6 @@ function PlatformSidebar({
   deletedProjects,
   onDeleteProject,
   categoryExtras,
-  layout,
-  onChangeLayout,
   themeMode,
   onChangeThemeMode,
   createdProjects,
@@ -2366,17 +1763,13 @@ function PlatformSidebar({
   onDeleteProject: (name: string) => void
   /** User-added category objects, keyed `${project}::${category}`. */
   categoryExtras: Record<string, string[]>
-  /** Layout + theme switcher — relocated from the (removed) top header. */
-  layout: 'workspace' | 'editor' | 'code' | 'platform'
-  onChangeLayout: (next: 'workspace' | 'editor' | 'code' | 'platform') => void
+  /** Theme switcher — relocated from the (removed) top header. */
   themeMode: 'light' | 'dark'
   onChangeThemeMode: (next: 'light' | 'dark') => void
   /** Dynamically created projects (e.g. game flow output) — appended
    *  to the top of the project list. */
   createdProjects: string[]
 }) {
-  const [layoutMenuOpen, setLayoutMenuOpen] = useState(false)
-  const layoutMenuRef = useRef<HTMLDivElement>(null)
   /* Inline-rename state for the 项目列表 rows. */
   const [renamingProject, setRenamingProject] = useState<string | null>(null)
   /* Which project row's 更多 (重命名 / 删除) menu is open. */
@@ -2391,14 +1784,6 @@ function PlatformSidebar({
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [moreMenuProject])
   const projName = (n: string) => projectDisplayNames[n]?.trim() || n
-  useEffect(() => {
-    if (!layoutMenuOpen) return
-    const onDocClick = (e: MouseEvent) => {
-      if (!layoutMenuRef.current?.contains(e.target as Node)) setLayoutMenuOpen(false)
-    }
-    document.addEventListener('mousedown', onDocClick)
-    return () => document.removeEventListener('mousedown', onDocClick)
-  }, [layoutMenuOpen])
   const [spaceMenuPos, setSpaceMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [activeSpace, setActiveSpace] = useState('个人空间')
   // The project list is master/detail. The list shows every project's
@@ -2662,7 +2047,17 @@ function PlatformSidebar({
                           isActive ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/85'
                         }`}
                       >
-                        {open ? (
+                        {/* Pinned projects swap the folder glyph for a pin
+                            (ti ti-pin) on the left, instead of a trailing pin. */}
+                        {isPinned ? (
+                          <Pin
+                            size={13}
+                            strokeWidth={1.7}
+                            className={`shrink-0 ${
+                              isActive ? 'text-[var(--color-ink)]/85' : 'text-[var(--color-ink)]/60'
+                            }`}
+                          />
+                        ) : open ? (
                           <FolderOpen
                             size={13}
                             strokeWidth={1.7}
@@ -2680,13 +2075,6 @@ function PlatformSidebar({
                           />
                         )}
                         <span className="min-w-0 truncate">{projName(name)}</span>
-                        {isPinned && (
-                          <Pin
-                            size={11}
-                            strokeWidth={1.8}
-                            className="shrink-0 rotate-45 text-[var(--color-ink)]/40"
-                          />
-                        )}
                       </button>
                     )}
                     <div
@@ -2749,7 +2137,16 @@ function PlatformSidebar({
                       )}
                     </div>
                   </div>
-                  {open && (() => {
+                  <AnimatePresence initial={false}>
+                  {open && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden"
+                    >
+                  {(() => {
                     const emptyStub = (
                       <div className="px-5 py-1.5 pl-[38px] text-[12px] text-[var(--color-ink)]/40">
                         暂无文件
@@ -2822,6 +2219,9 @@ function PlatformSidebar({
                       </div>
                     )
                   })()}
+                    </motion.div>
+                  )}
+                  </AnimatePresence>
                 </div>
               )
             })}
@@ -2851,55 +2251,27 @@ function PlatformSidebar({
         >
           <Headset size={13} strokeWidth={1.8} />
         </button>
-        {/* 设置（布局 / 外观）— relocated from the top bar; opens upward. */}
-        <div ref={layoutMenuRef} className="relative">
-          <button
-            type="button"
-            onClick={() => setLayoutMenuOpen((v) => !v)}
-            title="设置"
-            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
-          >
-            <Settings size={14} />
-          </button>
-          {layoutMenuOpen && (
-            <div className="absolute bottom-full right-0 z-50 mb-1 w-[220px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]">
+        {/* 设置（外观）— Radix Popover: portaled out of the sidebar so it
+            isn't clipped by overflow, opens up-and-left, collision-safe. */}
+        <Popover.Root>
+          <Popover.Trigger asChild>
+            <button
+              type="button"
+              title="设置"
+              className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85 data-[state=open]:bg-[var(--fill-hover)] data-[state=open]:text-[var(--color-ink)]/85"
+            >
+              <Settings size={14} />
+            </button>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              side="top"
+              align="end"
+              sideOffset={6}
+              collisionPadding={8}
+              className="z-[60] w-[200px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]"
+            >
               <div className="px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--color-ink)]/40">
-                布局
-              </div>
-              {(
-                [
-                  { value: 'workspace' as const, label: '工作区视图', hint: '单视图 / 分屏 tabs', icon: Columns2 },
-                  { value: 'code' as const, label: '编辑视图 · 左 chat', hint: '左侧对话 · 文件 · 右侧预览', icon: Code2 },
-                  { value: 'editor' as const, label: '编辑视图 · chat 在右', hint: '常驻手机 · 独立文件区', icon: LayoutGrid },
-                  { value: 'platform' as const, label: '平台视图', hint: '多项目目录 · 对话 · 预览 + 控制台', icon: LayoutDashboard },
-                ]
-              ).map((opt) => {
-                const Icon = opt.icon
-                const active = layout === opt.value
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      onChangeLayout(opt.value)
-                      setLayoutMenuOpen(false)
-                    }}
-                    className={`flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors ${
-                      active ? 'bg-[var(--color-ink)]/[0.06]' : 'hover:bg-[var(--fill-subtle)]'
-                    }`}
-                  >
-                    <Icon size={14} className={`mt-0.5 shrink-0 ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/55'}`} />
-                    <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className={`text-[12px] ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/80'}`}>
-                        {opt.label}
-                        {active && <span className="ml-1.5 text-[10px] text-[var(--color-ink)]/45">当前</span>}
-                      </span>
-                      <span className="text-[10px] text-[var(--color-ink)]/40">{opt.hint}</span>
-                    </span>
-                  </button>
-                )
-              })}
-              <div className="mt-1 border-t border-[var(--divider-soft)] px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--color-ink)]/40">
                 外观
               </div>
               {(
@@ -2911,28 +2283,26 @@ function PlatformSidebar({
                 const Icon = opt.icon
                 const active = themeMode === opt.value
                 return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      onChangeThemeMode(opt.value)
-                      setLayoutMenuOpen(false)
-                    }}
-                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
-                      active ? 'bg-[var(--color-ink)]/[0.06]' : 'hover:bg-[var(--fill-subtle)]'
-                    }`}
-                  >
-                    <Icon size={14} className={`shrink-0 ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/55'}`} />
-                    <span className={`text-[12px] ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/80'}`}>
-                      {opt.label}
-                      {active && <span className="ml-1.5 text-[10px] text-[var(--color-ink)]/45">当前</span>}
-                    </span>
-                  </button>
+                  <Popover.Close asChild key={opt.value}>
+                    <button
+                      type="button"
+                      onClick={() => onChangeThemeMode(opt.value)}
+                      className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
+                        active ? 'bg-[var(--color-ink)]/[0.06]' : 'hover:bg-[var(--fill-subtle)]'
+                      }`}
+                    >
+                      <Icon size={14} className={`shrink-0 ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/55'}`} />
+                      <span className={`text-[12px] ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/80'}`}>
+                        {opt.label}
+                        {active && <span className="ml-1.5 text-[10px] text-[var(--color-ink)]/45">当前</span>}
+                      </span>
+                    </button>
+                  </Popover.Close>
                 )
               })}
-            </div>
-          )}
-        </div>
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
       </div>
 
       {spaceMenuPos && (
@@ -3034,6 +2404,14 @@ export default function VibeCodingPage() {
    *  Garuda case starts off-list and only appears in the sidebar once
    *  the user has confirmed the spec card and kicked off building. */
   const [createdProjects, setCreatedProjects] = useState<string[]>([])
+  /** Kind for projects created at runtime (the home "新建项目" flow). Seeded
+   *  projects resolve through the static PROJECT_KINDS map; this covers the
+   *  rest. `kindOf` is the single lookup used everywhere in this component. */
+  const [createdProjectKinds, setCreatedProjectKinds] = useState<
+    Record<string, ProjectKind>
+  >({})
+  const kindOf = (name: string): ProjectKind =>
+    PROJECT_KINDS[name] ?? createdProjectKinds[name] ?? 'mini-program'
   /** Spec the user confirmed in GameConfirmCard — kept so the post-step
    *  user-echo bubble can read it back, and so the locked card still
    *  shows the chosen options. */
@@ -3296,7 +2674,9 @@ export default function VibeCodingPage() {
   /* Layout plan — 'workspace' is the default (tabs 合一, 产物可钉左右);
    * 'editor' mirrors IP-编辑器: 左侧常驻手机 + 中间独立文件编辑;
    * 'code' 把 chat 移到最左，中间文件编辑器，右侧常驻手机预览。 */
-  const [layout, setLayout] = useState<'workspace' | 'editor' | 'code' | 'platform'>('platform')
+  // Layout switching is hidden from the UI for now — fixed to the platform
+  // view. (The 布局 menu was removed; restore setLayout if it returns.)
+  const [layout] = useState<'workspace' | 'editor' | 'code' | 'platform'>('platform')
   const isPlatform = layout === 'platform'
   const chatOnLeft = layout === 'code' || isPlatform
   /* Platform-only: sidebar + chat widths are both user-draggable; the
@@ -3463,16 +2843,29 @@ export default function VibeCodingPage() {
     setPlatformHomeOpen(true)
   }
 
-  /** Called when the user submits a prompt from the home screen (either
-   *  by typing + send or by clicking a suggestion pill). Exits home
-   *  view and pipes the text through sendChat. */
+  /** Derive a unique project name from the prompt — capped, and de-duped
+   *  against both the seeded projects (PROJECT_KINDS keys) and ones already
+   *  created this session. */
+  const makeNewProjectName = (prompt: string): string => {
+    const base0 = prompt.replace(/\s+/g, ' ').trim()
+    const base = base0.length > 14 ? `${base0.slice(0, 14)}…` : base0
+    const taken = new Set([...Object.keys(PROJECT_KINDS), ...createdProjects])
+    if (!taken.has(base)) return base
+    let i = 2
+    while (taken.has(`${base} ${i}`)) i++
+    return `${base} ${i}`
+  }
+
+  /** Called when the user submits a prompt from the home screen (either by
+   *  typing + send or by clicking a suggestion pill). Spins up a brand-new
+   *  project and routes the prompt into it — instead of dropping the user
+   *  into an existing seeded project. */
   const submitFromHome = (text: string) => {
     const trimmed = text.trim()
     if (!trimmed) return
-    // Game prompt → kick off the Garuda mock-generation flow. Keyword set
-    // covers the suggestion chip + any organic phrasing that names the
-    // genre / mechanics. Order matters: this gate runs before the generic
-    // classifier so the dedicated flow always wins.
+    // Game prompt → dedicated Garuda mock-generation flow (it materialises
+    // its own 射击小游戏 project). Runs before the generic path so the
+    // scripted build always wins.
     if (
       /弹幕|射击|stg|roguelike|太空|飞机.*游戏|游戏.*飞机|garuda/i.test(trimmed)
     ) {
@@ -3480,17 +2873,29 @@ export default function VibeCodingPage() {
       startGameFlow(trimmed)
       return
     }
-    // Classify the prompt to pick which OutputShape the new project should
-    // adopt. Stored as a console hint for now; downstream we'll wire this
-    // into the new-project creation so the right-side preview routes
-    // correctly without manual PROJECT_KINDS edits.
-    const classifiedKind = classifyProjectKind(trimmed)
-    if (typeof window !== 'undefined' && (window as { __vc_log__?: unknown }).__vc_log__) {
-      // no-op; placeholder for future telemetry
+    // Otherwise: create a fresh project, pick its kind from the prompt so the
+    // right-side preview routes correctly, register it in the sidebar, switch
+    // to it, then send the prompt into its (empty) chat.
+    const kind = classifyProjectKind(trimmed)
+    const name = makeNewProjectName(trimmed)
+    if (projectTitle && !platformHomeOpen) {
+      projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
     }
-    void classifiedKind
+    setCreatedProjectKinds((prev) => ({ ...prev, [name]: kind }))
+    setCreatedProjects((prev) => (prev.includes(name) ? prev : [name, ...prev]))
+    setPlatformOpenProjects((prev) => {
+      const next = new Set(prev)
+      next.add(name)
+      return next
+    })
+    setProjectTitle(name)
     setHomeDraft('')
     setPlatformHomeOpen(false)
+    setPlatformResourceLibraryOpen(false)
+    setPlatformSkillsOpen(false)
+    setPlatformCreativeSquareOpen(false)
+    setPlatformDataOpsOpen(false)
+    initProjectDefaults(name)
     sendChat(trimmed)
   }
 
@@ -3665,7 +3070,7 @@ export default function VibeCodingPage() {
     setFormSubmitted(false)
     // AI 分身 ships with one default trigger so the 触发器 section is
     // populated on first open; other kinds start with none.
-    if (PROJECT_KINDS[name] === 'ai-avatar') {
+    if (kindOf(name) === 'ai-avatar') {
       setTriggers([
         {
           id: 'user-follow-seed01',
@@ -3696,7 +3101,7 @@ export default function VibeCodingPage() {
     setPreviewRoute(null)
     setActiveFilter('mini-program')
     resetPublish()
-    if (PROJECT_KINDS[name] === 'ops-proposal') {
+    if (kindOf(name) === 'ops-proposal') {
       setProposalStep('collecting')
       setChatCleared(false)
       setOpenTabs([])
@@ -3706,13 +3111,13 @@ export default function VibeCodingPage() {
           trigger: 'proposal',
         },
       ])
-    } else if (PROJECT_KINDS[name] === 'web-game') {
+    } else if (kindOf(name) === 'web-game') {
       setProposalStep('idle')
       setOpenTabs([
         { label: '预览', closable: false },
         { label: '素材', closable: false },
       ])
-    } else if (PROJECT_KINDS[name] === 'ai-avatar') {
+    } else if (kindOf(name) === 'ai-avatar') {
       // AI 分身 opens 人设 / 技能 / 知识库 as top tabs by default (beside the
       // 预览 phone), so the avatar's config surfaces are one click away.
       setProposalStep('idle')
@@ -4487,7 +3892,7 @@ export default function VibeCodingPage() {
   const getActiveProductTree = (): FileNode[] => {
     const tree = projectTrees[projectTitle]
     if (!tree) return []
-    const kind = PROJECT_KINDS[projectTitle] ?? 'mini-program'
+    const kind = kindOf(projectTitle)
     return mergeCategoryExtras(
       kind === 'ai-avatar'
         ? buildAvatarProductView(tree, getAvatarConfig(projectTitle))
@@ -4656,7 +4061,7 @@ export default function VibeCodingPage() {
     // built-in tabs (预览 / 资产 / 代码). 代码 isn't in the default tab
     // strip — it gets appended on demand here when the user opens a
     // source file. Everything under assets/ or docs/ → 资产.
-    if (PROJECT_KINDS[projectTitle] === 'web-game') {
+    if (kindOf(projectTitle) === 'web-game') {
       if (filename.startsWith('…')) return
       // 预览 / 素材 jump to the game's fixed runtime / assets tabs.
       if (filename === '预览' || filename === '素材') {
@@ -5593,7 +4998,7 @@ export default function VibeCodingPage() {
   // (the initial projectTrees snapshot is frozen before any triggers seed),
   // so the product view's 触发器 section reflects the current config.
   useEffect(() => {
-    if (PROJECT_KINDS[projectTitle] !== 'ai-avatar') return
+    if (kindOf(projectTitle) !== 'ai-avatar') return
     setProjectTrees((prev) => ({ ...prev, [projectTitle]: aiPersonaFileTree }))
     // aiPersonaFileTree is derived from `triggers`; resync whenever it changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -5671,7 +5076,7 @@ export default function VibeCodingPage() {
    * Unknown project names default to mini-program so arbitrary renames
    * don't accidentally flip the preview. */
   const activeProjectKind: ProjectKind =
-    PROJECT_KINDS[projectTitle] ?? 'mini-program'
+    kindOf(projectTitle)
   /** Drives the right-side preview container choice. Detailed kind still
    *  picks variants inside each shape (e.g. ai-avatar vs mini-program
    *  both live under 'app'). */
@@ -6091,8 +5496,6 @@ export default function VibeCodingPage() {
             deletedProjects={deletedProjects}
             onDeleteProject={deleteProject}
             categoryExtras={categoryExtras}
-            layout={layout}
-            onChangeLayout={setLayout}
             themeMode={themeMode}
             onChangeThemeMode={setThemeMode}
             createdProjects={createdProjects}
@@ -6270,68 +5673,6 @@ export default function VibeCodingPage() {
             {layoutMenuOpen && (
               <div className="absolute right-0 top-full z-50 mt-1 w-[200px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-2)] shadow-[0_20px_50px_-16px_rgba(0,0,0,0.7)] backdrop-blur-xl">
                 <div className="px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--color-ink)]/40">
-                  布局
-                </div>
-                {(
-                  [
-                    {
-                      value: 'workspace' as const,
-                      label: '工作区视图',
-                      hint: '单视图 / 分屏 tabs',
-                      icon: Columns2,
-                    },
-                    {
-                      value: 'code' as const,
-                      label: '编辑视图 · 左 chat',
-                      hint: '左侧对话 · 文件 · 右侧预览',
-                      icon: Code2,
-                    },
-                    {
-                      value: 'editor' as const,
-                      label: '编辑视图 · chat 在右',
-                      hint: '常驻手机 · 独立文件区',
-                      icon: LayoutGrid,
-                    },
-                    {
-                      value: 'platform' as const,
-                      label: '平台视图',
-                      hint: '多项目目录 · 对话 · 预览 + 控制台',
-                      icon: LayoutDashboard,
-                    },
-                  ]
-                ).map((opt) => {
-                  const Icon = opt.icon
-                  const active = layout === opt.value
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => {
-                        setLayout(opt.value)
-                        setLayoutMenuOpen(false)
-                      }}
-                      className={`flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors ${
-                        active
-                          ? 'bg-[var(--color-ink)]/[0.06]'
-                          : 'hover:bg-[var(--fill-subtle)]'
-                      }`}
-                    >
-                      <Icon size={14} className={`mt-0.5 shrink-0 ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/55'}`} />
-                      <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className={`text-[12px] ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/80'}`}>
-                          {opt.label}
-                          {active && (
-                            <span className="ml-1.5 text-[10px] text-[var(--color-ink)]/45">当前</span>
-                          )}
-                        </span>
-                        <span className="text-[10px] text-[var(--color-ink)]/40">
-                          {opt.hint}
-                        </span>
-                      </span>
-                    </button>
-                  )
-                })}
-                <div className="mt-1 border-t border-[var(--divider-soft)] px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--color-ink)]/40">
                   外观
                 </div>
                 {(
@@ -8836,7 +8177,7 @@ export default function VibeCodingPage() {
             .map((n) => ({
               name: n,
               label: displayProjectName(n),
-              kind: PROJECT_KINDS[n] ?? 'mini-program',
+              kind: kindOf(n),
             }))
           return (
             <div className="mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px] border border-[var(--divider-soft)]">
@@ -8944,7 +8285,7 @@ export default function VibeCodingPage() {
                    * otherwise clip an absolute-positioned dropdown. */
                   const tree = projectTrees[projectTitle]
                   if (!tree) return null
-                  const kind = PROJECT_KINDS[projectTitle] ?? 'mini-program'
+                  const kind = kindOf(projectTitle)
                   const productTree =
                     kind === 'ai-avatar'
                       ? buildAvatarProductView(tree, getAvatarConfig(projectTitle))
@@ -10349,84 +9690,6 @@ function LiveAiReply({
   )
 }
 
-/** Rotating reply bank for plain (non-trigger) chat messages. Picked by
- *  index so repeated sends still feel varied without needing a real
- *  language model. */
-const GENERIC_AI_REPLIES = [
-  '好的，我记下了这个需求。可以再告诉我具体的使用场景或期望结果，这样我可以帮你精准地搭建。',
-  '收到。为了给出更贴合的方案，你能补充一下目标用户、触发时机和数据来源吗？',
-  '好，我先整理下你的想法。建议把它拆成更小的步骤说给我听，我会按步骤接着往下做。',
-  '明白了。如果方便，可以直接描述一下理想中的最终产出形态，比如一个页面、一段接口或一份内容。',
-]
-
-const CHAT_EMPTY_SUGGESTIONS = [
-  '换套更神秘的配色',
-  '给卡片加上翻面动效',
-  '再写两个塔罗牌面',
-  '加一个每日签到提醒',
-  '优化首页加载速度',
-]
-
-/** AI-avatar project suggestions — each phrase matches the trigger
- *  pattern-match in `sendChat` so clicking one immediately kicks off
- *  the recognition flow. */
-const AI_AVATAR_CHAT_SUGGESTIONS = [
-  '当用户关注时发送"欢迎关注"',
-  '用户评论后回复"谢谢留言"',
-  '用户点赞后发送"感谢点赞"',
-  '用户送礼物时答谢"感谢礼物"',
-  '用户投稿时推荐"新作品上线"',
-]
-
-/** Quick-command chips shown in a project's empty chat — edit-oriented and
- *  tailored to the product kind. ai-avatar keeps the trigger-matching set so
- *  clicking a chip still fires the recognition flow. */
-const CHAT_SUGGESTIONS_BY_KIND: Record<ProjectKind, string[]> = {
-  'mini-program': CHAT_EMPTY_SUGGESTIONS,
-  'ai-avatar': AI_AVATAR_CHAT_SUGGESTIONS,
-  'web-app': [
-    '换个更简洁的主题色',
-    '作品页加上分类筛选',
-    '首页加一段自我介绍',
-    '联系页加个留言表单',
-    '适配一下移动端布局',
-  ],
-  'web-game': [
-    '把敌人密度调高一点',
-    '新增一个 Roguelike 流派',
-    '换个更燃的 BOSS 战音乐',
-    '加一个本地排行榜',
-    '优化手机端触控手感',
-  ],
-  'marketing-h5': [
-    '多加一个抽奖楼层',
-    '换成更童趣的配色',
-    '调整奖品和文案',
-    '加一个分享得抽奖机会',
-    '改一下活动时间',
-  ],
-  'ops-proposal': [
-    '多找几个腰部达人',
-    '调整种草投放节奏',
-    '换个内容种草方向',
-    '增加团购转化钩子',
-    '补充人群诊断维度',
-  ],
-}
-
-/** Per-project overrides — finer-grained chips for specific projects. */
-const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
-  '塔罗小程序': [
-    '换套更神秘的配色',
-    '给卡片加上翻面动效',
-    '再写两个塔罗牌面',
-    '牌意词典加个搜索',
-    '加一个每日签到',
-  ],
-  '射击小游戏': CHAT_SUGGESTIONS_BY_KIND['web-game'],
-  '六一儿童节活动': CHAT_SUGGESTIONS_BY_KIND['marketing-h5'],
-  '沪上火锅·五一种草提案': CHAT_SUGGESTIONS_BY_KIND['ops-proposal'],
-}
 
 function ChatEmptyState({
   suggestions,
