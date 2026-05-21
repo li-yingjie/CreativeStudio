@@ -16,6 +16,32 @@ export interface AvatarCapRef {
   parentToolKind?: string
 }
 
+/** One auto-replied comment shown in the 评论区 preview scene. */
+export interface AvatarComment {
+  user: string
+  text: string
+  time: string
+  likes: string
+  reply: string
+}
+
+/** Drives the right-side 私信/评论 preview surface (AiPersonaChatPreview).
+ *  Everything the phone mock shows that's persona-specific lives here, so the
+ *  same renderer can show any 分身 from its config. */
+export interface AvatarPreviewConfig {
+  /** Name shown in the nav + hero (note: no space, e.g. 陶白白Sensei). */
+  displayName: string
+  avatarUrl: string
+  /** Hero subtitle lines under the name. */
+  bio: string[]
+  timestamp: string
+  /** The seeded mini-conversation. */
+  seedUserMessage: string
+  seedAiReply: string
+  /** Auto-reply thread for the 评论区 scene. */
+  comments: AvatarComment[]
+}
+
 export interface AvatarAppConfig {
   space: string
   appID: string
@@ -28,6 +54,43 @@ export interface AvatarAppConfig {
   toolInfoList: AvatarCapRef[]
   knowledgeInfoList: AvatarCapRef[]
   skillInfoList: AvatarCapRef[]
+  /** Right-side preview content. Falls back to DEFAULT_AVATAR_PREVIEW. */
+  preview?: AvatarPreviewConfig
+}
+
+/** Default preview content (the seeded 陶白白 surface) — used as the fallback
+ *  when a config omits `preview`, so any 分身 still renders a complete phone. */
+export const DEFAULT_AVATAR_PREVIEW: AvatarPreviewConfig = {
+  displayName: '陶白白Sensei',
+  avatarUrl: '/tbb.jpeg',
+  bio: ['大家好啊，我是陶白白。', '商务合作: fqsw0031'],
+  timestamp: '2025/12/04 16:19',
+  seedUserMessage: '你好',
+  seedAiReply:
+    '你好啊 kingjaylee！最近感情上有没有啥困惑？或者想聊聊哪个星座？我这儿随时在线帮你分析分析。',
+  comments: [
+    {
+      user: '小鹿同学',
+      text: '最近和对象总是冷战，是不是不合适啊…',
+      time: '2 小时前',
+      likes: '328',
+      reply: '冷战不代表不合适，多半是表达方式没对上～试试先说感受再说需求，别上来就讲道理。',
+    },
+    {
+      user: '阿球',
+      text: '天蝎座到底是不是记仇王？',
+      time: '5 小时前',
+      likes: '1.2万',
+      reply: '与其说记仇，不如说在意。天蝎不是忘不掉，是希望你主动给个交代～',
+    },
+    {
+      user: 'momo',
+      text: '暗恋同事三个月了，要不要表白？',
+      time: '昨天',
+      likes: '906',
+      reply: '先别急着表白，先制造高质量相处。让对方习惯有你，比一句喜欢更有用。',
+    },
+  ],
 }
 
 /* ─── per-project mock configs, keyed by project name ─── */
@@ -142,6 +205,7 @@ export const AVATAR_CONFIGS: Record<string, AvatarAppConfig> = {
       { id: 'skill_astro_reading', name: '星座运势解读' },
       { id: 'skill_emotion_coach', name: '情感陪伴对话' },
     ],
+    preview: DEFAULT_AVATAR_PREVIEW,
   },
   '粉丝互动机器人': {
     space: 'aicore_personal',

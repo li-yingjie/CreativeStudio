@@ -33,6 +33,9 @@ import GarudaAssetsView, {
 import AssetEditPanel from './AssetEditPanel'
 import VideoEditor from './VideoEditor'
 import ImageCanvasEditor from './ImageCanvasEditor'
+import ErrorBoundary from '@/shared/components/ErrorBoundary'
+import FigmaIcon from './FigmaIcon'
+import PlatformHome from './PlatformHome'
 import H5LayerEditPanel, { type H5LayerId } from './H5LayerEditPanel'
 import OpsDataDrawer from './OpsDataDrawer'
 import GarudaCodeView from './GarudaCodeView'
@@ -60,17 +63,19 @@ import ProposalPackCard, {
   getPackProfile,
   type ProposalPackId,
 } from './ProposalPackCard'
-import ProposalBriefCard, { PROPOSAL_PLAYS } from './ProposalBriefCard'
-import ProposalDashboardCard, {
-  PROPOSAL_FUNNEL,
-  PROPOSAL_MODULES,
-} from './ProposalDashboardCard'
-import ProposalReviewCard, {
-  PROPOSAL_REVIEW_ADVICE,
-  PROPOSAL_REVIEW_MODULES,
-  PROPOSAL_REVIEW_STATS,
-  PROPOSAL_REVIEW_TRAFFIC,
-} from './ProposalReviewCard'
+import ProposalBriefCard from './ProposalBriefCard'
+import ProposalDashboardCard from './ProposalDashboardCard'
+import ProposalReviewCard from './ProposalReviewCard'
+import {
+  PROPOSAL_FILE_SUMMARY,
+  renderBriefMarkdown,
+  renderDashboardMarkdown,
+  renderDiagnosisMarkdown,
+  renderGoalMarkdown,
+  renderPackMarkdown,
+  renderReportMarkdown,
+  renderReviewMarkdown,
+} from './proposal-docs'
 import UserEchoBubble, { truncate } from './UserEchoBubble'
 import Stream, { RevealAfter, Sequential } from './Stream'
 import {
@@ -109,6 +114,7 @@ import AssetGridView from './AssetGridView'
 import MarketingDocEditor from './MarketingDocEditor'
 import PublishDrawer from './PublishDrawer'
 import { getMiniProgramConfig } from './MiniProgramConfigData'
+import { getMarketingH5Preview } from './MarketingH5ConfigData'
 
 /** Each platform project has a `ProjectKind` (the concrete product /
  *  case it represents) and an `OutputShape` (the abstract category that
@@ -213,7 +219,6 @@ import {
   History,
   MessageCircleHeart,
   Gamepad2,
-  Bot,
   FileSearch,
   Flashlight,
   Video,
@@ -639,353 +644,6 @@ function buildMentionPill(
   return span
 }
 
-/** Render the 商家目标卡 form draft into a markdown document. Stored as
- *  a string and surfaced when the user opens the file in a tab. */
-function renderGoalMarkdown(d: {
-  brand: string
-  district: string
-  category: string
-  budget: string
-  period: string
-  audience: string
-  ask: string
-  constraints: string
-}): string {
-  return `# 商家目标卡
-
-> 由对话补充的需求经 AI 解析为可执行的种草目标。
-
-## 基本信息
-
-- **商家 / 品牌**：${d.brand}
-- **品类**：${d.category}
-- **城市 / 商圈**：${d.district}
-- **活动周期**：${d.period}
-- **市场预算**：${d.budget}
-- **目标人群**：${d.audience}
-
-## 商家核心诉求
-
-${d.ask}
-
-## 约束条件
-
-${d.constraints || '（暂无）'}
-
-## AI 目标解析
-
-当前商家的核心诉求是 **五一节点前潜客种草与搜索意向提升**，不适合直接以带货 GMV 作为第一目标。建议采用「头部品宣建立认知 + 本地垂类达人真实体验 + 中腰部场景覆盖 + 素人挑战扩散 + 可投广内容放大」的组合策略。
-
-需要重点监控：
-
-- A3 种草规模
-- 看后搜
-- 潜客覆盖
-- 内容自然贡献占比
-
-避免结果主要由商业投广堆出。
-
-## 待确认追问
-
-- 预算是否包含投广？当前预算记录为达人商业合作费用，若包含投广预算，会影响自然贡献占比判断。
-- 是否有必选达人？若商家指定头部达人，需锁定在达人包并重新估算预算和效果。
-`
-}
-
-/** Single source of truth for the proposal-flow artifact summaries.
- *  The in-chat ArtifactCard pulls filename → summary from here. */
-const PROPOSAL_FILE_SUMMARY: Record<string, string> = {
-  '商家目标卡.md': '商家目标已结构化，包含核心诉求、约束和 AI 解析',
-  '人群诊断.md':
-    '人群与流量诊断结论：3 个风险 + 4 个目标阈值 + 同类商家 Benchmark',
-  '人群诊断看板': '可视化数据看板：KPI / 风险 / 人群 / 流量结构 / Benchmark',
-  '达人包.md': '已确认的达人包策略，含结构、指标预估和 AI 建议',
-  '玩法brief.md':
-    '4 套玩法 + Brief 模板：本地垂类 / 头部品宣 / 素人挑战 / 可投广候选',
-  '提案报告.md': '完整提案报告',
-  '执行看板.md': '执行看板配置（达人 / 机构 / 星图任务拆分）',
-  '复盘.md': '复盘文档（指标对比 + 经验沉淀）',
-}
-
-/** Render the 人群与流量诊断 step output into a markdown document. */
-function renderDiagnosisMarkdown(): string {
-  return `# 人群与流量诊断
-
-> 数据来源：@风神 同类火锅品牌过去 30 天指标 + @iDA 商家历史 A3 / 看后搜结构。
-
-## 风险诊断
-
-### 潜客覆盖缺口（高）
-
-近 30 天潜客内容触达低于同类商家均值 23%。建议本次提高本地垂类和可投广内容占比，扩大潜客覆盖。
-
-### 看后搜机会（高）
-
-同类火锅品牌中，**场景化探店**和**套餐价值内容**对看后搜的贡献最明显，需要在达人 brief 中强约束这两类元素。
-
-### 投广依赖风险（中）
-
-商家历史营销中商业投广流量占比偏高，A3 达成主要靠投广堆出。本次需要把内容自然贡献占比从 38% 提升到 50% 以上。
-
-## 人群覆盖结构
-
-- 老客覆盖：高
-- 新客覆盖：中
-- 搜索意向人群：中低
-- 潜客覆盖：低
-- A3 种草人群：低（需重点提升）
-
-## 流量结构
-
-- 商业投广流量：62%（偏高）
-- 内容自然流量：38%
-- 达人自然内容贡献：24%
-- 可投广内容贡献：18%
-
-## 建议目标阈值
-
-| 指标 | 阈值 |
-| --- | --- |
-| A3 种草人群 | ≥ 120 万 |
-| 看后搜规模 | ≥ 30 万 |
-| 内容自然贡献占比 | ≥ 50% |
-| 优质内容率 | ≥ 35% |
-
-## 同类商家策略 Benchmark
-
-| 策略类型 | 达人包结构 | A3 表现 | 看后搜 | 自然流量占比 | 平台建议 |
-| --- | --- | --- | --- | --- | --- |
-| 高头部品宣型 | 头部占比高 | 高 | 中 | 低 | 仅保留 1-2 位作为声量锚点 |
-| 本地垂类种草型 | 垂类达人占比高 | 中高 | 高 | 高 | **推荐** |
-
-## 诊断结论
-
-历史结果偏依赖商业投广。本次提案应优先提升「本地垂类真实体验内容」和「高质量可投广素材」占比，目标将内容自然贡献占比提升至 50% 以上。
-`
-}
-
-/** Render the chosen 达人包 into a markdown document. Captures the
- *  pack id, projected metrics, talent bucket structure, and the AI's
- *  recommendation note so the choice is auditable as a project artefact. */
-function renderPackMarkdown(pick: ProposalPackId): string {
-  const p = getPackProfile(pick)
-  const buckets = p.buckets
-    .map(
-      (b) =>
-        `| ${b.name} | ${b.count} 人 | ${b.budget} | ${b.note} |`,
-    )
-    .join('\n')
-  return `# 达人包策略 · ${p.id}
-
-> ${p.desc}
-
-## 关键指标预估
-
-| 预计 A3 种草人群 | 内容自然贡献 | 看后搜规模 | 预算 |
-| --- | --- | --- | --- |
-| ${p.metrics.a3} | ${p.metrics.natural} | ${p.metrics.afterSearch} | ${p.metrics.budget} |
-
-## 达人结构
-
-| 模块 | 数量 | 预算占比 | 核心作用 |
-| --- | --- | --- | --- |
-${buckets}
-
-## AI 建议
-
-${p.aiNote}
-
-## 下一步
-
-进入玩法 + Brief 编排（@mira 生成达人侧 brief；@aeolus 校准内容方向）。
-`
-}
-
-/** Step 5 — assemble the full proposal report from prior step output.
- *  Mirrors what the original 提案报告生成器 surfaces: 商家目标理解 +
- *  种草经营策略 + 关键指标预估 + 达人包结构表 + AI 修改建议 + 审批流。 */
-function renderReportMarkdown(
-  goal: ProposalGoalDraft,
-  pack: ProposalPackId,
-): string {
-  const p = getPackProfile(pack)
-  const buckets = p.buckets
-    .map(
-      (b) => `| ${b.name} | ${b.count} 人 | ${b.budget} | ${b.note} |`,
-    )
-    .join('\n')
-  return `# ${goal.brand}｜五一潜客种草方案
-
-> 方案版本 V2 ｜ ${pack} ｜ 预算 ${p.metrics.budget} ｜ 周期 ${goal.period}
-
-## 1. 商家目标理解
-
-本次目标不是短期达人带货，而是五一节点前提升潜客认知和搜索意向。建议用达人内容建立"朋友聚餐、性价比套餐、夜宵火锅"等消费场景，带动 A3 种草人群和看后搜增长。
-
-> 商家原话：${goal.ask}
-
-## 2. 种草经营策略
-
-采用"头部品宣达人建立声量 + 本地垂类达人提供真实体验 + 中腰部达人扩大场景覆盖 + 素人挑战营造参与氛围 + 可投广素材放大潜客"的组合策略。
-
-### 关键指标预估
-
-| 预计 A3 | 预计看后搜 | 内容自然贡献 | 预算 |
-| --- | --- | --- | --- |
-| ${p.metrics.a3} | ${p.metrics.afterSearch} | ${p.metrics.natural} | ${p.metrics.budget} |
-
-## 3. 达人包结构
-
-| 模块 | 数量 | 预算占比 | 核心作用 |
-| --- | --- | --- | --- |
-${buckets}
-
-## 4. 玩法 + Brief
-
-详情见 \`briefs/玩法brief.md\`，包含本地垂类、头部品宣、素人挑战、可投广候选 4 套模板。
-
-## 5. AI 修改建议
-
-建议在提案里补充"内容自然贡献占比"作为商家复盘口径，并解释为什么不建议过度增加头部达人预算。
-
-## 6. 审批流
-
-- 行业负责人：**已通过**
-- 财务预算确认：**待确认**
-- 星图合作校验：**进行中**
-
-## 7. 提案质量检查
-
-- 目标清晰度：92
-- 达人包完整度：88
-- 预算合理性：76（建议补充投广预算口径）
-- 自然贡献风险：中（需要 brief 严控可投广素材）
-`
-}
-
-/** Step 6 — render the 转执行看板 snapshot into a markdown document.
- *  Captures the funnel + 5 status modules so the dashboard is auditable
- *  as a project artefact. */
-function renderDashboardMarkdown(): string {
-  const funnel = PROPOSAL_FUNNEL.map(
-    (f) => `| ${f.label} | ${f.value} |`,
-  ).join('\n')
-  const modules = PROPOSAL_MODULES.map((m) => {
-    const items = m.items
-      .map((it) =>
-        it.alert
-          ? `- **${it.title}** —— ${it.meta}\n  > ⚠ ${it.alert}`
-          : `- **${it.title}** —— ${it.meta}`,
-      )
-      .join('\n')
-    return `### ${m.title}（${m.status}）\n\n${items}`
-  }).join('\n\n')
-  return `# 执行看板
-
-> 提案不止导出文档，而是一键拆成达人、机构、星图、达人中心和飞书任务。
-
-## 执行漏斗
-
-| 阶段 | 数量 |
-| --- | --- |
-${funnel}
-
-## 执行模块
-
-${modules}
-
-## 同步频率
-
-- 每日同步飞书日报到行业群
-- 每周一对照 \`reports/提案报告.md\` 校准节奏
-- 复盘节点（5/05 后）触发自动出 \`reports/复盘.md\`
-`
-}
-
-/** Step 7 — render the 复盘 doc. Final terminal artefact: actual data
- *  vs target, traffic decomposition, module contribution table, and
- *  next-iteration advice. */
-function renderReviewMarkdown(): string {
-  const stats = PROPOSAL_REVIEW_STATS.map(
-    (s) => `- **${s.label}**: ${s.value}（${s.note}）`,
-  ).join('\n')
-  const traffic = PROPOSAL_REVIEW_TRAFFIC.map(
-    (t) => `| ${t.label} | ${t.valueLabel} |`,
-  ).join('\n')
-  const headers = Object.keys(PROPOSAL_REVIEW_MODULES[0])
-  const modules = PROPOSAL_REVIEW_MODULES.map(
-    (row) => `| ${headers.map((h) => row[h]).join(' | ')} |`,
-  ).join('\n')
-  const advice = PROPOSAL_REVIEW_ADVICE.map(
-    (a) => `### ${a.title}\n\n${a.desc}`,
-  ).join('\n\n')
-  return `# 种草复盘
-
-> 复盘重点不是总量，而是种草质量和自然贡献。
-
-## 实际数据 vs 目标
-
-${stats}
-
-## 流量贡献拆解
-
-| 维度 | 实际值 |
-| --- | --- |
-${traffic}
-
-> AI 诊断：总 A3 和看后搜均达成，但 A3 仍较依赖投广；看后搜的自然贡献表现更好，主要来自本地垂类达人和中腰部真实体验内容。下次建议提高本地垂类占比，减少头部达人预算。
-
-## 达人包模块贡献
-
-| ${headers.join(' | ')} |
-| ${headers.map(() => '---').join(' | ')} |
-${modules}
-
-## 下次策略建议
-
-${advice}
-
-## 可复用资产沉淀
-
-- 优选达人包：18 人
-- 可投广内容池：9 条
-- 高质量机构：2 家
-- 模板归档：「餐饮节点潜客种草」可作为后续同类项目起点
-`
-}
-
-/** Render the 4 玩法 + Brief into a single markdown document. */
-function renderBriefMarkdown(): string {
-  return `# 玩法 + Brief 编排
-
-> 每个达人桶都对应一种玩法 + Brief 模板。统一标准后再下发，避免内容方向漂移。
-
-${PROPOSAL_PLAYS.map(
-  (p) => `## ${p.name}｜${p.tag}
-
-${p.scope}
-
-### 创作目标
-
-${p.goal}
-
-### 必须包含
-
-${p.mustHave.map((m) => `- ${m}`).join('\n')}
-
-### 质量要求
-
-${p.quality}
-`,
-).join('\n')}
-## 下发说明
-
-- 头部 / 本地垂类达人走 @mira 单独沟通，确认档期与脚本初稿后再下星图订单
-- 中腰部 / 素人挑战投稿走机构批量下发，机构内预筛后才能进入审核
-- 可投广候选标签由 @holmes 自动初评，命中规则才会进入投广素材池
-`
-}
-
 /** Flatten a project FileNode tree into the flat list the mention
  *  picker consumes. Folders become `foo/` paths so `@src` and
  *  `@src/pages/index.tsx` both end up unique. */
@@ -1321,362 +979,6 @@ function SpaceMenuPopover({
         </div>
       ))}
     </div>
-  )
-}
-
-/** Inline Figma brand icon — matches the Figma design's `figma` glyph. */
-function FigmaIcon({ size = 16, className = '' }: { size?: number; className?: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      aria-hidden
-    >
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M2.6665 3.33325C2.6665 1.6764 4.00965 0.333252 5.6665 0.333252H10.3332C11.99 0.333252 13.3332 1.6764 13.3332 3.33325C13.3332 4.27567 12.8986 5.1166 12.2189 5.66659C12.8986 6.21657 13.3332 7.0575 13.3332 7.99992C13.3332 9.65677 11.99 10.9999 10.3332 10.9999C9.71646 10.9999 9.1432 10.8138 8.6665 10.4947V12.6666C8.6665 14.3234 7.32336 15.6666 5.6665 15.6666C4.00965 15.6666 2.6665 14.3234 2.6665 12.6666C2.6665 11.7242 3.10106 10.8832 3.78073 10.3333C3.10106 9.78327 2.6665 8.94234 2.6665 7.99992C2.6665 7.0575 3.10106 6.21657 3.78073 5.66658C3.10106 5.1166 2.6665 4.27567 2.6665 3.33325ZM5.6665 6.33325C4.74603 6.33325 3.99984 7.07944 3.99984 7.99992C3.99984 8.92039 4.74603 9.66658 5.6665 9.66658H7.33317V6.33325H5.6665ZM7.33317 4.99992H5.6665C4.74603 4.99992 3.99984 4.25373 3.99984 3.33325C3.99984 2.41278 4.74603 1.66659 5.6665 1.66659H7.33317V4.99992ZM10.3332 4.99992C11.2536 4.99992 11.9998 4.25373 11.9998 3.33325C11.9998 2.41278 11.2536 1.66659 10.3332 1.66659H8.6665V4.99992H10.3332ZM10.3332 6.33325C9.4127 6.33325 8.6665 7.07944 8.6665 7.99992C8.6665 8.92039 9.4127 9.66658 10.3332 9.66658C11.2536 9.66658 11.9998 8.92039 11.9998 7.99992C11.9998 7.07944 11.2536 6.33325 10.3332 6.33325ZM7.33317 10.9999H5.6665C4.74603 10.9999 3.99984 11.7461 3.99984 12.6666C3.99984 13.5871 4.74603 14.3333 5.6665 14.3333C6.58698 14.3333 7.33317 13.5871 7.33317 12.6666V10.9999Z"
-        fill="currentColor"
-      />
-    </svg>
-  )
-}
-
-/* ─── Platform home (new-project landing) ─── */
-
-/** Scene pills under the home composer. Clicking a pill opens a flyout of
- *  that scene's quick commands; each command's `prompt` ghost-fills the
- *  composer on hover and is sent on click. */
-type SceneCommand = { label: string; prompt: string }
-type HomeScene = { label: string; icon: LucideIcon; svg?: string; commands: SceneCommand[] }
-const HOME_SCENES: HomeScene[] = [
-  {
-    label: 'AI 分身',
-    icon: Bot,
-    svg: '/icons/bot-smile.svg',
-    commands: [
-      { label: '生成运营活动社群的 AI 分身', prompt: '帮我生成一个用于运营活动社群的 AI 分身，能在群里答疑、发活动通知、活跃气氛。' },
-      { label: '生成评论区回复用户问题的 AI 分身', prompt: '帮我生成一个能在评论区自动回复用户问题的 AI 分身。' },
-      { label: '做一个会聊星座情感的 AI 分身', prompt: '帮我做一个会聊星座和情感话题的 AI 分身，语气温柔治愈。' },
-      { label: '给分身配置自动欢迎语', prompt: '帮我给 AI 分身配置一套关注 / 进群时的自动欢迎语。' },
-      { label: '做一个客服答疑 AI 分身', prompt: '帮我做一个客服答疑 AI 分身，能回答常见售前售后问题。' },
-    ],
-  },
-  {
-    label: '小程序',
-    icon: LayoutGrid,
-    svg: '/icons/mini-programs.svg',
-    commands: [
-      { label: '做一个每日打卡小程序', prompt: '帮我做一个每日打卡小程序，支持连续打卡、提醒和成就徽章。' },
-      { label: '做一个第五人格主题塔罗小程序', prompt: '帮我做一个第五人格主题的塔罗运势小程序，每天可抽一张牌。' },
-      { label: '做一个抽奖小程序', prompt: '帮我做一个抽奖小程序，支持每日抽奖、分享得机会。' },
-      { label: '做一个会员积分小程序', prompt: '帮我做一个会员积分小程序，支持积分累计与兑换。' },
-      { label: '做一个预约报名小程序', prompt: '帮我做一个预约报名小程序，支持选时段、填信息和提醒。' },
-    ],
-  },
-  {
-    label: '营销设计',
-    icon: ImageIcon,
-    svg: '/icons/image-03.svg',
-    commands: [
-      { label: '做一张新品促销主视觉海报', prompt: '帮我做一张新品促销主视觉海报。' },
-      { label: '生成推广《剑来》动画的异形卡', prompt: '帮我生成一张推广《剑来》动画的异形卡海报。' },
-      { label: '做一个节日抽奖 H5 活动页', prompt: '帮我做一个节日主题的抽奖 H5 活动页，含倒计时、奖品楼层和分享。' },
-      { label: '生成一条新品种草短视频脚本', prompt: '帮我生成一条新品种草短视频脚本，含分镜、口播和字幕。' },
-      { label: '做一组朋友圈九宫格海报', prompt: '帮我做一组朋友圈九宫格拼图海报。' },
-    ],
-  },
-  {
-    label: '产品设计',
-    icon: AppWindow,
-    svg: '/icons/browser.svg',
-    commands: [
-      { label: '做一个产品落地页', prompt: '帮我做一个产品落地页，突出卖点和转化。' },
-      { label: '设计一套产品 UI 界面与组件规范', prompt: '帮我设计一套产品 UI 界面与组件规范，含配色、字体和常用组件。' },
-      { label: '设计一个产品功能原型图', prompt: '帮我设计一个产品核心功能的交互原型图。' },
-      { label: '做一个个人作品集网站', prompt: '帮我做一个个人作品集网站，含首页、作品、关于和联系页。' },
-      { label: '做一个公司官网首页', prompt: '帮我做一个公司官网首页，含品牌介绍与业务板块。' },
-    ],
-  },
-  {
-    label: '游戏设计',
-    icon: Gamepad2,
-    svg: '/icons/gaming-pad-01.svg',
-    commands: [
-      { label: '做一款竖版弹幕射击 + Roguelike 太空游戏', prompt: '帮我做一款竖版弹幕射击 + Roguelike 的太空小游戏。' },
-      { label: '做一个翻牌记忆小游戏', prompt: '帮我做一个翻牌记忆配对小游戏。' },
-      { label: '做一个跑酷小游戏', prompt: '帮我做一个横版跑酷小游戏。' },
-      { label: '做一个答题闯关小游戏', prompt: '帮我做一个答题闯关小游戏。' },
-      { label: '做一个消除类小游戏', prompt: '帮我做一个三消消除类小游戏。' },
-    ],
-  },
-]
-
-/** Scene icon — renders the project-provided SVG via a CSS mask so it picks
- *  up the ink color (theme-adaptive) regardless of the file's own fills.
- *  Falls back to the lucide/Tabler icon when no SVG is supplied. */
-function SceneGlyph({ scene }: { scene: HomeScene }) {
-  if (scene.svg) {
-    return (
-      <span
-        aria-hidden
-        className="h-[15px] w-[15px] shrink-0 bg-[var(--color-ink)]/55"
-        style={{
-          maskImage: `url(${scene.svg})`,
-          WebkitMaskImage: `url(${scene.svg})`,
-          maskSize: 'contain',
-          WebkitMaskSize: 'contain',
-          maskRepeat: 'no-repeat',
-          WebkitMaskRepeat: 'no-repeat',
-          maskPosition: 'center',
-          WebkitMaskPosition: 'center',
-        }}
-      />
-    )
-  }
-  const Icon = scene.icon
-  return <Icon size={14} strokeWidth={1.8} className="shrink-0 text-[var(--color-ink)]/55" />
-}
-
-function PlatformHome({
-  draft,
-  setDraft,
-  onSubmit,
-}: {
-  draft: string
-  setDraft: (s: string) => void
-  onSubmit: (text: string) => void
-}) {
-  const isLight = useThemeStore((s) => s.mode) === 'light'
-
-  /* Scene quick-command flyout. Clicking a scene pill opens a popover of
-   * that scene's commands; hovering a command ghost-fills the composer (via
-   * the placeholder, which renders grey), clicking sends it. */
-  const [activeScene, setActiveScene] = useState<string | null>(null)
-  const [ghostText, setGhostText] = useState<string | null>(null)
-  const sceneAreaRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!activeScene) return
-    const handler = (e: PointerEvent) => {
-      if (sceneAreaRef.current && !sceneAreaRef.current.contains(e.target as Node)) {
-        setActiveScene(null)
-        setGhostText(null)
-      }
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
-  }, [activeScene])
-  const openScene = HOME_SCENES.find((s) => s.label === activeScene)
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.22, ease: 'easeOut' }}
-      className={`relative my-3 mr-3 flex min-w-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-[16px] px-6 pb-48 pt-6 ${
-        isLight ? 'bg-white' : 'bg-[var(--color-surface-0)]'
-      }`}
-    >
-      {/* Ambient illustration — grainy pastel glow pinned to the top-right.
-           Only shown in light mode; dark mode keeps the flat surface. */}
-      {isLight && (
-        <img
-          aria-hidden
-          src="/bg/platform-home-glow.png"
-          alt=""
-          className="pointer-events-none absolute right-0 top-0 h-auto w-[720px] max-w-[70%] select-none object-contain object-right-top"
-        />
-      )}
-
-      {/* Hero */}
-      <div className="relative flex flex-col items-center gap-2">
-        <div className="text-center font-semibold tracking-[0.64px] text-[var(--color-ink)]">
-          <span className="text-[32px]">抖音</span>
-          <span className="text-[16px]"> </span>
-          <span className="text-[32px]">AI</span>
-          <span className="text-[16px]"> </span>
-          <span className="text-[32px]">打开无限可能</span>
-        </div>
-        <p className="text-[16px] leading-[22px] text-[var(--color-ink)]/60">
-          所见即所得，链接抖音生态
-        </p>
-      </div>
-
-      {/* Prompt composer — h-[140px] fixed card, content justified to the
-           bottom (textarea grows upward from the action row). */}
-      <div className="relative mt-6 w-full max-w-[810px]">
-        <div className="relative flex h-[140px] flex-col justify-end gap-2 overflow-hidden rounded-[16px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]">
-          {/* rainbow tint */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-4 blur-[20px]"
-            style={{
-              backgroundImage:
-                'linear-gradient(0deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 100%), linear-gradient(98deg, rgba(255,186,51,0.15) 7.59%, rgba(78,217,44,0.15) 23.2%, rgba(69,146,242,0.15) 44.7%, rgba(110,124,253,0.15) 66.3%, rgba(225,53,248,0.15) 92.3%)',
-            }}
-          />
-
-          <div className="relative flex min-h-0 flex-1 flex-col pl-3 pt-1">
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  onSubmit(draft)
-                }
-              }}
-              placeholder={ghostText ?? '请描述你的需求，我来帮你完成～'}
-              rows={1}
-              className="block h-full w-full flex-1 resize-none bg-transparent text-[14px] leading-[22px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/45"
-            />
-          </div>
-
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="flex h-9 items-center gap-1 rounded-full border border-[var(--divider)] px-4 text-[14px] font-semibold text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                <FolderCode size={16} strokeWidth={1.8} />
-                扩展
-              </button>
-              <button
-                type="button"
-                aria-label="附件"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                <Paperclip size={16} strokeWidth={1.8} />
-              </button>
-              <button
-                type="button"
-                aria-label="Figma"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                <FigmaIcon size={16} />
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="flex h-9 items-center gap-1 rounded-full px-4 text-[14px] font-semibold text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                Auto
-                <ChevronDown size={16} strokeWidth={1.8} />
-              </button>
-              <button
-                type="button"
-                aria-label="发送"
-                onClick={() => onSubmit(draft)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-ink)] text-[var(--color-ink-contrast)] transition-all hover:-translate-y-[1px] hover:opacity-90"
-              >
-                <ArrowUp size={16} strokeWidth={2} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Scene pills + per-scene quick-command flyout. The flyout is
-           absolutely positioned so opening it never shifts the composer. */}
-      <div
-        ref={sceneAreaRef}
-        className="relative z-20 mt-5 flex w-full max-w-[920px] flex-col items-center"
-      >
-        <div
-          className={`tab-scroll flex max-w-full flex-nowrap items-center justify-center gap-2 overflow-x-auto transition-opacity duration-150 ${
-            openScene ? 'pointer-events-none opacity-0' : 'opacity-100'
-          }`}
-        >
-          {HOME_SCENES.map((scene) => {
-            const { label } = scene
-            const active = activeScene === label
-            return (
-              <button
-                key={label}
-                type="button"
-                onClick={() => {
-                  setActiveScene(active ? null : label)
-                  setGhostText(null)
-                }}
-                className={`flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13px] transition-colors ${
-                  active
-                    ? 'border-[var(--color-ink)]/30 bg-[var(--fill-subtle)] text-[var(--color-ink)]'
-                    : 'border-[var(--divider)] bg-[var(--color-surface-0)] text-[var(--color-ink)]/80 hover:border-[var(--color-ink)]/25 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
-                }`}
-              >
-                <SceneGlyph scene={scene} />
-                {label}
-              </button>
-            )
-          })}
-        </div>
-
-        <AnimatePresence>
-        {openScene && (() => {
-          return (
-            <motion.div
-              key={openScene.label}
-              initial={{ opacity: 0, y: -6, scale: 0.985 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.985 }}
-              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-              style={{ transformOrigin: 'top center' }}
-              onClick={() => {
-                setActiveScene(null)
-                setGhostText(null)
-              }}
-              className="absolute left-1/2 top-0 z-30 w-[810px] max-w-[92vw] -translate-x-1/2 overflow-hidden rounded-2xl bg-[var(--color-surface-0)]"
-            >
-              <div className="flex items-center justify-between px-5 py-3">
-                <span className="flex items-center gap-1.5 text-[13px] text-[var(--color-ink)]/55">
-                  <SceneGlyph scene={openScene} />
-                  {openScene.label}
-                </span>
-                <button
-                  type="button"
-                  aria-label="关闭"
-                  onClick={() => {
-                    setActiveScene(null)
-                    setGhostText(null)
-                  }}
-                  className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/45 transition-colors hover:bg-[var(--fill-soft)] hover:text-[var(--color-ink)]"
-                >
-                  <X size={14} strokeWidth={2} />
-                </button>
-              </div>
-              <div className="flex flex-col px-2 pb-2">
-                {openScene.commands.map((c) => (
-                  <button
-                    key={c.label}
-                    type="button"
-                    onMouseEnter={() => setGhostText(c.prompt)}
-                    onMouseLeave={() => setGhostText(null)}
-                    onClick={() => {
-                      onSubmit(c.prompt)
-                      setActiveScene(null)
-                      setGhostText(null)
-                    }}
-                    className="group flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-[14px] text-[var(--color-ink)] transition-colors hover:bg-[var(--fill-subtle)]"
-                  >
-                    <span className="min-w-0 truncate">{c.label}</span>
-                    <ChevronRight
-                      size={15}
-                      className="shrink-0 text-[var(--color-ink)]/35 opacity-0 transition-opacity group-hover:opacity-100"
-                    />
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )
-        })()}
-        </AnimatePresence>
-      </div>
-    </motion.div>
   )
 }
 
@@ -2906,8 +2208,10 @@ export default function VibeCodingPage() {
     setPlatformSkillsOpen(false)
     setPlatformCreativeSquareOpen(false)
     setPlatformDataOpsOpen(false)
-    initProjectDefaults(name)
-    sendChat(trimmed)
+    // Enter the chat flow with the right pane closed (Artifacts-style); it
+    // opens once a previewable artifact appears — see sendChat / seedProductTabs.
+    initProjectDefaults(name, true)
+    sendChat(trimmed, { fromHomeEntry: true })
   }
 
   /** Kick off the Garuda mock-generation flow. Opens the project, seeds
@@ -3063,7 +2367,34 @@ export default function VibeCodingPage() {
    *  empty preview tabs; web-game gets 预览/资产 tabs; everything else
    *  gets the generic 预览 tab. Called from `openProject` when no
    *  prior snapshot exists for the target project. */
-  const initProjectDefaults = (name: string) => {
+  /** Default right-pane tabs for a project kind. Seeded immediately when
+   *  opening an existing project (already has an artifact); deferred for
+   *  home-created projects until the chat produces a previewable artifact. */
+  const defaultTabsForKind = (name: string) => {
+    const k = kindOf(name)
+    if (k === 'web-game')
+      return [
+        { label: '预览', closable: false },
+        { label: '素材', closable: false },
+      ]
+    if (k === 'ai-avatar')
+      return [
+        { label: '预览', closable: false },
+        { label: '技能', closable: true },
+        { label: '知识库', closable: true },
+      ]
+    if (k === 'ops-proposal') return []
+    return [{ label: '预览', closable: false }]
+  }
+
+  /** Open the right preview pane (Artifacts-style) by seeding its default
+   *  tabs once the project has a previewable artifact. No-op if the pane is
+   *  already populated, so it's safe to call from any chat / flow step. */
+  const seedProductTabs = () => {
+    setOpenTabs((prev) => (prev.length > 0 ? prev : defaultTabsForKind(projectTitle)))
+  }
+
+  const initProjectDefaults = (name: string, deferProduct = false) => {
     const sid = `s-${Date.now()}`
     setSessions([{ id: sid, name: '新会话' }])
     setActiveSessionId(sid)
@@ -3122,24 +2453,12 @@ export default function VibeCodingPage() {
           trigger: 'proposal',
         },
       ])
-    } else if (kindOf(name) === 'web-game') {
-      setProposalStep('idle')
-      setOpenTabs([
-        { label: '预览', closable: false },
-        { label: '素材', closable: false },
-      ])
-    } else if (kindOf(name) === 'ai-avatar') {
-      // AI 分身 opens 技能 / 知识库 as top tabs by default (beside the 预览
-      // phone). 人设 is no longer a tab — it lives in 代码文件 as persona.yaml.
-      setProposalStep('idle')
-      setOpenTabs([
-        { label: '预览', closable: false },
-        { label: '技能', closable: true },
-        { label: '知识库', closable: true },
-      ])
     } else {
+      // 预览 / 技能 / 知识库 tabs by kind. Home-created projects defer
+      // (deferProduct) — the right pane stays closed until the chat produces
+      // a previewable artifact (seedProductTabs on first follow-up / flow step).
       setProposalStep('idle')
-      setOpenTabs([{ label: '预览', closable: false }])
+      setOpenTabs(deferProduct ? [] : defaultTabsForKind(name))
     }
   }
 
@@ -3200,9 +2519,13 @@ export default function VibeCodingPage() {
    *  - otherwise → just append the message bubble
    *  Accepts an optional `override` text (used by empty-state suggestion
    *  chips to send immediately on click, bypassing the draft state). */
-  const sendChat = (override?: string) => {
+  const sendChat = (override?: string, opts?: { fromHomeEntry?: boolean }) => {
     const text = (override ?? chatDraft).trim()
     if (!text) return
+    // Any chat the user sends after entering a project counts as engaging with
+    // it → reveal the right preview pane (Artifacts-style). The initial
+    // home-entry prompt is excluded so the pane stays closed until then.
+    if (!opts?.fromHomeEntry) seedProductTabs()
     let trigger: 'none' | 'publish' | 'needs' | 'trigger' = 'none'
     if (/发布|更新/.test(text)) {
       trigger = 'publish'
@@ -4562,6 +3885,8 @@ export default function VibeCodingPage() {
     setTriggerStep('confirmed')
     setPendingTrigger(null)
     setLastConfirmedTrigger(t)
+    // 配好触发器即产物 → reveal the right pane if it was deferred (home entry).
+    seedProductTabs()
     // Detail tab no longer auto-opens — the inline chat summary has a
     // "view config" CTA and the sidebar shows the new triggers/ file, so
     // the user can land on the detail view on their own schedule.
@@ -5250,6 +4575,7 @@ export default function VibeCodingPage() {
     <PhoneMockup width={360} height={760} maxScale={1.4}>
       <MarketingH5Preview
         key={miniAppKey}
+        preview={getMarketingH5Preview(projectTitle)}
         editing={editPanelOpen}
         selectedLayer={h5SelectedLayer}
         onSelectLayer={setH5SelectedLayer}
@@ -5265,12 +4591,13 @@ export default function VibeCodingPage() {
     </PhoneMockup>
   ) : activeProjectKind === 'ai-avatar' ? (
     <PhoneMockup>
-      <AiPersonaChatPreview scene={avatarScene} simulations={triggerSimulations} />
+      <AiPersonaChatPreview config={getAvatarConfig(projectTitle)} scene={avatarScene} simulations={triggerSimulations} />
     </PhoneMockup>
   ) : (
     <PhoneMockup>
       <MiniAppPreview
         key={miniAppKey}
+        config={getMiniProgramConfig(projectTitle)}
         route={previewRoute}
         onNavigate={setPreviewRoute}
       />
@@ -6141,11 +5468,20 @@ export default function VibeCodingPage() {
                   const cached = aiReplyCacheRef.current.get(replyKey)
                   // Build the conversation context: the system framing plus
                   // every plain user turn up to here, interleaved with the
-                  // assistant replies we've already streamed (cached).
+                  // assistant replies we've already streamed (cached). The
+                  // current date is injected so 时间类 questions answer correctly,
+                  // and the model is told to route by intent (build vs Q&A) so
+                  // chitchat / 自我介绍 aren't forced into a "搭建需求" framing.
+                  const nowStr = new Date().toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'long',
+                  })
                   const history: ChatMessage[] = [
                     {
                       role: 'system',
-                      content: `你是「抖音 AI 工坊」的智能助手，正在协助用户搭建「${projectTitle}」这个${PROJECT_KIND_LABELS[activeProjectKind]}项目。请用简体中文回答，语气专业、简洁、可执行，必要时给出具体步骤或示例。`,
+                      content: `你是「抖音 AI 工坊」的智能助手。当前日期：${nowStr}。用户当前在「${projectTitle}」(${PROJECT_KIND_LABELS[activeProjectKind]}) 项目下与你对话：如果用户在描述要做的产品或功能，就帮他梳理并推进搭建；如果只是提问、闲聊或让你做自我介绍，就直接正常回答，不要当成搭建需求。请用简体中文，语气专业、简洁、可执行，必要时给出具体步骤或示例。`,
                     },
                   ]
                   for (let k = 0; k <= i; k++) {
@@ -7306,6 +6642,9 @@ export default function VibeCodingPage() {
                     <button
                       onClick={() => {
                         setFormSubmitted(true)
+                        // Capabilities wired up = a previewable artifact → open
+                        // the right pane if it was deferred (home entry).
+                        seedProductTabs()
                         // Reveal the newly-scaffolded .agent/skills tree so the
                         // user can see the capabilities were wired up.
                         setExpandedDirs((prev) => {
@@ -8524,6 +7863,7 @@ export default function VibeCodingPage() {
           {/* ── Content area: tab content (left) + optional file tree (right) ── */}
           <div className="flex min-h-0 flex-1 overflow-hidden">
           <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+          <ErrorBoundary label="预览" resetKey={`${projectTitle}::${openTabs[activePreviewTab]?.label ?? ''}`}>
           {(() => {
             const previewToolbar = (() => {
               const lbl = openTabs[activePreviewTab]?.label ?? ''
@@ -8855,7 +8195,7 @@ export default function VibeCodingPage() {
               <ToolbarAction
                 icon={ExternalLink}
                 label="跳转"
-                onClick={() => toast('正在跳转到第三方数据源…')}
+                onClick={() => toast('正在跳转到来源…')}
               />
             )
             /** Wrap a third-party-data view (知识库 / 数据库) with a toolbar
@@ -9360,11 +8700,12 @@ export default function VibeCodingPage() {
                     actions={
                       activeProjectKind === 'ai-avatar' &&
                       (activeLabel === '技能' || activeLabel === '知识库') ? (
-                        // AI 分身 技能 / 知识库 → 添加 (no-op for now). 知识库 is
-                        // third-party data, so it also gets a 跳转 entry.
+                        // AI 分身 技能 / 知识库 → 添加 + 跳转 (跳转 opens the
+                        // upstream skill / data source; both are referenced
+                        // resources outside our scope here).
                         <>
                           <ToolbarAction icon={Plus} label="添加" />
-                          {activeLabel === '知识库' && jumpToSourceAction}
+                          {jumpToSourceAction}
                         </>
                       ) : (
                         <ToolbarAction
@@ -9388,6 +8729,7 @@ export default function VibeCodingPage() {
                 ? renderTab(activeLabel)
                 : null
           })()}
+          </ErrorBoundary>
 
           {/* ── Console panel ── */}
           <AnimatePresence>

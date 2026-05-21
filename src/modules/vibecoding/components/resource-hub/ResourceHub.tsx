@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Plus, Search } from '@/shared/icons'
 import {
@@ -31,7 +31,7 @@ import {
 
 /** 资源库 — rebuilt 5-tab library (工具箱 / 知识库 / 模型库 / 发布器 / 触发器).
  *  Self-contained mock UI; reuses the small card primitives in ./cards. */
-export default function ResourceHub() {
+function ResourceHub() {
   const reduce = useReducedMotion()
   const [tab, setTab] = useState<HubTab>('tools')
   const [search, setSearch] = useState('')
@@ -248,3 +248,5 @@ export default function ResourceHub() {
     </div>
   )
 }
+
+export default memo(ResourceHub)

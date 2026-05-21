@@ -4,6 +4,50 @@
 
 ## 2026-05-21
 
+- 配置驱动产物（第三刀·H5）：新建 `MarketingH5ConfigData.ts`(MarketingH5PreviewConfig +
+  DEFAULT_MARKETING_H5_PREVIEW + 按项目名注册表 + getMarketingH5Preview)；
+  MarketingH5Preview 各区块(头图/倒计时/介绍/抽奖/任务/规则/footer)改成读 preview
+  渲染，布局/装饰/图层选择仍是框架；六一活动配置=默认值，渲染处传 preview。
+  实测六一 H5 与改前像素一致、无报错。至此 内容型(分身/小程序/H5)均配置驱动，
+  网站/游戏归 embed 不动，提案本就数据驱动。
+- 配置驱动产物（第二刀·小程序）：MiniAppPreview 4 个页面（首页/塔罗/聊天/个人）
+  改成读 `MiniProgramConfig.preview` 渲染——新增 `MiniProgramPreviewConfig` +
+  `DEFAULT_MINIPROGRAM_PREVIEW`(场景图/头像/卡池/导航标题/首页/塔罗文案/聊天/个人)；
+  塔罗小程序配置带上 preview=默认值；渲染处传 config。金色主题 + 翻牌机制 + 布局
+  仍留在渲染器作框架。内容(文本/图/数据)走 config，便于按场景拆模块各自维护。
+  实测塔罗 4 屏与改前像素一致、无报错。
+- 配置驱动产物（第一刀·分身）：把 AI 分身预览从写死改成读配置——AvatarConfig 新增
+  `preview`(displayName/avatar/bio/timestamp/seed对话/评论thread) + `DEFAULT_AVATAR_PREVIEW`
+  兜底；`AiPersonaChatPreview` 接 `config` 渲染（私信+评论两屏全部读 config，无 config
+  时回退默认）；陶白白配置带上 preview=默认值。VibeCodingPage 渲染处传
+  `config={getAvatarConfig(projectTitle)}`。目标：框架真、配置当 mock，换 config=换产物。
+  实测陶白白两屏与改前像素一致、无报错。(未提交)
+- 首页进入对话流时右侧预览默认不打开（Artifacts 语义）：home 创建的项目延迟打开
+  右侧（initProjectDefaults 加 deferProduct → openTabs=[]），仅在产生可预览产物时
+  打开——任何后续 sendChat（追问/点修改建议）或脚本流程产出（formSubmitted /
+  触发器确认 / 提案 / 游戏已有的延迟）触发 seedProductTabs。初始 home prompt 用
+  `sendChat(text,{fromHomeEntry:true})` 排除。侧边栏打开的既有项目不受影响、照常
+  立即显示。实测：提交后右侧关、首次交互后打开、既有项目立即打开。(未提交)
+- VibeCodingPage 瘦身（god 组件拆分 阶段0 切片）：抽出 `proposal-docs.ts`(7 个提案
+  markdown 生成器 + PROPOSAL_FILE_SUMMARY)、`FigmaIcon.tsx`(共享图标)、
+  `PlatformHome.tsx`(PlatformHome + SceneGlyph + HOME_SCENES + 类型)；清理随之
+  失效的 import(PROPOSAL_* / Bot)。VibeCodingPage 9914→9231 行(−683)。tsc 通过、
+  预览实测首页/场景 flyout/提案文档均正常。PlatformSidebar(640 行,prop 较重)留作
+  下一步。(未提交)
+- 工程优化（建议 1-4）：
+  · 健壮性：新增 `shared/components/ErrorBoundary`，包住 App 根 + 右侧预览
+    (resetKey 跟 项目/tab 走)，单个预览崩溃不再白屏整个壳。
+  · 交互反馈：`ToolbarAction` 无 onClick 时默认弹 toast「「X」功能演示中…」，
+    避免 demo 动作点了没反应。
+  · 性能：给重的预览/页面组件加 `memo`(AgentHubPreview / GarudaGamePreview /
+    MiniAppPreview / AiPersonaChatPreview / ResourceHub / DataOpsView),顶层
+    状态(缩放/控制台等)变化时这些子树不再全量重渲染(props 均为稳定值)。
+  · 缩放拖拽：确认缩放已限定在 previewSurface(预览 tab),画布编辑/分隔条/控制台
+    等坐标型拖拽都在缩放区域外,预览本体内无坐标型拖拽 → 无需改动。
+  预览实测:toolbar 动作弹 toast、资源库/运营数据正常渲染、无报错。(未提交)
+- 分身「技能」工具栏加上「跳转」操作(原来只有知识库有):技能/知识库分支统一渲染
+  添加 + jumpToSourceAction;跳转 toast 文案泛化为「正在跳转到来源…」以适配技能。
+  预览实测技能 tab 出现 添加 + 跳转。(未提交)
 - 预览缩放居中修复 + 按钮手型:① 缩放改为以视口中心为锚——给预览画布加 ref,
   previewZoom 变化时把 scrollLeft/Top 居中(溢出时 m-auto 会退化成左对齐导致内容
   偏移)。② 修复 Tailwind v4 preflight 去掉的 button 手型:index.css 加全局规则,

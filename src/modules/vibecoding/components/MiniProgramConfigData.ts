@@ -10,9 +10,58 @@
  * 智能体 / 小程序设置 / 静态素材 are backed by this config object.
  */
 
+import { getWorld } from '@/modules/editor/data/worlds'
+
 export interface MiniProgramAsset {
   name: string
   url: string
+}
+
+/* ─── preview (right-side phone) content ───
+ * Drives MiniAppPreview's 4 pages. Content only (text / images / data); the
+ * gold accent + tarot flip mechanics + layout stay in the renderer as the
+ * shared "framework". Falls back to DEFAULT_MINIPROGRAM_PREVIEW. */
+export interface MpQuickEntry {
+  t: string
+  d: string
+}
+export interface MpChatMsg {
+  from: 'ai' | 'me'
+  text: string
+}
+export interface MpStat {
+  num: string
+  unit: string
+}
+export interface MiniProgramPreviewConfig {
+  sceneBg: string
+  /** Avatar shown in 聊天 / 个人. */
+  portrait: string
+  /** Card face images for the 塔罗 deck. */
+  cardPool: string[]
+  /** Nav title per route label (首页 / 塔罗 / 聊天 / 个人). */
+  navTitles: Record<string, string>
+  home: {
+    dateLabel: string
+    title: string
+    desc: string
+    cta: string
+    quickEntries: MpQuickEntry[]
+  }
+  tarot: {
+    cardLabels: [string, string, string]
+    hintInitial: string
+    hintPartial: string
+    hintAll: string
+    reshuffleLabel: string
+  }
+  chat: MpChatMsg[]
+  profile: {
+    name: string
+    subtitle: string
+    stats: MpStat[]
+    menu: string[]
+  }
 }
 
 export interface MiniProgramConfig {
@@ -29,6 +78,60 @@ export interface MiniProgramConfig {
   }
   /** 静态素材 — icons / images. */
   assets: MiniProgramAsset[]
+  /** Right-side preview content. Falls back to DEFAULT_MINIPROGRAM_PREVIEW. */
+  preview?: MiniProgramPreviewConfig
+}
+
+/** Default preview content = the seeded 第五人格塔罗 surface, so the renderer
+ *  shows a complete phone for any mini-program even without a `preview`. */
+const IDENTITY_V_WORLD = getWorld('identity-v')
+const IDENTITY_V_CARDS = [
+  ...(IDENTITY_V_WORLD.defaults.gallery ?? []),
+  IDENTITY_V_WORLD.defaults.portraitUrl,
+]
+export const DEFAULT_MINIPROGRAM_PREVIEW: MiniProgramPreviewConfig = {
+  sceneBg: '/场景/约瑟夫暗房.png',
+  portrait: IDENTITY_V_WORLD.defaults.portraitUrl,
+  cardPool: IDENTITY_V_CARDS.length > 0 ? IDENTITY_V_CARDS : ['/bg/identity-v-portrait.png'],
+  navTitles: {
+    首页: '第五人格 · 今日运势',
+    塔罗: '今日塔罗',
+    聊天: '约瑟夫',
+    个人: '我的',
+  },
+  home: {
+    dateLabel: 'TODAY · 5 月 18 日',
+    title: '为你显影今日运势',
+    desc: '抽出过去、当下与下一张牌，让约瑟夫的快门替你解读。',
+    cta: '开始今日占卜',
+    quickEntries: [
+      { t: '运势日记', d: '回看历史牌面' },
+      { t: '牌意词典', d: '78 张牌全解' },
+    ],
+  },
+  tarot: {
+    cardLabels: ['PAST', 'NOW', 'NEXT'],
+    hintInitial: '点击牌堆，抽出今日的第一张牌',
+    hintPartial: '继续点未翻开的牌，让约瑟夫的快门替你显影。',
+    hintAll: '三张牌已为你显影 —— 过去、当下、下一张等你按下快门。',
+    reshuffleLabel: '重新抽卡',
+  },
+  chat: [
+    { from: 'ai', text: '今晚的暗房很安静，想聊聊你抽到的牌吗？' },
+    { from: 'me', text: '我抽到了「NOW」是一张倒置的牌。' },
+    { from: 'ai', text: '倒置常意味着「尚未释放的能量」。别急，先按下快门，再谈显影。' },
+    { from: 'me', text: '那我下一步该注意什么？' },
+  ],
+  profile: {
+    name: '深夜旅人',
+    subtitle: '与约瑟夫同行 12 天',
+    stats: [
+      { num: '36', unit: '次占卜' },
+      { num: '12', unit: '连续天' },
+      { num: '5', unit: '收藏牌' },
+    ],
+    menu: ['我的运势日记', '收藏的牌意', '提醒设置'],
+  },
 }
 
 /* ─── per-project mock configs ─── */
@@ -112,6 +215,7 @@ export const MINIPROGRAM_CONFIGS: Record<string, MiniProgramConfig> = {
       '结果页背景',
       '分享卡片底图',
     ]),
+    preview: DEFAULT_MINIPROGRAM_PREVIEW,
   },
   '每日打卡小程序': {
     name: '每日打卡',

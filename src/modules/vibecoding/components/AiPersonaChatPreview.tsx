@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from 'react'
+import { Fragment, memo, useEffect, useRef } from 'react'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -13,26 +13,36 @@ import {
   Zap,
 } from '@/shared/icons'
 import PhoneStatusBar from '@/modules/editor/components/preview/PhoneStatusBar'
+import { DEFAULT_AVATAR_PREVIEW, type AvatarAppConfig, type AvatarComment } from './AvatarConfigData'
 
 /**
  * 抖音 AI 分身私信预览 — mock of the Douyin private-message page for an
- * AI-avatar persona. Renders the nav bar, hero profile, a seeded mini
- * conversation, and any simulated trigger firings appended by the
- * parent (`simulations` prop). The test controls themselves live
- * outside the phone frame — owned by VibeCodingPage — so the phone
- * renders as an authentic Douyin surface.
+ * AI-avatar persona. Persona-specific content (name / avatar / bio / seeded
+ * conversation / comment thread) is driven by the project's `config.preview`,
+ * so the same renderer shows any 分身; it falls back to DEFAULT_AVATAR_PREVIEW
+ * when no config is supplied. Simulated trigger firings are appended by the
+ * parent (`simulations` prop) — the test controls live outside the phone.
  */
 const AVATAR_GRADIENT =
   'linear-gradient(135deg,#ffe0a6 0%,#ffc57a 45%,#ff9b68 100%)'
 
 /** Friendly user-perspective label for a simulated event — shown in the
  *  "模拟事件" banner so the preview reads like the user's real action. */
-const SIM_USER_ACTION: Record<string, string> = {
-  'user-follow': '你关注了 陶白白Sensei',
-  'user-comment': '你在作品下留言',
-  'user-like': '你点赞了作品',
-  'user-gift': '你送出一个礼物',
-  'user-post': '你发布了新作品',
+function simUserAction(eventId: string, displayName: string): string {
+  switch (eventId) {
+    case 'user-follow':
+      return `你关注了 ${displayName}`
+    case 'user-comment':
+      return '你在作品下留言'
+    case 'user-like':
+      return '你点赞了作品'
+    case 'user-gift':
+      return '你送出一个礼物'
+    case 'user-post':
+      return '你发布了新作品'
+    default:
+      return '触发器被触发'
+  }
 }
 
 export interface TriggerSimulation {
@@ -42,16 +52,20 @@ export interface TriggerSimulation {
   actionDescription: string
 }
 
-export default function AiPersonaChatPreview({
+function AiPersonaChatPreview({
+  config,
   scene = 'chat',
   simulations = [],
 }: {
+  /** The 分身's app config — its `preview` drives the surface content. */
+  config?: AvatarAppConfig
   /** Which surface to render — 'chat' = 私信/AI 聊天; 'comment' = 评论区. */
   scene?: 'chat' | 'comment'
   /** Trigger firings the parent has appended. Rendering only — the
    *  parent owns state and exposes the test controls outside the phone. */
   simulations?: TriggerSimulation[]
 }) {
+  const p = config?.preview ?? DEFAULT_AVATAR_PREVIEW
   const bodyRef = useRef<HTMLDivElement>(null)
   // Scroll the body to the bottom whenever a new simulation arrives so
   // the freshly-fired AI reply is immediately visible.
@@ -60,7 +74,14 @@ export default function AiPersonaChatPreview({
     const el = bodyRef.current
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
   }, [simulations.length])
-  if (scene === 'comment') return <CommentSceneView />
+  if (scene === 'comment')
+    return (
+      <CommentSceneView
+        comments={p.comments}
+        avatarUrl={p.avatarUrl}
+        displayName={p.displayName}
+      />
+    )
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#ededed] text-[#1f1f1f]">
       <PhoneStatusBar />
@@ -74,9 +95,9 @@ export default function AiPersonaChatPreview({
             style={{ background: AVATAR_GRADIENT }}
             aria-hidden
           >
-            <img src="/tbb.jpeg" alt="" className="h-full w-full object-cover" />
+            <img src={p.avatarUrl} alt="" className="h-full w-full object-cover" />
           </div>
-          <span className="ml-1.5 truncate text-[14px] font-medium">陶白白Sensei</span>
+          <span className="ml-1.5 truncate text-[14px] font-medium">{p.displayName}</span>
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
           <Video size={16} strokeWidth={2} />
@@ -92,21 +113,21 @@ export default function AiPersonaChatPreview({
             className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full"
             style={{ background: AVATAR_GRADIENT }}
           >
-            <img src="/tbb.jpeg" alt="" className="h-full w-full object-cover" />
+            <img src={p.avatarUrl} alt="" className="h-full w-full object-cover" />
           </div>
-          <h3 className="mt-3 text-[16px] font-semibold">陶白白Sensei</h3>
-          <p className="mt-1 text-[11.5px] leading-[1.6] text-[#6b6b6b]">
-            大家好啊，我是陶白白。
-          </p>
-          <p className="text-[11.5px] leading-[1.6] text-[#6b6b6b]">
-            商务合作: fqsw0031
-          </p>
+          <h3 className="mt-3 text-[16px] font-semibold">{p.displayName}</h3>
+          {p.bio.map((line, i) => (
+            <p
+              key={i}
+              className={`${i === 0 ? 'mt-1 ' : ''}text-[11.5px] leading-[1.6] text-[#6b6b6b]`}
+            >
+              {line}
+            </p>
+          ))}
         </div>
 
         {/* Timestamp */}
-        <p className="mt-1 text-center text-[10px] text-[#9b9b9b]">
-          2025/12/04 16:19
-        </p>
+        <p className="mt-1 text-center text-[10px] text-[#9b9b9b]">{p.timestamp}</p>
 
         {/* Safety notice */}
         <p className="mt-2 px-5 text-center text-[10.5px] leading-[1.55] text-[#9b9b9b]">
@@ -116,7 +137,7 @@ export default function AiPersonaChatPreview({
         {/* User message */}
         <div className="mt-3 flex items-end justify-end gap-1.5">
           <div className="rounded-[10px] bg-[#2f85ff] px-3 py-1.5 text-[13px] leading-[1.5] text-white shadow-[0_1px_2px_rgba(16,18,24,0.06)]">
-            你好
+            {p.seedUserMessage}
           </div>
           <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-slate-200 to-slate-400">
             <UserGlyph />
@@ -138,11 +159,11 @@ export default function AiPersonaChatPreview({
             className="h-6 w-6 shrink-0 overflow-hidden rounded-full"
             style={{ background: AVATAR_GRADIENT }}
           >
-            <img src="/tbb.jpeg" alt="" className="h-full w-full object-cover" />
+            <img src={p.avatarUrl} alt="" className="h-full w-full object-cover" />
           </div>
           <div className="flex max-w-[82%] flex-col items-start gap-1">
             <div className="rounded-[10px] bg-white px-3 py-2 text-[13px] leading-[1.55] text-[#1f1f1f] shadow-[0_1px_2px_rgba(16,18,24,0.05)]">
-              你好啊 kingjaylee！最近感情上有没有啥困惑？或者想聊聊哪个星座？我这儿随时在线帮你分析分析。
+              {p.seedAiReply}
             </div>
             <span className="ml-1 text-[10px] text-[#9b9b9b]">由AI分身生成</span>
           </div>
@@ -162,14 +183,14 @@ export default function AiPersonaChatPreview({
               <span className="h-px flex-1 bg-[#dcdcdc]" />
             </div>
             <p className="mt-1 text-center text-[10px] leading-[1.6] text-[#9b9b9b]">
-              {SIM_USER_ACTION[sim.eventId] ?? '触发器被触发'}
+              {simUserAction(sim.eventId, p.displayName)}
             </p>
             <div className="mt-2 flex items-start gap-1.5">
               <div
                 className="h-6 w-6 shrink-0 overflow-hidden rounded-full"
                 style={{ background: AVATAR_GRADIENT }}
               >
-                <img src="/tbb.jpeg" alt="" className="h-full w-full object-cover" />
+                <img src={p.avatarUrl} alt="" className="h-full w-full object-cover" />
               </div>
               <div className="flex max-w-[82%] flex-col items-start gap-1">
                 <div className="rounded-[10px] bg-white px-3 py-2 text-[13px] leading-[1.55] text-[#1f1f1f] shadow-[0_1px_2px_rgba(16,18,24,0.05)]">
@@ -217,40 +238,19 @@ export default function AiPersonaChatPreview({
   )
 }
 
-/** 评论区 surface — a Douyin-style comment thread where 陶白白Sensei (the
- *  AI 分身) auto-replies to user comments. Static mock; mirrors the chat
- *  scene's framing so toggling between the two reads as one product. */
-const COMMENT_THREAD: {
-  user: string
-  text: string
-  time: string
-  likes: string
-  reply: string
-}[] = [
-  {
-    user: '小鹿同学',
-    text: '最近和对象总是冷战，是不是不合适啊…',
-    time: '2 小时前',
-    likes: '328',
-    reply: '冷战不代表不合适，多半是表达方式没对上～试试先说感受再说需求，别上来就讲道理。',
-  },
-  {
-    user: '阿球',
-    text: '天蝎座到底是不是记仇王？',
-    time: '5 小时前',
-    likes: '1.2万',
-    reply: '与其说记仇，不如说在意。天蝎不是忘不掉，是希望你主动给个交代～',
-  },
-  {
-    user: 'momo',
-    text: '暗恋同事三个月了，要不要表白？',
-    time: '昨天',
-    likes: '906',
-    reply: '先别急着表白，先制造高质量相处。让对方习惯有你，比一句喜欢更有用。',
-  },
-]
-
-function CommentSceneView() {
+/** 评论区 surface — a Douyin-style comment thread where the AI 分身 auto-replies
+ *  to user comments. Content (thread + persona avatar/name) is config-driven;
+ *  mirrors the chat scene's framing so toggling between the two reads as one
+ *  product. */
+function CommentSceneView({
+  comments,
+  avatarUrl,
+  displayName,
+}: {
+  comments: AvatarComment[]
+  avatarUrl: string
+  displayName: string
+}) {
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-white text-[#1f1f1f]">
       <PhoneStatusBar />
@@ -266,7 +266,7 @@ function CommentSceneView() {
 
       {/* Comment list */}
       <div className="thin-scroll flex-1 overflow-y-auto px-3 py-2">
-        {COMMENT_THREAD.map((c) => (
+        {comments.map((c) => (
           <div key={c.user} className="flex gap-2 py-2.5">
             <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-slate-200 to-slate-400">
               <UserGlyph />
@@ -283,11 +283,11 @@ function CommentSceneView() {
               {/* AI 分身 auto-reply */}
               <div className="mt-2 flex gap-2 rounded-[10px] bg-[#f7f7f7] p-2">
                 <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full">
-                  <img src="/tbb.jpeg" alt="" className="h-full w-full object-cover" />
+                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-[#1f1f1f]">陶白白Sensei</span>
+                    <span className="text-[11px] font-medium text-[#1f1f1f]">{displayName}</span>
                     <span className="rounded bg-[#ffe7cf] px-1 text-[9px] leading-[14px] text-[#b5701f]">作者</span>
                     <span className="rounded bg-[#e6f0ff] px-1 text-[9px] leading-[14px] text-[#2f85ff]">AI 分身</span>
                   </div>
@@ -327,3 +327,5 @@ function UserGlyph() {
     </svg>
   )
 }
+
+export default memo(AiPersonaChatPreview)

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
@@ -438,7 +438,7 @@ function BusinessProductCard({ title, description, tag, icon }: BusinessProduct)
   )
 }
 
-export default function AgentHubPreview({ hideSidebar = false }: { hideSidebar?: boolean } = {}) {
+function AgentHubPreview({ hideSidebar = false }: { hideSidebar?: boolean } = {}) {
   const [activeTab, setActiveTab] = useState<DiscoveryTab>('全部')
   const [sortOption, setSortOption] = useState<SortOption>('默认排序')
   const [sortOpen, setSortOpen] = useState(false)
@@ -739,3 +739,5 @@ export default function AgentHubPreview({ hideSidebar = false }: { hideSidebar?:
     </main>
   )
 }
+
+export default memo(AgentHubPreview)

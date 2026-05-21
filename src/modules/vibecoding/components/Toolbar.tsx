@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { toast } from 'sonner'
 import type { LucideIcon } from '@/shared/icons'
 
 export function FlexAlignGlyph({
@@ -69,7 +70,9 @@ export function ToolbarAction({
     <button
       type="button"
       title={label}
-      onClick={onClick}
+      // Many toolbar actions are demo-only; without a handler a click feels
+      // broken. Fall back to a toast so every action gives feedback.
+      onClick={onClick ?? (() => toast(`「${label}」功能演示中…`))}
       className={`flex items-center rounded-lg border text-[12px] transition-colors ${
         iconOnly ? 'gap-0 px-2 py-1.5' : 'gap-0 px-2 py-1.5 @[520px]:gap-1.5 @[520px]:px-3'
       } ${

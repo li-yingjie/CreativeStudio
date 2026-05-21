@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import {
   SquareUser,
   LayoutGrid,
@@ -43,7 +43,7 @@ const KIND_LABEL: Record<ProjectKind, string> = {
   'ops-proposal': '运营提案',
 }
 
-export default function DataOpsView({
+function DataOpsView({
   projects,
   focusName,
 }: {
@@ -113,3 +113,5 @@ export default function DataOpsView({
     </div>
   )
 }
+
+export default memo(DataOpsView)

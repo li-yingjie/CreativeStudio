@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { RotateCcw, Play } from '@/shared/icons'
 
 /**
@@ -10,7 +10,7 @@ import { RotateCcw, Play } from '@/shared/icons'
  */
 const START_POSTER = '/garuda/assets/Start.jpg'
 
-export default function GarudaGamePreview() {
+function GarudaGamePreview() {
   const [reloadKey, setReloadKey] = useState(0)
   const [playing, setPlaying] = useState(false)
 
@@ -54,3 +54,5 @@ export default function GarudaGamePreview() {
     </div>
   )
 }
+
+export default memo(GarudaGamePreview)
