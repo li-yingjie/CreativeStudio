@@ -3811,8 +3811,18 @@ export default function VibeCodingPage() {
   /** User-toggled collapse of the right preview pane (separate from the
    *  artifact-no-tabs sentinel — both fold the pane). */
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
-  // Right-preview zoom (proportional scale of the rendered preview content).
+  // Right-preview zoom (proportional scale of the rendered preview surface).
   const [previewZoom, setPreviewZoom] = useState(1)
+  // The scrollable canvas around the preview surface — re-centered on zoom so
+  // scaling stays anchored to the viewport center (m-auto alone left-aligns
+  // once the scaled surface overflows the canvas).
+  const previewCanvasRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = previewCanvasRef.current
+    if (!el) return
+    el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2)
+    el.scrollTop = Math.max(0, (el.scrollHeight - el.clientHeight) / 2)
+  }, [previewZoom])
   /** Add-tab menu — opens beside the + button next to the tab list. */
   const [addTabMenuOpen, setAddTabMenuOpen] = useState(false)
   const addTabMenuRef = useRef<HTMLDivElement>(null)
@@ -8514,21 +8524,6 @@ export default function VibeCodingPage() {
           {/* ── Content area: tab content (left) + optional file tree (right) ── */}
           <div className="flex min-h-0 flex-1 overflow-hidden">
           <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-          {/* Zoom viewport — scales the rendered preview proportionally
-              (control at bottom-right). The percentage sizer + scale renders
-              content at natural size then scales it: scrolls when >100%,
-              shrinks within the pane when <100%. */}
-          <div className="thin-scroll flex min-h-0 flex-1 overflow-auto">
-          <div className="m-auto" style={{ width: `${previewZoom * 100}%`, height: `${previewZoom * 100}%` }}>
-          <div
-            className="flex flex-col"
-            style={{
-              width: `${100 / previewZoom}%`,
-              height: `${100 / previewZoom}%`,
-              transform: `scale(${previewZoom})`,
-              transformOrigin: 'top left',
-            }}
-          >
           {(() => {
             const previewToolbar = (() => {
               const lbl = openTabs[activePreviewTab]?.label ?? ''
@@ -8662,7 +8657,8 @@ export default function VibeCodingPage() {
                      that washed out the dot grid on either side of the
                      phone). Light mode keeps just the dot grid + phone. */}
                 <div
-                  className={`relative flex min-h-0 flex-1 overflow-hidden ${
+                  ref={previewCanvasRef}
+                  className={`relative flex min-h-0 flex-1 overflow-auto ${
                     activeProjectKind === 'web-app' || activeProjectKind === 'web-game' ? '' : 'pt-6 pb-12'
                   }`}
                 >
@@ -8694,9 +8690,27 @@ export default function VibeCodingPage() {
                       }}
                     />
                   )}
-                  <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-                    <div className="flex min-h-0 flex-1">
-                      {previewSurface}
+                  {/* Zoom sizer — scales only the preview surface, centered
+                      (m-auto). Toolbar + dot-grid backdrop stay at 1x; scrolls
+                      when >100%, shrinks within the canvas when <100%. */}
+                  <div
+                    className="relative z-10 m-auto"
+                    style={{ width: `${previewZoom * 100}%`, height: `${previewZoom * 100}%` }}
+                  >
+                    <div
+                      className="flex flex-col"
+                      style={{
+                        width: `${100 / previewZoom}%`,
+                        height: `${100 / previewZoom}%`,
+                        transform: `scale(${previewZoom})`,
+                        transformOrigin: 'top left',
+                      }}
+                    >
+                      <div className="flex min-h-0 flex-1 flex-col">
+                        <div className="flex min-h-0 flex-1">
+                          {previewSurface}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -9374,9 +9388,6 @@ export default function VibeCodingPage() {
                 ? renderTab(activeLabel)
                 : null
           })()}
-          </div>
-          </div>
-          </div>
 
           {/* ── Console panel ── */}
           <AnimatePresence>
@@ -9448,7 +9459,8 @@ export default function VibeCodingPage() {
             </button>
           )}
 
-          {/* zoom control — bottom-right, scales the preview proportionally */}
+          {/* zoom control — only on the 预览 surface; scales the preview */}
+          {openTabs[activePreviewTab]?.label === '预览' && (
           <div className="absolute bottom-3 right-3 z-20 flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_8px_rgba(16,18,24,0.10)]">
             <button
               type="button"
@@ -9475,6 +9487,7 @@ export default function VibeCodingPage() {
               <Plus size={13} strokeWidth={1.8} />
             </button>
           </div>
+          )}
           </div>
 
           {/* ── Visual edit panel — opens to the right of the preview for any

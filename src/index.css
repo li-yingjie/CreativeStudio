@@ -285,6 +285,16 @@ body {
   letter-spacing: -0.005em;
 }
 
+/* Tailwind v4's preflight no longer sets cursor:pointer on buttons. Restore
+   the hand cursor for enabled clickable controls (utilities like
+   cursor-not-allowed / cursor-default still win via higher specificity). */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label[for],
+summary {
+  cursor: pointer;
+}
+
 #root {
   min-height: 100dvh;
 }

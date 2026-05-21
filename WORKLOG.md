@@ -4,6 +4,15 @@
 
 ## 2026-05-21
 
+- 预览缩放居中修复 + 按钮手型:① 缩放改为以视口中心为锚——给预览画布加 ref,
+  previewZoom 变化时把 scrollLeft/Top 居中(溢出时 m-auto 会退化成左对齐导致内容
+  偏移)。② 修复 Tailwind v4 preflight 去掉的 button 手型:index.css 加全局规则,
+  让 enabled 的 button/[role=button]/label[for]/summary 显示 cursor:pointer;并把
+  该约定写进 CLAUDE.md。(未提交)
+- 预览缩放范围收窄:只缩放「手机预览/产物画布」本体,不再缩放上方 toolbar 和点阵
+  背景。把缩放容器从「整个 IIFE 外层」移到 phoneView 里只包 previewSurface
+  (画布区改 overflow-auto + sizer m-auto 居中);缩放控件只在「预览」tab 显示。
+  实测 toolbar 尺寸不变、手机随缩放变化并居中。(未提交)
 - 预览缩放微调:① 改为以画布中央为锚点(缩放视口 flex + sizer m-auto,缩小居中、
   放大从中间扩展且可滚动);② 缩放控件与左侧 terminal 切换的阴影减轻
   (0_6px_18px/0.5 → 0_2px_8px/0.1)、底色统一改成白色 + 极淡边框。(未提交)

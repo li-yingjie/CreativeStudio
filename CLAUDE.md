@@ -72,6 +72,12 @@ There is no test suite.
   `src/modules/vibecoding/components/`.
 - Verify UI changes in the browser preview (a `dev` config exists in
   `.claude/launch.json`).
+- **Clickable elements must show the hand cursor.** Tailwind v4's preflight no
+  longer sets `cursor: pointer` on buttons. A global rule in `src/index.css`
+  restores it for enabled `button` / `[role="button"]` / `label[for]` / `summary`
+  — keep that rule, and for any custom clickable (a `div`/`span` with `onClick`)
+  add `cursor-pointer` explicitly (use `cursor-not-allowed` / `cursor-default`
+  for disabled / non-interactive).
 - **Images must be compressed.** Any image added to `public/` (or replaced) must be
   kept small — no oversized dimensions, no multi-MB files. Cap dimensions to what's
   actually displayed (avatars ≤ 512px, backgrounds ≤ 1600px long side) and run it
