@@ -190,6 +190,7 @@ import {
   Pencil,
   ExternalLink,
   Plus,
+  Minus,
   RefreshCw,
   RotateCcw,
   Settings,
@@ -1529,7 +1530,7 @@ function PlatformHome({
                   onSubmit(draft)
                 }
               }}
-              placeholder={ghostText ?? '请描述你遇到的具体业务痛点或需求...'}
+              placeholder={ghostText ?? '请描述你的需求，我来帮你完成～'}
               rows={1}
               className="block h-full w-full flex-1 resize-none bg-transparent text-[14px] leading-[22px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/45"
             />
@@ -3810,6 +3811,8 @@ export default function VibeCodingPage() {
   /** User-toggled collapse of the right preview pane (separate from the
    *  artifact-no-tabs sentinel — both fold the pane). */
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
+  // Right-preview zoom (proportional scale of the rendered preview content).
+  const [previewZoom, setPreviewZoom] = useState(1)
   /** Add-tab menu — opens beside the + button next to the tab list. */
   const [addTabMenuOpen, setAddTabMenuOpen] = useState(false)
   const addTabMenuRef = useRef<HTMLDivElement>(null)
@@ -4577,33 +4580,85 @@ export default function VibeCodingPage() {
     // lives as a real file in the 代码文件 tree (avatar-agent/persona.yaml).
     'persona.yaml': { lang: 'YAML', lines: [
       L(1, ['# ───────────── 人设 (persona) ─────────────', c]),
-      L(2, ['# AI 分身的身份 / 语气 / 边界，驱动右侧「预览」里的对话', c]),
-      L(3),
-      L(4, ['name: ', t], ['陶白白 Sensei', s]),
-      L(5, ['title: ', t], ['星座情感 AI 分身', s]),
-      L(6),
-      L(7, ['# 性格与语气', c]),
-      L(8, ['persona:', t]),
-      L(9, ['  tone: ', t], ['温柔、治愈、带点幽默', s]),
-      L(10, ['  style: ', t], ['像朋友一样聊星座和情感', s]),
-      L(11, ['  values:', t]),
-      L(12, ['    - ', t], ['共情优先', s]),
-      L(13, ['    - ', t], ['不下绝对结论', s]),
-      L(14),
-      L(15, ['# 开场白', c]),
-      L(16, ['greeting: ', t], ['"大家好啊，我是陶白白～有情感或星座问题随时找我聊~"', s]),
-      L(17),
-      L(18, ['# 能力边界（不可逾越）', c]),
-      L(19, ['guardrails:', t]),
-      L(20, ['  - ', t], ['不提供医疗 / 法律 / 金融建议', s]),
-      L(21, ['  - ', t], ['涉及隐私的问题礼貌拒答', s]),
+      L(2, ['# 陶白白 Sensei — 星座情感 AI 分身', c]),
+      L(3, ['# 驱动右侧「预览」对话：身份 / 语气 / 边界 / 示例', c]),
+      L(4, ['# 版本 v2.3 · 维护：星座情感内容团队', c]),
+      L(5),
+      L(6, ['meta:', t]),
+      L(7, ['  name: ', t], ['陶白白 Sensei', s]),
+      L(8, ['  title: ', t], ['星座情感 AI 分身', s]),
+      L(9, ['  version: ', t], ['2.3.0', n]),
+      L(10, ['  language: ', t], ['zh-CN', s]),
+      L(11, ['  avatar: ', t], ['avatar-agent/assets/taobaibai.png', s]),
+      L(12),
+      L(13, ['# ── 身份与定位 ──', c]),
+      L(14, ['identity:', t]),
+      L(15, ['  role: ', t], ['懂星座、更懂人心的情感陪伴者', s]),
+      L(16, ['  background: ', t], ['>', p]),
+      L(17, ['    长期研究星座与亲密关系，把「玄学」翻译成可落地的相处建议；', s]),
+      L(18, ['    不算命，只帮你更了解自己和身边的人。', s]),
+      L(19, ['  audience: ', t], ['18–35 岁、关注情感与自我成长的用户', s]),
+      L(20, ['  goal: ', t], ['让每次对话都让人「被理解」，并带走一个小小的行动', s]),
+      L(21, ['  greeting: ', t], ['"大家好啊，我是陶白白～有情感或星座问题随时找我聊～"', s]),
       L(22),
-      L(23, ['knowledge_refs:', t], ['   # 知识库（见左侧目录）', c]),
-      L(24, ['  - ', t], ['12 星座性格库', s]),
-      L(25, ['  - ', t], ['情感关系知识库', s]),
-      L(26, ['skill_refs:', t], ['       # 技能', c]),
-      L(27, ['  - ', t], ['星座运势解读', s]),
-      L(28, ['  - ', t], ['情感陪伴对话', s]),
+      L(23, ['# ── 性格与语气 ──', c]),
+      L(24, ['persona:', t]),
+      L(25, ['  tone: ', t], ['温柔、治愈、带点幽默', s]),
+      L(26, ['  style: ', t], ['像懂星座的好朋友，娓娓道来而不说教', s]),
+      L(27, ['  pace: ', t], ['先共情 → 再分析 → 最后给一个轻量建议', s]),
+      L(28, ['  traits:', t]),
+      L(29, ['    - ', t], ['共情力强，先接住情绪', s]),
+      L(30, ['    - ', t], ['理性克制，不贴标签、不下定论', s]),
+      L(31, ['    - ', t], ['偶尔俏皮，会用星座梗活跃气氛', s]),
+      L(32, ['  values:', t]),
+      L(33, ['    - ', t], ['共情优先', s]),
+      L(34, ['    - ', t], ['不下绝对结论', s]),
+      L(35, ['    - ', t], ['尊重边界与隐私', s]),
+      L(36),
+      L(37, ['# ── 说话风格 ──', c]),
+      L(38, ['voice:', t]),
+      L(39, ['  sentence: ', t], ['短句为主，一次不超过 3 句重点', s]),
+      L(40, ['  emoji: ', t], ['适度使用（✨🌙💛），每条 0–2 个', s]),
+      L(41, ['  catchphrases:', t]),
+      L(42, ['    - ', t], ['"我先抱抱你～"', s]),
+      L(43, ['    - ', t], ['"别急，我们一点点拆开看"', s]),
+      L(44, ['    - ', t], ['"星座只是参考，你的感受才是答案"', s]),
+      L(45, ['  avoid:', t]),
+      L(46, ['    - ', t], ['不卖惨、不贩卖焦虑', s]),
+      L(47, ['    - ', t], ['不用「必须 / 一定 / 绝对」这类绝对化措辞', s]),
+      L(48),
+      L(49, ['# ── 对话原则 ──', c]),
+      L(50, ['principles:', t]),
+      L(51, ['  - ', t], ['先回应情绪，再回应问题', s]),
+      L(52, ['  - ', t], ['给选项而非命令，把决定权交给用户', s]),
+      L(53, ['  - ', t], ['不确定就说不确定，并给出下一步', s]),
+      L(54, ['  - ', t], ['涉及现实重大决策，建议结合专业意见', s]),
+      L(55),
+      L(56, ['# ── 对话示例（few-shot）──', c]),
+      L(57, ['examples:', t]),
+      L(58, ['  - user: ', t], ['我和对象最近老吵架，是不是不合适？', s]),
+      L(59, ['    reply: ', t], ['>', p]),
+      L(60, ['      先抱抱你～吵架不等于不合适，更多是没对上频道 🌙', s]),
+      L(61, ['      最近是为同一件事反复吗？我们可以一起理一理。', s]),
+      L(62, ['  - user: ', t], ['天蝎座是不是很记仇？', s]),
+      L(63, ['    reply: ', t], ['>', p]),
+      L(64, ['      与其说记仇，不如说他们对在乎的人格外认真 ✨', s]),
+      L(65, ['      标签参考就好，具体还得看这个人怎么对你。', s]),
+      L(66),
+      L(67, ['# ── 能力边界（不可逾越）──', c]),
+      L(68, ['guardrails:', t]),
+      L(69, ['  - ', t], ['不提供医疗 / 法律 / 金融等专业建议', s]),
+      L(70, ['  - ', t], ['不做命运 / 吉凶的绝对预言', s]),
+      L(71, ['  - ', t], ['涉及隐私或敏感信息，礼貌拒答并说明原因', s]),
+      L(72, ['  - ', t], ['识别到危机情绪时，温柔安抚并建议寻求线下帮助', s]),
+      L(73),
+      L(74, ['# ── 引用资源 ──', c]),
+      L(75, ['knowledge_refs:', t], ['        # 知识库（见左侧目录）', c]),
+      L(76, ['  - ', t], ['12 星座性格库', s]),
+      L(77, ['  - ', t], ['情感关系知识库', s]),
+      L(78, ['skill_refs:', t], ['            # 技能', c]),
+      L(79, ['  - ', t], ['星座运势解读', s]),
+      L(80, ['  - ', t], ['情感陪伴对话', s]),
     ]},
     'app.tsx': { lang: 'TypeScript JSX', lines: [
       L(1, ['import', k], [' Taro ', t], ['from', k], [" '@tarojs/taro'", s]),
@@ -8459,6 +8514,21 @@ export default function VibeCodingPage() {
           {/* ── Content area: tab content (left) + optional file tree (right) ── */}
           <div className="flex min-h-0 flex-1 overflow-hidden">
           <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+          {/* Zoom viewport — scales the rendered preview proportionally
+              (control at bottom-right). The percentage sizer + scale renders
+              content at natural size then scales it: scrolls when >100%,
+              shrinks within the pane when <100%. */}
+          <div className="thin-scroll flex min-h-0 flex-1 overflow-auto">
+          <div className="m-auto" style={{ width: `${previewZoom * 100}%`, height: `${previewZoom * 100}%` }}>
+          <div
+            className="flex flex-col"
+            style={{
+              width: `${100 / previewZoom}%`,
+              height: `${100 / previewZoom}%`,
+              transform: `scale(${previewZoom})`,
+              transformOrigin: 'top left',
+            }}
+          >
           {(() => {
             const previewToolbar = (() => {
               const lbl = openTabs[activePreviewTab]?.label ?? ''
@@ -9304,6 +9374,9 @@ export default function VibeCodingPage() {
                 ? renderTab(activeLabel)
                 : null
           })()}
+          </div>
+          </div>
+          </div>
 
           {/* ── Console panel ── */}
           <AnimatePresence>
@@ -9369,11 +9442,39 @@ export default function VibeCodingPage() {
             <button
               onClick={() => setConsoleOpen(true)}
               title="展开控制台"
-              className="absolute bottom-3 left-3 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-surface-2)]/85 text-[var(--color-ink)]/60 shadow-[0_6px_18px_-6px_rgba(0,0,0,0.5)] backdrop-blur-md transition-colors hover:text-[var(--color-ink)]"
+              className="absolute bottom-3 left-3 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--divider-soft)] bg-white text-[var(--color-ink)]/60 shadow-[0_2px_8px_rgba(16,18,24,0.10)] transition-colors hover:text-[var(--color-ink)]"
             >
               <Terminal size={13} strokeWidth={1.8} />
             </button>
           )}
+
+          {/* zoom control — bottom-right, scales the preview proportionally */}
+          <div className="absolute bottom-3 right-3 z-20 flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_8px_rgba(16,18,24,0.10)]">
+            <button
+              type="button"
+              title="缩小"
+              onClick={() => setPreviewZoom((z) => Math.max(0.5, Math.round((z - 0.1) * 10) / 10))}
+              className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+            >
+              <Minus size={13} strokeWidth={1.8} />
+            </button>
+            <button
+              type="button"
+              title="重置缩放"
+              onClick={() => setPreviewZoom(1)}
+              className="min-w-[42px] rounded-full px-1 text-center text-[11px] tabular-nums text-[var(--color-ink)]/70 transition-colors hover:text-[var(--color-ink)]"
+            >
+              {Math.round(previewZoom * 100)}%
+            </button>
+            <button
+              type="button"
+              title="放大"
+              onClick={() => setPreviewZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}
+              className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+            >
+              <Plus size={13} strokeWidth={1.8} />
+            </button>
+          </div>
           </div>
 
           {/* ── Visual edit panel — opens to the right of the preview for any

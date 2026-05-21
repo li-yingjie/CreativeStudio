@@ -4,6 +4,19 @@
 
 ## 2026-05-21
 
+- 预览缩放微调:① 改为以画布中央为锚点(缩放视口 flex + sizer m-auto,缩小居中、
+  放大从中间扩展且可滚动);② 缩放控件与左侧 terminal 切换的阴影减轻
+  (0_6px_18px/0.5 → 0_2px_8px/0.1)、底色统一改成白色 + 极淡边框。(未提交)
+- 首页输入框 placeholder 改为「请描述你的需求，我来帮你完成～」。(未提交)
+- 右侧预览右下角新增缩放控件(− / 百分比 / +,点百分比重置):整体按比例缩放
+  预览内容,50%–200%、步进 10%。实现用「百分比 sizer + transform scale」——内容
+  按自然尺寸渲染再整体缩放,>100% 可滚动、<100% 在面板内缩到左上;外层标签/发布
+  等 chrome 不缩放。新增 previewZoom 状态、icons 补 Minus。预览实测 100/120/60%。(未提交)
+- 分身代码文件里的 persona.yaml(陶白白 Sensei)从 28 行简版扩成 80 行丰富版:
+  新增 meta / identity(role·background·audience·goal·greeting) / persona
+  (tone·style·pace·traits·values) / voice(口头禅·emoji·禁用词) / principles /
+  examples(few-shot) / guardrails / knowledge_refs·skill_refs。预览实测代码视图
+  正常渲染高亮。(未提交)
 - 游戏「玩法」对象加回到标签页的「+ 添加」菜单(不放回左侧产品列表):gameView
   仍隐藏 玩法,但 VibeCodingPage 的 + 菜单对 web-game 额外插入「玩法」行(排在
   代码文件前)。点开即打开 玩法 标签页(ProjectObjectViews 已有的核心循环/武器
