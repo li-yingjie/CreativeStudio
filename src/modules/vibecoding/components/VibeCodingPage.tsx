@@ -8941,6 +8941,18 @@ export default function VibeCodingPage() {
                   // project exposes its real source tree via a 代码文件 editor
                   // tab added from here (left directory + code on the right).
                   flat.push({ label: '代码文件' })
+                  // Drop rows already present as an open tab — no point
+                  // offering to add what's already there. 触发器 resolves to a
+                  // 触发器·* tab, so any open trigger tab covers that row too.
+                  const openLabels = new Set(openTabs.map((t) => t.label))
+                  const hasTriggerTab = openTabs.some((t) =>
+                    t.label.startsWith('触发器·'),
+                  )
+                  const visible = flat.filter(({ label }) => {
+                    if (openLabels.has(label)) return false
+                    if (label === '触发器' && hasTriggerTab) return false
+                    return true
+                  })
                   if (!addTabMenuRef.current) return null
                   const r = addTabMenuRef.current.getBoundingClientRect()
                   return createPortal(
@@ -8955,12 +8967,12 @@ export default function VibeCodingPage() {
                       onMouseDown={(e) => e.stopPropagation()}
                       className="z-50 min-w-[180px] max-w-[260px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] py-1 shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]"
                     >
-                      {flat.length === 0 && (
+                      {visible.length === 0 && (
                         <div className="px-3 py-2 text-[12px] text-[var(--color-ink)]/40">
                           暂无可添加项
                         </div>
                       )}
-                      {flat.map((item) => {
+                      {visible.map((item) => {
                         const ItemIcon = productLabelIcon(item.label)
                         return (
                           <button
