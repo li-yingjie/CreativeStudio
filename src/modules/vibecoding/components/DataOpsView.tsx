@@ -9,6 +9,10 @@ import {
 } from '@/shared/icons'
 import type { ProjectKind } from './ProjectProductView'
 import OpsDataDashboard from './OpsDataContent'
+import {
+  getPublishObjectVisual,
+  PublishObjectVisualThumb,
+} from './PublishDrawer'
 
 /**
  * 运营数据菜单页 — 左侧「已发布的项目」列表，右侧复用 OpsDataDashboard
@@ -78,8 +82,10 @@ export default function DataOpsView({
         </div>
         <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-2 pb-3">
           {projects.map((p) => {
-            const Icon = KIND_ICON[p.kind]
             const on = p.name === activeName
+            // Published projects show their real产物 icon — same visual as the
+            // 发布 drawer (avatar/logo/cover image, or kind badge fallback).
+            const visual = getPublishObjectVisual(p.kind, p.name, KIND_ICON[p.kind])
             return (
               <button
                 key={p.name}
@@ -89,13 +95,7 @@ export default function DataOpsView({
                   on ? 'bg-[var(--color-ink)]/[0.07]' : 'hover:bg-[var(--fill-hover)]'
                 }`}
               >
-                <span
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
-                    on ? 'bg-[var(--color-surface-0)] text-[var(--color-ink)]' : 'bg-[var(--fill-subtle)] text-[var(--color-ink)]/55'
-                  }`}
-                >
-                  <Icon size={14} strokeWidth={1.7} />
-                </span>
+                <PublishObjectVisualThumb visual={visual} size="lg" />
                 <span className="min-w-0 flex-1">
                   <span className={`block truncate text-[12.5px] ${on ? 'font-medium text-[var(--color-ink)]' : 'text-[var(--color-ink)]/80'}`}>
                     {p.label}

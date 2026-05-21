@@ -2,6 +2,7 @@ import { Fragment, useState, useRef, useEffect, useCallback, type ReactNode } fr
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import * as Popover from '@radix-ui/react-popover'
+import { Tooltip } from './Tooltip'
 import { toast } from 'sonner'
 import ChatPreview from '@/modules/editor/components/preview/ChatPreview'
 import GlassIconButton from '@/modules/editor/components/layout/GlassIconButton'
@@ -49,10 +50,8 @@ import { getFileIcon, FileTreeView } from './FileTreeView'
 import MentionPicker, { type MentionItem } from './MentionPicker'
 import TriggerDetailView from './TriggerDetailView'
 import { ChatFormCard, ChatFormStep, ChatFormSubmit } from './ChatFormCard'
-import ResourceLibraryView, {
-  type TypeFilter as ResourceLibraryTypeFilter,
-} from './ResourceLibraryView'
-import PlatformPlaceholderView from './PlatformPlaceholderView'
+import ResourceHub from './resource-hub/ResourceHub'
+import ResourceLibraryView from './ResourceLibraryView'
 import DataOpsView, { type DataOpsProject } from './DataOpsView'
 import ProposalGoalCard, { type ProposalGoalDraft } from './ProposalGoalCard'
 import ProposalDiagnosisCard from './ProposalDiagnosisCard'
@@ -175,6 +174,7 @@ import {
   FolderClosed,
   FolderCode,
   FolderOpen,
+  FolderTree,
   Headset,
   Headphones,
   Home,
@@ -1501,7 +1501,7 @@ function PlatformHome({
           <span className="text-[32px]">打开无限可能</span>
         </div>
         <p className="text-[16px] leading-[22px] text-[var(--color-ink)]/60">
-          所见即所得，一站式满足需求
+          所见即所得，链接抖音生态
         </p>
       </div>
 
@@ -1884,10 +1884,10 @@ function PlatformSidebar({
           />
           <button
             onClick={onNewProject}
-            className="relative flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-[var(--color-ink)] text-[13px] font-medium text-[var(--color-ink-contrast)]"
+            className="relative flex h-8 w-full items-center justify-start gap-1.5 rounded-full bg-[var(--color-ink)] px-2 text-[13px] font-medium text-[var(--color-ink-contrast)]"
           >
-            <Plus size={14} strokeWidth={2} />
-            新建项目
+            <Plus size={16} strokeWidth={2} className="shrink-0" />
+            AI 创作
           </button>
         </div>
       </div>
@@ -1982,19 +1982,29 @@ function PlatformSidebar({
           <div className="mt-4 flex shrink-0 items-center justify-between px-5 py-1.5">
             <span className="text-[12px] text-[var(--color-ink)]/55">项目列表</span>
             <div className="flex items-center gap-1 text-[var(--color-ink)]/40">
-              <button
-                title="搜索全部项目文件"
-                className="flex h-5 w-5 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
-              >
-                <Search size={12} strokeWidth={1.8} />
-              </button>
-              <button
-                title="收起全部"
-                onClick={onCollapseAll}
-                className="flex h-5 w-5 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
-              >
-                <Menu4 size={12} strokeWidth={1.8} />
-              </button>
+              <Tooltip label="搜索全部项目文件">
+                <button
+                  className="flex h-6 w-6 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
+                >
+                  <Search size={15} strokeWidth={1.8} />
+                </button>
+              </Tooltip>
+              <Tooltip label="收起全部">
+                <button
+                  onClick={onCollapseAll}
+                  className="flex h-6 w-6 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
+                >
+                  <Menu4 size={15} strokeWidth={1.8} />
+                </button>
+              </Tooltip>
+              <Tooltip label="查看全部项目">
+                <button
+                  onClick={() => setOpenProjects(new Set(ALL_PROJECTS))}
+                  className="flex h-6 w-6 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
+                >
+                  <FolderTree size={15} strokeWidth={1.8} />
+                </button>
+              </Tooltip>
             </div>
           </div>
 
@@ -3118,12 +3128,11 @@ export default function VibeCodingPage() {
         { label: '素材', closable: false },
       ])
     } else if (kindOf(name) === 'ai-avatar') {
-      // AI 分身 opens 人设 / 技能 / 知识库 as top tabs by default (beside the
-      // 预览 phone), so the avatar's config surfaces are one click away.
+      // AI 分身 opens 技能 / 知识库 as top tabs by default (beside the 预览
+      // phone). 人设 is no longer a tab — it lives in 代码文件 as persona.yaml.
       setProposalStep('idle')
       setOpenTabs([
         { label: '预览', closable: false },
-        { label: '人设', closable: true },
         { label: '技能', closable: true },
         { label: '知识库', closable: true },
       ])
@@ -3518,6 +3527,7 @@ export default function VibeCodingPage() {
       name: 'avatar-agent',
       type: 'dir',
       children: [
+        { name: 'persona.yaml', type: 'file' },
         { name: 'avatar_config.json', type: 'file' },
         { name: 'avatar_verify_result.json', type: 'file' },
         { name: 'douyin_user_persona.json', type: 'file' },
@@ -4197,6 +4207,8 @@ export default function VibeCodingPage() {
     platformSkillsOpen ||
     platformCreativeSquareOpen ||
     platformDataOpsOpen
+  // Resource library / Skills view state (the original 资源-Skills page is
+  // rendered in the Skills menu; the 资源库 menu uses the new ResourceHub).
   const [resourceLibraryPrimary, setResourceLibraryPrimary] =
     useState<PrimaryCategory | null>('官方')
   const [resourceLibrarySecondary, setResourceLibrarySecondary] = useState<
@@ -4219,16 +4231,6 @@ export default function VibeCodingPage() {
       ]),
   )
   const [resourceLibrarySearch, setResourceLibrarySearch] = useState('')
-  const [resourceLibraryTypeFilter, setResourceLibraryTypeFilter] = useState<
-    ResourceLibraryTypeFilter
-  >('skill-tool')
-  /** When set, the workspace mounts and inserts an @-mention with this
-   *  shape into the chat composer once it's available. Consumed by an
-   *  effect so the DOM ref is ready before we manipulate it.
-   *  `id` doubles as the mention pill's data-mention-id. */
-  const [pendingMention, setPendingMention] = useState<
-    { id: string; name: string } | null
-  >(null)
   const toggleResourceLibraryExpanded = (primary: PrimaryCategory) => {
     setResourceLibraryExpanded((prev) => {
       const next = new Set(prev)
@@ -4237,6 +4239,13 @@ export default function VibeCodingPage() {
       return next
     })
   }
+  /** When set, the workspace mounts and inserts an @-mention with this
+   *  shape into the chat composer once it's available. Consumed by an
+   *  effect so the DOM ref is ready before we manipulate it.
+   *  `id` doubles as the mention pill's data-mention-id. */
+  const [pendingMention, setPendingMention] = useState<
+    { id: string; name: string } | null
+  >(null)
   const openResourceLibraryPage = () => {
     setPlatformHomeOpen(false)
     setPlatformSkillsOpen(false)
@@ -4564,6 +4573,38 @@ export default function VibeCodingPage() {
   const x = 'text-[var(--syntax-jsx)]'     // JSX tag
 
   const codeFiles: Record<string, { lang: string; lines: { num: number; tokens: { text: string; color: string }[] }[] }> = {
+    // AI 分身 · 人设 — moved here from the (removed) 人设 tab. The persona now
+    // lives as a real file in the 代码文件 tree (avatar-agent/persona.yaml).
+    'persona.yaml': { lang: 'YAML', lines: [
+      L(1, ['# ───────────── 人设 (persona) ─────────────', c]),
+      L(2, ['# AI 分身的身份 / 语气 / 边界，驱动右侧「预览」里的对话', c]),
+      L(3),
+      L(4, ['name: ', t], ['陶白白 Sensei', s]),
+      L(5, ['title: ', t], ['星座情感 AI 分身', s]),
+      L(6),
+      L(7, ['# 性格与语气', c]),
+      L(8, ['persona:', t]),
+      L(9, ['  tone: ', t], ['温柔、治愈、带点幽默', s]),
+      L(10, ['  style: ', t], ['像朋友一样聊星座和情感', s]),
+      L(11, ['  values:', t]),
+      L(12, ['    - ', t], ['共情优先', s]),
+      L(13, ['    - ', t], ['不下绝对结论', s]),
+      L(14),
+      L(15, ['# 开场白', c]),
+      L(16, ['greeting: ', t], ['"大家好啊，我是陶白白～有情感或星座问题随时找我聊~"', s]),
+      L(17),
+      L(18, ['# 能力边界（不可逾越）', c]),
+      L(19, ['guardrails:', t]),
+      L(20, ['  - ', t], ['不提供医疗 / 法律 / 金融建议', s]),
+      L(21, ['  - ', t], ['涉及隐私的问题礼貌拒答', s]),
+      L(22),
+      L(23, ['knowledge_refs:', t], ['   # 知识库（见左侧目录）', c]),
+      L(24, ['  - ', t], ['12 星座性格库', s]),
+      L(25, ['  - ', t], ['情感关系知识库', s]),
+      L(26, ['skill_refs:', t], ['       # 技能', c]),
+      L(27, ['  - ', t], ['星座运势解读', s]),
+      L(28, ['  - ', t], ['情感陪伴对话', s]),
+    ]},
     'app.tsx': { lang: 'TypeScript JSX', lines: [
       L(1, ['import', k], [' Taro ', t], ['from', k], [" '@tarojs/taro'", s]),
       L(2, ['import', k], [' { Component } ', t], ['from', k], [" 'react'", s]),
@@ -5257,6 +5298,7 @@ export default function VibeCodingPage() {
     setActivePreviewTab(0)
     setResourceLibraryCapability(null)
     setPlatformResourceLibraryOpen(false)
+    setPlatformSkillsOpen(false)
     setPendingMention({
       id: `${platform.id}#${capability.name}#${capability.category ?? ''}`,
       name: capability.name,
@@ -6001,7 +6043,7 @@ export default function VibeCodingPage() {
                edge while the body retains its inner padding. ── */}
           <div className={`flex min-h-0 flex-1 flex-col ${isPlatform ? 'pb-2' : chatOnLeft ? '' : 'px-1.5 pt-3 pb-1.5'} ${isPlatform ? 'mx-auto w-full max-w-[760px]' : ''}`}>
           {/* Scrollable messages */}
-          <div ref={chatScrollRef} className={`thin-scroll flex-1 overflow-y-auto px-2.5 pt-8 pb-8 ${chatCleared ? '' : 'space-y-6'} ${fadeClassFromEdges(chatScrollEdges)}`}>
+          <div ref={chatScrollRef} className={`thin-scroll flex-1 overflow-y-auto px-5 pt-8 pb-8 ${chatCleared ? '' : 'space-y-6'} ${fadeClassFromEdges(chatScrollEdges)}`}>
             {(chatCleared || (!needsFlowActive && !showChatPublish && sentMessages.length === 0)) && proposalStep === 'idle' ? (
               <ChatEmptyState
                 suggestions={
@@ -7521,7 +7563,7 @@ export default function VibeCodingPage() {
                 the messages' px-2.5). When an inline proposal form is
                 awaiting submission, the composer is swapped with a focus
                 hint bar so the user has only one input target. ── */}
-          <div className="mx-2.5 flex-shrink-0">
+          <div className="mx-5 flex-shrink-0">
             {proposalFormPendingLabel ? (
               <div className="flex items-center gap-2 rounded-full bg-[var(--fill-subtle)] px-4 py-2 ring-1 ring-[var(--divider-soft)]">
                 <FileText
@@ -8111,13 +8153,24 @@ export default function VibeCodingPage() {
 
         {isPlatform && platformResourceLibraryOpen && (
           <div className="mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px]">
+            <ResourceHub />
+          </div>
+        )}
+
+        {isPlatform && platformSkillsOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px]"
+          >
             <ResourceLibraryView
               selectedPrimary={resourceLibraryPrimary}
               selectedSecondary={resourceLibrarySecondary}
               selectedCapability={resourceLibraryCapability}
               expandedPrimary={resourceLibraryExpanded}
               searchQuery={resourceLibrarySearch}
-              typeFilter={resourceLibraryTypeFilter}
+              typeFilter="skill-tool"
               onTogglePrimary={toggleResourceLibraryExpanded}
               onSelectCategory={(p, s) => {
                 setResourceLibraryPrimary(p)
@@ -8126,7 +8179,6 @@ export default function VibeCodingPage() {
               }}
               onSelectCapability={setResourceLibraryCapability}
               onSearchChange={setResourceLibrarySearch}
-              onTypeFilterChange={setResourceLibraryTypeFilter}
               onUseCapabilityInChat={useCapabilityInChat}
               onOpenProject={(name) => {
                 setProjectTitle(name)
@@ -8140,26 +8192,12 @@ export default function VibeCodingPage() {
                 setActivePreviewTab(0)
               }}
             />
-          </div>
-        )}
-
-        {isPlatform && platformSkillsOpen && (
-          <div className="mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px]">
-            <PlatformPlaceholderView
-              icon={FolderCode}
-              title="Skills"
-              description="个人 Skill 工作台 — 在这里管理你创建的能力，发布到资源库供团队复用。"
-            />
-          </div>
+          </motion.div>
         )}
 
         {isPlatform && platformCreativeSquareOpen && (
-          <div className="mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px]">
-            <PlatformPlaceholderView
-              icon={Home}
-              title="创意广场"
-              description="看看其他业务方在 VibeCoding 里搭了什么 — 复刻热门项目，碰撞新的灵感。"
-            />
+          <div className="@container mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px] bg-[var(--color-surface-0)]">
+            <AgentHubPreview hideSidebar />
           </div>
         )}
 
@@ -8180,9 +8218,14 @@ export default function VibeCodingPage() {
               kind: kindOf(n),
             }))
           return (
-            <div className="mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px] border border-[var(--divider-soft)]">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px] border border-[var(--divider-soft)]"
+            >
               <DataOpsView projects={published} focusName={dataOpsFocusProject} />
-            </div>
+            </motion.div>
           )
         })()}
 

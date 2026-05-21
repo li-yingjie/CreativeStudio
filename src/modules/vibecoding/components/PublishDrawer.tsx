@@ -84,7 +84,7 @@ type HistoryEntry = {
   scenes?: { label: string; ok: boolean }[]
 }
 
-type PublishObjectVisual =
+export type PublishObjectVisual =
   | {
       type: 'image'
       src: string
@@ -482,7 +482,7 @@ export default function PublishDrawer({
 
 /* ─── publish history ─── */
 
-function getPublishObjectVisual(
+export function getPublishObjectVisual(
   projectKind: ProjectKind,
   projectKey: string,
   fallbackIcon: LucideIcon,
@@ -555,7 +555,7 @@ function getPublishObjectVisual(
   return { type: 'icon', icon: fallbackIcon, alt: '产物', rounded: 'lg' }
 }
 
-function PublishObjectVisualThumb({
+export function PublishObjectVisualThumb({
   visual,
   size = 'sm',
 }: {

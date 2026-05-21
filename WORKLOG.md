@@ -4,6 +4,80 @@
 
 ## 2026-05-21
 
+- 统一右侧面板底色为 `--color-surface-0`(#fafbfc):创意广场 AgentHubPreview
+  去掉白→#f8f9fb 渐变 + 创意广场 wrapper `bg-white`→surface-0;Skills
+  ResourceLibraryView 根容器与两处 sticky 头由 `bg-white`→surface-0(资源库/
+  运营数据本就是 surface-0)。
+- 右侧面板加载入动效(参考创意广场的淡入上浮):ResourceHub body 按 tab
+  keyed `motion.div` 淡入上浮(切 tab 也重播);Skills/运营数据在
+  VibeCodingPage 的 wrapper 包成 `motion.div` mount 淡入上浮(创意广场本就有
+  分段 stagger)。预览实测四个面板底色一致、载入有动效。(未提交)
+- 资源库「工具箱」卡片改为设计稿的图片版:卡片顶部用真实预览图 banner
+  (替换原渐变+气泡 mock),底部 footer 改为 抖音icon+来源｜日期｜使用量。
+  从设计稿取 8 个真实工具(覆盖 6 个分类),预览图下载并用 tinify 缩放到
+  584px 宽 + 压缩(5–24KB)存到 `public/assets/resource-hub/tools/`;TOOLS
+  数据精简为这 8 条并加 `image` 字段,TOOL_CATEGORIES 裁剪到现有分类;
+  cards.tsx 新增 `ImageBanner`/`ToolFooter`,删除弃用的 `BubbleBanner`/
+  `MetaFooter`。资源库预览实测正常。(未提交)
+- AgentHubPreview 在「精品推荐」和「发现更多」之间新增「业务产品」模块:从 Paper
+  设计稿落地 11 张产品卡(图标/标题/标签/描述),图标下载到
+  `public/assets/agent-hub/business/`(7 个唯一 webp,均 ≤2KB);新增
+  `BUSINESS_IMG` 常量、`businessProducts` 数据与 `BusinessProductCard` 组件,
+  网格 `grid-cols-1 @[560px]:grid-cols-2 @[900px]:grid-cols-3`。创意广场预览实测
+  正常渲染。(未提交)
+- AgentHubPreview 精品推荐从一排 3 个改成一排 5 个:`slice(0,3)`→`slice(0,5)`、
+  网格 `@[460px]:grid-cols-3 @[720px]:grid-cols-5`(展示全部 5 个 featured)。
+  预览实测创意广场精品推荐一排 5 个。(未提交)
+- 创意广场里隐藏 AgentHubPreview 自带的二级左侧导航:`AgentHubPreview` 新增
+  `hideSidebar` prop(默认 false,web-app 项目预览不受影响),为 true 时不渲染左侧
+  `<aside>` 栏;创意广场处传 `<AgentHubPreview hideSidebar />`。tsc 通过,预览实测
+  创意广场内容铺满、无二级侧栏,项目预览侧栏仍正常。(未提交)
+- 创意广场菜单直接复用「抖音 AI 工坊设计探索」页面:`platformCreativeSquareOpen`
+  从 `PlatformPlaceholderView` 占位改成渲染 `<AgentHubPreview />`(同 web-app 项目
+  预览,容器加 `@container bg-white`)。`PlatformPlaceholderView` 已无引用,删掉
+  其 import。tsc 通过,预览实测创意广场显示智能体广场(Hero/精品推荐/发现更多)。(未提交)
+- Skills 菜单页精简:页面标题从「资源库」改成「Skills」,去掉顶部 type tabs
+  (Skills/工具、知识库、模型、发布器)整行——Skills 下不再出现知识库/模型/发布器。
+  `ResourceLibraryView` 内删除 `TYPE_TABS` 渲染+常量、`onTypeFilterChange` prop、
+  `CAPABILITY_LABEL` import;父组件 `typeFilter` 直接传 `"skill-tool"` 字面量,
+  删掉 `resourceLibraryTypeFilter` state 与 `ResourceLibraryTypeFilter` import。
+  tsc 通过,预览实测标题为 Skills、无 type tabs、来源树/卡片正常。(未提交)
+- Skills 菜单改回「原封不动」搬原资源-Skills 页:左侧 Skills 菜单不再渲染脑补的
+  `SkillsHub`,而是直接挂回原 `ResourceLibraryView`(默认 `typeFilter='skill-tool'`,
+  保留来源树/内场外场/真实 RESOURCES 卡片)。恢复被删的 `resourceLibrary*` state、
+  `toggleResourceLibraryExpanded`、`useCapabilityInChat`、`ResourceLibraryView`/
+  `TypeFilter`/`PrimaryCategory` import;删除不再使用的 `resource-hub/SkillsHub.tsx`。
+  资源库菜单仍是新的 5-tab `ResourceHub`。tsc 通过,预览实测 Skills 菜单显示原页、
+  资源库显示 5 tab,无报错。(未提交)
+- 资源库照图整体重建(抽象组件 + 脑补数据):新建 `resource-hub/`(`data.ts` 脑补
+  工具/知识库/模型/发布器/触发器/Skills 数据;`cards.tsx` 可复用卡片原语:Chips/
+  FilterGroup/SectionTitle/CardShell/各类 Banner/CardBody/MetaFooter;`ResourceHub.tsx`
+  5 tab 页;`SkillsHub.tsx` Skills 菜单页)。资源库改为 工具箱/知识库/模型库/发布器/
+  触发器 5 tab;Skills 从资源库移到左侧 Skills 菜单。替换并清理了旧 ResourceLibraryView
+  的渲染 + 相关 state(resourceLibrary*/useCapabilityInChat 等)。tsc 通过,预览实测
+  5 tab 内容、Skills 菜单、即将上线徽标均正常,无报错。(未提交)
+- 分身项目隐藏「人设」对象(产物视图 + 默认 tab 都去掉),把人设落成真实文件
+  `avatar-agent/persona.yaml`(加进 aiPersonaFileTree + codeFiles,YAML 含
+  `# 人设`/`# 知识库`/`# 技能` 映射注释),在「代码文件」里可查看。tsc 通过,
+  预览实测:人设 tab/对象消失、代码文件显示 persona.yaml 及注释。(未提交)
+  ⚠ 审计发现:各项目「代码文件」用的是同一份按文件名匹配的全局 codeFiles,导致
+  web-app(设计探索)的 index.tsx/api.ts 错配成了小程序(Taro)代码;avatar 除
+  persona.yaml 外其余配置文件无代码内容。待后续按项目重构 codeFiles。
+- 侧栏顶部按钮「新建项目」改为「AI 创作」并左对齐(icon size16 + px-2,与下方
+  Skills/资源库等菜单图标对齐,实测都在 left:20);Tooltip 高度调为 24px(`h-6`,黑底)。
+  tsc 通过,预览实测对齐 + tooltip 24px 黑色。(未提交)
+- 项目列表头部:新增「查看全部项目」icon button(folders 图标,点击展开全部项目);
+  三个图标加大(`h-5 w-5`/size12 → `h-6 w-6`/size15);原生 `title` 全部改用新建的
+  黑色 Tooltip 组件 `Tooltip.tsx`(基于 `@radix-ui/react-tooltip`,黑底白字+箭头、
+  portal 不裁切)。tsc 通过,预览实测:3 按钮无原生 title、展开全部生效、hover 出
+  role=tooltip。(未提交)
+- 左侧 chat 对话流内容左右 padding 加大:消息容器 `px-2.5`→`px-5`、输入框
+  `mx-2.5`→`mx-5`(保持对齐),内容不再贴边。实测左右各 20px。(未提交)
+- 运营数据页「已发布项目」左侧图标改用项目对应图片(复用发布抽屉的
+  `getPublishObjectVisual`/`PublishObjectVisualThumb`,从 PublishDrawer 导出),
+  与发布下拉保持一致;原来是按 kind 的通用 lucide 图标。tsc 通过,预览实测各 kind
+  图标正确(分身/小程序/H5/游戏=图片,web-app=`S°`角标)。(未提交)
+- 首页 slogan 改为「所见即所得，链接抖音生态」(原「所见即所得，一站式满足需求」)。(未提交)
 - Radix Popover 样例:把侧栏底部「设置(外观)」浮层改成 `@radix-ui/react-popover`
   (portal 到 body → 不再被侧栏 overflow 截断;side=top align=end 往左上弹出 +
   collisionPadding 防溢出;`Popover.Close` 选完即关;沿用现有 token 样式)。删掉了

@@ -316,10 +316,9 @@ export function buildAvatarProductView(
   config: AvatarAppConfig | undefined,
 ): FileNode[] {
   if (!config) return aiAvatarView(tree)
-  const out: FileNode[] = [
-    { name: '基础信息', type: 'file' },
-    { name: '人设', type: 'file' },
-  ]
+  // 人设 is no longer surfaced as its own product object — the persona now
+  // lives as a real file (avatar-agent/persona.yaml) in the 代码文件 tree.
+  const out: FileNode[] = [{ name: '基础信息', type: 'file' }]
   const skills = [...config.skillInfoList, ...config.toolInfoList].map(
     (s): FileNode => ({ name: s.name, type: 'file' }),
   )

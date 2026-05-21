@@ -18,7 +18,6 @@ import ResourceCategoryTree from './ResourceCategoryTree'
 import RichCapabilityCard from './RichCapabilityCard'
 import EmptySearchMark from './icons/EmptySearchMark'
 import {
-  CAPABILITY_LABEL,
   CAPABILITY_TAGS,
   OFFICIAL_DOMAINS,
   PRIMARY_CATEGORIES,
@@ -110,19 +109,11 @@ interface ResourceLibraryViewProps {
   onSelectCategory: (primary: PrimaryCategory | null, secondary: string | null) => void
   onSelectCapability: (ref: CapabilityRef | null) => void
   onSearchChange: (q: string) => void
-  onTypeFilterChange: (t: TypeFilter) => void
   onUseCapabilityInChat: (platform: Resource, capability: Capability) => void
   /** Switch to a project (called from the lineage section in detail
    *  views). Also closes the resource library page. */
   onOpenProject: (projectName: string) => void
 }
-
-const TYPE_TABS: { id: TypeFilter; label: string }[] = [
-  { id: 'skill-tool', label: 'Skills / 工具' },
-  { id: 'knowledge', label: CAPABILITY_LABEL.knowledge },
-  { id: 'model', label: '模型' },
-  { id: 'publisher', label: '发布器' },
-]
 
 const COMING_SOON_COPY: Partial<Record<TypeFilter, { title: string; hint: string }>> = {
   knowledge: {
@@ -180,7 +171,6 @@ export default function ResourceLibraryView({
   onSelectCategory,
   onSelectCapability,
   onSearchChange,
-  onTypeFilterChange,
   onUseCapabilityInChat,
   onOpenProject,
 }: ResourceLibraryViewProps) {
@@ -535,37 +525,15 @@ export default function ResourceLibraryView({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-surface-0)]">
       {/* ── Top bar — page title with resource-type tabs trailing it.
            Use baseline alignment + matching pb-3 so the title text and
            tab text share the same baseline, and the active tab's
            underline lines up with the container's bottom border. ── */}
       <div className="relative flex shrink-0 items-baseline gap-6 border-b border-[var(--divider-soft)] px-6 pt-5">
         <h1 className="shrink-0 pb-3 text-[20px] font-semibold leading-[1.2] text-[var(--color-ink)]">
-          资源库
+          Skills
         </h1>
-        <div className="flex items-baseline gap-6">
-          {TYPE_TABS.map((t) => {
-            const active = typeFilter === t.id
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => onTypeFilterChange(active ? 'all' : t.id)}
-                className={`relative pb-3 text-[14px] leading-[1.2] transition-colors ${
-                  active
-                    ? 'font-semibold text-[var(--color-ink)]'
-                    : 'text-[var(--color-ink)]/55 hover:text-[var(--color-ink)]/85'
-                }`}
-              >
-                {t.label}
-                {active && (
-                  <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-t bg-[var(--color-ink)]" />
-                )}
-              </button>
-            )
-          })}
-        </div>
         {/* Scene mode + Layout toggle float absolutely so they don't grow
             the tabs row vertically. Anchored to the row's bottom edge so
             they line up with the active-tab underline. */}
@@ -612,7 +580,7 @@ export default function ResourceLibraryView({
         {/* Sticky filter row */}
         <div
           ref={filterRowRef}
-          className="sticky top-0 z-10 shrink-0 bg-white"
+          className="sticky top-0 z-10 shrink-0 bg-[var(--color-surface-0)]"
         >
           <div className="flex flex-col gap-2 px-6 pb-1.5 pt-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -785,7 +753,7 @@ export default function ResourceLibraryView({
                         less, so px-6 alone keeps the tabs aligned with
                         the cards content below. */}
                     <div
-                      className="sticky z-[5] border-b border-[var(--divider-soft)] bg-white px-6"
+                      className="sticky z-[5] border-b border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-6"
                       style={{ top: filterHeight }}
                     >
                       <div className="flex items-center gap-6 pt-2">

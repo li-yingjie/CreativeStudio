@@ -93,6 +93,16 @@ const FEATURED_IMG = {
   douyinAssistant: '/assets/agent-hub/featured-douyin-assistant.webp',
 }
 
+const BUSINESS_IMG = {
+  aha: '/assets/agent-hub/business/aha.webp',
+  moonquan: '/assets/agent-hub/business/moonquan.webp',
+  agentPlatform: '/assets/agent-hub/business/agent-platform.webp',
+  douyin: '/assets/agent-hub/business/douyin.webp',
+  musicLab: '/assets/agent-hub/business/music-lab.webp',
+  qaAssistant: '/assets/agent-hub/business/qa-assistant.webp',
+  aiden: '/assets/agent-hub/business/aiden.webp',
+}
+
 type FeaturedAgent = {
   title: string
   subtitle: string
@@ -213,6 +223,27 @@ const discoveryHubAgents: DiscoveryAgent[] = [
   { title: '小游戏文档生成智能体', description: '通过自然语言跟我对话，我便能依据小游戏文档知识库生成符合小游戏规范的文档。', author: '叔平', metricA: '31', metricB: '0', category: '数字员工', icon: '🤖', iconBg: 'linear-gradient(135deg, #d8f1ff, #6ec5ff)' },
   { title: '头像圣诞帽', description: '给你的头像戴个圣诞帽吧～', author: '郑子喆', metricA: '23', metricB: '2', category: '工具玩法', icon: '🎅', iconBg: 'linear-gradient(135deg, #ffe4df, #ff8a8a)' },
   { title: '竞品书研分析师', description: '智能生成调研报告，实时捕捉抖音热门动态，助力决策快人一步', author: '王启东', metricA: '82', metricB: '2', category: '数字员工', icon: '🎼', iconBg: 'linear-gradient(135deg, #101820, #68a0ff)' },
+]
+
+type BusinessProduct = {
+  title: string
+  description: string
+  tag: string
+  icon: string
+}
+
+const businessProducts: BusinessProduct[] = [
+  { title: 'Aha', description: '面向UG业务的AI工作流编排平台', tag: 'UG', icon: BUSINESS_IMG.aha },
+  { title: '墨攻', description: '营销中台推出的AIGC营销内容全链路管理平台，服务营销场景内容策略与生成', tag: 'UG', icon: BUSINESS_IMG.moonquan },
+  { title: '抖音创作Agent平台', description: '面向抖音创作场景的一站式 Agent 搭建与调试平台', tag: '随变', icon: BUSINESS_IMG.agentPlatform },
+  { title: 'IP生态合作平台', description: '抖音管理全平台 IP的统一生态合作与商业化中台', tag: 'IP生态平台', icon: BUSINESS_IMG.douyin },
+  { title: '创作者中心', description: '抖音创作者中心是抖音创作者的一站式服务平台，助力创作者高效运营', tag: 'IP生态平台', icon: BUSINESS_IMG.douyin },
+  { title: '创作实验室', description: '抖音音乐内容团队孵化的音乐创作工具，融合多种AI能力，支持完整创作生态链', tag: '音乐', icon: BUSINESS_IMG.musicLab },
+  { title: '抖音虚拟创作平台', description: '面向UGC与专业创作者的3D虚拟世界/互动内容创作平台', tag: '游戏', icon: BUSINESS_IMG.douyin },
+  { title: '抖音虚拟形象平台', description: '抖音官方虚拟形象创作与 AI 数字人运营平台', tag: '分身', icon: BUSINESS_IMG.douyin },
+  { title: 'LLM提效平台', description: '定位是自动化机评工具，定向服务搜索业务场景，预设相关评测模版', tag: '评测', icon: BUSINESS_IMG.douyin },
+  { title: '抖音问答助手', description: '基于大模型与抖音上下文业务知识，支持问答、任务执行与协作的智能工作助手', tag: '研发产品', icon: BUSINESS_IMG.qaAssistant },
+  { title: 'Aiden', description: '一站式AI研发平台', tag: '研发产品', icon: BUSINESS_IMG.aiden },
 ]
 
 const sortOptions = ['默认排序', '使用量排序', '发布时间'] as const
@@ -379,7 +410,35 @@ function DiscoveryCard({
   )
 }
 
-export default function AgentHubPreview() {
+function BusinessProductCard({ title, description, tag, icon }: BusinessProduct) {
+  return (
+    <div className="group relative rounded-[20px] p-[1px] transition-transform duration-200 hover:-translate-y-1">
+      <CardHoverGlow />
+      <div className="relative overflow-hidden rounded-[20px] border border-[rgba(83,96,143,0.12)] bg-white p-5">
+        <div className="flex items-start gap-3">
+          <img
+            alt=""
+            className="h-16 w-16 shrink-0 rounded-2xl object-cover"
+            src={icon}
+          />
+          <div className="h-16 min-w-0 flex-1">
+            <div className="mb-1 flex items-center gap-2">
+              <h4 className="min-w-0 flex-1 truncate text-[16px] font-semibold leading-[22px] text-[#1c1f23]">
+                {title}
+              </h4>
+              <span className="inline-flex h-5 shrink-0 items-center rounded-md bg-[rgba(115,158,202,0.15)] px-1.5 text-[12px] font-semibold leading-4 text-[#373d46]">
+                {tag}
+              </span>
+            </div>
+            <p className="line-clamp-2 text-[12px] leading-4 text-[rgba(28,31,35,0.6)]">{description}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function AgentHubPreview({ hideSidebar = false }: { hideSidebar?: boolean } = {}) {
   const [activeTab, setActiveTab] = useState<DiscoveryTab>('全部')
   const [sortOption, setSortOption] = useState<SortOption>('默认排序')
   const [sortOpen, setSortOpen] = useState(false)
@@ -412,12 +471,10 @@ export default function AgentHubPreview() {
   })
 
   return (
-    <main
-      className="flex h-full w-full text-[#222727]"
-      style={{ background: 'linear-gradient(90deg, #ffffff 0%, #fcfcfd 22%, #f8f9fb 100%)' }}
-    >
-        {/* ── Left rail —— fills the visible pane height; content scrolls. ── */}
-        <aside className="hidden h-full w-[220px] shrink-0 px-2 py-2 @[700px]:block">
+    <main className="flex h-full w-full bg-[var(--color-surface-0)] text-[#222727]">
+        {/* ── Left rail —— fills the visible pane height; content scrolls.
+             Hidden when embedded under a host nav (e.g. 创意广场). ── */}
+        <aside className={`${hideSidebar ? 'hidden' : 'hidden @[700px]:block'} h-full w-[220px] shrink-0 px-2 py-2`}>
           <nav className="relative flex h-full flex-col justify-between rounded-[24px] bg-[#f2f2f7] px-4 py-4">
             <div className="w-full">
               <div className="flex items-center justify-between gap-2">
@@ -437,7 +494,7 @@ export default function AgentHubPreview() {
                 />
                 <span className="relative z-[1] flex h-full w-full items-center justify-start gap-2 rounded-full bg-[#1c1f23] px-4 text-sm font-medium text-white">
                   <Plus className="h-[18px] w-[18px]" strokeWidth={2.3} />
-                  <span>创建智能体</span>
+                  <span>创建项目</span>
                 </span>
               </button>
 
@@ -561,7 +618,7 @@ export default function AgentHubPreview() {
                       className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-white px-6 text-[14px] font-semibold text-[#1c1f23] shadow-[0_10px_24px_rgba(0,0,0,0.08)]"
                     >
                       <Plus className="h-5 w-5" strokeWidth={2.2} />
-                      创建智能体
+                      创建项目
                     </button>
                   </div>
                 </div>
@@ -578,8 +635,8 @@ export default function AgentHubPreview() {
               <h3 className="text-[20px] font-semibold leading-7">精品推荐</h3>
               <div className="mt-4">
                 <div className="mx-auto w-full max-w-[2160px]">
-                  <div className="grid grid-cols-2 gap-4 @[460px]:grid-cols-3">
-                    {featuredHubAgents.slice(0, 3).map((agent) => (
+                  <div className="grid grid-cols-2 gap-4 @[460px]:grid-cols-3 @[720px]:grid-cols-5">
+                    {featuredHubAgents.slice(0, 5).map((agent) => (
                       <div key={agent.title} className="min-w-0">
                         <FeaturedCard {...agent} />
                       </div>
@@ -589,12 +646,27 @@ export default function AgentHubPreview() {
               </div>
             </motion.section>
 
+            {/* Business products */}
+            <motion.section
+              className="mt-4"
+              initial={moduleInitial}
+              animate={moduleAnimate}
+              transition={moduleTransition(0.21)}
+            >
+              <h3 className="text-[20px] font-semibold leading-7">业务产品</h3>
+              <div className="mt-4 grid grid-cols-1 gap-4 @[560px]:grid-cols-2 @[900px]:grid-cols-3">
+                {businessProducts.map((product) => (
+                  <BusinessProductCard key={product.title} {...product} />
+                ))}
+              </div>
+            </motion.section>
+
             {/* Discovery */}
             <motion.section
               className="mt-4"
               initial={moduleInitial}
               animate={moduleAnimate}
-              transition={moduleTransition(0.28)}
+              transition={moduleTransition(0.35)}
             >
               <h3 className="text-[20px] font-semibold leading-7">发现更多</h3>
               <div className="mt-4 flex flex-col gap-4 @[900px]:flex-row @[900px]:items-center @[900px]:justify-between">
