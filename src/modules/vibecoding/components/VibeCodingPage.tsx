@@ -14,6 +14,7 @@ import {
   PUBLISH_SCENE_DESCRIPTIONS,
 } from '@/modules/editor/store/publish-flow-store'
 import { useThemeStore } from '@/shared/storage/theme'
+import { streamChat, type ChatMessage } from '@/shared/api/chat'
 import MiniAppPreview from './MiniAppPreview'
 import XiaohuaFeedPreview from './XiaohuaFeedPreview'
 import AgentHubPreview from './AgentHubPreview'
@@ -1163,6 +1164,7 @@ function FileTreeView({
   onOpenFile,
   onOpenDir,
   showDirChildren = true,
+  defaultExpanded = false,
   depth,
   parentPath,
   railStartDepth = 0,
@@ -1183,6 +1185,12 @@ function FileTreeView({
    *  their children. Used by the platform project list so object children
    *  stay in the right-side toolbar, not in the left navigation. */
   showDirChildren?: boolean
+  /** Invert the `expanded` set so dirs render expanded by default and the
+   *  set tracks the *collapsed* ones instead. The platform project list uses
+   *  this so every object's children show with their indent rail up front;
+   *  product paths are namespaced (`__product__/…`) so they never collide
+   *  with the code tree's expanded paths in the same shared set. */
+  defaultExpanded?: boolean
   depth: number
   parentPath: string
   /** Lowest depth at which to draw an indent rail. Platform sidebar
@@ -1229,7 +1237,8 @@ function FileTreeView({
     <>
       {nodes.map((node) => {
         const path = parentPath ? `${parentPath}/${node.name}` : node.name
-        const isExpanded = expanded.has(path)
+        // With defaultExpanded the set tracks collapsed paths, so flip it.
+        const isExpanded = defaultExpanded ? !expanded.has(path) : expanded.has(path)
         const pl = 12 + depth * 14
         const rowStyle = rowBleedLeft
           ? { paddingLeft: pl + rowBleedLeft, marginLeft: -rowBleedLeft }
@@ -1268,6 +1277,7 @@ function FileTreeView({
                   onOpenFile={onOpenFile}
                   onOpenDir={onOpenDir}
                   showDirChildren={showDirChildren}
+                  defaultExpanded={defaultExpanded}
                   rowBleedLeft={rowBleedLeft}
                   roundedRows={roundedRows}
                   depth={depth + 1}
@@ -1625,17 +1635,21 @@ const PROJECT_DOCS: Record<string, string> = {
   '六一儿童节活动': CHILDREN_DAY_PLAN_MD,
 }
 
+/** Human-readable label for each project kind — used in docs and the chat
+ *  system prompt so the assistant knows what it's helping build. */
+const PROJECT_KIND_LABELS: Record<ProjectKind, string> = {
+  'mini-program': '小程序',
+  'ai-avatar': 'AI 分身',
+  'ops-proposal': '运营提案',
+  'web-app': '网站应用',
+  'web-game': '网页游戏',
+  'marketing-h5': '营销 H5',
+}
+
 /** Generic project doc for projects without a hand-written one — keeps the
  *  「项目文档」leaf meaningful for every project. */
 function buildDefaultProjectDoc(title: string, kind: ProjectKind): string {
-  const kindLabel: Record<ProjectKind, string> = {
-    'mini-program': '小程序',
-    'ai-avatar': 'AI 分身',
-    'ops-proposal': '运营提案',
-    'web-app': '网站应用',
-    'web-game': '网页游戏',
-    'marketing-h5': '营销 H5',
-  }
+  const kindLabel = PROJECT_KIND_LABELS
   return `# ${title} · 项目文档
 
 ## 一、项目概述
@@ -2769,12 +2783,13 @@ function PlatformSidebar({
                           // product under a non-active project switches to it
                           // first (instead of opening in the active project).
                           onOpenFile={(f) => onOpenProduct(name, f)}
-                          // Parent categories (界面 / 知识库 / …) open their
-                          // own tab on click. Their children stay hidden in
-                          // the left project list and are switched from the
-                          // right-side toolbar instead.
+                          // Parent categories (界面 / 知识库 / …) open their own
+                          // tab on click and also reveal their children inline
+                          // in the left list — children show expanded by
+                          // default (defaultExpanded) with their indent rail.
                           onOpenDir={(n) => onOpenProduct(name, n.name)}
-                          showDirChildren={false}
+                          showDirChildren
+                          defaultExpanded
                           roundedRows
                           depth={1}
                           // Distinct, per-project root so opening a
@@ -3139,11 +3154,10 @@ export default function VibeCodingPage() {
     activeFilter: string
   }
   const projectChatsRef = useRef<Map<string, ProjectChatSnapshot>>(new Map())
-  /* Tracks which generic AI replies have already played their "thinking"
-   * intro, keyed by project + message index. Re-opening a project remounts
-   * the chat, so without this every prior reply would replay its typing
-   * animation — this keeps restored conversations static. */
-  const seenRepliesRef = useRef<Set<string>>(new Set())
+  /* Completed live AI replies, keyed by project + message index. Lets a
+   * streamed reply render instantly (no re-fetch) when the chat remounts on
+   * project switch, and feeds prior turns back as context for the next call. */
+  const aiReplyCacheRef = useRef<Map<string, string>>(new Map())
   /* Platform "home" / new-project landing view — shown on first load
    * (no project selected yet) and whenever the user clicks + 新建项目.
    * Contains a hero title + a large prompt composer + suggestion pills.
@@ -6674,12 +6688,33 @@ export default function VibeCodingPage() {
                 </motion.div>
                 {m.trigger === 'none' && (() => {
                   const replyKey = `${projectTitle}#${i}`
-                  const alreadyShown = seenRepliesRef.current.has(replyKey)
+                  const cached = aiReplyCacheRef.current.get(replyKey)
+                  // Build the conversation context: the system framing plus
+                  // every plain user turn up to here, interleaved with the
+                  // assistant replies we've already streamed (cached).
+                  const history: ChatMessage[] = [
+                    {
+                      role: 'system',
+                      content: `你是「抖音 AI 工坊」的智能助手，正在协助用户搭建「${projectTitle}」这个${PROJECT_KIND_LABELS[activeProjectKind]}项目。请用简体中文回答，语气专业、简洁、可执行，必要时给出具体步骤或示例。`,
+                    },
+                  ]
+                  for (let k = 0; k <= i; k++) {
+                    if (sentMessages[k]?.trigger !== 'none') continue
+                    history.push({ role: 'user', content: sentMessages[k].text })
+                    if (k < i) {
+                      const prev = aiReplyCacheRef.current.get(`${projectTitle}#${k}`)
+                      if (prev) history.push({ role: 'assistant', content: prev })
+                    }
+                  }
                   return (
-                    <GenericAiReply
-                      text={GENERIC_AI_REPLIES[i % GENERIC_AI_REPLIES.length]}
-                      instant={alreadyShown}
-                      onShown={() => seenRepliesRef.current.add(replyKey)}
+                    <LiveAiReply
+                      key={replyKey}
+                      messages={history}
+                      cached={cached}
+                      fallback={GENERIC_AI_REPLIES[i % GENERIC_AI_REPLIES.length]}
+                      onDone={(reply) => {
+                        aiReplyCacheRef.current.set(replyKey, reply)
+                      }}
                     />
                   )
                 })()}
@@ -8940,7 +8975,11 @@ export default function VibeCodingPage() {
                   // Code never lives in the left product directory — every
                   // project exposes its real source tree via a 代码文件 editor
                   // tab added from here (left directory + code on the right).
-                  flat.push({ label: '代码文件' })
+                  // Some product trees already surface a 代码文件 node, so only
+                  // append when absent to avoid a duplicate row.
+                  if (!flat.some((f) => f.label === '代码文件')) {
+                    flat.push({ label: '代码文件' })
+                  }
                   // Drop rows already present as an open tab — no point
                   // offering to add what's already there. 触发器 resolves to a
                   // 触发器·* tab, so any open trigger tab covers that row too.
@@ -10171,53 +10210,66 @@ export default function VibeCodingPage() {
   )
 }
 
-/** Generic AI reply block — shows a brief thinking indicator (which
- *  unmounts once faded so it doesn't claim a space-y slot), then the
- *  reply text. Kept as its own component so each message can own its
- *  own "thinking" lifecycle without a parent-level Set of timers. */
-function GenericAiReply({
-  text,
-  instant = false,
-  onShown,
+/** Live AI reply block — streams a real reply from the Kimi-backed
+ *  /api/chat proxy, showing a thinking indicator until the first token
+ *  lands. Caches the finished text in the parent (via `cached` / `onDone`)
+ *  so re-opening a project renders instantly instead of re-fetching, and
+ *  falls back to a canned line if the request fails. */
+function LiveAiReply({
+  messages,
+  cached,
+  fallback,
+  onDone,
 }: {
-  text: string
-  /** Skip the thinking intro + fade — used when re-opening a project so a
-   *  finished reply doesn't replay its animation on every remount. */
-  instant?: boolean
-  /** Called once on mount so the parent can remember this reply has played
-   *  and pass `instant` on subsequent remounts. */
-  onShown?: () => void
+  /** Full conversation context (system + prior turns + this user message). */
+  messages: ChatMessage[]
+  /** Previously-streamed reply for this turn; when set, render it instantly. */
+  cached?: string
+  /** Canned reply shown if the API call fails. */
+  fallback: string
+  /** Called once with the final text so the parent can cache it. */
+  onDone?: (reply: string) => void
 }) {
-  const [thinking, setThinking] = useState(!instant)
-  // Hold the latest onShown in a ref so the timer effect only depends on
-  // `instant` — otherwise the parent's per-render callback identity would
-  // reset the thinking timer before it fires.
-  const onShownRef = useRef(onShown)
+  const [text, setText] = useState(cached ?? '')
+  const [thinking, setThinking] = useState(cached == null)
+  const onDoneRef = useRef(onDone)
   useEffect(() => {
-    onShownRef.current = onShown
+    onDoneRef.current = onDone
   })
+  // Capture the message context from first render — the reply is tied to this
+  // turn, so later re-renders shouldn't change what we asked.
+  const messagesRef = useRef(messages)
   useEffect(() => {
-    if (instant) {
-      onShownRef.current?.()
-      return
-    }
-    // Mark as shown only once the intro finishes, so `instant` doesn't flip
-    // mid-animation (which would cancel the timer and freeze the dots).
-    const t = setTimeout(() => {
-      setThinking(false)
-      onShownRef.current?.()
-    }, 900)
-    return () => clearTimeout(t)
-  }, [instant])
+    if (cached != null) return // already have the reply — no fetch
+    const controller = new AbortController()
+    let acc = ''
+    streamChat(messagesRef.current, {
+      signal: controller.signal,
+      onToken: (token) => {
+        acc += token
+        setThinking(false)
+        setText(acc)
+      },
+    })
+      .then((full) => {
+        const reply = (acc || full || '').trim() || fallback
+        setThinking(false)
+        setText(reply)
+        onDoneRef.current?.(reply)
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        setThinking(false)
+        setText(fallback)
+        onDoneRef.current?.(fallback)
+      })
+    return () => controller.abort()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   return (
     <div className="space-y-2.5">
       {thinking && (
-        <motion.div
-          initial={{ opacity: 1 }}
-          animate={{ opacity: 0 }}
-          transition={{ delay: 0.5, duration: 0.25 }}
-          className="flex items-center gap-1.5 text-[12px] text-[var(--color-ink)]/45"
-        >
+        <div className="flex items-center gap-1.5 text-[12px] text-[var(--color-ink)]/45">
           {[0, 1, 2].map((k) => (
             <motion.span
               key={k}
@@ -10227,16 +10279,18 @@ function GenericAiReply({
             />
           ))}
           <span className="ml-1">AI 正在回复</span>
-        </motion.div>
+        </div>
       )}
-      <motion.p
-        initial={instant ? false : { opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={instant ? { duration: 0 } : { delay: 0.6, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="text-[14px] leading-[20px] text-[var(--color-ink)]"
-      >
-        {text}
-      </motion.p>
+      {text && (
+        <motion.p
+          initial={cached != null ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={cached != null ? { duration: 0 } : { duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          className="whitespace-pre-wrap text-[14px] leading-[20px] text-[var(--color-ink)]"
+        >
+          {text}
+        </motion.p>
+      )}
     </div>
   )
 }

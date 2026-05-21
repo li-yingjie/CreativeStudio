@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { ExternalLink, RotateCcw, Play } from '@/shared/icons'
+import { RotateCcw, Play } from '@/shared/icons'
 
 /**
  * Garuda 游戏预览
  *
  * 默认展示 start 页面（静态 Start.jpg），把游戏自身的「LOADING ASSETS」
  * 加载过程藏起来 —— 点击「开始游戏」才挂载 iframe（此时才真正加载并运行
- * /garuda/index.html）。右上角：重新加载 + 新窗口打开。
+ * /garuda/index.html）。右上角：重新加载。
  */
 const START_POSTER = '/garuda/assets/Start.jpg'
 
@@ -39,8 +39,8 @@ export default function GarudaGamePreview() {
         </button>
       )}
 
-      <div className="pointer-events-none absolute right-3 top-3 flex gap-1.5">
-        {playing && (
+      {playing && (
+        <div className="pointer-events-none absolute right-3 top-3 flex gap-1.5">
           <button
             type="button"
             onClick={() => setReloadKey((k) => k + 1)}
@@ -49,17 +49,8 @@ export default function GarudaGamePreview() {
           >
             <RotateCcw size={13} strokeWidth={1.8} />
           </button>
-        )}
-        <a
-          href="/garuda/index.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="在新窗口打开"
-          className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white/80 backdrop-blur-md transition-colors hover:bg-black/70 hover:text-white"
-        >
-          <ExternalLink size={13} strokeWidth={1.8} />
-        </a>
-      </div>
+        </div>
+      )}
     </div>
   )
 }

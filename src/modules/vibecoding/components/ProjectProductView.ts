@@ -220,13 +220,6 @@ function webAppView(tree: FileNode[]): FileNode[] {
 /** Static child items for 技能 / 知识库 categories on non-config projects, so
  *  they render as the same category-tab + capability-detail surface the AI
  *  分身 uses (keeps same-type objects visually consistent across projects). */
-export const GAME_KNOWLEDGE_ITEMS = [
-  '关卡设计规范',
-  '数值平衡表',
-  '美术风格指南',
-  '音效素材库',
-  '弹幕模式参考',
-]
 export const MINIPROGRAM_SKILL_ITEMS = [
   '每日塔罗抽牌',
   '牌意词典查询',
@@ -241,17 +234,15 @@ function namedCategory(name: string, items: string[]): FileNode {
   return { name, type: 'dir', children: items.map((n) => ({ name: n, type: 'file' as const })) }
 }
 
-/** 游戏 (web-game): 基础信息 / 页面 / 文档 / 素材 / 知识库 / 数据库 / 代码文件.
- *  页面 is a category whose children are the key in-game screens; 知识库 is a
- *  category (capability-detail children) to match 分身. 玩法 is hidden for now. */
+/** 游戏 (web-game): 基础信息 / 页面 / 文档 / 素材 / 代码文件.
+ *  页面 is a category whose children are the key in-game screens. 玩法 /
+ *  知识库 / 数据库 are hidden for this kind. */
 function gameView(): FileNode[] {
   return [
     { name: '基础信息', type: 'file' },
     namedCategory('页面', GAME_KEY_PAGES),
     { name: '文档', type: 'file' },
     { name: '素材', type: 'file' },
-    namedCategory('知识库', GAME_KNOWLEDGE_ITEMS),
-    { name: '数据库', type: 'file' },
     { name: '代码文件', type: 'file' },
   ]
 }

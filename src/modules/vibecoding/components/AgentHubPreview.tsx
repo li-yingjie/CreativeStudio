@@ -546,7 +546,7 @@ export default function AgentHubPreview() {
                 />
                 <div className="relative flex min-h-[192px] flex-col justify-between gap-6 px-8 py-6 @[700px]:flex-row @[700px]:items-center @[700px]:px-14">
                   <div className="max-w-full">
-                    <h2 className="text-[20px] font-bold leading-8 text-white @[700px]:text-[28px] @[700px]:leading-10">
+                    <h2 className="text-[16px] font-bold leading-6 text-white @[700px]:text-[22px] @[700px]:leading-8">
                       <span>Connect All, Creat Next</span>
                       <span>{'  '}全新 Agent 广场重磅推出！</span>
                     </h2>
@@ -578,8 +578,8 @@ export default function AgentHubPreview() {
               <h3 className="text-[20px] font-semibold leading-7">精品推荐</h3>
               <div className="mt-4">
                 <div className="mx-auto w-full max-w-[2160px]">
-                  <div className="grid grid-cols-2 gap-4 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1040px]:grid-cols-5">
-                    {featuredHubAgents.map((agent) => (
+                  <div className="grid grid-cols-2 gap-4 @[460px]:grid-cols-3">
+                    {featuredHubAgents.slice(0, 3).map((agent) => (
                       <div key={agent.title} className="min-w-0">
                         <FeaturedCard {...agent} />
                       </div>
