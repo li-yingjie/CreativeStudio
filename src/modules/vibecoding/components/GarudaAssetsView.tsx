@@ -181,10 +181,12 @@ export function garudaKindTabs(groups: AssetGroup[] = GROUPS): AssetKind[] {
   return (['image', 'audio', 'video'] as AssetKind[]).filter((k) => counts[k] > 0)
 }
 
-/** Flat list of every image-kind asset across the groups — used by the
- *  canvas editor to lay all images out on a single draggable board. */
-export function garudaImageAssets(groups: AssetGroup[] = GROUPS): AssetItem[] {
-  return groups.flatMap((g) => g.items.filter((it) => (it.kind ?? 'image') === 'image'))
+/** Groups containing only their image-kind items (empty groups dropped) —
+ *  used by the canvas editor to lay images out one row per type. */
+export function garudaImageGroups(groups: AssetGroup[] = GROUPS): AssetGroup[] {
+  return groups
+    .map((g) => ({ ...g, items: g.items.filter((it) => (it.kind ?? 'image') === 'image') }))
+    .filter((g) => g.items.length > 0)
 }
 
 /** Aggregate per-kind / frame counts across the provided groups. When

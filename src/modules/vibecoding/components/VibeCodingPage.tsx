@@ -22,7 +22,7 @@ import GarudaGamePreview from './GarudaGamePreview'
 import GarudaAssetsView, {
   KIND_META as ASSET_KIND_META,
   garudaKindTabs,
-  garudaImageAssets,
+  garudaImageGroups,
   type AssetGroup,
   type AssetKind,
   type AssetItem,
@@ -9737,7 +9737,7 @@ export default function VibeCodingPage() {
                 if (canvasEditOpen && gameAssetKind === 'image') {
                   return (
                     <ImageCanvasEditor
-                      images={garudaImageAssets()}
+                      groups={garudaImageGroups()}
                       onClose={() => setCanvasEditOpen(false)}
                     />
                   )
