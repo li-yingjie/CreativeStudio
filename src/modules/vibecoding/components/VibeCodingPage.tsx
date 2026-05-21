@@ -211,6 +211,7 @@ import {
   Sparkles,
   Paperclip,
   Pencil,
+  ExternalLink,
   Plus,
   RefreshCw,
   RotateCcw,
@@ -3282,7 +3283,6 @@ export default function VibeCodingPage() {
   const startPublish = usePublishFlowStore((s) => s.start)
   const resetPublish = usePublishFlowStore((s) => s.reset)
   const togglePublishScene = usePublishFlowStore((s) => s.toggleScene)
-  const submitPublish = usePublishFlowStore((s) => s.submit)
   const confirmPublish = usePublishFlowStore((s) => s.confirm)
   const showChatPublish = publishStep !== 'idle' && publishMode === 'chat'
   /* bump to remount the mini-app preview — clicking the phone-bar "重新加载"
@@ -3793,6 +3793,8 @@ export default function VibeCodingPage() {
       trigger = 'publish'
       resetPublish()
       startPublish('chat')
+      // Pre-select the primary scene so the card opens with a sensible default.
+      togglePublishScene(PUBLISH_SCENES[0])
     } else if (
       activeProjectKind === 'ai-avatar' &&
       /关注|评论|点赞|礼物|送礼|投稿时|投稿后/.test(text)
@@ -8061,7 +8063,8 @@ export default function VibeCodingPage() {
                   <span className="ml-1">AI 正在起草发布流程</span>
                 </motion.div>
 
-                {/* Step 1 — choose scenes */}
+                {/* Scene selection — a single toggle card mirroring the 发布
+                    popover (PublishDrawer), spat inline into the chat. */}
                 <motion.div
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -8074,94 +8077,80 @@ export default function VibeCodingPage() {
                     transition={{ delay: 0.75, duration: 0.25 }}
                     className="text-[14px] leading-[20px] text-[var(--color-ink)]"
                   >
-                    请告诉我你要发布到哪些场景
+                    好的，现在为你发布 {PROJECT_KIND_LABELS[activeProjectKind]} 到抖音渠道。
                   </motion.p>
                   <ChatFormCard delay={0.9}>
-                    <ChatFormStep number={1} title="选择抖音场景">
-                      <div className="flex flex-wrap gap-2">
+                    {(() => {
+                      const avatarCfg =
+                        activeProjectKind === 'ai-avatar'
+                          ? getAvatarConfig(projectTitle)
+                          : undefined
+                      const headerName = avatarCfg?.name ?? projectTitle
+                      return (
+                        <div className="flex items-center gap-2.5">
+                          <div className="relative h-9 w-9 shrink-0">
+                            {avatarCfg?.iconURL ? (
+                              <img
+                                src={avatarCfg.iconURL}
+                                alt=""
+                                className="h-9 w-9 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--fill-hover)] text-[13px] font-semibold text-[var(--color-ink)]/70">
+                                {headerName.slice(0, 1)}
+                              </div>
+                            )}
+                            <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 items-center justify-center rounded-full bg-[#3478ff] px-[3px] text-[7px] font-bold leading-none text-white ring-2 ring-[var(--chat-form-bg)]">
+                              AI
+                            </span>
+                          </div>
+                          <span className="truncate text-[14px] font-semibold text-[var(--color-ink)]">
+                            {headerName}
+                          </span>
+                        </div>
+                      )
+                    })()}
+
+                    <div>
+                      <div className="mb-2 text-[12px] text-[var(--color-ink)]/45">选择发布场景</div>
+                      <div className="space-y-1.5">
                         {PUBLISH_SCENES.map((s) => {
-                          const checked = publishScenes.includes(s)
+                          const on = publishScenes.includes(s)
                           const locked = publishStep !== 'select'
                           return (
-                            <button
+                            <div
                               key={s}
-                              type="button"
-                              disabled={locked}
-                              onClick={() => togglePublishScene(s)}
-                              className={`rounded-lg px-3 py-1.5 text-[13px] transition-colors ${
-                                checked
-                                  ? 'bg-[var(--chat-form-option-bg)] font-medium text-[var(--color-ink)] shadow-[0_1px_2px_rgba(16,18,24,0.04)]'
-                                  : 'bg-[var(--chat-form-option-bg)] text-[var(--color-ink)]/55 hover:text-[var(--color-ink)]'
-                              } ${locked ? 'cursor-default opacity-70' : ''}`}
+                              className="flex items-center gap-3 rounded-lg bg-[var(--color-surface-0)] px-3 py-2.5 ring-1 ring-[var(--divider-soft)]"
                             >
-                              {s}
-                            </button>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[13px] font-medium text-[var(--color-ink)]">{s}</div>
+                                <div className="mt-0.5 text-[11px] leading-[1.5] text-[var(--color-ink)]/50">
+                                  {PUBLISH_SCENE_DESCRIPTIONS[s] ?? '即将上线'}
+                                </div>
+                              </div>
+                              <PublishSwitch
+                                on={on}
+                                disabled={locked}
+                                onChange={() => togglePublishScene(s)}
+                              />
+                            </div>
                           )
                         })}
                       </div>
-                    </ChatFormStep>
+                    </div>
+
                     {publishStep === 'select' && (
                       <ChatFormSubmit
-                        onClick={submitPublish}
+                        onClick={confirmPublish}
                         disabled={publishScenes.length === 0}
                       >
-                        提交
+                        确认启用
                       </ChatFormSubmit>
                     )}
                   </ChatFormCard>
                 </motion.div>
 
-                {/* Step 2 — review summary */}
-                {(publishStep === 'review' || publishStep === 'confirmed') && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                    className="space-y-2.5"
-                  >
-                    <button className="flex items-center gap-1.5 text-[12px] text-[var(--color-ink)]/50">
-                      <CheckCircle2 size={14} className="text-emerald-400" />
-                      <span>任务已完成</span>
-                    </button>
-                    <p className="text-[14px] leading-[20px] text-[var(--color-ink)]">
-                      收到。请确认你的发布信息：
-                    </p>
-                    <ChatFormCard delay={0.3}>
-                      <ChatFormStep number={1} title="应用账号">
-                        <div className="flex items-center gap-2.5 rounded-lg bg-[var(--color-surface-0)] px-3 py-2 ring-1 ring-[var(--color-ink)]/10">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--fill-hover)] text-[var(--color-ink)]/80">
-                            <Code2 size={14} />
-                          </div>
-                          <span className="truncate text-[12px] font-medium text-[var(--color-ink)]">
-                            第五人格 · 今日塔罗
-                          </span>
-                        </div>
-                      </ChatFormStep>
-                      <ChatFormStep number={2} title="本次发布场景">
-                        <div className="flex flex-col gap-1.5">
-                          {publishScenes.map((s) => (
-                            <div
-                              key={s}
-                              className="flex flex-col gap-0.5 rounded-lg bg-[var(--color-surface-0)] px-3 py-2 ring-1 ring-[var(--color-ink)]/10"
-                            >
-                              <span className="text-[12px] font-medium text-[var(--color-ink)]">{s}</span>
-                              <span className="text-[10.5px] leading-[1.5] text-[var(--color-ink)]/55">
-                                {PUBLISH_SCENE_DESCRIPTIONS[s] ?? '即将上线'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </ChatFormStep>
-                      {publishStep === 'review' && (
-                        <ChatFormSubmit onClick={confirmPublish}>
-                          确认发布
-                        </ChatFormSubmit>
-                      )}
-                    </ChatFormCard>
-                  </motion.div>
-                )}
-
-                {/* Step 3 — final ack */}
+                {/* Final ack */}
                 {publishStep === 'confirmed' && (
                   <motion.div
                     initial={{ opacity: 0, y: 6 }}
@@ -8169,12 +8158,12 @@ export default function VibeCodingPage() {
                     transition={{ delay: 0.3, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                     className="space-y-2.5"
                   >
-                    <button className="flex items-center gap-1.5 text-[12px] text-[var(--color-ink)]/50">
+                    <div className="flex items-center gap-1.5 text-[12px] text-[var(--color-ink)]/50">
                       <CheckCircle2 size={14} className="text-emerald-400" />
                       <span>任务已完成</span>
-                    </button>
+                    </div>
                     <p className="text-[14px] leading-[20px] text-[var(--color-ink)]">
-                      好的，已提交发布。发布记录可点击右上角查看。
+                      好的，已为你启用 {publishScenes.length} 个发布场景，发布记录可点击右上角查看。
                     </p>
                   </motion.div>
                 )}
@@ -9380,6 +9369,36 @@ export default function VibeCodingPage() {
               </div>
             )
 
+            // 知识库 / 数据库 are third-party referenced data — surface a
+            // 跳转 entry in their toolbar so the user can open the upstream
+            // source. The destination is external (out of our scope here), so
+            // the demo just acknowledges the jump.
+            const jumpToSourceAction = (
+              <ToolbarAction
+                icon={ExternalLink}
+                label="跳转"
+                onClick={() => toast('正在跳转到第三方数据源…')}
+              />
+            )
+            /** Wrap a third-party-data view (知识库 / 数据库) with a toolbar
+             *  carrying the 跳转 entry. Non-data views pass through unchanged. */
+            const withDataSourceToolbar = (label: string, body: ReactNode): ReactNode =>
+              label === '知识库' || label === '数据库' ? (
+                <>
+                  <ProductToolbar
+                    tabs={
+                      <span className="text-[13px] font-medium text-[var(--color-ink)]">
+                        {label}
+                      </span>
+                    }
+                    actions={jumpToSourceAction}
+                  />
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{body}</div>
+                </>
+              ) : (
+                body
+              )
+
             // 代码文件 — a self-contained code editor: the project's real
             // source tree on the left, the selected file's code on the right.
             // Mirrors the (now-hidden) far-right 项目代码库 panel, moved into a
@@ -9694,7 +9713,7 @@ export default function VibeCodingPage() {
                 kind: activeProjectKind,
                 label,
               })
-              if (objectView) return objectView
+              if (objectView) return withDataSourceToolbar(label, objectView)
               // 基础信息 fallback (kinds without a structured form / mock) opens
               // the project brief in the doc editor.
               if (label === '基础信息') {
@@ -9723,7 +9742,7 @@ export default function VibeCodingPage() {
                 label === '数据库' ||
                 label === '代码文件'
               ) {
-                return projectCodeView()
+                return withDataSourceToolbar(label, projectCodeView())
               }
               return codeView(label)
             }
@@ -9863,8 +9882,12 @@ export default function VibeCodingPage() {
                     actions={
                       activeProjectKind === 'ai-avatar' &&
                       (activeLabel === '技能' || activeLabel === '知识库') ? (
-                        // AI 分身 技能 / 知识库 → 添加 (no-op for now).
-                        <ToolbarAction icon={Plus} label="添加" />
+                        // AI 分身 技能 / 知识库 → 添加 (no-op for now). 知识库 is
+                        // third-party data, so it also gets a 跳转 entry.
+                        <>
+                          <ToolbarAction icon={Plus} label="添加" />
+                          {activeLabel === '知识库' && jumpToSourceAction}
+                        </>
                       ) : (
                         <ToolbarAction
                           icon={Pencil}
@@ -10207,6 +10230,37 @@ export default function VibeCodingPage() {
         </span>
       )}
     </motion.div>
+  )
+}
+
+/** Toggle switch for the in-chat publish scene card — matches the 发布
+ *  popover's switch (blue when on, knob slides). */
+function PublishSwitch({
+  on,
+  onChange,
+  disabled = false,
+}: {
+  on: boolean
+  onChange: () => void
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={disabled}
+      onClick={onChange}
+      className={`relative h-[20px] w-[34px] shrink-0 rounded-full transition-colors duration-200 ${
+        on ? 'bg-[#3478ff]' : 'bg-[var(--color-ink)]/20'
+      } ${disabled ? 'cursor-default' : ''}`}
+    >
+      <span
+        className={`absolute top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-all duration-200 ${
+          on ? 'left-[16px]' : 'left-[2px]'
+        }`}
+      />
+    </button>
   )
 }
 
