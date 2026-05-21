@@ -22,12 +22,14 @@ import GarudaGamePreview from './GarudaGamePreview'
 import GarudaAssetsView, {
   KIND_META as ASSET_KIND_META,
   garudaKindTabs,
+  garudaImageAssets,
   type AssetGroup,
   type AssetKind,
   type AssetItem,
 } from './GarudaAssetsView'
 import AssetEditPanel from './AssetEditPanel'
 import VideoEditor from './VideoEditor'
+import ImageCanvasEditor from './ImageCanvasEditor'
 import H5LayerEditPanel, { type H5LayerId } from './H5LayerEditPanel'
 import OpsDataDrawer from './OpsDataDrawer'
 import GarudaCodeView from './GarudaCodeView'
@@ -4411,6 +4413,9 @@ export default function VibeCodingPage() {
   /** Right-side edit panel (web-game only) — opens a visualization editor
    *  alongside the game preview. */
   const [editPanelOpen, setEditPanelOpen] = useState(false)
+  /** Canvas-style image editor (web-game 素材·图片) — lays every image on a
+   *  draggable board. Takes over the whole preview area when open. */
+  const [canvasEditOpen, setCanvasEditOpen] = useState(false)
   // AI 分身 preview scene — toggled from the toolbar dropdown (left of the
   // refresh icon): 'chat' = 私信/AI 聊天 surface; 'comment' = 评论区 surface.
   const [avatarScene, setAvatarScene] = useState<'chat' | 'comment'>('chat')
@@ -5604,6 +5609,7 @@ export default function VibeCodingPage() {
     // A project switch always collapses the visual-edit panel — its
     // contents are scoped to the previous project's kind.
     setEditPanelOpen(false)
+    setCanvasEditOpen(false)
     setAvatarPromptEditing(false)
     // Switching to a specific product leaf takes priority…
     if (pendingProductOpenRef.current) {
@@ -5624,6 +5630,7 @@ export default function VibeCodingPage() {
   // clears any opened game-asset canvas selection.
   useEffect(() => {
     setEditPanelOpen(false)
+    setCanvasEditOpen(false)
     setAvatarPromptEditing(false)
     setGameSelectedAsset(null)
     setH5SelectedLayer(null)
@@ -9128,6 +9135,9 @@ export default function VibeCodingPage() {
                   )}
                   <ToolbarAction icon={RefreshCw} label="重新加载" iconOnly onClick={() => setMiniAppKey((k) => k + 1)} />
                   <ToolbarAction icon={Smartphone} label="真机预览" iconOnly />
+                  {lbl === '素材' && activeProjectKind === 'web-game' && gameAssetKind === 'image' && (
+                    <ToolbarAction icon={LayoutGrid} label="画布编辑" onClick={() => setCanvasEditOpen(true)} />
+                  )}
                   {lbl === '素材' && <ToolbarAction icon={Upload} label="上传" />}
                   <ToolbarAction
                     icon={Pencil}
@@ -9722,6 +9732,16 @@ export default function VibeCodingPage() {
             if (activeProjectKind === 'web-game') {
               if (activeLabel === '预览') return productView
               if (activeLabel === '素材') {
+                // 画布编辑 (图片) takes over the whole preview area: every image
+                // laid out on a draggable board.
+                if (canvasEditOpen && gameAssetKind === 'image') {
+                  return (
+                    <ImageCanvasEditor
+                      images={garudaImageAssets()}
+                      onClose={() => setCanvasEditOpen(false)}
+                    />
+                  )
+                }
                 // Editing a 视频 asset opens a dedicated simplified video
                 // editor that takes over the whole preview area (timeline at
                 // the bottom), instead of the right-side AssetEditPanel.
