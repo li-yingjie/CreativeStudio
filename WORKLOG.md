@@ -2,6 +2,18 @@
 
 每次改动的记录,最新在最上面。格式:`- 改了什么(为什么)` — 末尾可带 commit 短哈希;未提交标注「(未提交)」。
 
+## 2026-07-04
+
+- 【事故恢复】备份 commit de80b2b 之后的未提交改动被 21:23 的 git reset --hard +
+  git clean 清空，已全部重建：直播管理折线图真实化（12点钟形+指标自洽）、首页
+  home-overview 扩展（interaction/monetization/calendar/quickNav）+ HomeSections
+  （互动管理/变现中心/活动中心日历/快速导航/页脚）+ 双栏布局、入口卡贴纸构图
+  （EntryCard/StickerIcon/SmartCreateIcon/PublishTile，8 张分层 PNG 从 Figma 重下）、
+  扇牌 hover（后卡自身左下角为圆心纯旋转 4°、spring 回弹）、左侧菜单 icon 颜色统一
+  （svg 填充统一纯 #252632 无透明度，选中深/未选中 45% 灰）、TopNav/页签 nowrap、
+  首页自适应断点。唯一无法恢复：用户放的 public/icons/直播.svg（用户素材，浏览器
+  缓存无副本）——直播管理菜单暂回退 lucide Video 图标，待用户重新提供。
+
 ## 2026-07-03
 
 - 左侧栏菜单文案四字化（除首页）：内容→内容管理、收入→收入变现、服务→创作服务

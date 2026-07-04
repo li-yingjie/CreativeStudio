@@ -739,20 +739,35 @@ const LIVE_TITLES = ['直播名称', 'TIM 中国行', '毕业季·高考作文�
 function buildLives() {
   return LIVE_TITLES.map((title, i) => {
     const rnd = mulberry32(hashSeed(`live-${i}`))
-    const spark = Array.from({ length: 8 }, () => Math.round(20 + rnd() * 60))
+    const hours = 1 + (i % 3)
+    const minutes = 10 + Math.floor(rnd() * 40)
+    const peak = 6 + rnd() * 3 // 人气峰值（万）
+    // 实时在线人数曲线：开播爬升 → 约 55% 时段达峰 → 结束回落（钟形 + 轻噪声）。
+    // 每点用独立种子，不打乱主 rnd 序列，保持确定性。
+    const points = 12
+    const spark = Array.from({ length: points }, (_, t) => {
+      const x = t / (points - 1)
+      const shape = Math.exp(-((x - 0.55) ** 2) / 0.09)
+      const noise = 0.9 + mulberry32(hashSeed(`live-${i}-${t}`))() * 0.2
+      return +(peak * (0.2 + 0.8 * shape) * noise).toFixed(2)
+    })
+    const peakOnline = Math.max(...spark)
+    const avgOnline = spark.reduce((a, b) => a + b, 0) / spark.length
+    // 累计参与人数 ≈ 平均在线 × 时长 × 换手系数（>同时在线峰值，符合直播口径）
+    const attend = avgOnline * hours * 2.4
     return {
       id: `live${i + 1}`,
       cover: LIVE_COVERS[i],
-      duration: `0${1 + i}:${String(10 + Math.floor(rnd() * 40)).padStart(2, '0')}:00`,
+      duration: `0${hours}:${String(minutes).padStart(2, '0')}:00`,
       title,
       date: '2026年06月12日 17:34',
       status: '已结束',
       spark,
       metrics: [
-        { label: '参与人数', value: `${(3 + rnd()).toFixed(1)}万` },
+        { label: '参与人数', value: `${attend.toFixed(1)}万` },
         { label: '涨粉数量', value: `${Math.round(6000 + rnd() * 4000)}` },
-        { label: '直播时长', value: `${1 + Math.floor(rnd() * 3)}小时` },
-        { label: '人气峰值', value: `${(6 + rnd() * 3).toFixed(1)}万` },
+        { label: '直播时长', value: `${hours}小时` },
+        { label: '人气峰值', value: `${peakOnline.toFixed(1)}万` },
       ],
     }
   })
@@ -801,12 +816,80 @@ function buildHomeOverview() {
   const accountTrend = rows7.map((r) => ({ date: r.label, value: r.plays }))
   const liveTrend = rows7.map((r) => ({ date: r.label, value: Math.round(r.plays * 0.22) }))
 
+  // 互动管理：最新一条评论 + 一条私信（含未读增量）
+  const interaction = {
+    comments: {
+      count: s(rows7, 'comments') % 900 + 120,
+      time: '07-08 00:35',
+      text: '你知道私人FM为什么没有倒退键只有下一首吗，因为错过了就是错过了…',
+      source: '重庆通报1批次不合格食品，网络平台仍有售',
+    },
+    messages: {
+      count: 23,
+      time: '07-21 00:35',
+      text: '"长的是深夜，短的是人生。"在你成长的这些年里，"真正放不下的那个人…',
+      user: '酸豆角的小毛牛',
+      avatar: '/assets/avatar/3.png',
+    },
+  }
+
+  // 变现中心：近 7 日总变现（含商单/星图，量级大于纯 CPM 收益）
+  const mRnd = mulberry32(hashSeed('home-monet'))
+  const monetization = {
+    range: `${rows7[0].date.slice(5).replace('-', '-')}~${rows7[6].date.slice(5)}`,
+    amount: Math.round(350000 + mRnd() * 60000), // 元
+    delta: Math.round(2000 + mRnd() * 3000),
+    availableTasks: 3242,
+    myTasks: 42,
+    availableTaskTitle: '山海短剧cps90%高分佣高转化短剧《修罗帅》',
+    myTaskTitle: '中国电信155G-星图投稿',
+  }
+
+  // 活动中心日历：以 dailyStats 末日所在月为准
+  const latest = dailyStats[dailyStats.length - 1]
+  const [yy, mm, dd] = latest.date.split('-').map(Number)
+  const firstWeekday = new Date(Date.UTC(yy, mm - 1, 1)).getUTCDay() // 0=周日
+  const daysInMonth = new Date(Date.UTC(yy, mm, 0)).getUTCDate()
+  const marks = {}
+  const paint = (a, b, color) => { for (let d = a; d <= b; d++) marks[d] = color }
+  paint(3, 6, '#7CC4FF')
+  paint(10, 16, '#FE9EC0')
+  paint(17, 23, '#FE9EC0')
+  const calendar = {
+    year: yy,
+    month: mm,
+    today: dd,
+    daysInMonth,
+    firstWeekday,
+    marks,
+    selectedLabel: `${yy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`,
+    ongoing: 2,
+    events: [
+      { title: '快乐是小游戏给的', range: '', color: '#FE2C55' },
+      { title: '用营养守护足球梦', range: '11-18~12-20', color: '#FE2C55' },
+      { title: '潮流收藏在抖音', range: '11-02~01-02', color: '#FF9A3D' },
+      { title: '心动观赛季', range: '10.26~12-26', color: '#4E83FD' },
+    ],
+  }
+
+  // 快速导航（品牌外链入口，纯展示）
+  const quickNav = [
+    { name: '巨量引擎', tint: '#2B5BFF', short: '引擎' },
+    { name: '剪映', tint: '#000000', short: '剪映' },
+    { name: '抖店', tint: '#FE2C55', short: '抖店' },
+    { name: '巨量百应', tint: '#3B6EF5', short: '百应' },
+  ]
+
   return {
     updatedAt: `${dailyStats[dailyStats.length - 1].date}（每天10点更新）`,
     latestWork,
     accountTrend,
     liveTrend,
     metrics,
+    interaction,
+    monetization,
+    calendar,
+    quickNav,
   }
 }
 

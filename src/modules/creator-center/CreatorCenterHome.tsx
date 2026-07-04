@@ -38,6 +38,7 @@ import DouyinIndexPage from './DouyinIndexPage'
 import IncomePage from './IncomePage'
 import LivePage from './LivePage'
 import MaskIcon from './MaskIcon'
+import { ActivityCenterCard, HomeFooter, InteractionSection, MonetizationSection, QuickNavCard } from './HomeSections'
 import { OverviewRadar, SimpleAreaChart, TrendAreaChart } from './HomeCharts'
 
 const RANGE_LABELS: { value: StatsRange; label: string }[] = [
@@ -137,13 +138,13 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
               type="button"
               onClick={() => (hasChildren ? setServiceOpen((v) => !v) : onSelect(m.key))}
               className={`flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] transition-colors ${
-                isActive ? 'bg-black/5 font-medium text-[#252632]' : 'text-[#252632]/70 hover:bg-black/[0.03]'
+                isActive
+                  ? 'bg-black/5 font-medium text-[#252632]'
+                  : 'font-normal text-[#252632]/45 hover:bg-black/[0.03] hover:text-[#252632]/70'
               }`}
             >
-              {/* icon 固定深色，不随文字透明度变浅（父项如创作服务从不选中也保持黑） */}
-              <span className="flex text-[#252632]">
-                {m.lucide ? <m.lucide size={15} strokeWidth={1.8} /> : <MaskIcon url={m.icon!} size={15} />}
-              </span>
+              {/* icon 跟随文字色：选中深色 #252632，未选中灰（svg 填充已统一无透明度） */}
+              {m.lucide ? <m.lucide size={15} strokeWidth={1.8} /> : <MaskIcon url={m.icon!} size={15} />}
               {m.label}
               {hasChildren &&
                 (serviceOpen ? (
@@ -220,31 +221,94 @@ function ProfileHeader({ stats }: { stats: CreatorStats | null }) {
 
 /* ─── 入口卡 ─── */
 
+/** 入口卡（设计稿 947-41110/947-41212）：图标以「贴纸」构图悬出卡片左上角
+ *  （绝对定位 77×84，顶部超出约 6px，正面卡与卡片精确等高贴齐），文字从 86px 起排。
+ *  whileHover 变体向下传播，驱动 StickerIcon 的后卡扇开。 */
 function EntryCard({
-  img,
-  tile,
+  icon,
   label,
   desc,
   onClick,
 }: {
-  img?: string
-  tile?: React.ReactNode
+  icon: React.ReactNode
   label: string
   desc: string
   onClick?: () => void
 }) {
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
-      className="flex h-[72px] items-center gap-3 rounded-2xl border border-black/5 bg-white px-3 text-left shadow-[0_7px_8px_rgba(0,0,0,0.04)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_10px_16px_rgba(0,0,0,0.07)]"
+      initial="rest"
+      animate="rest"
+      whileHover="spread"
+      className="relative h-[75px] rounded-2xl border-[0.5px] border-black/5 bg-white py-[16px] pl-[86px] pr-3 text-left shadow-[0_7px_8px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_10px_16px_rgba(0,0,0,0.08)]"
     >
-      {img ? <img src={img} alt="" className="h-[58px] w-[52px] shrink-0 object-contain" /> : tile}
+      <span className="pointer-events-none absolute -left-px -top-1.5 z-[1] h-[84px] w-[77px]">{icon}</span>
       <div className="min-w-0">
-        <div className="text-[14px] font-semibold text-[#252632]">{label}</div>
-        <div className="mt-0.5 truncate text-[12px] text-[#252632]/50">{desc}</div>
+        <div className="truncate text-[14px] font-semibold text-[#252632]">{label}</div>
+        <div className="mt-1 truncate text-[12px] text-[#252632]/50">{desc}</div>
       </div>
-    </button>
+    </motion.button>
+  )
+}
+
+/** 入口卡图标通用结构：前后两张卡叠放（8 张卡同构）。
+ *  hover 时后卡以自身左下角为圆心向右轻扇（纯旋转、spring 回弹）。 */
+function StickerIcon({ back, front }: { back: React.ReactNode; front: React.ReactNode }) {
+  return (
+    <span className="relative block h-full w-full">
+      <motion.span
+        className="absolute inset-0"
+        // 圆心 = 后卡自身的左下角（后卡在 77×84 容器内有 ~5%/4% 内缩，
+        // 容器坐标折算为 6% 96%）；纯旋转不平移，左下角钉住、上缘向右扇开
+        style={{ transformOrigin: '6% 96%' }}
+        variants={{
+          rest: { rotate: 0 },
+          spread: { rotate: 4 },
+        }}
+        transition={{ type: 'spring', stiffness: 320, damping: 17 }}
+      >
+        {back}
+      </motion.span>
+      {/* 正面卡 — inset 换算后正好齐卡片上下边（0~75px） */}
+      <span className="absolute inset-[6.08%_22.1%_4.53%_0]">{front}</span>
+    </span>
+  )
+}
+
+/** 智能创作图标：前/后卡为 Figma 分层导出的 PNG（由 img 基础路径派生）。 */
+function SmartCreateIcon({ img }: { img: string }) {
+  const base = img.replace(/\.png$/, '')
+  return (
+    <StickerIcon
+      back={<img src={`${base}-back.png`} alt="" className="absolute inset-0 m-auto" />}
+      front={<img src={`${base}-front.png`} alt="" className="h-full w-full" />}
+    />
+  )
+}
+
+/** 作品发布的彩色图标贴纸：斜置浅色底板 + 白描边正面色块（同构图）。 */
+function PublishTile({ tint, glyph }: { tint: string; glyph: LucideIcon }) {
+  const Glyph = glyph
+  return (
+    <StickerIcon
+      back={
+        // 左侧内缩 8%：旋转后左边缘不越过前卡左缘，默认态只在右侧探出（与智能创作一致）
+        <span
+          className="absolute inset-[6.08%_18%_4.53%_8%] rotate-[10deg] rounded-[13px]"
+          style={{ background: `${tint}55` }}
+        />
+      }
+      front={
+        <span
+          className="flex h-full w-full items-center justify-center rounded-[12px] border border-white text-white"
+          style={{ background: tint }}
+        >
+          <Glyph size={24} strokeWidth={2} />
+        </span>
+      }
+    />
   )
 }
 
@@ -538,11 +602,12 @@ function DataOverviewSection({ onViewDetail }: { onViewDetail: () => void }) {
       {!data ? (
         <PanelFallback error={error} height={320} />
       ) : (
-        <div className="mt-4 grid grid-cols-[260px_1fr] gap-6">
+        <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
           {/* 最新作品 */}
           <div>
             <h3 className="text-[14px] font-semibold text-[#252632]">最新作品</h3>
-            <div className="relative mt-3 aspect-[3/4] overflow-hidden rounded-2xl">
+            {/* 堆叠（<lg）时限宽，避免竖版封面撑满整行 */}
+            <div className="relative mt-3 aspect-[3/4] max-w-[260px] overflow-hidden rounded-2xl">
               <img src={data.latestWork.cover} alt="" className="h-full w-full object-cover" />
               <div className="absolute inset-x-0 top-0 flex flex-col gap-1 bg-gradient-to-b from-black/50 to-transparent p-3 text-white">
                 <span className="text-[12px]">{data.latestWork.duration}</span>
@@ -557,14 +622,14 @@ function DataOverviewSection({ onViewDetail }: { onViewDetail: () => void }) {
 
           {/* 账号总览 / 直播数据 */}
           <div className="min-w-0">
-            <div className="flex items-center">
+            <div className="flex flex-wrap items-center gap-y-2">
               <div className="flex gap-5 text-[14px]">
                 {([['account', '账号总览'], ['live', '直播数据']] as const).map(([k, l]) => (
                   <button key={k} type="button" onClick={() => setTab(k)}
-                    className={`-mb-px border-b-2 pb-2 transition-colors ${tab === k ? 'border-[#FE2C55] font-medium text-[#252632]' : 'border-transparent text-[#252632]/45 hover:text-[#252632]/75'}`}>{l}</button>
+                    className={`-mb-px whitespace-nowrap border-b-2 pb-2 transition-colors ${tab === k ? 'border-[#FE2C55] font-medium text-[#252632]' : 'border-transparent text-[#252632]/45 hover:text-[#252632]/75'}`}>{l}</button>
                 ))}
               </div>
-              <div className="ml-auto flex items-center gap-1 rounded-lg bg-[#F2F3F5] px-3 py-1.5 text-[12px] text-[#252632]/60">
+              <div className="ml-auto flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-[#F2F3F5] px-3 py-1.5 text-[12px] text-[#252632]/60">
                 时间 近7天 <ChevronDown size={12} />
               </div>
             </div>
@@ -573,7 +638,7 @@ function DataOverviewSection({ onViewDetail }: { onViewDetail: () => void }) {
             </div>
             {trend && <SimpleAreaChart data={trend} id={`home-${tab}`} height={190} />}
             {/* 8 指标 */}
-            <div className="mt-3 grid grid-cols-4 gap-x-6 gap-y-4">
+            <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-4">
               {data.metrics.map((m) => (
                 <div key={m.label}>
                   <div className="text-[12px] text-[#252632]/50">{m.label}</div>
@@ -624,6 +689,8 @@ export default function CreatorCenterHome({
   if (page === 'live' && !liveEnabled) setPage('data')
   // 资料头的粉丝/获赞用近7天档的响应（任意档都含 profile 快照）
   const { data: profileData } = useCreatorStats('week')
+  // 首页新板块（互动/变现/活动/快速导航）共用一次 home-overview 拉取
+  const { data: homeData } = useHomeOverview()
 
   return (
     <div className="flex h-full min-h-0 bg-[#F5F6F8]">
@@ -668,13 +735,19 @@ export default function CreatorCenterHome({
           <div className="mx-auto max-w-[1240px] px-8 pb-2 pt-6">
             <ProfileHeader stats={profileData} />
 
-            <div className="mt-5 grid grid-cols-2 gap-4">
+            <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
               {/* 智能创作 */}
               <section className="rounded-[20px] border border-[#f1f1f1] bg-gradient-to-b from-[rgba(251,251,251,0.9)] to-white p-4 backdrop-blur">
                 <h3 className="px-1 pb-3 text-[16px] font-semibold text-[#252632]">智能创作</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {SMART_CREATE_ENTRIES.map((e) => (
-                    <EntryCard key={e.id} img={e.img} label={e.label} desc={e.desc} onClick={() => onOpenProduct(e.id)} />
+                    <EntryCard
+                      key={e.id}
+                      icon={<SmartCreateIcon img={e.img} />}
+                      label={e.label}
+                      desc={e.desc}
+                      onClick={() => onOpenProduct(e.id)}
+                    />
                   ))}
                 </div>
               </section>
@@ -682,37 +755,35 @@ export default function CreatorCenterHome({
               <section className="rounded-[20px] border border-[#f1f1f1] bg-gradient-to-b from-[rgba(251,251,251,0.9)] to-white p-4 backdrop-blur">
                 <h3 className="px-1 pb-3 text-[16px] font-semibold text-[#252632]">作品发布</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  {PUBLISH_ENTRIES.map((e) => {
-                    const Glyph = PUBLISH_GLYPHS[e.glyph]
-                    return (
-                      <EntryCard
-                        key={e.label}
-                        tile={
-                          <span
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                            style={{ background: `${e.tint}1F` }}
-                          >
-                            <span
-                              className="flex h-7 w-7 items-center justify-center rounded-lg text-white"
-                              style={{ background: e.tint }}
-                            >
-                              <Glyph size={15} fill={e.glyph === 'video' ? 'currentColor' : 'none'} />
-                            </span>
-                          </span>
-                        }
-                        label={e.label}
-                        desc={e.desc}
-                      />
-                    )
-                  })}
+                  {PUBLISH_ENTRIES.map((e) => (
+                    <EntryCard
+                      key={e.label}
+                      icon={<PublishTile tint={e.tint} glyph={PUBLISH_GLYPHS[e.glyph]} />}
+                      label={e.label}
+                      desc={e.desc}
+                    />
+                  ))}
                 </div>
               </section>
             </div>
           </div>
         </div>
 
-        <div className="mx-auto max-w-[1240px] px-8 pb-10 pt-2">
-          <DataOverviewSection onViewDetail={() => setPage('datacenter')} />
+        <div className="mx-auto max-w-[1240px] px-8 pb-6 pt-2">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_336px]">
+            {/* 左主栏 */}
+            <div className="min-w-0 space-y-4">
+              <DataOverviewSection onViewDetail={() => setPage('datacenter')} />
+              {homeData && <InteractionSection data={homeData.interaction} />}
+              {homeData && <MonetizationSection data={homeData.monetization} />}
+            </div>
+            {/* 右侧栏 */}
+            <div className="space-y-4">
+              {homeData && <ActivityCenterCard data={homeData.calendar} />}
+              {homeData && <QuickNavCard items={homeData.quickNav} />}
+            </div>
+          </div>
+          <HomeFooter />
         </div>
       </main>
       )}

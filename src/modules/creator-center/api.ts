@@ -104,12 +104,45 @@ export interface HomeOverviewMetric {
   delta: number
   type: 'count' | 'yuan'
 }
+export interface HomeInteraction {
+  comments: { count: number; time: string; text: string; source: string }
+  messages: { count: number; time: string; text: string; user: string; avatar: string }
+}
+export interface HomeMonetization {
+  range: string
+  amount: number
+  delta: number
+  availableTasks: number
+  myTasks: number
+  availableTaskTitle: string
+  myTaskTitle: string
+}
+export interface HomeCalendar {
+  year: number
+  month: number
+  today: number
+  daysInMonth: number
+  firstWeekday: number
+  marks: Record<string, string>
+  selectedLabel: string
+  ongoing: number
+  events: { title: string; range: string; color: string }[]
+}
+export interface HomeQuickNav {
+  name: string
+  tint: string
+  short: string
+}
 export interface HomeOverview {
   updatedAt: string
   latestWork: { cover: string; duration: string; title: string; plays: number; likes: number }
   accountTrend: { date: string; value: number }[]
   liveTrend: { date: string; value: number }[]
   metrics: HomeOverviewMetric[]
+  interaction: HomeInteraction
+  monetization: HomeMonetization
+  calendar: HomeCalendar
+  quickNav: HomeQuickNav[]
 }
 export const useHomeOverview = makeResourceHook<HomeOverview>('/api/creator/home-overview')
 

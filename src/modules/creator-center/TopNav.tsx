@@ -31,7 +31,7 @@ export default function TopNav({
               key={p.id}
               type="button"
               onClick={() => onSelect(p.id)}
-              className={`relative flex h-8 items-center rounded-full px-3.5 text-[13px] font-medium transition-colors duration-300 ${
+              className={`relative flex h-8 items-center whitespace-nowrap rounded-full px-3.5 text-[13px] font-medium transition-colors duration-300 ${
                 isActive
                   ? 'text-white'
                   : 'text-[#161823]/70 hover:bg-black/5 hover:text-[#161823]'
