@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { toast } from 'sonner'
 import {
   ChevronLeft,
@@ -118,11 +119,17 @@ export function MonetizationSection({ data }: { data: HomeMonetization }) {
 const WEEK = ['日', '一', '二', '三', '四', '五', '六']
 
 export function ActivityCenterCard({ data }: { data: HomeCalendar }) {
+  // 选中日期（默认今天）；点击日期联动下方活动列表
+  const [selected, setSelected] = useState(data.selectedDay)
   // 网格：前置空格 firstWeekday 个 + 1..daysInMonth
   const cells: (number | null)[] = [
     ...Array.from({ length: data.firstWeekday }, () => null),
     ...Array.from({ length: data.daysInMonth }, (_, i) => i + 1),
   ]
+  const pad2 = (n: number) => String(n).padStart(2, '0')
+  const selLabel = `${data.year}-${pad2(data.month)}-${pad2(selected)}`
+  // 选中日当天进行中的活动（落在其区间内）
+  const dayEvents = data.events.filter((e) => selected >= e.startDay && selected <= e.endDay)
   return (
     <section className="rounded-[20px] bg-white p-5">
       <CardHeader title="活动中心" action="查看更多" onAction={() => toast('活动中心（演示）')} />
@@ -141,30 +148,42 @@ export function ActivityCenterCard({ data }: { data: HomeCalendar }) {
         {cells.map((d, i) => (
           <div key={i} className="flex flex-col items-center py-1.5">
             {d != null && (
-              <>
-                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[12px] ${
-                  d === data.today ? 'bg-[#FE2C55] font-medium text-white' : 'text-[#252632]/75'
+              <button
+                type="button"
+                onClick={() => setSelected(d)}
+                className="flex flex-col items-center"
+              >
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[12px] transition-colors ${
+                  d === selected
+                    ? 'bg-[#FE2C55] font-medium text-white'
+                    : d === data.today
+                      ? 'font-medium text-[#FE2C55]'
+                      : 'text-[#252632]/75 hover:bg-black/5'
                 }`}>{d}</span>
                 <span className="mt-1 h-[3px] w-4 rounded-full" style={{ background: data.marks[String(d)] ?? 'transparent' }} />
-              </>
+              </button>
             )}
           </div>
         ))}
       </div>
-      {/* 活动列表 */}
+      {/* 选中日期的活动列表 */}
       <div className="mt-3 border-t border-black/5 pt-3">
         <div className="flex items-center text-[12px]">
-          <span className="font-medium text-[#252632]">{data.selectedLabel}</span>
-          <span className="ml-auto text-[#252632]/45">共{data.ongoing}个进行中</span>
+          <span className="font-medium text-[#252632]">{selLabel}</span>
+          <span className="ml-auto text-[#252632]/45">共{dayEvents.length}个进行中</span>
         </div>
         <div className="mt-2 space-y-2">
-          {data.events.map((e) => (
-            <button key={e.title} type="button" onClick={() => toast(`${e.title}（演示）`)} className="flex w-full items-center gap-2 text-left">
-              <i className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: e.color }} />
-              <span className="min-w-0 flex-1 truncate text-[13px] text-[#252632]/80">{e.title}</span>
-              {e.range && <span className="shrink-0 text-[12px] text-[#252632]/40">{e.range}</span>}
-            </button>
-          ))}
+          {dayEvents.length === 0 ? (
+            <div className="py-3 text-center text-[12px] text-[#252632]/35">当天暂无进行中的活动</div>
+          ) : (
+            dayEvents.map((e) => (
+              <button key={e.title} type="button" onClick={() => toast(`${e.title}（演示）`)} className="flex w-full items-center gap-2 text-left">
+                <i className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: e.color }} />
+                <span className="min-w-0 flex-1 truncate text-[13px] text-[#252632]/80">{e.title}</span>
+                <span className="shrink-0 text-[12px] text-[#252632]/40">{e.range}</span>
+              </button>
+            ))
+          )}
         </div>
       </div>
     </section>

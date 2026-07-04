@@ -117,6 +117,13 @@ export interface HomeMonetization {
   availableTaskTitle: string
   myTaskTitle: string
 }
+export interface HomeCalendarEvent {
+  title: string
+  range: string
+  color: string
+  startDay: number
+  endDay: number
+}
 export interface HomeCalendar {
   year: number
   month: number
@@ -124,9 +131,10 @@ export interface HomeCalendar {
   daysInMonth: number
   firstWeekday: number
   marks: Record<string, string>
+  selectedDay: number
   selectedLabel: string
   ongoing: number
-  events: { title: string; range: string; color: string }[]
+  events: HomeCalendarEvent[]
 }
 export interface HomeQuickNav {
   name: string

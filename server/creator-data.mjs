@@ -845,16 +845,37 @@ function buildHomeOverview() {
     myTaskTitle: '中国电信155G-星图投稿',
   }
 
-  // 活动中心日历：以 dailyStats 末日所在月为准
+  // 活动中心日历：以 dailyStats 末日所在月为准，活动是真实的日期区间，
+  // 日历色条由活动区间推导、选中某天联动显示当天进行中的活动。
   const latest = dailyStats[dailyStats.length - 1]
   const [yy, mm, dd] = latest.date.split('-').map(Number)
   const firstWeekday = new Date(Date.UTC(yy, mm - 1, 1)).getUTCDay() // 0=周日
   const daysInMonth = new Date(Date.UTC(yy, mm, 0)).getUTCDate()
+  const pad2 = (n) => String(n).padStart(2, '0')
+  const md = (m, d) => `${pad2(m)}-${pad2(d)}` // MM-DD
+
+  // 本月的真实活动（startDay/endDay 为当月的日；跨月活动截到本月边界展示）
+  const events = [
+    { title: '春日光合创作季', startDay: 1, endDay: 6, color: '#7CC4FF' },
+    { title: '用营养守护足球梦', startDay: 4, endDay: 12, color: '#4E83FD' },
+    { title: '潮流收藏在抖音', startDay: 10, endDay: 16, color: '#FE9EC0' },
+    { title: '心动观赛季', startDay: 14, endDay: 23, color: '#FF9A3D' },
+    { title: '快乐是小游戏给的', startDay: 20, endDay: 28, color: '#FE2C55' },
+  ].map((e) => ({
+    ...e,
+    range: `${md(mm, e.startDay)} ~ ${md(mm, e.endDay)}`,
+  }))
+
+  // 色条标记从活动区间推导：某天被活动覆盖 → 标该活动颜色（多活动时取最早开始的）
   const marks = {}
-  const paint = (a, b, color) => { for (let d = a; d <= b; d++) marks[d] = color }
-  paint(3, 6, '#7CC4FF')
-  paint(10, 16, '#FE9EC0')
-  paint(17, 23, '#FE9EC0')
+  for (const e of events) {
+    for (let d = e.startDay; d <= e.endDay && d <= daysInMonth; d++) {
+      if (!(d in marks)) marks[d] = e.color
+    }
+  }
+
+  // 默认选中「今天」，联动出当天进行中的活动
+  const ongoingOn = (day) => events.filter((e) => day >= e.startDay && day <= e.endDay)
   const calendar = {
     year: yy,
     month: mm,
@@ -862,14 +883,10 @@ function buildHomeOverview() {
     daysInMonth,
     firstWeekday,
     marks,
-    selectedLabel: `${yy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`,
-    ongoing: 2,
-    events: [
-      { title: '快乐是小游戏给的', range: '', color: '#FE2C55' },
-      { title: '用营养守护足球梦', range: '11-18~12-20', color: '#FE2C55' },
-      { title: '潮流收藏在抖音', range: '11-02~01-02', color: '#FF9A3D' },
-      { title: '心动观赛季', range: '10.26~12-26', color: '#4E83FD' },
-    ],
+    selectedDay: dd,
+    selectedLabel: `${yy}-${pad2(mm)}-${pad2(dd)}`,
+    ongoing: ongoingOn(dd).length,
+    events,
   }
 
   // 快速导航（品牌外链入口，纯展示）
