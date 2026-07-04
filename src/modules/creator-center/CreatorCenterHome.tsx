@@ -38,6 +38,7 @@ import DouyinIndexPage from './DouyinIndexPage'
 import IncomePage from './IncomePage'
 import LivePage from './LivePage'
 import MaskIcon from './MaskIcon'
+import PublishVideoPage from './PublishVideoPage'
 import { ActivityCenterCard, HomeFooter, InteractionSection, MonetizationSection, QuickNavCard } from './HomeSections'
 import { OverviewRadar, SimpleAreaChart, TrendAreaChart } from './HomeCharts'
 
@@ -123,6 +124,7 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
       <button
         type="button"
         title="发布"
+        onClick={() => onSelect('publish-video')}
         className="mb-2 flex h-10 items-center justify-center rounded-xl bg-[#161823] px-0 text-[14px] font-medium text-white hover:bg-[#161823]/90 lg:justify-between lg:px-4"
       >
         <span className="flex items-center gap-2">
@@ -708,7 +710,9 @@ export default function CreatorCenterHome({
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         className="flex min-h-0 min-w-0 flex-1"
       >
-      {page === 'content' ? (
+      {page === 'publish-video' ? (
+        <PublishVideoPage />
+      ) : page === 'content' ? (
         <ContentPage />
       ) : page === 'live' ? (
         <LivePage />
@@ -766,6 +770,8 @@ export default function CreatorCenterHome({
                       icon={<PublishTile tint={e.tint} glyph={PUBLISH_GLYPHS[e.glyph]} />}
                       label={e.label}
                       desc={e.desc}
+                      // 目前仅「发布高清视频」有对应表单页，其余为占位
+                      onClick={e.glyph === 'video' ? () => setPage('publish-video') : undefined}
                     />
                   ))}
                 </div>
