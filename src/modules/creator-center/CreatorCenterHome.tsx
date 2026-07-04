@@ -114,30 +114,34 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
   // 直播管理是权限菜单，开启时插在「内容」上方
   const menu: SideMenuItem[] = []
   for (const m of SIDE_MENU as SideMenuItem[]) {
-    if (m.key === 'content' && liveEnabled) menu.push({ key: 'live', label: '直播管理', lucide: Video })
+    if (m.key === 'content' && liveEnabled) menu.push({ key: 'live', label: '直播管理', icon: '/icons/zhibo.svg' })
     menu.push(m)
   }
   return (
-    <aside className="flex w-[176px] shrink-0 flex-col gap-1 border-r border-black/5 bg-white px-3 pt-4">
+    // <lg 收缩为「只有 icon」的窄导航（icon rail），≥lg 展开为完整侧栏
+    <aside className="flex w-14 shrink-0 flex-col gap-1 border-r border-black/5 bg-white px-2 pt-4 lg:w-[176px] lg:px-3">
       <button
         type="button"
-        className="mb-2 flex h-10 items-center justify-between rounded-xl bg-[#161823] px-4 text-[14px] font-medium text-white hover:bg-[#161823]/90"
+        title="发布"
+        className="mb-2 flex h-10 items-center justify-center rounded-xl bg-[#161823] px-0 text-[14px] font-medium text-white hover:bg-[#161823]/90 lg:justify-between lg:px-4"
       >
         <span className="flex items-center gap-2">
           <MaskIcon url={PUBLISH_ICON} size={15} />
-          发布
+          <span className="hidden lg:inline">发布</span>
         </span>
-        <ChevronDown size={15} />
+        <ChevronDown size={15} className="hidden lg:block" />
       </button>
       {menu.map((m) => {
-        const isActive = active === m.key
+        // 收缩态下父项在其子页高亮，方便看出当前所在模块
+        const isActive = active === m.key || (Boolean(m.children) && active.startsWith(`service:`))
         const hasChildren = Boolean(m.children)
         return (
           <div key={m.key}>
             <button
               type="button"
+              title={m.label}
               onClick={() => (hasChildren ? setServiceOpen((v) => !v) : onSelect(m.key))}
-              className={`flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] transition-colors ${
+              className={`flex h-9 w-full items-center justify-center gap-2.5 rounded-lg px-3 text-[13px] transition-colors lg:justify-start ${
                 isActive
                   ? 'bg-black/5 font-medium text-[#252632]'
                   : 'font-normal text-[#252632]/45 hover:bg-black/[0.03] hover:text-[#252632]/70'
@@ -145,16 +149,17 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
             >
               {/* icon 跟随文字色：选中深色 #252632，未选中灰（svg 填充已统一无透明度） */}
               {m.lucide ? <m.lucide size={15} strokeWidth={1.8} /> : <MaskIcon url={m.icon!} size={15} />}
-              {m.label}
+              <span className="hidden lg:inline">{m.label}</span>
               {hasChildren &&
                 (serviceOpen ? (
-                  <ChevronUp size={13} className="ml-auto text-[#252632]/40" />
+                  <ChevronUp size={13} className="ml-auto hidden text-[#252632]/40 lg:block" />
                 ) : (
-                  <ChevronDown size={13} className="ml-auto text-[#252632]/40" />
+                  <ChevronDown size={13} className="ml-auto hidden text-[#252632]/40 lg:block" />
                 ))}
             </button>
+            {/* 子菜单为缩进文字，窄栏放不下 —— 仅在 ≥lg 展示 */}
             {hasChildren && serviceOpen && (
-              <div className="mt-0.5 space-y-0.5">
+              <div className="mt-0.5 hidden space-y-0.5 lg:block">
                 {m.children!.map((c) => (
                   <button
                     key={c}
