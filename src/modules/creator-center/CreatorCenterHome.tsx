@@ -671,7 +671,7 @@ function DataCenter() {
   return (
     <main className="min-w-0 flex-1 overflow-y-auto bg-[#F5F6F8]">
       {/* 无页面级大标题——与内容管理等页一致，标题由各卡片自带（数据总览…） */}
-      <div className="mx-auto max-w-[1240px] space-y-4 px-8 py-6">
+      <div className="space-y-4 px-8 py-6">
         <OverviewSection />
         <WorksSection />
         <FansSection />
@@ -737,7 +737,7 @@ export default function CreatorCenterHome({
       <main className="min-w-0 flex-1 overflow-y-auto">
         {/* 顶部淡蓝天空底色 */}
         <div className="bg-[linear-gradient(180deg,#DDEBF6_0%,#EFF4F8_46%,#F5F6F8_100%)]">
-          <div className="mx-auto max-w-[1240px] px-8 pb-2 pt-6">
+          <div className="px-8 pb-2 pt-6">
             <ProfileHeader stats={profileData} />
 
             <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -774,7 +774,7 @@ export default function CreatorCenterHome({
           </div>
         </div>
 
-        <div className="mx-auto max-w-[1240px] px-8 pb-6 pt-2">
+        <div className="px-8 pb-6 pt-2">
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_336px]">
             {/* 左主栏 */}
             <div className="min-w-0 space-y-4">

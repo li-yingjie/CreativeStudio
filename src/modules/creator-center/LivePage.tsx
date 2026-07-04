@@ -69,7 +69,7 @@ export default function LivePage() {
   const { data, error } = useCreatorLives()
   return (
     <main className="min-w-0 flex-1 overflow-y-auto bg-[#F5F6F8]">
-      <div className="mx-auto max-w-[1240px] px-8 py-6">
+      <div className="px-8 py-6">
         <div className="rounded-[20px] bg-white p-6">
           <div className="flex items-center gap-3">
             <h2 className="text-[18px] font-semibold text-[#252632]">直播管理</h2>

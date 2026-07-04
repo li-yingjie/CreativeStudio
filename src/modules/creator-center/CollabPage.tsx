@@ -84,7 +84,7 @@ export default function CollabPage() {
 
   return (
     <main className="min-w-0 flex-1 overflow-y-auto bg-[#F5F6F8]">
-      <div className="mx-auto max-w-[1240px] px-8 py-6">
+      <div className="px-8 py-6">
         {/* 顶部蓝色横幅 */}
         <section className="overflow-hidden rounded-[20px] bg-[linear-gradient(120deg,#3E7BFA_0%,#5B9CFF_55%,#8FC0FF_100%)] p-6">
           <div className="flex items-center gap-3 text-white">

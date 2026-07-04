@@ -168,7 +168,7 @@ export default function IncomePage() {
 
   return (
     <main className="min-w-0 flex-1 overflow-y-auto bg-[#F5F6F8]">
-      <div className="mx-auto max-w-[1240px] space-y-4 px-8 py-6">
+      <div className="space-y-4 px-8 py-6">
         {/* 我的变现 */}
         <section className="rounded-[20px] bg-white p-6">
           <div className="flex items-center gap-2">

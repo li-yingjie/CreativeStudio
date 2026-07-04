@@ -96,7 +96,7 @@ export default function ContentPage() {
 
   return (
     <main className="min-w-0 flex-1 overflow-y-auto bg-[#F5F6F8]">
-      <div className="mx-auto max-w-[1240px] px-8 py-6">
+      <div className="px-8 py-6">
         <div className="rounded-[20px] bg-white p-6">
           <h2 className="text-[18px] font-semibold text-[#252632]">内容管理</h2>
 

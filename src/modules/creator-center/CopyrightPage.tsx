@@ -36,7 +36,7 @@ export default function CopyrightPage() {
 
   return (
     <main className="min-w-0 flex-1 overflow-y-auto bg-[#F5F6F8]">
-      <div className="mx-auto max-w-[1240px] px-8 py-6">
+      <div className="px-8 py-6">
         {/* 蓝色横幅 + 三步进度 */}
         <section className="overflow-hidden rounded-[20px] bg-[linear-gradient(120deg,#3E7BFA_0%,#5B9CFF_55%,#8FC0FF_100%)] p-6">
           <h2 className="text-[20px] font-semibold text-white">原创保护中心</h2>

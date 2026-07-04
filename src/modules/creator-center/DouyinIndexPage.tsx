@@ -110,7 +110,7 @@ export default function DouyinIndexPage() {
       </div>
 
       {/* 热点榜 */}
-      <div className="mx-auto max-w-[1240px] px-8 py-8">
+      <div className="px-8 py-8">
         {!data ? (
           error ? <div className="py-12 text-center text-[13px] text-[#252632]/45">加载失败（{error}）</div>
             : <div className="grid grid-cols-2 gap-10">{[0, 1].map((i) => <div key={i} className="h-72 animate-pulse rounded-xl bg-black/[0.04]" />)}</div>
