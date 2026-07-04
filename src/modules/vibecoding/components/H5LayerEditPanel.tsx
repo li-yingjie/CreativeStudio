@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   X,
   Image as ImageIcon,
@@ -8,19 +8,23 @@ import {
   Ruler,
   Play,
   Crop,
+  Box,
+  Move,
   ChevronDown,
   Clock,
   FileText,
   Gift,
   ListChecks,
   ScrollText,
+  Sparkles,
   type LucideIcon,
 } from '@/shared/icons'
 
 /**
- * H5 图层编辑面板 — 跟随左侧预览选中的「图层对象」刷新不同的编辑属性。
- * 头图给出参考稿那套（再次生成 / 识图改字 / 上传 + 资源位扩展 / 动态头图 /
- * 画布编辑 + 头图记录）；其余图层给出各自相关的属性。纯本地演示。
+ * H5 图层编辑面板 — 跟随左侧预览选中的对象刷新不同的编辑属性。两级选择：
+ * 选中「楼层」给整楼层属性（头图那套 / 倒计时 / 介绍 …），选中楼层内的
+ * 「元素」（主标题 / 正文 / 按钮 / 图片）给该元素的细粒度属性（文案·字号·
+ * 颜色 / 按钮文案·底色 / 图片替换）。无选中 ⇒ 整体活动配置。纯本地演示。
  */
 
 export type H5LayerId =
@@ -30,6 +34,26 @@ export type H5LayerId =
   | 'lottery'
   | 'task'
   | 'rules'
+
+/** 楼层内可单独选中的元素类型。 */
+export type H5ElementKind = 'text' | 'button' | 'image'
+
+/** 一个被选中的楼层内元素。`value` 携带当前文案 / 图片地址，便于编辑器预填。 */
+export interface H5ElementSel {
+  layer: H5LayerId
+  /** 楼层内唯一 id，如 'intro.title'。 */
+  id: string
+  kind: H5ElementKind
+  /** 展示名：主标题 / 正文 / 按钮 / 图片 … */
+  label: string
+  /** 当前内容：文本（text/button）或图片地址（image）。 */
+  value?: string
+}
+
+/** 当前选择：楼层级 / 元素级；null ⇒ 整体活动配置。 */
+export type H5Selection =
+  | { type: 'layer'; layer: H5LayerId }
+  | { type: 'element'; el: H5ElementSel }
 
 const HERO_IMG = '/h5/children-day/hero-gifts.png'
 const LOTTERY_IMG = '/h5/children-day/lottery-cube.png'
@@ -44,25 +68,52 @@ export const H5_LAYER_META: Record<H5LayerId, { label: string; icon: LucideIcon 
 }
 
 export default function H5LayerEditPanel({
-  layer,
+  selection,
   onClose,
+  floating = false,
+  onHeaderPointerDown,
 }: {
-  /** Selected layer, or null for the overall activity config. */
-  layer: H5LayerId | null
+  /** 当前选择：楼层 / 元素；null ⇒ 整体活动配置。 */
+  selection: H5Selection | null
   onClose: () => void
+  /** 浮层模式：header 变成可拖拽手柄（带 grip 图标 + move 光标）。 */
+  floating?: boolean
+  onHeaderPointerDown?: (e: React.PointerEvent) => void
 }) {
-  const meta = layer ? H5_LAYER_META[layer] : null
+  const layerId =
+    selection?.type === 'layer'
+      ? selection.layer
+      : selection?.type === 'element'
+        ? selection.el.layer
+        : null
+  const layerMeta = layerId ? H5_LAYER_META[layerId] : null
+  const el = selection?.type === 'element' ? selection.el : null
+
+  // Breadcrumb: 楼层 / 元素 — falls back to 活动配置 when nothing is picked.
+  const crumb = el
+    ? `${layerMeta?.label ?? ''} / ${el.label}`
+    : layerMeta
+      ? layerMeta.label
+      : '活动配置'
+
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--color-surface-0)]">
-      {/* Header */}
-      <div className="flex shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-4 py-2.5">
+      {/* Header — drag handle when floating */}
+      <div
+        onPointerDown={floating ? onHeaderPointerDown : undefined}
+        className={`flex shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-4 py-2.5 ${
+          floating ? 'cursor-move touch-none select-none' : ''
+        }`}
+      >
+        {floating && (
+          <Move size={13} strokeWidth={1.8} className="-ml-1 shrink-0 text-[var(--color-ink)]/35" />
+        )}
         <span className="text-[12.5px] font-semibold text-[var(--color-ink)]">编辑</span>
-        <span className="min-w-0 truncate text-[11px] text-[var(--color-ink)]/40">
-          {meta ? meta.label : '活动配置'}
-        </span>
+        <span className="min-w-0 truncate text-[11px] text-[var(--color-ink)]/40">{crumb}</span>
         <button
           type="button"
           onClick={onClose}
+          onPointerDown={(e) => e.stopPropagation()}
           title="关闭"
           className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink)]/45 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
         >
@@ -70,19 +121,28 @@ export default function H5LayerEditPanel({
         </button>
       </div>
 
-      {/* Body — overall config by default; per-layer once an element is picked */}
+      <EditAiPrompt
+        key={el?.id ?? layerId ?? 'overall'}
+        selection={selection}
+        layerLabel={layerMeta?.label}
+        autoFocus={selection?.type === 'element'}
+      />
+
+      {/* Body — element editor when an element is picked; else per-layer; else overall */}
       <div className="thin-scroll flex-1 overflow-y-auto px-4 py-4">
-        {layer === null ? (
+        {el ? (
+          <ElementEditor key={el.id} el={el} />
+        ) : layerId === null ? (
           <OverallEditor />
-        ) : layer === 'hero' ? (
+        ) : layerId === 'hero' ? (
           <HeroEditor />
-        ) : layer === 'countdown' ? (
+        ) : layerId === 'countdown' ? (
           <CountdownEditor />
-        ) : layer === 'intro' ? (
+        ) : layerId === 'intro' ? (
           <IntroEditor />
-        ) : layer === 'lottery' ? (
+        ) : layerId === 'lottery' ? (
           <LotteryEditor />
-        ) : layer === 'task' ? (
+        ) : layerId === 'task' ? (
           <TaskEditor />
         ) : (
           <RulesEditor />
@@ -92,7 +152,11 @@ export default function H5LayerEditPanel({
       {/* Footer */}
       <div className="flex shrink-0 items-center justify-between border-t border-[var(--divider-soft)] px-4 py-2.5">
         <span className="text-[11px] text-[var(--color-ink)]/45">
-          {meta ? `编辑「${meta.label}」图层` : '选中左侧元素可单独编辑'}
+          {el
+            ? `编辑「${el.label}」元素`
+            : layerMeta
+              ? `编辑「${layerMeta.label}」图层`
+              : '选中左侧元素可单独编辑'}
         </span>
         <div className="flex items-center gap-1.5">
           <button className="flex h-7 items-center gap-1.5 rounded-md border border-[var(--divider)] px-2.5 text-[11.5px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--fill-hover)]">
@@ -105,6 +169,91 @@ export default function H5LayerEditPanel({
       </div>
     </div>
   )
+}
+
+function EditAiPrompt({
+  selection,
+  layerLabel,
+  autoFocus = false,
+}: {
+  selection: H5Selection | null
+  layerLabel?: string
+  autoFocus?: boolean
+}) {
+  const [prompt, setPrompt] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const meta = getAiPromptMeta(selection, layerLabel)
+
+  useEffect(() => {
+    if (!autoFocus) return
+    const id = window.requestAnimationFrame(() => inputRef.current?.focus())
+    return () => window.cancelAnimationFrame(id)
+  }, [autoFocus, meta.key])
+
+  return (
+    <form
+      onSubmit={(e) => e.preventDefault()}
+      className="shrink-0 border-b border-[var(--divider-soft)] px-3 py-2.5"
+    >
+      <div className="flex h-9 items-center gap-2 rounded-lg border border-[var(--divider)] bg-[var(--fill-subtle)] px-2.5 focus-within:border-[var(--color-ink)]/35 focus-within:bg-[var(--color-surface-0)]">
+        <Sparkles size={14} strokeWidth={1.8} className="shrink-0 text-[var(--color-ink)]/55" />
+        <input
+          ref={inputRef}
+          type="text"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          aria-label={meta.ariaLabel}
+          placeholder={meta.placeholder}
+          className="min-w-0 flex-1 bg-transparent text-[12.5px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/35"
+        />
+        <button
+          type="submit"
+          className="shrink-0 rounded-md bg-[var(--color-ink)] px-2 py-1 text-[11px] font-medium text-[var(--color-ink-contrast)] transition-opacity hover:opacity-90"
+        >
+          生成
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function getAiPromptMeta(selection: H5Selection | null, layerLabel?: string) {
+  if (!selection) {
+    return {
+      key: 'overall',
+      ariaLabel: 'AI 调整整体活动配置',
+      placeholder: '发送信息给到 AI，调整整体活动配置...',
+    }
+  }
+  if (selection.type === 'layer') {
+    const label = layerLabel ?? '当前图层'
+    return {
+      key: selection.layer,
+      ariaLabel: `AI 调整${label}图层`,
+      placeholder: `发送信息给到 AI，调整「${label}」图层...`,
+    }
+  }
+
+  const { el } = selection
+  if (el.kind === 'image') {
+    return {
+      key: el.id,
+      ariaLabel: `AI 修改${el.label}图片`,
+      placeholder: `发送信息给到 AI，重绘或替换「${el.label}」...`,
+    }
+  }
+  if (el.kind === 'button') {
+    return {
+      key: el.id,
+      ariaLabel: `AI 修改${el.label}按钮`,
+      placeholder: `发送信息给到 AI，调整「${el.label}」按钮...`,
+    }
+  }
+  return {
+    key: el.id,
+    ariaLabel: `AI 修改${el.label}文案`,
+    placeholder: `发送信息给到 AI，改写「${el.label}」文案...`,
+  }
 }
 
 /* ─────────── 整体活动配置（默认，无选中元素时） ─────────── */
@@ -329,6 +478,121 @@ function RulesEditor() {
   )
 }
 
+/* ═════════════ 元素级编辑（楼层内单个元素） ═════════════ */
+function ElementEditor({ el }: { el: H5ElementSel }) {
+  if (el.kind === 'button') return <ButtonElementEditor el={el} />
+  if (el.kind === 'image') return <ImageElementEditor el={el} />
+  return <TextElementEditor el={el} />
+}
+
+/* ─────────── 文本元素（主标题 / 正文 / 名单 …） ─────────── */
+function TextElementEditor({ el }: { el: H5ElementSel }) {
+  const [text, setText] = useState(el.value ?? '')
+  const [size, setSize] = useState(20)
+  const [color, setColor] = useState('rose')
+  const [align, setAlign] = useState('center')
+  // 正文之类的长文本用多行输入。
+  const multiline = el.id.endsWith('body') || (el.value ?? '').length > 16
+  return (
+    <div className="space-y-5">
+      <SectionTitle icon={Type}>{el.label}</SectionTitle>
+      <Field label="文案">
+        {multiline ? (
+          <textarea
+            rows={5}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="thin-scroll w-full resize-none rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] leading-[1.6] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
+          />
+        ) : (
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="w-full rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
+          />
+        )}
+      </Field>
+      <Slider label="字号" value={size} min={12} max={36} onChange={setSize} unit="px" />
+      <Field label="文字颜色">
+        <Swatches value={color} onChange={setColor} />
+      </Field>
+      <Field label="对齐">
+        <Chips
+          value={align}
+          onChange={setAlign}
+          options={[
+            { id: 'left', label: '左对齐' },
+            { id: 'center', label: '居中' },
+            { id: 'right', label: '右对齐' },
+          ]}
+        />
+      </Field>
+      <ToggleRow label="加粗" defaultOn />
+    </div>
+  )
+}
+
+/* ─────────── 按钮元素（立即抽奖 / 我的奖品 / 任务 CTA …） ─────────── */
+function ButtonElementEditor({ el }: { el: H5ElementSel }) {
+  const [label, setLabel] = useState(el.value ?? '')
+  const [bg, setBg] = useState('rose')
+  const [textColor, setTextColor] = useState('slate')
+  const [radius, setRadius] = useState(24)
+  return (
+    <div className="space-y-5">
+      <SectionTitle icon={Box}>{el.label}</SectionTitle>
+      <Field label="按钮文案">
+        <input
+          type="text"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          className="w-full rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
+        />
+      </Field>
+      <Field label="底色">
+        <Swatches value={bg} onChange={setBg} />
+      </Field>
+      <Field label="文字颜色">
+        <Swatches value={textColor} onChange={setTextColor} />
+      </Field>
+      <Slider label="圆角" value={radius} min={0} max={28} onChange={setRadius} unit="px" />
+      <ToggleRow label="点击埋点" defaultOn />
+    </div>
+  )
+}
+
+/* ─────────── 图片元素（头图 / 抽奖机 …） ─────────── */
+function ImageElementEditor({ el }: { el: H5ElementSel }) {
+  const [fit, setFit] = useState('cover')
+  return (
+    <div className="space-y-5">
+      <SectionTitle icon={ImageIcon}>{el.label}</SectionTitle>
+      {el.value && (
+        <div className="overflow-hidden rounded-xl ring-1 ring-[var(--divider)]">
+          <img src={el.value} alt="" className="max-h-40 w-full object-cover" />
+        </div>
+      )}
+      <div className="grid grid-cols-3 gap-2">
+        <ActionPill icon={Upload} label="上传图片" />
+        <ActionPill icon={RefreshCw} label="再次生成" />
+        <ActionPill icon={Crop} label="画布编辑" />
+      </div>
+      <Field label="适配方式">
+        <Chips
+          value={fit}
+          onChange={setFit}
+          options={[
+            { id: 'cover', label: '填充' },
+            { id: 'contain', label: '包含' },
+            { id: 'fill', label: '拉伸' },
+          ]}
+        />
+      </Field>
+    </div>
+  )
+}
+
 /* ─────────── shared atoms ─────────── */
 function SectionTitle({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
   return (
@@ -377,6 +641,38 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <div className="mb-1.5 text-[12px] text-[var(--color-ink)]/65">{label}</div>
       {children}
+    </div>
+  )
+}
+
+function Chips({
+  value,
+  onChange,
+  options,
+}: {
+  value: string
+  onChange: (v: string) => void
+  options: { id: string; label: string }[]
+}) {
+  return (
+    <div className="flex gap-2">
+      {options.map((o) => {
+        const on = value === o.id
+        return (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => onChange(o.id)}
+            className={`rounded-lg border px-3 py-1.5 text-[12.5px] transition-colors ${
+              on
+                ? 'border-[var(--color-ink)]/30 bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]'
+                : 'border-[var(--divider-soft)] text-[var(--color-ink)]/55 hover:border-[var(--color-ink)]/15'
+            }`}
+          >
+            {o.label}
+          </button>
+        )
+      })}
     </div>
   )
 }

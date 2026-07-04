@@ -1,7 +1,6 @@
 import { Fragment, useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import * as Popover from '@radix-ui/react-popover'
 import { Tooltip } from './Tooltip'
 import { toast } from 'sonner'
 import ChatPreview from '@/modules/editor/components/preview/ChatPreview'
@@ -36,7 +35,8 @@ import ImageCanvasEditor from './ImageCanvasEditor'
 import ErrorBoundary from '@/shared/components/ErrorBoundary'
 import FigmaIcon from './FigmaIcon'
 import PlatformHome from './PlatformHome'
-import H5LayerEditPanel, { type H5LayerId } from './H5LayerEditPanel'
+import { type H5Selection } from './H5LayerEditPanel'
+import H5FloatingEditPanel from './H5FloatingEditPanel'
 import OpsDataDrawer from './OpsDataDrawer'
 import GarudaCodeView from './GarudaCodeView'
 import GarudaEditPanel from './GarudaEditPanel'
@@ -107,14 +107,16 @@ import AvatarSystemPromptView, {
   type AvatarPromptCapability,
 } from './AvatarSystemPromptView'
 import CapabilityDetailView from './CapabilityDetailView'
-import { getAvatarConfig } from './AvatarConfigData'
+import { getAvatarConfig, type AvatarAppConfig } from './AvatarConfigData'
 import MiniProgramAgentView from './MiniProgramAgentView'
 import MiniProgramSettingsForm from './MiniProgramSettingsForm'
 import AssetGridView from './AssetGridView'
 import MarketingDocEditor from './MarketingDocEditor'
 import PublishDrawer from './PublishDrawer'
-import { getMiniProgramConfig } from './MiniProgramConfigData'
-import { getMarketingH5Preview } from './MarketingH5ConfigData'
+import { getMiniProgramConfig, type MiniProgramConfig } from './MiniProgramConfigData'
+import { getMarketingH5Preview, type MarketingH5PreviewConfig } from './MarketingH5ConfigData'
+import { useRuntimeConfigStore, setRuntimeConfig } from './artifact/runtime-config-store'
+import { generateAvatarConfig } from './artifact/generate'
 
 /** Each platform project has a `ProjectKind` (the concrete product /
  *  case it represents) and an `OutputShape` (the abstract category that
@@ -163,7 +165,6 @@ import {
   ArrowLeft,
   ArrowUp,
   BarChart3,
-  Bell,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -181,7 +182,6 @@ import {
   FolderCode,
   FolderOpen,
   FolderTree,
-  Headset,
   Headphones,
   Home,
   Inbox,
@@ -199,7 +199,6 @@ import {
   Minus,
   RefreshCw,
   RotateCcw,
-  Settings,
   Smartphone,
   Trash2,
   Terminal,
@@ -994,7 +993,6 @@ function PlatformSidebar({
   expandedDirs,
   toggleDir,
   onOpenProduct,
-  onCollapse,
   onNewProject,
   openProjects,
   setOpenProjects,
@@ -1003,7 +1001,6 @@ function PlatformSidebar({
   onOpenResourceLibrary,
   onOpenSkills,
   onOpenCreativeSquare,
-  onOpenDataOps,
   activeNav,
   activeRoute,
   activeProjectName,
@@ -1014,8 +1011,6 @@ function PlatformSidebar({
   deletedProjects,
   onDeleteProject,
   categoryExtras,
-  themeMode,
-  onChangeThemeMode,
   createdProjects,
 }: {
   /** Per-project file trees. Projects missing from this map render the
@@ -1026,7 +1021,6 @@ function PlatformSidebar({
   /** Open a product leaf scoped to its owning project — switches projects
    *  first when the clicked node belongs to a non-active project. */
   onOpenProduct: (projectName: string, filename: string) => void
-  onCollapse: () => void
   onNewProject: () => void
   openProjects: Set<string>
   setOpenProjects: React.Dispatch<React.SetStateAction<Set<string>>>
@@ -1043,7 +1037,6 @@ function PlatformSidebar({
   /** Open the 创意广场 placeholder page. */
   onOpenCreativeSquare: () => void
   /** Open the 数据运营 placeholder page. */
-  onOpenDataOps: () => void
   /** Which top-level nav is currently active — drives the highlight. */
   activeNav: 'Skills' | '资源库' | '创意广场' | '运营数据' | null
   /** Active preview page label — highlights the matching 页面 node in
@@ -1067,8 +1060,6 @@ function PlatformSidebar({
   /** User-added category objects, keyed `${project}::${category}`. */
   categoryExtras: Record<string, string[]>
   /** Theme switcher — relocated from the (removed) top header. */
-  themeMode: 'light' | 'dark'
-  onChangeThemeMode: (next: 'light' | 'dark') => void
   /** Dynamically created projects (e.g. game flow output) — appended
    *  to the top of the project list. */
   createdProjects: string[]
@@ -1135,44 +1126,7 @@ function PlatformSidebar({
 
   return (
     <aside className="flex h-full w-full flex-col pt-3">
-      {/* Brand header */}
-      <div className="flex h-10 shrink-0 items-center justify-between gap-2 px-5">
-        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-          <svg
-            width="108"
-            height="20"
-            viewBox="0 0 108 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-label="抖音AI工坊"
-            className="h-5 shrink-0 text-[var(--color-ink)]"
-          >
-            <path d="M38.2988 10.9897L40.0596 10.7847V12.4634L38.2988 12.6665V16.8335H36.3779V12.8882L30.3809 13.5874L30.3613 13.4634L30.1465 12.0415L30.126 11.9077L30.2607 11.8921L36.3779 11.1929V1.64209H38.2988V10.9897ZM28.7246 4.55615H30.4844V6.18408H28.7275V8.77783L30.4531 8.48877V10.1499L30.3467 10.1694L28.7275 10.4741V14.7935L28.7256 14.9019C28.7078 15.4348 28.5558 15.8628 28.25 16.1714C27.9454 16.4787 27.505 16.6505 26.9443 16.7056L26.8311 16.7153C26.3383 16.7484 25.8186 16.7164 25.3203 16.6226L25.2393 16.6069L25.2188 16.5288L24.7998 15.0112L25 15.0425C25.4484 15.113 25.8902 15.1331 26.3213 15.104H26.3223L26.3779 15.0991C26.5072 15.0801 26.6311 15.0235 26.7256 14.9302C26.8318 14.8251 26.9092 14.6651 26.9092 14.436V10.8052L24.9121 11.1646L24.8896 11.0347L24.624 9.45068L26.9072 9.07764V6.18408H25.0371L24.8789 4.55615H26.9072V1.64209H28.7246V4.55615ZM53.8545 9.17334C54.2638 9.17335 54.5961 9.2745 54.8252 9.49756C55.055 9.72132 55.1591 10.047 55.1592 10.4478V15.1675L55.1543 15.3159C55.1318 15.6526 55.0295 15.9263 54.8291 16.1216C54.6007 16.3441 54.2682 16.4419 53.8545 16.4419H43.7979C43.3804 16.4419 43.0471 16.3473 42.8193 16.1255C42.6194 15.9308 42.5189 15.6562 42.4971 15.3169L42.4922 15.1675V10.4478C42.4922 10.0429 42.5933 9.71674 42.8223 9.49365C43.0507 9.27119 43.3841 9.17334 43.7979 9.17334H53.8545ZM69.1914 16.0386L69.25 16.2114H66.9404L66.9111 16.1206L65.8965 12.9067H60.4844L59.4893 16.1196L59.4609 16.2114H57.1523L61.916 2.54932H64.582L69.1914 16.0386ZM73.334 16.2114H71.2588V2.54932H73.334V16.2114ZM44.4121 14.5542L44.4141 14.5894C44.4297 14.7624 44.5599 14.8823 44.7461 14.8823H52.9053L52.9414 14.8804C53.1198 14.8648 53.2382 14.7343 53.2383 14.5542V13.4771H44.4121V14.5542ZM44.7461 10.7329C44.5563 10.7329 44.4122 10.8768 44.4121 11.0601V12.0698H53.2383V11.0601L53.2373 11.0259C53.2217 10.8703 53.1008 10.7494 52.9404 10.7339L52.9053 10.7329H44.7461ZM61.0273 11.0854H65.373L63.2109 4.17822L61.0273 11.0854ZM31.5537 6.65967C32.545 6.8998 33.9001 7.25577 35.1914 7.69092L35.2803 7.72119V9.61084L35.1064 9.55127C33.8189 9.10842 32.4689 8.73964 31.4912 8.4917L31.3926 8.46729V6.62061L31.5537 6.65967ZM46.502 6.39697H51.2012L51.666 4.96436H53.667L53.2002 6.39697H56.4531V7.95654H41.3125L41.1533 6.39697H44.5371L44.0703 4.96436H46.0537L46.502 6.39697ZM31.5557 2.79639C32.7638 3.11029 33.9859 3.48432 35.1924 3.90771L35.2803 3.93799V5.77783L35.1064 5.71729C33.9066 5.29997 32.6919 4.93182 31.4912 4.62354L31.3926 4.59912V2.75342L31.5557 2.79639ZM49.7773 2.88623H55.5391V4.4458H42.209L42.0498 2.88623H47.8223V1.64209H49.7773V2.88623Z" fill="currentColor"/>
-            <path d="M103.727 3.5804H107.524V5.35142H101.513V7.29273H105.464C105.816 7.29273 106.1 7.40058 106.315 7.61628C106.531 7.83198 106.645 8.12147 106.656 8.48476C106.747 10.7666 106.747 12.9407 106.656 15.0069C106.633 15.4496 106.463 15.8186 106.145 16.1137C105.839 16.3976 105.453 16.5565 104.987 16.5906C103.931 16.6814 102.864 16.6246 101.786 16.4203L101.411 14.6152C102.319 14.8082 103.199 14.8763 104.051 14.8195C104.425 14.7855 104.63 14.5982 104.664 14.2576C104.777 12.7477 104.777 11.1413 104.664 9.43838C104.641 9.18862 104.516 9.06374 104.289 9.06374H101.479C101.4 10.8461 101.07 12.3844 100.491 13.6786C99.8444 15.1317 98.8454 16.3465 97.4944 17.3228L97.0516 15.1942C98.7205 13.6502 99.5265 11.2264 99.4697 7.9228V5.35142H97.7158L97.5455 3.5804H101.684V1.62207H103.727V3.5804ZM95.9107 12.4185L97.6306 12.0438V13.7467L92.3687 15.0409L91.96 13.304L93.9013 12.8782V7.30976H92.2665L92.0962 5.53874H93.9013V1.62207H95.9107V5.53874H97.5114V7.30976H95.9107V12.4185Z" fill="currentColor"/>
-            <path d="M84.3308 14.3255H90.6656V16.0965H76.1058L75.9355 14.3255H82.2192V4.84035H76.9402L76.77 3.06934H89.8993V4.84035H84.3308V14.3255Z" fill="currentColor"/>
-            <path d="M4.64629 7.23566C4.64629 8.51889 3.6058 9.55933 2.32369 9.55933C1.04046 9.55933 0 8.51889 0 7.23566C0 5.95243 1.04046 4.91309 2.32369 4.91309C3.6058 4.91309 4.64629 5.95243 4.64629 7.23566Z" fill="currentColor"/>
-            <path d="M4.64629 11.8569C4.64629 13.1401 3.6058 14.1795 2.32369 14.1795C1.04046 14.1795 0 13.1401 0 11.8569C0 10.5737 1.04046 9.5332 2.32369 9.5332C3.6058 9.5332 4.64629 10.5737 4.64629 11.8569Z" fill="currentColor"/>
-            <path d="M6.52691 4.9923C5.61958 5.89963 4.21325 5.96452 3.38648 5.13775C2.55859 4.30986 2.62348 2.90355 3.5308 1.99623C4.43813 1.0889 5.84446 1.02401 6.67123 1.8519C7.49912 2.67867 7.43423 4.08498 6.52691 4.9923Z" fill="currentColor"/>
-            <path d="M6.52691 17.0939C5.61958 18.0012 4.21325 18.0661 3.38648 17.2382C2.55859 16.4114 2.62348 15.0051 3.5308 14.0978C4.43813 13.1905 5.84446 13.1256 6.67123 13.9535C7.49912 14.7802 7.43423 16.1865 6.52691 17.0939Z" fill="currentColor"/>
-            <path d="M16.2489 6.88788C17.1562 5.98055 18.0344 5.38761 18.2112 5.56438C18.388 5.74114 17.795 6.61938 16.8877 7.52671C15.9804 8.43403 15.1021 9.02586 14.9253 8.85021C14.7497 8.67344 15.3415 7.7952 16.2489 6.88788Z" fill="currentColor"/>
-            <path d="M16.3845 11.6724C17.2918 10.7651 18.1096 10.1118 18.2114 10.2136C18.3132 10.3165 17.661 11.1343 16.7536 12.0416C15.8463 12.949 15.0285 13.6012 14.9256 13.4994C14.8238 13.3976 15.4771 12.5798 16.3845 11.6724Z" fill="currentColor"/>
-            <path d="M13.0553 2.66021C13.9626 1.75288 15.0602 1.3792 15.5065 1.82447C15.9518 2.27086 15.5782 3.36838 14.6709 4.27571C13.7635 5.18303 12.6671 5.55671 12.2207 5.11032C11.7743 4.66393 12.148 3.56753 13.0553 2.66021Z" fill="currentColor"/>
-            <path d="M13.1782 14.8979C14.0855 13.9906 15.1271 13.5621 15.5064 13.9402C15.8845 14.3184 15.456 15.3611 14.5487 16.2684C13.6414 17.1757 12.5987 17.6042 12.2205 17.2261C11.8424 16.8468 12.2709 15.8052 13.1782 14.8979Z" fill="currentColor"/>
-            <path d="M8.33898 15.9313C9.2463 15.0239 10.4714 14.7789 11.0755 15.3831C11.6807 15.9872 11.4358 17.2134 10.5285 18.1207C9.62113 19.028 8.39493 19.273 7.79079 18.6689C7.18554 18.0636 7.43166 16.8386 8.33898 15.9313Z" fill="currentColor"/>
-            <path d="M8.25097 0.831134C9.15829 -0.0761893 10.4348 -0.270856 11.1027 0.39705C11.7707 1.06496 11.576 2.34147 10.6687 3.2488C9.76135 4.15612 8.48481 4.34967 7.8169 3.68288C7.14899 3.01498 7.34365 1.73846 8.25097 0.831134Z" fill="currentColor"/>
-          </svg>
-        </div>
-        <div className="flex shrink-0 items-center gap-0.5">
-          <button
-            onClick={onCollapse}
-            title="收起侧栏"
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
-          >
-            <FlexAlignGlyph side="left" size={13} />
-          </button>
-        </div>
-      </div>
-
+      {/* 品牌 logo / 收起按钮已随创作者中心外壳移除 — 侧栏常驻，顶栏统一管账号 */}
       {/* + 新建项目 — 彩虹阴影 on hover */}
       <div className="px-3 pt-4">
         <div className="group relative">
@@ -1187,7 +1141,7 @@ function PlatformSidebar({
           />
           <button
             onClick={onNewProject}
-            className="relative flex h-8 w-full items-center justify-start gap-1.5 rounded-full bg-[var(--color-ink)] px-2 text-[13px] font-medium text-[var(--color-ink-contrast)]"
+            className="relative flex h-8 w-full items-center justify-start gap-1.5 rounded-full bg-white px-2 text-[13px] font-medium text-[#161823] ring-1 ring-black/10"
           >
             <Plus size={16} strokeWidth={2} className="shrink-0" />
             AI 创作
@@ -1203,7 +1157,7 @@ function PlatformSidebar({
           [
             { label: 'Skills', icon: FolderCode },
             { label: '资源库', icon: Inbox },
-            { label: '运营数据', icon: BarChart3 },
+            // 运营数据已并入创作者中心（顶栏「首页」的数据看板），侧栏不再入口
             { label: '创意广场', icon: Home },
           ] as const
         ).map(({ label, icon: Icon }) => {
@@ -1215,7 +1169,6 @@ function PlatformSidebar({
                 if (label === '资源库') onOpenResourceLibrary()
                 else if (label === 'Skills') onOpenSkills()
                 else if (label === '创意广场') onOpenCreativeSquare()
-                else if (label === '运营数据') onOpenDataOps()
               }}
               className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[13px] font-semibold leading-5 text-[var(--color-ink)] transition-colors ${
                 active
@@ -1542,81 +1495,6 @@ function PlatformSidebar({
         </>
       )}
 
-      {/* User footer */}
-      <div className="flex h-12 shrink-0 items-center gap-2 px-5">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 text-[10px] font-semibold text-white">
-          张
-        </div>
-        <span className="text-[12px] text-[var(--color-ink)]/80">张俊</span>
-        <button
-          type="button"
-          title="通知"
-          aria-label="通知"
-          className="ml-auto flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
-        >
-          <Bell size={13} strokeWidth={1.8} />
-        </button>
-        <button
-          type="button"
-          title="客服"
-          aria-label="客服"
-          className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
-        >
-          <Headset size={13} strokeWidth={1.8} />
-        </button>
-        {/* 设置（外观）— Radix Popover: portaled out of the sidebar so it
-            isn't clipped by overflow, opens up-and-left, collision-safe. */}
-        <Popover.Root>
-          <Popover.Trigger asChild>
-            <button
-              type="button"
-              title="设置"
-              className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85 data-[state=open]:bg-[var(--fill-hover)] data-[state=open]:text-[var(--color-ink)]/85"
-            >
-              <Settings size={14} />
-            </button>
-          </Popover.Trigger>
-          <Popover.Portal>
-            <Popover.Content
-              side="top"
-              align="end"
-              sideOffset={6}
-              collisionPadding={8}
-              className="z-[60] w-[200px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]"
-            >
-              <div className="px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--color-ink)]/40">
-                外观
-              </div>
-              {(
-                [
-                  { value: 'light' as const, label: '亮色模式', icon: Sun },
-                  { value: 'dark' as const, label: '暗色模式', icon: Moon },
-                ]
-              ).map((opt) => {
-                const Icon = opt.icon
-                const active = themeMode === opt.value
-                return (
-                  <Popover.Close asChild key={opt.value}>
-                    <button
-                      type="button"
-                      onClick={() => onChangeThemeMode(opt.value)}
-                      className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
-                        active ? 'bg-[var(--color-ink)]/[0.06]' : 'hover:bg-[var(--fill-subtle)]'
-                      }`}
-                    >
-                      <Icon size={14} className={`shrink-0 ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/55'}`} />
-                      <span className={`text-[12px] ${active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/80'}`}>
-                        {opt.label}
-                        {active && <span className="ml-1.5 text-[10px] text-[var(--color-ink)]/45">当前</span>}
-                      </span>
-                    </button>
-                  </Popover.Close>
-                )
-              })}
-            </Popover.Content>
-          </Popover.Portal>
-        </Popover.Root>
-      </div>
 
       {spaceMenuPos && (
         <SpaceMenuPopover
@@ -1998,7 +1876,8 @@ export default function VibeCodingPage() {
    * and the brand chrome (logo + 抖音AI工坊 + expand icon) relocates to
    * the card's top-left header. */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [platformSidebarWidth, setPlatformSidebarWidth] = useState(232)
+  // 与创作者中心各页左侧栏 (176px) 保持一致
+  const [platformSidebarWidth, setPlatformSidebarWidth] = useState(176)
   const effectiveSidebarWidth = sidebarCollapsed ? 12 : platformSidebarWidth
   const sidebarDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
   const onSidebarDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -2212,6 +2091,20 @@ export default function VibeCodingPage() {
     // opens once a previewable artifact appears — see sendChat / seedProductTabs.
     initProjectDefaults(name, true)
     sendChat(trimmed, { fromHomeEntry: true })
+    // 从 0 生成：AI 分身 用对话需求实时生成 config（Kimi → JSON），写入运行时
+    // 配置后右侧预览自动打开并显示生成的分身。失败则回退到静态默认（陶白白）。
+    if (kind === 'ai-avatar') {
+      generateAvatarConfig(trimmed, name)
+        .then((cfg) => {
+          setRuntimeConfig(name, cfg)
+          if (projectTitleRef.current === name) {
+            setOpenTabs((prev) => (prev.length > 0 ? prev : defaultTabsForKind(name)))
+          }
+        })
+        .catch((err) => {
+          console.warn('[generateAvatarConfig]', err)
+        })
+    }
   }
 
   /** Kick off the Garuda mock-generation flow. Opens the project, seeds
@@ -2671,7 +2564,7 @@ export default function VibeCodingPage() {
   const [gameSelectedAsset, setGameSelectedAsset] = useState<AssetItem | null>(null)
   // The H5 layer currently selected in the preview (edit mode) — the 编辑
   // panel refreshes to match. null = no element selected → 整体活动配置.
-  const [h5SelectedLayer, setH5SelectedLayer] = useState<H5LayerId | null>(null)
+  const [h5Selected, setH5Selected] = useState<H5Selection | null>(null)
   // 运营数据 drawer (opens from the 发布 button's left-side entry).
   const [opsDataOpen, setOpsDataOpen] = useState(false)
   // Projects that have completed a publish — only then does 运营数据 unlock
@@ -3146,6 +3039,10 @@ export default function VibeCodingPage() {
     el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2)
     el.scrollTop = Math.max(0, (el.scrollHeight - el.clientHeight) / 2)
   }, [previewZoom])
+  // Runtime (AI-generated) configs override the static mock configs so a
+  // config produced from conversation renders live. Subscribing here makes the
+  // preview re-render when generation writes a config for the active project.
+  const runtimeConfigs = useRuntimeConfigStore((s) => s.configs)
   /** Add-tab menu — opens beside the + button next to the tab list. */
   const [addTabMenuOpen, setAddTabMenuOpen] = useState(false)
   const addTabMenuRef = useRef<HTMLDivElement>(null)
@@ -4424,6 +4321,12 @@ export default function VibeCodingPage() {
         ? '六一儿童节活动'
         : '塔罗小程序',
   )
+  // Latest active project — read inside async generation callbacks to avoid
+  // seeding the wrong project's preview if the user navigated away.
+  const projectTitleRef = useRef(projectTitle)
+  useEffect(() => {
+    projectTitleRef.current = projectTitle
+  }, [projectTitle])
 
   // Keep the active AI 分身 project's tree in sync with the live triggers[]
   // (the initial projectTrees snapshot is frozen before any triggers seed),
@@ -4485,12 +4388,12 @@ export default function VibeCodingPage() {
     setCanvasEditOpen(false)
     setAvatarPromptEditing(false)
     setGameSelectedAsset(null)
-    setH5SelectedLayer(null)
+    setH5Selected(null)
   }, [activePreviewTab])
   // Each time the H5 edit panel closes, drop the layer selection so the next
   // open starts on the 整体活动配置 (overall) view rather than a stale element.
   useEffect(() => {
-    if (!editPanelOpen) setH5SelectedLayer(null)
+    if (!editPanelOpen) setH5Selected(null)
   }, [editPanelOpen])
   // A confirmed publish unlocks the active project's 运营数据.
   useEffect(() => {
@@ -4575,10 +4478,10 @@ export default function VibeCodingPage() {
     <PhoneMockup width={360} height={760} maxScale={1.4}>
       <MarketingH5Preview
         key={miniAppKey}
-        preview={getMarketingH5Preview(projectTitle)}
+        preview={(runtimeConfigs[projectTitle] as MarketingH5PreviewConfig) ?? getMarketingH5Preview(projectTitle)}
         editing={editPanelOpen}
-        selectedLayer={h5SelectedLayer}
-        onSelectLayer={setH5SelectedLayer}
+        selected={h5Selected}
+        onSelect={setH5Selected}
       />
     </PhoneMockup>
   ) : activeFilter === 'ai-avatar' ? (
@@ -4591,13 +4494,13 @@ export default function VibeCodingPage() {
     </PhoneMockup>
   ) : activeProjectKind === 'ai-avatar' ? (
     <PhoneMockup>
-      <AiPersonaChatPreview config={getAvatarConfig(projectTitle)} scene={avatarScene} simulations={triggerSimulations} />
+      <AiPersonaChatPreview config={(runtimeConfigs[projectTitle] as AvatarAppConfig) ?? getAvatarConfig(projectTitle)} scene={avatarScene} simulations={triggerSimulations} />
     </PhoneMockup>
   ) : (
     <PhoneMockup>
       <MiniAppPreview
         key={miniAppKey}
-        config={getMiniProgramConfig(projectTitle)}
+        config={(runtimeConfigs[projectTitle] as MiniProgramConfig) ?? getMiniProgramConfig(projectTitle)}
         route={previewRoute}
         onNavigate={setPreviewRoute}
       />
@@ -4857,6 +4760,8 @@ export default function VibeCodingPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className="fixed inset-0 flex min-h-0 flex-col overflow-hidden bg-[var(--color-surface-1)] font-[var(--font-sans)] text-[var(--color-ink)]"
+      // 创作者中心外壳会设置 --cc-top（顶栏高度）；独立运行时为 0
+      style={{ top: 'var(--cc-top, 0px)' }}
     >
       {/* ── Platform layout: project sidebar on the far left. Width is
            user-draggable via the right-edge handle; collapse is toggled
@@ -4869,7 +4774,10 @@ export default function VibeCodingPage() {
       {isPlatform && (
         <div
           className="fixed inset-y-0 left-0 z-40 overflow-hidden transition-[width] duration-300 ease-out"
-          style={{ width: sidebarCollapsed ? 0 : platformSidebarWidth }}
+          style={{
+            width: sidebarCollapsed ? 0 : platformSidebarWidth,
+            top: 'var(--cc-top, 0px)',
+          }}
           aria-hidden={sidebarCollapsed}
         >
           {/* Inner column locked at the full sidebar width — clipping
@@ -4896,7 +4804,6 @@ export default function VibeCodingPage() {
             expandedDirs={expandedDirs}
             toggleDir={toggleDir}
             onOpenProduct={openProductInProject}
-            onCollapse={() => setSidebarCollapsed(true)}
             onNewProject={handleNewProject}
             openProjects={platformOpenProjects}
             setOpenProjects={setPlatformOpenProjects}
@@ -4909,7 +4816,6 @@ export default function VibeCodingPage() {
             onOpenResourceLibrary={openResourceLibraryPage}
             onOpenSkills={openPlatformSkillsPage}
             onOpenCreativeSquare={openPlatformCreativeSquarePage}
-            onOpenDataOps={openPlatformDataOpsPage}
             activeNav={
               platformResourceLibraryOpen
                 ? '资源库'
@@ -4930,8 +4836,6 @@ export default function VibeCodingPage() {
             deletedProjects={deletedProjects}
             onDeleteProject={deleteProject}
             categoryExtras={categoryExtras}
-            themeMode={themeMode}
-            onChangeThemeMode={setThemeMode}
             createdProjects={createdProjects}
           />
           {/* Right-edge drag handle — only active when sidebar is expanded
@@ -4972,7 +4876,8 @@ export default function VibeCodingPage() {
           onClick={() => setSidebarCollapsed(false)}
           title="展开侧栏"
           aria-label="展开侧栏"
-          className="fixed left-6 top-5 z-50 flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
+          className="fixed left-6 z-50 flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
+          style={{ top: 'calc(var(--cc-top, 0px) + 20px)' }}
         >
           <FlexAlignGlyph side="left" size={13} />
         </button>
@@ -7998,6 +7903,7 @@ export default function VibeCodingPage() {
                      phone). Light mode keeps just the dot grid + phone. */}
                 <div
                   ref={previewCanvasRef}
+                  data-h5-edit-canvas={activeProjectKind === 'marketing-h5' || undefined}
                   className={`relative flex min-h-0 flex-1 overflow-auto ${
                     activeProjectKind === 'web-app' || activeProjectKind === 'web-game' ? '' : 'pt-6 pb-12'
                   }`}
@@ -8832,11 +8738,13 @@ export default function VibeCodingPage() {
           )}
           </div>
 
-          {/* ── Visual edit panel — opens to the right of the preview for any
-               product. web-game uses the game-specific GarudaEditPanel; every
-               other kind gets the config-driven ProductEditPanel. Sits before
-               the file tree so the file/code panel stays pinned far right. ── */}
-          {editPanelOpen && !(activeProjectKind === 'web-game' && gameSelectedAsset?.kind === 'video') && (
+          {/* ── Visual edit panel — opens to the right of the preview for most
+               products. web-game uses the game-specific GarudaEditPanel; every
+               other docked kind gets the config-driven ProductEditPanel. H5 is
+               the exception: it uses a draggable floating panel (rendered below)
+               that follows the selected object. Sits before the file tree so
+               the file/code panel stays pinned far right. ── */}
+          {editPanelOpen && activeProjectKind !== 'marketing-h5' && !(activeProjectKind === 'web-game' && gameSelectedAsset?.kind === 'video') && (
             <div className="relative shrink-0 border-l border-[var(--divider-soft)]" style={{ width: editPanelWidth }}>
               {activeProjectKind === 'web-game' ? (
                 // When an asset canvas is open, 编辑 binds to that specific
@@ -8849,12 +8757,6 @@ export default function VibeCodingPage() {
                 ) : (
                   <GarudaEditPanel onClose={() => setEditPanelOpen(false)} />
                 )
-              ) : activeProjectKind === 'marketing-h5' ? (
-                // H5 编辑 follows the layer selected in the preview.
-                <H5LayerEditPanel
-                  layer={h5SelectedLayer}
-                  onClose={() => setEditPanelOpen(false)}
-                />
               ) : (
                 (() => {
                   // AI 分身 seeds its 基础信息 (头像 / 名称 / 描述) from the
@@ -8892,6 +8794,14 @@ export default function VibeCodingPage() {
                 <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
               </div>
             </div>
+          )}
+
+          {/* H5 编辑用可拖动浮层（默认右侧 → 跟随选中对象），不占预览的版面宽度。 */}
+          {editPanelOpen && activeProjectKind === 'marketing-h5' && (
+            <H5FloatingEditPanel
+              selection={h5Selected}
+              onClose={() => setEditPanelOpen(false)}
+            />
           )}
 
           {/* Right-side 项目代码库 panel hidden — code moved into the

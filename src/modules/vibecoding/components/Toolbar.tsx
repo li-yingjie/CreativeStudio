@@ -77,7 +77,7 @@ export function ToolbarAction({
         iconOnly ? 'gap-0 px-2 py-1.5' : 'gap-0 px-2 py-1.5 @[520px]:gap-1.5 @[520px]:px-3'
       } ${
         active
-          ? 'border-[var(--color-ink)]/25 bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]'
+          ? 'border-sky-300 bg-sky-100 text-sky-700'
           : 'border-[var(--color-ink)]/8 text-[var(--color-ink)]/60 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]'
       }`}
     >

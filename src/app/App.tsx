@@ -1,12 +1,12 @@
 import { Toaster } from 'sonner'
-import VibeCodingPage from '@/modules/vibecoding/components/VibeCodingPage'
+import CreatorCenterShell from '@/modules/creator-center/CreatorCenterShell'
 import ErrorBoundary from '@/shared/components/ErrorBoundary'
 
 export default function App() {
   return (
     <>
       <ErrorBoundary>
-        <VibeCodingPage />
+        <CreatorCenterShell />
       </ErrorBoundary>
       <Toaster position="top-center" theme="dark" />
     </>

@@ -2,6 +2,170 @@
 
 每次改动的记录,最新在最上面。格式:`- 改了什么(为什么)` — 末尾可带 commit 短哈希;未提交标注「(未提交)」。
 
+## 2026-07-03
+
+- 左侧栏菜单文案四字化（除首页）：内容→内容管理、收入→收入变现、服务→创作服务
+  （直播管理/数据中心已四字，首页保持）。并统一子页四周间距：去掉数据中心页多余的
+  卡外裸标题「数据中心」——它使第一个卡片比其他页低一截；去掉后各子页第一个卡片
+  top/left 完全对齐（实测 72/208 一致，标题改由各卡自带）。(未提交)
+- 新增「数据中心」菜单 + 首页改版（Figma 904-67124）：左侧栏首项「数据」改名
+  「首页」（home 图标），新增「数据中心」项（在内容下方/收入上方）。原首页底部的
+  数据总览（雷达）/作品数据/粉丝数据三块整体移入数据中心；新首页底部换成「数据概览」
+  板块——最新作品卡（封面+时长+标题+播放/点赞）、账号总览/直播数据 tab + 播放量
+  面积趋势图 + 8 个概览指标（较前7日增减，涨红跌绿），右上「查看详情」跳数据中心。
+  数据走新端点 `/api/creator/home-overview`（server 聚合近7 vs 前7日差值，三运行
+  环境+Vercel 转发）；api.ts 增 useHomeOverview，HomeCharts 抽通用 SimpleAreaChart。(未提交)
+- 创作服务三个子页 + 直播管理页 + 头像权限开关：
+  · 活动管理（Figma 904-65050）`ActivityPage`：活动灵感招募卡（分页）+ 我的活动表格
+    （待开始/审批中/进行中/被驳回/已结束多状态、虚拟/实物奖励、搜索）。
+  · 原创保护（904-65582）`CopyrightPage`：蓝色横幅+原创度三步进度、原创权益 7 图标、
+    视频讲解（分页）、原创消息公告。
+  · 抖音指数（904-64366）`DouyinIndexPage`：顶部页签、同心圆背景+关键词气泡、
+    关键词/达人/… tab+搜索、我的订阅空态、实时/飙升双热点榜（前三奖杯+升降箭头）。
+  · 直播管理（904-69330）`LivePage`：权限菜单，由顶栏头像里的开关控制，开启时插在
+    「内容」上方；封面+时长、火花线+四指标、直播回放/高光/下载/详情/删除操作。
+  头像改为 radix Popover（账号信息+「直播管理」iOS 开关，live-store 内存态；关闭时
+  若停在该页回落数据看板）。数据走 4 个新端点 activities/copyright/index-hot/lives
+  （server 确定性生成，三运行环境+4 个 Vercel 转发接线）；api.ts 抽 makeResourceHook
+  通用无参 GET hook。icons 补 Trophy/Gavel/ArrowsLeftRight。(未提交)
+- 作品共创页（Figma 904-68923，创作服务→作品共创子项）：新增 `CollabPage.tsx`——
+  蓝色渐变横幅（CO 标记+共同创作公约）、剩余次数/常见问题分页卡、共创作品列表
+  （封面共创角标+时长、标题、日期、共创人头像叠加组、状态文案），四种状态：正常/
+  关系已解除（灰）/整体被平台解除（橙警告条）/部分共创人被解除。数据走新端点
+  `/api/creator/collab`（server 确定性生成 6 条，三运行环境接线+api/creator/collab.js）；
+  api.ts 增 useCreatorCollab；侧栏 service:作品共创 路由到该页。(未提交)
+- AI分身落地页（Figma 891-22823）：新增 `AvatarLandingPage.tsx` 替换占位页——
+  ASCII 世界地图纹理打底 + CSS 模糊光斑 + 3D 分身主视觉（素材白底烘死在像素里，
+  用 mix-blend-multiply 让白色视同透明）、标题「创所未见 · AI分身」、Ailee 账号
+  开通卡（去开通→toast）、AI 聊天/互动空间两张场景卡。5 张素材从 Figma 截取到
+  public/icons/creator-center/（hero 初次误截模糊装饰层，改取 891:22894 头像
+  节点）。注：preview 截图通道中途故障，视觉部分以计算样式+canvas 像素采样验证。(未提交)
+- 首页左侧栏图标换用 public/icons 新素材：发布.svg（黑底按钮内反白）、数据.svg、
+  icon.svg（内容）、收入.svg、创作服务.svg；MaskIcon 从 TopNav 抽为独立共享组件
+  （CSS mask + currentColor），SIDE_MENU 配置改为 icon URL，删除 lucide 的
+  TrendingUp/Coins/Zap 引用。(未提交)
+- AI 工坊侧栏删除「运营数据」tab（数据看板已由创作者中心首页承载）：nav 数组
+  移除条目，PlatformSidebar 的 onOpenDataOps 属性清理；发布 drawer 里的运营
+  数据入口保留。(未提交)
+- 载入动画从整页下沉到内容区：外壳（CreatorCenterShell）不再包 motion 整页
+  淡入，改为 CreatorCenterHome 内容区（SideNav 右侧）按 page 键控淡入——切
+  数据/内容/收入时左侧栏与顶栏完全静止，只有 main 内容动。实测切换动画中
+  侧栏/头像漂移均为 0px，内容区透明度过渡可见。(未提交)
+- 修切 tab 时顶栏右侧头像晃动：切页淡入动画（y 8→0）会让内容瞬时溢出视口
+  底部、文档滚动条闪现→视口宽度抖动→右对齐头像左右跳。外壳内容区加
+  overflow-hidden 裁掉瞬时溢出。实测两段切换动画 117 帧采样头像漂移 0px。(未提交)
+- 再修顶栏切 tab 晃动：胶囊动画由欠阻尼 spring（会过冲回弹）改为 250ms tween
+  ease-out；borderRadius 移入 style 让 framer 在缩放插值时实时校正圆角变形。
+  实测动画全程 48 帧采样，按钮最大漂移 0.03px。(未提交)
+- AI 工坊侧栏融入大产品：删掉顶部 logo 遗留空块与「收起侧栏」按钮（侧栏常驻，
+  PlatformSidebar 移除 onCollapse/themeMode/onChangeThemeMode 死属性）；删掉
+  底部账号区（张俊/通知/客服/外观设置，账号统一走创作者中心顶栏）；侧栏默认
+  宽度 232→176px，与创作者中心首页/内容/收入页左栏一致。(未提交)
+- 修顶栏切 tab 整体晃动：激活态字重从 normal→medium 的宽度变化会让绝对居中的
+  菜单条整体重排，全部 tab 统一 font-medium 后按钮宽度恒定（实测切换前后
+  各 tab x 坐标位移为 0）。(未提交)
+- 顶部 tab 切换过渡动画：激活胶囊用 framer-motion 共享 layoutId 在按钮间
+  弹性滑动（spring 420/34），文字/图标颜色 300ms 过渡；非工坊页面切换时
+  内容轻微淡入上移（工坊 keep-alive 用 display 切换不参与动画）。(未提交)
+- 顶栏换用 public/icons 新 SVG 素材：logo.svg 整体替换音符+文字组合；五个产品
+  菜单图标换为 ic-nav-Home/分身/book-open-02/Creation/terminal-square（TopNav
+  以 CSS mask + currentColor 着色，激活态自动反白）；右上角由「通知铃铛+角标」
+  改为「星光余额」（AI.svg 四角星 + 数量，创作激励计量单位，STARLIGHT=276）。
+  另：项目目录由 vibecoding-editor-main-jf 改名为 CreativeStudio。(未提交)
+- 创作者中心「收入」页（Figma 904-81576）：新增 `IncomePage.tsx`——我的变现
+  （昨日/近7日/近30日/可提现四个金额页签，点击真实切档；趋势图 tooltip 按
+  星图任务/小程序推广/音乐推广三来源拆分；昨日档按小时 24 点）、商单任务
+  进行中（精选商单行）、变现广场（页签+高收益/保底收入/合作过筛选+搜索均
+  可用，卡片为静态营销配置）。数据走新端点 `/api/creator/income`
+  （server/creator-data.mjs 从播放表按 RPM 推导收入并按来源确定性拆分，
+  三运行环境接线 + api/creator/income.js）。api.ts 增 useCreatorIncome +
+  fmtYuan。(未提交)
+- 内容管理页「所有时间」改为真实时间筛选：FilterSelect 支持图标态，预设
+  所有时间/近7天/近30天/近90天，按作品 publishedAt 与当日回推的下限过滤。(未提交)
+- AI 工坊侧栏适配外壳：移除左上角「抖音AI工坊」品牌 logo（与创作者中心顶栏
+  重复），「+ AI 创作」按钮从黑底改为白底黑字 + 描边（保留彩虹 hover 光晕）。(未提交)
+- 创作者中心「内容管理」页（Figma 904-96111）：作品行提取为独立组件
+  `WorkRow.tsx`（封面+置顶/张数/时长角标、标题+行内操作、活动标签、日期状态、
+  近14天火花线+指标条——图文/视频指标集不同、流量升降通知条），`ContentPage.tsx`
+  铺列表+工具栏（作品/合集页签、体裁/发布状态筛选、搜索均可用；置顶切换/删除为
+  内存态演示）。数据来自新端点 `/api/creator/works`（works 表推导累计指标+火花线；
+  通知条按「近7日实际衰减 ÷ exp 预期衰减」真实判定，修正了朴素环比人人流量减少的
+  问题）；左侧栏状态提升，数据/内容页可切换，其余菜单为建设中占位。修复 spark
+  数组误 reverse 导致火花线时间轴翻转的 bug；icons 补 Lock 导出。(未提交)
+- 数据总览雷达图五个指标浮签可点击：选中态跟随点击，右侧切换为该指标的
+  「{指标}分析」（数值/同类中位数/百分位由接口按维度返回）+「{指标}贡献TOP3」
+  （播放量/涨粉按播放贡献、完播率/互动率按作品率值排序、作品数列出本期发布，
+  server/creator-data.mjs 为每个维度生成 topWorks + peerMedian + valueKind）。(未提交)
+- 创作者中心首页数据改为 mock 后端驱动：新增 `server/creator-data.mjs`
+  （确定性生成的 daily_stats 60 天表 + works 作品表 + peer_benchmarks 同类基准表，
+  按日期字符串做种子，重启/多环境数据一致），暴露 `GET /api/creator/stats?range=
+  yesterday|week|month`——聚合、正态 CDF 百分位（「超过 xx% 同类作者」）、渠道拆分、
+  逐日 Top3、昨天档按小时拆 24 点都在服务端算；dev(Vite 中间件)/prod(Express)/
+  Vercel(api/creator/stats.js) 三处接线。前端删掉全部硬编码数字：新增 api.ts
+  （类型 + useCreatorStats hook，含缓存 + 并发去重），三个数据面板独立 range
+  真实重查、指标页签切真实序列、雷达图/分析文案/TOP3/资料头数字全部来自接口，
+  加载骨架 + 错误占位。(未提交)
+- 产品升级为「抖音创作者中心」外壳：新增 `src/modules/creator-center/`
+  （TopNav 顶部产品菜单 + CreatorCenterHome 数据首页 + PlaceholderPage 占位页 +
+  CreatorCenterShell 路由外壳），按 Figma「抖音AI创作工具盘点/数据」稿实现——
+  资料头、智能创作/作品发布入口卡、数据总览（recharts 雷达图 + 指标浮签）、
+  作品数据/粉丝数据（面积趋势图 + 富 tooltip）。现有抖音 AI 工坊挂在顶栏
+  「AI工坊」入口下（fixed 根元素/侧栏改读 `--cc-top` 让位 48px 顶栏，首次进入后
+  keep-alive 保持工作状态）；AI分身/百科/随变 为「即将上线」占位页。新增
+  recharts 依赖、`Coins` 图标导出、入口卡图取自 Figma（public/icons/creator-center/，
+  均 <15KB）。顺带 compress-images 全量跑了一遍，27 张存量图压小 631K。(未提交)
+- dev server 支持端口自动切换：vite.config.ts 读取 `PORT` 环境变量，launch.json 开启
+  `autoPort`（5173 被其他会话占用时预览能自动换端口启动）。(未提交)
+
+## 2026-05-22
+
+- H5 编辑面板改成可拖动浮层（默认右侧 → 跟随选中对象）：新建 `H5FloatingEditPanel.tsx`
+  （`position:fixed` 卡片 z-50，宽 300、高 min(72vh,540)；useLayoutEffect 在 selection
+  变化时定位——有 `data-h5-active` 节点就放到它右侧+16px 间隙、否则默认右侧 24px；
+  header pointerdown 起拖、window 监听 move/up，全程 clamp 进视口；窗口 resize 也 clamp）。
+  `H5LayerEditPanel` 加 `floating` + `onHeaderPointerDown`：header 变 cursor-move 拖拽手柄
+  并加 Move 图标，关闭按钮 stopPropagation 防误拖。`MarketingH5Preview` 给当前选中的
+  El/Selectable 打 `data-h5-active` 供浮层定位。VibeCodingPage 把 marketing-h5 从右侧
+  停靠列排除、改渲染浮层（预览因此满宽）。实测：默认右侧→点主标题/抽奖按钮浮层跟到
+  元素旁(gap16)、拖 header 精确位移(-300=±300)、拖后再选新对象会重新跟随。tsc 通过。(未提交)
+
+- H5 编辑改两级选择（楼层 + 楼层内元素，原来只能选整楼层颗粒度太粗）：
+  `H5LayerEditPanel` 把选择从 `H5LayerId | null` 升级为 `H5Selection`（layer /
+  element 两态，null=整体配置），新增元素级编辑器——文本(文案·字号·文字颜色·
+  对齐·加粗) / 按钮(文案·底色·文字颜色·圆角) / 图片(缩略图 + 上传·再次生成·画布
+  编辑 + 适配方式)，header 面包屑「楼层 / 元素」、footer 跟着变。`MarketingH5Preview`
+  把原来全覆盖 overlay 的 `Selectable` 改成不挡内部点击的楼层环（楼层选中=实线环+
+  四角手柄+标签，楼层内有元素选中=淡环），并加 `El` 元素拾取器包住各楼层关键原子
+  （头图图片/主标题、介绍标题/正文、抽奖标题/名单/抽奖机图/抽奖按钮/我的奖品按钮、
+  任务标题/任务名/CTA、规则标题/正文），非编辑态 `El` 原样透传保证像素不变。
+  VibeCodingPage 状态 `h5SelectedLayer→h5Selected` 并改 props（selected/onSelect、
+  selection）。实测：点主标题→元素文本编辑器(预填文案+字号20+对齐居中)、点抽奖按钮→
+  按钮编辑器(预填「立即抽奖」)、点头图→图片编辑器(缩略图+三动作+适配)、点倒计时空白
+  →楼层编辑器、点背景→整体配置；tsc 通过。(未提交)
+
+- AvatarPicker 加 `showUrlInput` 开关：右侧「编辑」面板隐藏「图片地址」输入行
+  （传 `showUrlInput={false}`，无 URL 行时按钮与缩略图垂直居中），只留上传/生成；
+  「基础信息」表单仍保留地址行。(未提交)
+
+- 分身头像支持本地上传 + AI 生成：新增共用组件 `AvatarPicker.tsx`（缩略图 +
+  图片地址输入 + 「本地上传」+「AI 生成」），接入 `ProductEditPanel`（编辑面板）
+  与 `AvatarBasicInfoForm`（基础信息表单）两处。本地上传走真实 `<input type=file>`
+  → FileReader 读成 data URL；Kimi 无文生图能力（仅 Chat + Vision 输入），故 AI 生成
+  改用免费头像服务 DiceBear（adventurer 风格）按「分身名称+描述」当 seed 出图，
+  自增计数让每次点击换一张。实测：AI 生成 seed 0→1→2 各出一张并成功加载、本地上传
+  注入 PNG 即时渲染 data URL。(未提交)
+
+- 从 0 生成分身（端到端）+ 运行时配置 store：新增 `artifact/runtime-config-store.ts`
+  （zustand，按项目名存放 AI 生成的配置，覆盖静态 mock；默认空 ⇒ 5 个 demo 仍走静态）
+  与 `artifact/generate.ts`（`generateAvatarConfig` 用 Kimi 流式产出 JSON 配置，
+  extractJsonObject 去 ``` 围栏 + 取最外层 {}，asString/asStringArray 归一化，缺字段
+  回退 DEFAULT_AVATAR_PREVIEW，输出完整 AvatarAppConfig 含 preview 块）。VibeCodingPage
+  订阅 runtimeConfigs，分身/小程序/H5 三处渲染改成 `runtimeConfigs[projectTitle] ?? 静态`；
+  submitFromHome 在 kind==='ai-avatar' 时调 generateAvatarConfig→setRuntimeConfig，
+  若仍在该项目则打开预览。补 projectTitleRef 解决闭包陈旧。实测：首页输入「会聊星座
+  情感的分身·小星」→ 右侧实时渲染生成的「小星情感师」(bio/欢迎语均来自 Kimi)，
+  且陶白白等 demo 仍渲染各自静态配置、无串味、像素不变。(未提交)
+
 ## 2026-05-21
 
 - 配置驱动产物（第三刀·H5）：新建 `MarketingH5ConfigData.ts`(MarketingH5PreviewConfig +

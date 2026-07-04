@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from '@/shared/icons'
 import type { ProjectKind } from './ProjectProductView'
+import AvatarPicker from './AvatarPicker'
 
 /**
  * 通用可视化编辑面板 — 非游戏类产物（小程序 / AI 分身 / 网站 / 营销 H5 /
@@ -310,7 +311,17 @@ export default function ProductEditPanel({
                 </div>
                 <div className="space-y-3.5">
                   {g.controls.map((c) => (
-                    <Control key={c.key} control={c} value={values[c.key]} onChange={(v) => set(c.key, v)} />
+                    <Control
+                      key={c.key}
+                      control={c}
+                      value={values[c.key]}
+                      onChange={(v) => set(c.key, v)}
+                      seedBase={
+                        c.type === 'avatar'
+                          ? [values.name, values.desc].filter(Boolean).join(' ') || projectName
+                          : undefined
+                      }
+                    />
                   ))}
                 </div>
               </section>
@@ -349,10 +360,12 @@ function Control({
   control,
   value,
   onChange,
+  seedBase,
 }: {
   control: Control
   value: string | number | boolean
   onChange: (v: string | number | boolean) => void
+  seedBase?: string
 }) {
   if (control.type === 'swatches') {
     return (
@@ -453,29 +466,16 @@ function Control({
     )
   }
   if (control.type === 'avatar') {
-    const url = String(value || '')
     return (
       <div>
         <div className="mb-1.5 text-[12px] text-[var(--color-ink)]/80">{control.label}</div>
-        <div className="flex items-center gap-3">
-          {url ? (
-            <img
-              src={url}
-              alt=""
-              className="h-14 w-14 shrink-0 rounded-2xl object-cover ring-1 ring-[var(--divider)]"
-            />
-          ) : (
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--fill-subtle)] text-[var(--color-ink)]/30">
-              <SquareUser size={20} strokeWidth={1.6} />
-            </div>
-          )}
-          <input
-            value={url}
-            placeholder="图片地址"
-            onChange={(e) => onChange(e.target.value)}
-            className="min-w-0 flex-1 rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/35 focus:border-[var(--color-ink)]/40"
-          />
-        </div>
+        <AvatarPicker
+          value={String(value || '')}
+          onChange={(v) => onChange(v)}
+          seedBase={seedBase}
+          size="sm"
+          showUrlInput={false}
+        />
       </div>
     )
   }

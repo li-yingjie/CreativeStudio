@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { AvatarAppConfig } from './AvatarConfigData'
+import AvatarPicker from './AvatarPicker'
 
 /**
  * 基础信息表单 — the generated config form for an AI 分身.
@@ -30,19 +31,11 @@ export default function AvatarBasicInfoForm({ config }: AvatarBasicInfoFormProps
 
         {/* 头像 */}
         <Section title="头像">
-          <div className="flex items-center gap-4">
-            <img
-              src={iconURL}
-              alt=""
-              className="h-16 w-16 shrink-0 rounded-2xl object-cover ring-1 ring-[var(--divider)]"
-            />
-            <input
-              value={iconURL}
-              onChange={(e) => setIconURL(e.target.value)}
-              placeholder="图片地址"
-              className="min-w-0 flex-1 rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-2.5 py-1.5 text-[13px] text-[var(--color-ink)] outline-none transition-colors placeholder:text-[var(--color-ink)]/35 focus:border-[var(--color-ink)]/40"
-            />
-          </div>
+          <AvatarPicker
+            value={iconURL}
+            onChange={setIconURL}
+            seedBase={[name, description].filter(Boolean).join(' ')}
+          />
         </Section>
 
         {/* 名称 */}
