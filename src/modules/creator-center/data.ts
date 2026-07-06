@@ -24,25 +24,50 @@ export const PRODUCTS: ProductEntry[] = [
 /** 星光余额（创作激励计量单位，顶栏右侧展示）。 */
 export const STARLIGHT = 276
 
-/** 首页「智能创作」入口卡（图取自设计稿，见 public/icons/creator-center/）。 */
+/** 首页「智能创作」入口卡。图标为设计稿导出的 4x 贴纸卡：front 为正卡，back 为斜置
+ *  后卡（潮流单品，仅百科/随变有）；AI工坊 front 已是手持手机+应用截图的合成图。 */
 export const SMART_CREATE_ENTRIES: {
   id: Exclude<ProductId, 'home'>
   label: string
   desc: string
-  img: string
+  front: string
+  back?: string
 }[] = [
-  { id: 'ai-avatar', label: 'AI分身', desc: '全天候代你处理粉丝互动', img: '/icons/creator-center/entry-ai-avatar.png' },
-  { id: 'wiki', label: '百科', desc: '轻松构建书写你的奇思妙想', img: '/icons/creator-center/entry-wiki.png' },
-  { id: 'suibian', label: '随变', desc: '一键生成百变创意短片', img: '/icons/creator-center/entry-suibian.png' },
-  { id: 'workshop', label: 'AI工坊', desc: '零代码搭建互动应用', img: '/icons/creator-center/entry-workshop.png' },
+  {
+    id: 'ai-avatar',
+    label: 'AI分身',
+    desc: '全天候代你处理粉丝互动',
+    front: '/icons/creator-center/entry-ai-avatar-front.png',
+    back: '/icons/creator-center/entry-ai-avatar-back.png',
+  },
+  {
+    id: 'wiki',
+    label: '百科',
+    desc: '轻松构建书写你的奇思妙想',
+    front: '/icons/creator-center/entry-wiki-front.png',
+    back: '/icons/creator-center/entry-wiki-back.png',
+  },
+  {
+    id: 'suibian',
+    label: '随变',
+    desc: '一键生成百变创意短片',
+    front: '/icons/creator-center/entry-suibian-front.png',
+    back: '/icons/creator-center/entry-suibian-back.png',
+  },
+  {
+    id: 'workshop',
+    label: 'AI工坊',
+    desc: '零代码搭建互动应用',
+    front: '/icons/creator-center/entry-workshop.png',
+  },
 ]
 
-/** 首页「作品发布」入口卡 — 彩色圆角图标块 + 文案。 */
-export const PUBLISH_ENTRIES: { label: string; desc: string; tint: string; glyph: 'video' | 'image' | 'panorama' | 'article' }[] = [
-  { label: '发布高清视频', desc: '支持常用格式推荐mp4', tint: '#FE2C55', glyph: 'video' },
-  { label: '发布图文', desc: '支持常用图片格式png/jpg', tint: '#3B8DFF', glyph: 'image' },
-  { label: '发布全景视频', desc: '推荐分辨率为4K 及以上', tint: '#8A5CF6', glyph: 'panorama' },
-  { label: '发布文章', desc: '支持上传8000字和30个图片素材', tint: '#F5B60D', glyph: 'article' },
+/** 首页「作品发布」入口卡 — 图标为设计稿导出的 4x 贴纸卡（浅底 + 高饱和图标块）。 */
+export const PUBLISH_ENTRIES: { label: string; desc: string; img: string }[] = [
+  { label: '发布高清视频', desc: '支持常用格式推荐mp4', img: '/icons/creator-center/publish-video.png' },
+  { label: '发布图文', desc: '支持常用图片格式png/jpg', img: '/icons/creator-center/publish-image.png' },
+  { label: '发布全景视频', desc: '推荐分辨率为4K 及以上', img: '/icons/creator-center/publish-panorama.png' },
+  { label: '发布文章', desc: '支持上传8000字和30个图片素材', img: '/icons/creator-center/publish-article.png' },
 ]
 
 /** 创作者身份信息（统计数字由接口返回）。 */

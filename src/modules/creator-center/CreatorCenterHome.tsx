@@ -6,10 +6,6 @@ import {
   ChevronUp,
   CircleHelp,
   Download,
-  FileText,
-  Image as ImageIcon,
-  Play,
-  Video,
 } from '@/shared/icons'
 import type { LucideIcon } from '@/shared/icons'
 import { useLiveMgmt } from './live-store'
@@ -230,7 +226,7 @@ function ProfileHeader({ stats }: { stats: CreatorStats | null }) {
 
 /** 入口卡（设计稿 947-41110/947-41212）：图标以「贴纸」构图悬出卡片左上角
  *  （绝对定位 77×84，顶部超出约 6px，正面卡与卡片精确等高贴齐），文字从 86px 起排。
- *  whileHover 变体向下传播，驱动 StickerIcon 的后卡扇开。 */
+ *  whileHover 变体向下传播，驱动 CardImageIcon 的后卡扇开。 */
 function EntryCard({
   icon,
   label,
@@ -260,70 +256,25 @@ function EntryCard({
   )
 }
 
-/** 入口卡图标通用结构：前后两张卡叠放（8 张卡同构）。
- *  hover 时后卡以自身左下角为圆心向右轻扇（纯旋转、spring 回弹）。 */
-function StickerIcon({ back, front }: { back: React.ReactNode; front: React.ReactNode }) {
+/** 入口卡图标：正卡（front，设计稿导出的 4x 贴纸）在左，后卡与正卡等大、在右后方
+ *  斜置探出（有 back 图则铺图，否则用中性浅色底板——对应设计里作品发布/工坊的白底后卡）。
+ *  hover 时后卡以左下角为圆心再向右轻扇（spring 回弹）。 */
+function CardImageIcon({ front, back }: { front: string; back?: string }) {
   return (
     <span className="relative block h-full w-full">
+      {/* 后卡：与正卡等大，右后方斜置探出 */}
       <motion.span
-        className="absolute inset-0"
-        // 圆心 = 后卡自身的左下角（后卡在 77×84 容器内有 ~5%/4% 内缩，
-        // 容器坐标折算为 6% 96%）；纯旋转不平移，左下角钉住、上缘向右扇开
-        style={{ transformOrigin: '6% 96%' }}
-        variants={{
-          rest: { rotate: 0 },
-          spread: { rotate: 4 },
-        }}
+        className="pointer-events-none absolute left-[14%] top-[1%] h-[95%] w-[83%] overflow-hidden rounded-[13px] border border-white/80 bg-gradient-to-b from-[#f2f3f5] to-[#e0e3e9] shadow-[0_5px_10px_rgba(0,0,0,0.12)]"
+        style={{ transformOrigin: '0% 100%' }}
+        variants={{ rest: { rotate: 9 }, spread: { rotate: 13 } }}
         transition={{ type: 'spring', stiffness: 320, damping: 17 }}
       >
-        {back}
+        {back && <img src={back} alt="" className="h-full w-full object-cover" />}
       </motion.span>
-      {/* 正面卡 — inset 换算后正好齐卡片上下边（0~75px） */}
-      <span className="absolute inset-[6.08%_22.1%_4.53%_0]">{front}</span>
+      {/* 正卡在左，压住后卡 */}
+      <img src={front} alt="" className="pointer-events-none absolute left-[-3%] top-0 w-[86%]" />
     </span>
   )
-}
-
-/** 智能创作图标：前/后卡为 Figma 分层导出的 PNG（由 img 基础路径派生）。 */
-function SmartCreateIcon({ img }: { img: string }) {
-  const base = img.replace(/\.png$/, '')
-  return (
-    <StickerIcon
-      back={<img src={`${base}-back.png`} alt="" className="absolute inset-0 m-auto" />}
-      front={<img src={`${base}-front.png`} alt="" className="h-full w-full" />}
-    />
-  )
-}
-
-/** 作品发布的彩色图标贴纸：斜置浅色底板 + 白描边正面色块（同构图）。 */
-function PublishTile({ tint, glyph }: { tint: string; glyph: LucideIcon }) {
-  const Glyph = glyph
-  return (
-    <StickerIcon
-      back={
-        // 左侧内缩 8%：旋转后左边缘不越过前卡左缘，默认态只在右侧探出（与智能创作一致）
-        <span
-          className="absolute inset-[6.08%_18%_4.53%_8%] rotate-[10deg] rounded-[13px]"
-          style={{ background: `${tint}55` }}
-        />
-      }
-      front={
-        <span
-          className="flex h-full w-full items-center justify-center rounded-[12px] border border-white text-white"
-          style={{ background: tint }}
-        >
-          <Glyph size={24} strokeWidth={2} />
-        </span>
-      }
-    />
-  )
-}
-
-const PUBLISH_GLYPHS: Record<string, LucideIcon> = {
-  video: Play,
-  image: ImageIcon,
-  panorama: Video,
-  article: FileText,
 }
 
 /* ─── 数据总览 ─── */
@@ -739,9 +690,18 @@ export default function CreatorCenterHome({
         </main>
       ) : (
       <main className="min-w-0 flex-1 overflow-y-auto">
-        {/* 顶部淡蓝天空底色 */}
-        <div className="bg-[linear-gradient(180deg,#DDEBF6_0%,#EFF4F8_46%,#F5F6F8_100%)]">
-          <div className="px-8 pb-2 pt-6">
+        {/* 顶部 ASCII 天空动画视频 + 淡蓝渐变遮罩（视频在后，遮罩把它向下淡出到页面底色，保证文字可读） */}
+        <div className="relative overflow-hidden bg-[#F5F6F8]">
+          <video
+            className="pointer-events-none absolute inset-x-0 top-0 h-[300px] w-full object-cover"
+            src="/bg/ascii-animation.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[300px] bg-[linear-gradient(180deg,rgba(226,238,247,0.08)_0%,rgba(230,239,247,0.4)_44%,rgba(243,245,248,0.9)_76%,#F5F6F8_100%)]" />
+          <div className="relative px-8 pb-2 pt-6">
             <ProfileHeader stats={profileData} />
 
             <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -752,7 +712,7 @@ export default function CreatorCenterHome({
                   {SMART_CREATE_ENTRIES.map((e) => (
                     <EntryCard
                       key={e.id}
-                      icon={<SmartCreateIcon img={e.img} />}
+                      icon={<CardImageIcon front={e.front} back={e.back} />}
                       label={e.label}
                       desc={e.desc}
                       onClick={() => onOpenProduct(e.id)}
@@ -767,11 +727,11 @@ export default function CreatorCenterHome({
                   {PUBLISH_ENTRIES.map((e) => (
                     <EntryCard
                       key={e.label}
-                      icon={<PublishTile tint={e.tint} glyph={PUBLISH_GLYPHS[e.glyph]} />}
+                      icon={<CardImageIcon front={e.img} />}
                       label={e.label}
                       desc={e.desc}
                       // 目前仅「发布高清视频」有对应表单页，其余为占位
-                      onClick={e.glyph === 'video' ? () => setPage('publish-video') : undefined}
+                      onClick={e.label === '发布高清视频' ? () => setPage('publish-video') : undefined}
                     />
                   ))}
                 </div>
@@ -785,13 +745,13 @@ export default function CreatorCenterHome({
             {/* 左主栏 */}
             <div className="min-w-0 space-y-4">
               <DataOverviewSection onViewDetail={() => setPage('datacenter')} />
-              {homeData && <InteractionSection data={homeData.interaction} />}
-              {homeData && <MonetizationSection data={homeData.monetization} />}
+              {homeData && <InteractionSection data={homeData.interaction} onMore={() => setPage('content')} />}
+              {homeData && <MonetizationSection data={homeData.monetization} onMore={() => setPage('income')} />}
             </div>
             {/* 右侧栏 */}
             <div className="space-y-4">
-              {homeData && <ActivityCenterCard data={homeData.calendar} />}
-              {homeData && <QuickNavCard items={homeData.quickNav} />}
+              {homeData && <ActivityCenterCard data={homeData.calendar} onMore={() => setPage('service:活动管理')} />}
+              {homeData && <QuickNavCard items={homeData.quickNav} onMore={() => setPage('service')} />}
             </div>
           </div>
           <HomeFooter />

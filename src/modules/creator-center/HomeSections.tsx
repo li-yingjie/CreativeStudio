@@ -53,10 +53,10 @@ function InteractionItem({ title, count, time, text, sub }: {
   )
 }
 
-export function InteractionSection({ data }: { data: HomeInteraction }) {
+export function InteractionSection({ data, onMore }: { data: HomeInteraction; onMore?: () => void }) {
   return (
     <section className="rounded-[20px] bg-white p-6">
-      <CardHeader title="互动管理" action="查看详情" onAction={() => toast('互动管理详情（演示）')} />
+      <CardHeader title="互动管理" action="查看详情" onAction={onMore ?? (() => toast('互动管理详情（演示）'))} />
       <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:gap-8">
         <InteractionItem title="作品评论" count={data.comments.count} time={data.comments.time} text={data.comments.text}
           sub={<span className="truncate">来源作品：{data.comments.source}</span>} />
@@ -73,13 +73,13 @@ export function InteractionSection({ data }: { data: HomeInteraction }) {
   )
 }
 
-/* ─── 变现中心 ─── */
+/* ─── 收入变现 ─── */
 
 function MonetTaskCard({ tint, icon, label, count, desc }: {
   tint: string; icon: string; label: string; count: number; desc: string
 }) {
   return (
-    <div className="flex flex-1 items-center gap-3 rounded-xl px-4 py-3" style={{ background: `${tint}0F` }}>
+    <div className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-4 py-3" style={{ background: `${tint}0F` }}>
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[15px]" style={{ background: `${tint}22` }}>{icon}</span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
@@ -93,11 +93,11 @@ function MonetTaskCard({ tint, icon, label, count, desc }: {
   )
 }
 
-export function MonetizationSection({ data }: { data: HomeMonetization }) {
+export function MonetizationSection({ data, onMore }: { data: HomeMonetization; onMore?: () => void }) {
   return (
     <section className="rounded-[20px] bg-white p-6">
-      <CardHeader title="变现中心" action="查看更多" onAction={() => toast('变现中心（演示）')} />
-      <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-8">
+      <CardHeader title="收入变现" action="查看更多" onAction={onMore ?? (() => toast('收入变现（演示）'))} />
+      <div className="mt-4 flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:gap-8">
         <div className="shrink-0">
           <div className="text-[12px] text-[#252632]/45">近7日 {data.range}</div>
           <div className="mt-1 flex items-baseline gap-2">
@@ -105,7 +105,7 @@ export function MonetizationSection({ data }: { data: HomeMonetization }) {
             <span className="text-[12px] text-[#252632]/40">较7天前 <span className="text-[#F53F3F]">+{data.delta}</span></span>
           </div>
         </div>
-        <div className="flex flex-1 flex-col gap-3 md:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 md:flex-row">
           <MonetTaskCard tint="#FE2C55" icon="🎬" label="可参与任务" count={data.availableTasks} desc={data.availableTaskTitle} />
           <MonetTaskCard tint="#FF7A45" icon="🔔" label="我的任务" count={data.myTasks} desc={data.myTaskTitle} />
         </div>
@@ -118,7 +118,7 @@ export function MonetizationSection({ data }: { data: HomeMonetization }) {
 
 const WEEK = ['日', '一', '二', '三', '四', '五', '六']
 
-export function ActivityCenterCard({ data }: { data: HomeCalendar }) {
+export function ActivityCenterCard({ data, onMore }: { data: HomeCalendar; onMore?: () => void }) {
   // 选中日期（默认今天）；点击日期联动下方活动列表
   const [selected, setSelected] = useState(data.selectedDay)
   // 网格：前置空格 firstWeekday 个 + 1..daysInMonth
@@ -132,7 +132,7 @@ export function ActivityCenterCard({ data }: { data: HomeCalendar }) {
   const dayEvents = data.events.filter((e) => selected >= e.startDay && selected <= e.endDay)
   return (
     <section className="rounded-[20px] bg-white p-5">
-      <CardHeader title="活动中心" action="查看更多" onAction={() => toast('活动中心（演示）')} />
+      <CardHeader title="活动中心" action="查看更多" onAction={onMore ?? (() => toast('活动中心（演示）'))} />
       {/* 月份切换 */}
       <div className="mt-4 flex items-center justify-center gap-4 text-[13px] font-medium text-[#252632]">
         <button type="button" className="text-[#252632]/40 hover:text-[#252632]"><ChevronLeft size={16} /></button>
@@ -192,10 +192,10 @@ export function ActivityCenterCard({ data }: { data: HomeCalendar }) {
 
 /* ─── 快速导航 ─── */
 
-export function QuickNavCard({ items }: { items: HomeQuickNav[] }) {
+export function QuickNavCard({ items, onMore }: { items: HomeQuickNav[]; onMore?: () => void }) {
   return (
     <section className="rounded-[20px] bg-white p-5">
-      <CardHeader title="快速导航" action="查看更多" onAction={() => toast('快速导航（演示）')} />
+      <CardHeader title="快速导航" action="查看更多" onAction={onMore ?? (() => toast('快速导航（演示）'))} />
       <div className="mt-4 grid grid-cols-4 gap-2">
         {items.map((q) => (
           <button key={q.name} type="button" onClick={() => toast(`${q.name}（演示）`)} className="flex flex-col items-center gap-2">
