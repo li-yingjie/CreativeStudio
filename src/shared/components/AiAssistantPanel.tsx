@@ -79,6 +79,14 @@ export default function AiAssistantPanel({
   }
   useEffect(scrollToBottom, [msgs.length, context.key])
 
+  // 展开面板时自动聚焦输入框，直接进入激活态（蓝色描边）。
+  // 展开有宽度动画，稍延迟等 DOM 就绪再聚焦。
+  useEffect(() => {
+    if (!open) return
+    const t = setTimeout(() => inputRef.current?.focus(), 80)
+    return () => clearTimeout(t)
+  }, [open])
+
   const send = (raw: string) => {
     const text = raw.trim()
     if (!text) return
@@ -130,10 +138,10 @@ export default function AiAssistantPanel({
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 420, damping: 26 }}
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#5B9DFF] to-[#3370FF] text-white shadow-[0_8px_24px_-6px_rgba(51,112,255,0.6)]"
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-[0_8px_24px_-6px_rgba(0,0,0,0.25)] ring-1 ring-black/5"
         >
           {/* Lottie 旋转圆圈 logo：hover 播放旋转、移开停止（组件内部处理）。 */}
-          <Logo2Lottie white className="h-8 w-8" />
+          <Logo2Lottie className="h-8 w-8" />
         </motion.button>
       )}
     </AnimatePresence>
@@ -240,7 +248,8 @@ export default function AiAssistantPanel({
       {/* ── Composer — 与工坊同款：圆角 24 白卡 + 顶部彩虹光晕 +
            contentEditable 输入 + 扩展/附件/Figma + Auto/发送。 ── */}
       <div className="mx-3 mb-3 flex-shrink-0">
-        <div className="relative flex flex-col gap-4 overflow-hidden rounded-[24px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]">
+        {/* focus 态(focus-within)：1px 灰边换成 1.5px 柔和深灰描边。 */}
+        <div className="relative flex flex-col gap-4 overflow-hidden rounded-[24px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)] transition-shadow focus-within:shadow-[0_0_0_1.5px_rgba(22,24,35,0.35),0_10px_15px_-5px_rgba(0,0,0,0.05)]">
           {/* Top rainbow-tint blur decoration */}
           <div
             aria-hidden

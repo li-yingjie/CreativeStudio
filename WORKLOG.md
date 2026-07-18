@@ -3,6 +3,8 @@
 每次改动的记录,最新在最上面。格式:`- 改了什么(为什么)` — 末尾可带 commit 短哈希;未提交标注「(未提交)」。
 
 ## 2026-07-18
+- 创作助手展开即聚焦输入框:open 变 true 后 focus inputRef,composer 卡片 focus-within 显示 1.5px 柔和深灰(rgba(22,24,35,0.35))描边(未提交)
+- 创作助手悬浮球改白底:蓝渐变→纯白+中性阴影+细边框,logo 去 white 反色用原色(未提交)
 - 首页 ASCII 视频顶部遮罩加大:顶部遮罩段从 0-30% 扩到 0-42%、初始不透明度 0.4→0.5,与顶栏过渡更明显(未提交)
 - 创作助手悬浮球接入 Lottie 旋转圆圈动画:从 DYAI 仓库取 public/assets/logo2.json(rotating_circles_lottie_loop)+logo2.svg,装 lottie-react/lottie-web(npmmirror),新建 Logo2Lottie(用 lottie-web loadAnimation+dynamic import 绕开 lottie-react 在 vite 下的 default 导出 interop 报错),悬浮球 hover 播放旋转、移开 goToAndStop,white 反色(未提交)
 - 百科/随变即将上线占位页图标统一:PlaceholderPage 图标外加统一圆角浅底框(ring+渐变底),消除插画/照片调性差异,两页视觉一致(未提交)
