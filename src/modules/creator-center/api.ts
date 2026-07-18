@@ -301,6 +301,9 @@ export interface WorkItem {
   title: string
   cover: string
   type: 'video' | 'gallery'
+  /** AI 工坊产出的作品类型中文标签（如「小程序」）。视频/图文作品为
+   *  空；有值时列表按工坊指标展示、封面角标显示该标签。 */
+  workshopKind?: string
   duration: string | null
   imageCount: number | null
   publishedAt: string

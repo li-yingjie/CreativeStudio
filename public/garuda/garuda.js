@@ -675,6 +675,7 @@ function activateKillerMove()
 {
 	if (l.paused || l.menu || l.intro || !ship.e || l.killer.active || l.killer.energy < l.killer.MAX)
 		return false;
+	loadKillerAnimationArt();
 	trackSkillUse('Killer');
 	l.killer.active = killerDuration();
 	l.killer.energy = l.killer.MAX;
@@ -933,6 +934,7 @@ function releaseBomb(free)
 {
 	if (l.paused || l.menu || l.intro || !ship.e || (!free && l.bombs <= 0))
 		return false;
+	loadBombAnimationArt();
 	trackSkillUse('Bomb');
 	if (!free)
 		l.bombs--;
@@ -979,6 +981,7 @@ function bombDamage(enemy, level)
 
 function startShield(free)
 {
+	loadShieldAnimationArt();
 	trackSkillUse('Shield');
 	if (!free)
 		ship.shield.charges--;
@@ -1188,6 +1191,7 @@ function spawnEnemy(i, y, count, rank, formation)
 		type.R = scaledInt(132);
 	if (!type.image)
 		type.image = enemyPlaceholder(type);
+	loadEnemyAnimationArt(i);
 	var before = enemies.length;
 	type.spawn(y, count, rank || 0, formation || 0);
 	for (var j = before; j < enemies.length; j++)
@@ -1740,6 +1744,25 @@ function enemyPlaceholder(type)
 	if (!type.R)
 		type.R = scaledInt(132);
 	type.placeholderImage = transparentSprite(type.R * 2, type.R * 2, type.placeholderImage);
+	var c = type.placeholderImage;
+	var a = c.getContext('2d');
+	var r = c.width * .34;
+	a.save();
+	a.translate(c.width / 2, c.height / 2);
+	a.fillStyle = '#171D35';
+	a.strokeStyle = '#8D7BFF';
+	a.shadowColor = '#8D7BFF';
+	a.shadowBlur = Math.max(4, c.width * .06);
+	a.lineWidth = Math.max(2, c.width * .025);
+	a.beginPath();
+	a.moveTo(0, -r);
+	a.lineTo(r * .82, r * .65);
+	a.lineTo(0, r * .35);
+	a.lineTo(-r * .82, r * .65);
+	a.closePath();
+	a.fill();
+	a.stroke();
+	a.restore();
 	return type.placeholderImage;
 }
 
@@ -1856,7 +1879,30 @@ for (var number = 10; number--; )
 // Render the level background
 l.background = null;
 
-ship.image = null;
+ship.image = render(function(c, a)
+{
+	var x = c.width / 2, y = c.height / 2;
+	a.save();
+	a.translate(x, y);
+	a.fillStyle = '#15213D';
+	a.strokeStyle = '#75D9FF';
+	a.shadowColor = '#75D9FF';
+	a.shadowBlur = Math.max(6, c.width * .045);
+	a.lineWidth = Math.max(2, c.width * .018);
+	a.beginPath();
+	a.moveTo(0, -c.height * .36);
+	a.lineTo(c.width * .27, c.height * .28);
+	a.lineTo(0, c.height * .13);
+	a.lineTo(-c.width * .27, c.height * .28);
+	a.closePath();
+	a.fill();
+	a.stroke();
+	a.fillStyle = '#FF8A18';
+	a.beginPath();
+	a.arc(0, 0, Math.max(3, c.width * .035), 0, Math.PI * 2);
+	a.fill();
+	a.restore();
+}, ship.R * 3, ship.R * 2.5);
 
 // The remake uses the Garuda shell sprite instead of the original generated shield.
 ship.frames = [];
@@ -2392,12 +2438,17 @@ function fitArtBackground(image)
 var assetLoadTotal = 0;
 var assetLoadDone = 0;
 var pendingStart = false;
+var pendingStartTimer = 0;
 var bootLoadingActive = false;
 var bootLoadingStartedAt = 0;
 var BOOT_LOADING_MIN_MS = 1200;
 var ASSET_LOAD_CONCURRENCY = 10;
 var assetLoadActive = 0;
+// Only blocking jobs contribute to boot progress. Warm-up animations use the
+// background queue; a skill request uses the higher-priority foreground queue.
 var assetLoadQueue = [];
+var assetLoadBackgroundQueue = [];
+var artImageRequests = Object.create(null);
 
 function assetLoadProgress()
 {
@@ -2418,47 +2469,135 @@ function updateAssetLoadingUi()
 	loadingPercent.textContent = Math.round(progress * 100) + '%';
 }
 
-function finishAssetLoad()
+function schedulePendingStart()
 {
+	if (!pendingStart || !assetsReady() || pendingStartTimer)
+		return;
+	pendingStartTimer = window.setTimeout(function()
+	{
+		pendingStartTimer = 0;
+		if (pendingStart && assetsReady())
+			startPrebattleIntro();
+	}, 180);
+}
+
+function finishAssetLoad(job)
+{
+	if (!job.blocking)
+		return;
 	assetLoadDone++;
 	updateAssetLoadingUi();
-	if (pendingStart && assetsReady())
-		window.setTimeout(startPrebattleIntro, 180);
+	schedulePendingStart();
 	if (bootLoadingActive && assetsReady())
 		completeBootLoading();
 }
 
+function invokeArtCallback(callback, image, src)
+{
+	if (!callback)
+		return;
+	try
+	{
+		callback(image);
+	}
+	catch (error)
+	{
+		if (window.console && console.warn)
+			console.warn('Unable to prepare art asset:', src, error);
+	}
+}
+
 function pumpAssetLoadQueue()
 {
-	while (assetLoadActive < ASSET_LOAD_CONCURRENCY && assetLoadQueue.length)
+	while (assetLoadActive < ASSET_LOAD_CONCURRENCY && (assetLoadQueue.length || assetLoadBackgroundQueue.length))
 	{
 		(function(job)
 		{
 			assetLoadActive++;
+			job.state = 'loading';
 			var image = new Image();
+			image.decoding = 'async';
 			image.onload = function()
 			{
-				job.callback(image);
+				job.state = 'loaded';
+				job.image = image;
+				var callbacks = job.callbacks.slice();
+				job.callbacks.length = 0;
+				for (var i = 0; i < callbacks.length; i++)
+					invokeArtCallback(callbacks[i], image, job.src);
+				// Frame callbacks keep their fitted canvases. Release the decoded source
+				// image so the request registry does not double animation memory usage.
+				job.image = null;
 				assetLoadActive--;
-				finishAssetLoad();
+				finishAssetLoad(job);
 				pumpAssetLoadQueue();
 			};
 			image.onerror = function()
 			{
+				job.state = 'failed';
+				job.callbacks.length = 0;
 				assetLoadActive--;
-				finishAssetLoad();
+				finishAssetLoad(job);
 				pumpAssetLoadQueue();
 			};
 			image.src = job.src;
-		})(assetLoadQueue.shift());
+		})(assetLoadQueue.length ? assetLoadQueue.shift() : assetLoadBackgroundQueue.shift());
 	}
 }
 
-function useArtImage(src, callback)
+function useArtImage(src, callback, options)
 {
-	assetLoadTotal++;
-	updateAssetLoadingUi();
-	assetLoadQueue.push({ src: src, callback: callback });
+	options = options || {};
+	var blocking = options.blocking !== false;
+	var background = !blocking && !!options.background;
+	var existing = artImageRequests[src];
+	if (existing)
+	{
+		if (existing.state === 'loaded')
+		{
+			if (existing.image)
+				invokeArtCallback(callback, existing.image, src);
+		}
+		else if (existing.state !== 'failed')
+		{
+			if (callback)
+				existing.callbacks.push(callback);
+			if (blocking && !existing.blocking)
+			{
+				existing.blocking = true;
+				assetLoadTotal++;
+				updateAssetLoadingUi();
+			}
+			if (!background && existing.background && existing.state === 'queued')
+			{
+				var index = assetLoadBackgroundQueue.indexOf(existing);
+				if (index >= 0)
+					assetLoadBackgroundQueue.splice(index, 1);
+				existing.background = false;
+				assetLoadQueue.push(existing);
+			}
+		}
+		pumpAssetLoadQueue();
+		return;
+	}
+	var job = {
+		src: src,
+		callbacks: callback ? [callback] : [],
+		blocking: blocking,
+		background: background,
+		state: 'queued',
+		image: null
+	};
+	artImageRequests[src] = job;
+	if (blocking)
+	{
+		assetLoadTotal++;
+		updateAssetLoadingUi();
+	}
+	if (background)
+		assetLoadBackgroundQueue.push(job);
+	else
+		assetLoadQueue.push(job);
 	pumpAssetLoadQueue();
 }
 
@@ -2483,26 +2622,51 @@ function loadEnemyStill(i, src)
 	});
 }
 
-function loadEnemyFrames(i, src, prefix, count, ext)
+var animationArtGroups = Object.create(null);
+
+function paddedFrameIndex(index, length)
+{
+	var value = String(index);
+	while (value.length < length)
+		value = '0' + value;
+	return value;
+}
+
+function loadFrameSequence(group, count, pathForFrame, receiveFrame, background)
+{
+	if (animationArtGroups[group])
+		return;
+	animationArtGroups[group] = true;
+	for (var i = 0; i < count; i++)
+	{
+		(function(frameIndex)
+		{
+			useArtImage(pathForFrame(frameIndex), function(image)
+			{
+				receiveFrame(frameIndex, image);
+			}, { blocking: false, background: !!background });
+		})(i);
+	}
+}
+
+function loadEnemyFrames(i, src, prefix, count, ext, background)
 {
 	var type = enemies.TYPES[i];
-	type.frames = [];
+	type.frames = type.frames || [];
+	if (type.image && !type.frames[0])
+		type.frames[0] = type.image;
 	ext = ext || 'png';
-	for (var j = 0; j < count; j++)
+	loadFrameSequence('enemy-' + i, count, function(frameIndex)
 	{
-		(function(j)
-		{
-			var index = (j < 10 ? '0' : '') + j;
-			useArtImage(src + '/' + prefix + '_' + index + '.' + ext, function(image)
-			{
-				var type = enemies.TYPES[i];
-				var frame = fitArtImage(image, type.R * 2, type.R * 2);
-				type.frames[j] = frame;
-				if (!type.image || j === 0)
-					type.image = frame;
-			});
-		})(j);
-	}
+		return src + '/' + prefix + '_' + paddedFrameIndex(frameIndex, 2) + '.' + ext;
+	}, function(frameIndex, image)
+	{
+		var type = enemies.TYPES[i];
+		var frame = fitArtImage(image, type.R * 2, type.R * 2);
+		type.frames[frameIndex] = frame;
+		if (!type.image || frameIndex === 0)
+			type.image = frame;
+	}, background);
 }
 
 function loadBonusImage(key, src, scale)
@@ -2516,80 +2680,88 @@ function loadBonusImage(key, src, scale)
 
 function loadAnimationArt()
 {
-	for (var i = 0; i < 50; i++)
+	if (ship.image && !ship.frames[0])
+		ship.frames[0] = ship.image;
+	loadFrameSequence('ship-flight', 50, function(frameIndex)
 	{
-		(function(i)
-		{
-			var index = (i < 10 ? '0' : '') + i;
-			useArtImage('assets/garuda_fly-webp/garuda_fly_' + index + '.webp', function(image)
-			{
-				var frame = fitArtImage(image, ship.R * 3, ship.R * 2.5);
-				ship.frames[i] = frame;
-				if (!ship.image)
-					ship.image = frame;
-			});
-		})(i);
-	}
-	for (var i = 0; i < 202; i++)
+		return 'assets/garuda_fly-webp/garuda_fly_' + paddedFrameIndex(frameIndex, 2) + '.webp';
+	}, function(frameIndex, image)
 	{
-		(function(i)
-		{
-			var index = (i < 10 ? '00' : (i < 100 ? '0' : '')) + i;
-			useArtImage('assets/garuda_special-webp/garuda_special_' + index + '.webp', function(image)
-			{
-				ship.specialFrames[i] = fitArtImage(image, ship.R * 3, ship.R * 2.5);
-			});
-		})(i);
-	}
-	for (var i = 0; i < 152; i++)
+		var frame = fitArtImage(image, ship.R * 3, ship.R * 2.5);
+		ship.frames[frameIndex] = frame;
+		if (frameIndex === 0)
+			ship.image = frame;
+	}, true);
+}
+
+function loadSpecialAnimationArt()
+{
+	loadFrameSequence('ship-special', 202, function(frameIndex)
 	{
-		(function(i)
-		{
-			var index = (i < 10 ? '00' : (i < 100 ? '0' : '')) + i;
-			useArtImage('assets/garuda_bomb-webp/garuda_bomb_' + index + '.webp', function(image)
-			{
-				ship.bombFrames[i] = fitArtImage(image, ship.R * 3, ship.R * 2.5);
-			});
-		})(i);
-	}
-	for (var i = 0; i < 80; i++)
+		return 'assets/garuda_special-webp/garuda_special_' + paddedFrameIndex(frameIndex, 3) + '.webp';
+	}, function(frameIndex, image)
 	{
-		(function(i)
-		{
-			var index = (i < 10 ? '00' : (i < 100 ? '0' : '')) + i;
-			useArtImage('assets/garuda_killer_video-webp/garuda_special_video_' + index + '.webp', function(image)
-			{
-				ship.killerFrames[i] = fitArtImage(image, ship.R * 3, ship.R * 2.5);
-			});
-		})(i);
-	}
-	for (var i = 0; i < 31; i++)
+		ship.specialFrames[frameIndex] = fitArtImage(image, ship.R * 3, ship.R * 2.5);
+	}, false);
+}
+
+function loadBombAnimationArt()
+{
+	loadFrameSequence('ship-bomb', 152, function(frameIndex)
 	{
-		(function(i)
-		{
-			var index = (i < 10 ? '0' : '') + i;
-			useArtImage('assets/garuda_shell_gif-webp/garuda_shell_gif_' + index + '.webp', function(image)
-			{
-				var frame = fitArtImage(image, ship.R * 3, ship.R * 2.5);
-				ship.shield.frames[i] = frame;
-				if (!ship.shield.image)
-					ship.shield.image = frame;
-			});
-		})(i);
-	}
-	for (var i = 0; i < 101; i++)
+		return 'assets/garuda_bomb-webp/garuda_bomb_' + paddedFrameIndex(frameIndex, 3) + '.webp';
+	}, function(frameIndex, image)
 	{
-		(function(i)
-		{
-			var index = (i < 10 ? '00' : (i < 100 ? '0' : '')) + i;
-			useArtImage('assets/garuda_shield-webp/garuda_shield_' + index + '.webp', function(image)
-			{
-				ship.shield.loopFrames[i] = fitArtImage(image, ship.R * 3, ship.R * 2.5);
-			});
-		})(i);
-	}
-	loadEnemyFrames(1, 'assets/enemy/enemy_1-webp', 'enemy_1', 47, 'webp');
-	loadEnemyFrames(ENEMY_BOSS_TYPE, 'assets/enemy/enemy_boss-webp', 'enemy_boss', 61, 'webp');
+		ship.bombFrames[frameIndex] = fitArtImage(image, ship.R * 3, ship.R * 2.5);
+	}, false);
+}
+
+function loadKillerAnimationArt()
+{
+	loadFrameSequence('ship-killer', 80, function(frameIndex)
+	{
+		return 'assets/garuda_killer_video-webp/garuda_special_video_' + paddedFrameIndex(frameIndex, 3) + '.webp';
+	}, function(frameIndex, image)
+	{
+		ship.killerFrames[frameIndex] = fitArtImage(image, ship.R * 3, ship.R * 2.5);
+	}, false);
+}
+
+function loadShieldAnimationArt()
+{
+	if (ship.shield.image && !ship.shield.frames[0])
+		ship.shield.frames[0] = ship.shield.image;
+	loadFrameSequence('ship-shield-shell', 31, function(frameIndex)
+	{
+		return 'assets/garuda_shell_gif-webp/garuda_shell_gif_' + paddedFrameIndex(frameIndex, 2) + '.webp';
+	}, function(frameIndex, image)
+	{
+		var frame = fitArtImage(image, ship.R * 3, ship.R * 2.5);
+		ship.shield.frames[frameIndex] = frame;
+		if (frameIndex === 0)
+			ship.shield.image = frame;
+	}, false);
+	if (l.rogue.shield | 0)
+		loadShieldLoopAnimationArt();
+}
+
+function loadShieldLoopAnimationArt()
+{
+	loadFrameSequence('ship-shield-loop', 101, function(frameIndex)
+	{
+		return 'assets/garuda_shield-webp/garuda_shield_' + paddedFrameIndex(frameIndex, 3) + '.webp';
+	}, function(frameIndex, image)
+	{
+		ship.shield.loopFrames[frameIndex] = fitArtImage(image, ship.R * 3, ship.R * 2.5);
+	}, false);
+}
+
+function loadEnemyAnimationArt(i)
+{
+	if (i === 1)
+		loadEnemyFrames(1, 'assets/enemy/enemy_1-webp', 'enemy_1', 47, 'webp', false);
+	else if (i === ENEMY_BOSS_TYPE)
+		loadEnemyFrames(ENEMY_BOSS_TYPE, 'assets/enemy/enemy_boss-webp', 'enemy_boss', 61, 'webp', false);
 }
 
 function loadGeneratedArt()
@@ -2629,11 +2801,22 @@ function loadGeneratedArt()
 			});
 		})(i);
 	}
+	// Keep one static frame for every animated actor in the boot set. The full
+	// sequences are requested only after play starts or their skill is used.
 	loadEnemyStill(0, 'assets/enemy/enemy_0.png');
+	loadEnemyStill(1, 'assets/enemy/enemy_1-webp/enemy_1_00.webp');
 	loadEnemyStill(2, 'assets/enemy/enemy_2.png');
 	loadEnemyStill(ENEMY_DIVER_TYPE, 'assets/enemy/enemy_3_clean.webp');
 	loadEnemyStill(ENEMY_SPIDER_TYPE, 'assets/enemy/enemy_4_clean.webp');
-	loadAnimationArt();
+	loadEnemyStill(ENEMY_BOSS_TYPE, 'assets/enemy/enemy_boss-webp/enemy_boss_00.webp');
+	useArtImage('assets/garuda_fly-webp/garuda_fly_00.webp', function(image)
+	{
+		ship.image = fitArtImage(image, ship.R * 3, ship.R * 2.5);
+	});
+	useArtImage('assets/garuda_shell_gif-webp/garuda_shell_gif_00.webp', function(image)
+	{
+		ship.shield.image = fitArtImage(image, ship.R * 3, ship.R * 2.5);
+	});
 }
 
 loadGeneratedArt();
@@ -3674,12 +3857,12 @@ function startGame()
 {
 	pendingScore = null;
 	pendingStart = true;
+	loadAnimationArt();
 	l.paused = true;
 	l.menu = true;
 	showPanel(loadingPanel);
 	updateAssetLoadingUi();
-	if (assetsReady())
-		window.setTimeout(startPrebattleIntro, 180);
+	schedulePendingStart();
 }
 
 function showMenu()
@@ -3773,12 +3956,16 @@ function saveScore()
 	requestLeaderboard('/scores', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(entry)
+		body: JSON.stringify({
+			name: entry.name,
+			score: entry.score,
+			wave: entry.wave
+		})
 	}).then(function(data)
 	{
 		leaderboardCache = normalizeLeaderboard(data.scores || []);
 		leaderboardNetworkError = false;
-		l.lastSavedScoreId = data.saved === false ? '' : entry.id;
+		l.lastSavedScoreId = data.saved === false ? '' : ((data.entry && data.entry.id) || '');
 		pendingScore = null;
 		renderLeaderboard(finalBoardList, l.lastSavedScoreId);
 		if (data.saved === false)
@@ -3959,6 +4146,7 @@ document.onkeydown = function(e)
 		}
 		if (canPlayTransformSound())
 		{
+			loadSpecialAnimationArt();
 			ship.shootingArmed = true;
 			ship.reload = 0;
 			play(SFX_TRANSFORM);

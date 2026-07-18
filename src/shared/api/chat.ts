@@ -36,8 +36,29 @@ export async function streamChat(
   const decoder = new TextDecoder()
   let buffer = ''
   let full = ''
+  let receivedDone = false
 
-  while (true) {
+  const handleLine = (line: string) => {
+    const trimmed = line.trim()
+    if (!trimmed.startsWith('data:')) return
+    const data = trimmed.slice(5).trim()
+    if (data === '[DONE]') {
+      receivedDone = true
+      return
+    }
+    try {
+      const json = JSON.parse(data)
+      const token: string | undefined = json?.choices?.[0]?.delta?.content
+      if (token) {
+        full += token
+        onToken?.(token)
+      }
+    } catch {
+      // Ignore keep-alive / non-JSON frames, but never treat them as DONE.
+    }
+  }
+
+  while (!receivedDone) {
     const { done, value } = await reader.read()
     if (done) break
     buffer += decoder.decode(value, { stream: true })
@@ -46,23 +67,14 @@ export async function streamChat(
     const lines = buffer.split('\n')
     buffer = lines.pop() ?? ''
 
-    for (const line of lines) {
-      const trimmed = line.trim()
-      if (!trimmed.startsWith('data:')) continue
-      const data = trimmed.slice(5).trim()
-      if (data === '[DONE]') return full
-      try {
-        const json = JSON.parse(data)
-        const token: string | undefined = json?.choices?.[0]?.delta?.content
-        if (token) {
-          full += token
-          onToken?.(token)
-        }
-      } catch {
-        // ignore keep-alive / non-JSON frames
-      }
-    }
+    lines.forEach(handleLine)
   }
 
+  // Flush a final unterminated frame, then require the protocol terminator.
+  buffer += decoder.decode()
+  if (buffer.trim()) handleLine(buffer)
+  if (!receivedDone) {
+    throw new Error('chat stream ended before [DONE]')
+  }
   return full
 }

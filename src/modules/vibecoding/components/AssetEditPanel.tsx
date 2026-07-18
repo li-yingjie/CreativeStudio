@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { X, Upload, RotateCcw, Save, Music2, Film } from '@/shared/icons'
 import type { AssetItem } from './GarudaAssetsView'
 
@@ -14,19 +14,27 @@ export default function AssetEditPanel({
   item: AssetItem
   onClose: () => void
 }) {
+  return (
+    <AssetEditPanelContent
+      key={`${item.label}:${item.src}`}
+      item={item}
+      onClose={onClose}
+    />
+  )
+}
+
+function AssetEditPanelContent({
+  item,
+  onClose,
+}: {
+  item: AssetItem
+  onClose: () => void
+}) {
   const kind = item.kind ?? 'image'
   const isSequence = kind === 'image' && !!item.frames
   const [name, setName] = useState(item.label)
   const [fps, setFps] = useState(15)
   const [loop, setLoop] = useState(true)
-
-  // Re-bind whenever the opened asset changes (panel stays mounted while
-  // the user clicks through different assets).
-  useEffect(() => {
-    setName(item.label)
-    setFps(15)
-    setLoop(true)
-  }, [item])
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--color-surface-0)]">

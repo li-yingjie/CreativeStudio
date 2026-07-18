@@ -5,7 +5,10 @@ import { useEffect, useRef } from 'react'
  *  claim one Esc without losing the full exit gesture. */
 export function useDoubleEscBack(onBack: () => void, windowMs = 500) {
   const backRef = useRef(onBack)
-  backRef.current = onBack
+
+  useEffect(() => {
+    backRef.current = onBack
+  }, [onBack])
 
   useEffect(() => {
     let lastAt = 0

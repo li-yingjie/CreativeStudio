@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react'
+import { memo, useState } from 'react'
 import {
   SquareUser,
   LayoutGrid,
@@ -9,10 +9,8 @@ import {
 } from '@/shared/icons'
 import type { ProjectKind } from './ProjectProductView'
 import OpsDataDashboard from './OpsDataContent'
-import {
-  getPublishObjectVisual,
-  PublishObjectVisualThumb,
-} from './PublishDrawer'
+import PublishObjectVisualThumb from './PublishObjectVisualThumb'
+import { getPublishObjectVisual } from './publish-object-visual'
 
 /**
  * 运营数据菜单页 — 左侧「已发布的项目」列表，右侧复用 OpsDataDashboard
@@ -51,17 +49,27 @@ function DataOpsView({
   /** Pre-select this project (the one the user jumped in from). */
   focusName?: string | null
 }) {
+  return (
+    <DataOpsViewContent
+      key={`${focusName ?? ''}:${projects.map((project) => project.name).join('|')}`}
+      projects={projects}
+      focusName={focusName}
+    />
+  )
+}
+
+function DataOpsViewContent({
+  projects,
+  focusName,
+}: {
+  projects: DataOpsProject[]
+  focusName?: string | null
+}) {
   const [activeName, setActiveName] = useState(
     focusName && projects.some((p) => p.name === focusName)
       ? focusName
       : projects[0]?.name ?? '',
   )
-  // Follow the focus target when the user re-enters via「查看完整数据」.
-  useEffect(() => {
-    if (focusName && projects.some((p) => p.name === focusName)) {
-      setActiveName(focusName)
-    }
-  }, [focusName, projects])
   const active = projects.find((p) => p.name === activeName) ?? projects[0]
 
   if (!active) {

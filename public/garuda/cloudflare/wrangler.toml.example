@@ -2,6 +2,11 @@ name = "garuda-leaderboard"
 main = "cloudflare/leaderboard-worker.js"
 compatibility_date = "2026-05-01"
 
+[vars]
+# Comma-separated production origins in addition to the built-in GitHub Pages
+# and localhost development origins.
+ALLOWED_ORIGINS = "https://creator.example.com"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "garuda_leaderboard"

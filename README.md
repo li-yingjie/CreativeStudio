@@ -32,17 +32,29 @@ cp .env.example .env   # 填入你的 Kimi key
 npm run dev            # http://localhost:5173 (已内置 /api 代理)
 ```
 
+提交前可执行完整校验（ESLint、Node 安全回归测试和生产构建）：
+
+```bash
+npm run check
+```
+
+GitHub Actions 会在每次 push 和 pull request 时运行同一套校验。
+
 `.env` 配置:
 
 ```
 KIMI_API_KEY=sk-...                      # 在 https://platform.kimi.com 获取
 KIMI_BASE_URL=https://api.moonshot.cn/v1
 KIMI_MODEL=moonshot-v1-8k
+KIMI_ALLOWED_MODELS=moonshot-v1-8k       # 可选；默认仅允许 KIMI_MODEL
 PORT=8787
 ```
 
 > 开发模式下 `/api/chat` 由 Vite 插件在本进程内提供,key 只读于服务端,不会进入前端
-> 产物。访问 `/api/health` 可检查 key 是否配置成功。
+> 产物。代理默认还会限制消息/输出大小、45 秒超时、4 路并发和每 IP 每分钟 15 次请求；
+> 具体可调项见 `.env.example`。访问 `/api/health` 可检查 key 是否配置成功。
+> 自托管时只有在前置可信反向代理会覆盖 `X-Forwarded-*` 的前提下，才应设置
+> `TRUST_PROXY_HEADERS=true`，避免客户端伪造 IP 绕过限流。
 
 ## 构建与部署
 

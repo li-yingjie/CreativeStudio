@@ -21,10 +21,7 @@ export function useDominantColors(imageUrl: string, count = 2): RGB[] {
   const [colors, setColors] = useState<RGB[]>(FALLBACK)
 
   useEffect(() => {
-    if (!imageUrl) {
-      setColors(FALLBACK)
-      return
-    }
+    if (!imageUrl) return
     let cancelled = false
     const img = new Image()
     img.crossOrigin = 'anonymous'
@@ -129,7 +126,7 @@ export function useDominantColors(imageUrl: string, count = 2): RGB[] {
     }
   }, [imageUrl, count])
 
-  return colors
+  return imageUrl ? colors : FALLBACK
 }
 
 export function rgbString([r, g, b]: RGB, alpha = 1): string {

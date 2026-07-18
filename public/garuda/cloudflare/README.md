@@ -19,7 +19,9 @@ wrangler d1 create garuda_leaderboard
 ```
 
 3. Copy `cloudflare/wrangler.toml.example` to `wrangler.toml`, then paste the
-   generated `database_id`.
+   generated `database_id`. Set `ALLOWED_ORIGINS` to the comma-separated
+   origins that host the game; localhost ports 5173/4173/8000 and the original
+   GitHub Pages origin are already allowed.
 
 4. Apply the schema:
 
@@ -31,6 +33,13 @@ wrangler d1 execute garuda_leaderboard --file=cloudflare/schema.sql
 
 ```bash
 wrangler deploy
+```
+
+For production, also set a private hash salt used by the submission rate
+limiter:
+
+```bash
+wrangler secret put RATE_LIMIT_SECRET
 ```
 
 6. Copy the Worker URL into `index.html`:

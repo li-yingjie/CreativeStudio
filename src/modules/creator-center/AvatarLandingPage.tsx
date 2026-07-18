@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion'
-import { toast } from 'sonner'
 
 /* ─── AI 分身落地页（Figma 891-22823）───
  * ASCII 世界地图纹理打底，3D 分身主视觉 + 彩色光斑，账号开通卡与
@@ -19,7 +18,12 @@ function FeatureCard({ thumb, title, desc }: { thumb: string; title: string; des
   )
 }
 
-export default function AvatarLandingPage() {
+export default function AvatarLandingPage({
+  onActivate,
+}: {
+  /** 点击「去开通」— 外壳切换到分身版工坊界面。 */
+  onActivate?: () => void
+}) {
   return (
     <main className="relative h-full overflow-y-auto bg-white">
       {/* ASCII 世界地图纹理 */}
@@ -78,7 +82,7 @@ export default function AvatarLandingPage() {
             </div>
             <button
               type="button"
-              onClick={() => toast('分身开通申请已提交（演示）')}
+              onClick={() => onActivate?.()}
               className="rounded-xl bg-[#161823] px-6 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-[#161823]/90"
             >
               去开通

@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowDown,
@@ -66,6 +73,7 @@ export type SceneMode =
   | 'external-flat'
 
 type SourceFilter = 'all' | 'official' | 'thirdParty' | 'space'
+type ExternalBucketId = 'official' | 'thirdParty' | 'space'
 
 const SOURCE_FILTER_OPTIONS: { id: SourceFilter; label: string }[] = [
   { id: 'all', label: '全部' },
@@ -243,6 +251,27 @@ export default function ResourceLibraryView({
   // Sticky filter row inside the scroll container — its height is
   // subtracted from anchor-scroll targets so headings land below it.
   const filterRowRef = useRef<HTMLDivElement>(null)
+
+  const scrollToExternalBucket = useCallback(
+    (event: ReactMouseEvent<HTMLButtonElement>) => {
+      const id = event.currentTarget.dataset.bucket as ExternalBucketId | undefined
+      const extraOffset = Number(event.currentTarget.dataset.offset ?? 0)
+      if (!id) return
+      const root = cardsScrollRef.current
+      const element = document.getElementById(`external-bucket-${id}`)
+      if (!root || !element) return
+      const rootRect = root.getBoundingClientRect()
+      const elementRect = element.getBoundingClientRect()
+      const top =
+        elementRect.top -
+        rootRect.top +
+        root.scrollTop -
+        filterHeight -
+        extraOffset
+      root.scrollTo({ top, behavior: 'smooth' })
+    },
+    [filterHeight],
+  )
 
   const treeCountMap = useMemo(() => {
     // Count capabilities that pass the same filters as the right pane so
@@ -720,9 +749,8 @@ export default function ResourceLibraryView({
               /* ─── Tabs variant — horizontal anchor tabs at the top of
                *      the cards pane. Sticky below the filter row. ─── */
               if (sceneMode === 'external-tabs') {
-                type TabId = 'official' | 'thirdParty' | 'space'
                 const allTabs: {
-                  id: TabId
+                  id: ExternalBucketId
                   label: string
                   total: number
                   caps: { cap: Capability; platform: Resource }[]
@@ -733,19 +761,6 @@ export default function ResourceLibraryView({
                   { id: 'space', label: '空间 Skills/工具', total: spaceTotal, caps: spaceCaps, prefix: 'space' },
                 ]
                 const tabs = allTabs.filter((t) => t.total > 0)
-                const scrollToBucket = (id: TabId) => {
-                  const root = cardsScrollRef.current
-                  const el = document.getElementById(`external-bucket-${id}`)
-                  if (!root || !el) return
-                  const rootRect = root.getBoundingClientRect()
-                  const elRect = el.getBoundingClientRect()
-                  // Account for the sticky filter row + tabs strip
-                  // (tabs row is roughly 40px tall) plus a small breathing
-                  // gap so the section title isn't flush with the chrome.
-                  const offset =
-                    elRect.top - rootRect.top + root.scrollTop - filterHeight - 40 - 8
-                  root.scrollTo({ top: offset, behavior: 'smooth' })
-                }
                 return (
                   <>
                     {/* Tabs strip — sticky just below the filter row. No
@@ -761,7 +776,9 @@ export default function ResourceLibraryView({
                           <button
                             key={t.id}
                             type="button"
-                            onClick={() => scrollToBucket(t.id)}
+                            data-bucket={t.id}
+                            data-offset="48"
+                            onClick={scrollToExternalBucket}
                             className={`relative inline-flex items-center gap-1.5 pb-2.5 text-[14px] leading-[1.2] transition-colors ${
                               activeExternalTab === t.id
                                 ? 'font-semibold text-[var(--color-ink)]'
@@ -857,9 +874,8 @@ export default function ResourceLibraryView({
                *      remaining pills animate left via framer-motion's
                *      `layout` prop. ─── */
               if (sceneMode === 'external-row') {
-                type BucketId = 'official' | 'thirdParty' | 'space'
                 const allBuckets: {
-                  id: BucketId
+                  id: ExternalBucketId
                   label: string
                   total: number
                   caps: { cap: Capability; platform: Resource }[]
@@ -871,16 +887,6 @@ export default function ResourceLibraryView({
                 ]
                 const buckets = allBuckets.filter((b) => b.total > 0)
                 const pinned = buckets.filter((b) => belowFoldBuckets.has(b.id))
-                const scrollToBucket = (id: BucketId) => {
-                  const root = cardsScrollRef.current
-                  const el = document.getElementById(`external-bucket-${id}`)
-                  if (!root || !el) return
-                  const rootRect = root.getBoundingClientRect()
-                  const elRect = el.getBoundingClientRect()
-                  const offset =
-                    elRect.top - rootRect.top + root.scrollTop - filterHeight - 12
-                  root.scrollTo({ top: offset, behavior: 'smooth' })
-                }
                 return (
                   <>
                     <div className="flex flex-col px-6 pt-5 pb-10">
@@ -945,7 +951,9 @@ export default function ResourceLibraryView({
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -18 }}
                                 transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-                                onClick={() => scrollToBucket(b.id)}
+                                data-bucket={b.id}
+                                data-offset="12"
+                                onClick={scrollToExternalBucket}
                                 className="group inline-flex items-center gap-2 whitespace-nowrap text-left transition-colors hover:opacity-85"
                               >
                                 <span className="text-[14px] font-semibold text-[var(--color-ink)]">
@@ -1750,4 +1758,3 @@ function FilterDropdown({
     </div>
   )
 }
-

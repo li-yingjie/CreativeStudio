@@ -26,6 +26,22 @@ export default function VideoEditor({
   item: AssetItem
   onClose: () => void
 }) {
+  return (
+    <VideoEditorContent
+      key={`${item.label}:${item.src}`}
+      item={item}
+      onClose={onClose}
+    />
+  )
+}
+
+function VideoEditorContent({
+  item,
+  onClose,
+}: {
+  item: AssetItem
+  onClose: () => void
+}) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
@@ -35,15 +51,6 @@ export default function VideoEditor({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
-
-  // Re-init when a different video is opened.
-  useEffect(() => {
-    setDuration(0)
-    setClips([])
-    setSelectedId(null)
-    setPlaying(false)
-    setCurrentTime(0)
-  }, [item])
 
   const onLoadedMetadata = () => {
     const d = videoRef.current?.duration ?? 0

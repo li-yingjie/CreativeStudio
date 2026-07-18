@@ -5,7 +5,7 @@
  * VibeCodingPage to keep the hub component lean — these depend only on the
  * Proposal* card data, never on component state.
  */
-import { getPackProfile, type ProposalPackId } from './ProposalPackCard'
+import { getPackProfile, type ProposalPackId } from './proposal-pack-data'
 import { type ProposalGoalDraft } from './ProposalGoalCard'
 import { PROPOSAL_PLAYS } from './ProposalBriefCard'
 import { PROPOSAL_FUNNEL, PROPOSAL_MODULES } from './ProposalDashboardCard'

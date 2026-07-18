@@ -14,7 +14,7 @@ import {
  *  and each call to next() bumps it by 1. Used inside an AI bubble to
  *  gate sequential reveal — paragraph 2 mounts only after paragraph 1's
  *  Stream calls onDone, etc. */
-export function useStreamStep(initial = 1): readonly [number, () => void] {
+function useStreamStep(initial = 1): readonly [number, () => void] {
   const [step, setStep] = useState(initial)
   const next = useCallback(() => setStep((s) => s + 1), [])
   return [step, next] as const

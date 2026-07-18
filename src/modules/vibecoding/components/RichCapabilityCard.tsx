@@ -97,7 +97,7 @@ export default function RichCapabilityCard({
 }: RichCapabilityCardProps) {
   const seed = `${platform.id}::${capability.name}::${capability.category ?? ''}`
   const banner = BANNERS[hashIdx(seed, BANNERS.length)]
-  const description = capabilityDescription(capability, platform)
+  const description = capabilityDescription(capability)
   const updatedDays = mockUpdatedDays(seed)
   const callCount = mockCallCount(seed)
   const healthStatus =
@@ -251,7 +251,7 @@ const DESCRIPTION_RULES: { patterns: string[]; render: (name: string) => string 
   },
 ]
 
-function capabilityDescription(cap: Capability, _platform: Resource): string {
+function capabilityDescription(cap: Capability): string {
   if (cap.description) return cap.description
   const lower = cap.name.toLowerCase()
   for (const rule of DESCRIPTION_RULES) {

@@ -58,6 +58,9 @@ export type H5Selection =
 const HERO_IMG = '/h5/children-day/hero-gifts.png'
 const LOTTERY_IMG = '/h5/children-day/lottery-cube.png'
 
+// Shared with the preview/editor shell; keeping this map beside its layer
+// types avoids two sources of truth for the H5 editing model.
+// eslint-disable-next-line react-refresh/only-export-components
 export const H5_LAYER_META: Record<H5LayerId, { label: string; icon: LucideIcon }> = {
   hero: { label: '头图', icon: ImageIcon },
   countdown: { label: '倒计时', icon: Clock },

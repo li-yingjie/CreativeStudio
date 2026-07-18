@@ -45,22 +45,25 @@ export default function H5FloatingEditPanel({
   // Reposition whenever the selection changes: follow the selected object, or
   // fall back to a canvas-relative default when nothing (整体配置) is selected.
   useLayoutEffect(() => {
-    const canvasRect = getCanvasRect()
-    const minY = canvasRect ? canvasRect.top + CANVAS_INSET : MARGIN
-    const active = document.querySelector('[data-h5-active]') as HTMLElement | null
-    if (active) {
-      const r = active.getBoundingClientRect()
-      // Prefer to the right of the object; flip left if it would overflow.
-      let x = r.right + GAP
-      if (x + PANEL_W > window.innerWidth - MARGIN) x = r.left - GAP - PANEL_W
-      setPos(clamp(x, Math.max(r.top, minY)))
-    } else {
-      setPos(
-        canvasRect
-          ? clamp(canvasRect.right - PANEL_W - CANVAS_INSET, canvasRect.top + CANVAS_INSET)
-          : clamp(window.innerWidth - PANEL_W - 24, 88),
-      )
-    }
+    const frame = window.requestAnimationFrame(() => {
+      const canvasRect = getCanvasRect()
+      const minY = canvasRect ? canvasRect.top + CANVAS_INSET : MARGIN
+      const active = document.querySelector('[data-h5-active]') as HTMLElement | null
+      if (active) {
+        const r = active.getBoundingClientRect()
+        // Prefer to the right of the object; flip left if it would overflow.
+        let x = r.right + GAP
+        if (x + PANEL_W > window.innerWidth - MARGIN) x = r.left - GAP - PANEL_W
+        setPos(clamp(x, Math.max(r.top, minY)))
+      } else {
+        setPos(
+          canvasRect
+            ? clamp(canvasRect.right - PANEL_W - CANVAS_INSET, canvasRect.top + CANVAS_INSET)
+            : clamp(window.innerWidth - PANEL_W - 24, 88),
+        )
+      }
+    })
+    return () => window.cancelAnimationFrame(frame)
   }, [selection, clamp, getCanvasRect])
 
   // Keep it on-screen if the window resizes.

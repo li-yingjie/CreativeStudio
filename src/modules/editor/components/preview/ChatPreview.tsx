@@ -1,7 +1,6 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -10,32 +9,6 @@ import { ArrowUp } from '@/shared/icons'
 import { usePersonaStore } from '../../store/persona-store'
 import { getWorld } from '../../data/worlds'
 import PhoneStatusBar from './PhoneStatusBar'
-
-interface Turn {
-  id: string
-  from: 'ai' | 'me'
-  text: string
-}
-
-const REPLY_POOL = [
-  '嗯，我在听。',
-  '这个想法挺有意思，能再多说一点吗？',
-  '让我想想…… 对，我会这么帮你。',
-  '好，那按这个方向先试一下？',
-  '明白，我替你记下了。',
-  '我这边还想到一个角度，要不要一起聊聊？',
-  '可以，我陪你慢慢拆这件事。',
-]
-
-function pickReply(): string {
-  return REPLY_POOL[Math.floor(Math.random() * REPLY_POOL.length)]
-}
-
-/** Derive the first welcome turn from the persona's goal doc. */
-function buildWelcomeTurn(goal: string): Turn {
-  const line = goal.split(/[。.\n]/)[0]?.trim() || '可以帮你把想法变成画面'
-  return { id: 'welcome', from: 'ai', text: `${line}。` }
-}
 
 interface ChatPreviewProps {
   /** When set, renders the preview as if this world were selected —
@@ -63,36 +36,15 @@ export default function ChatPreview({ worldOverride }: ChatPreviewProps = {}) {
     ? currentWorld.defaults.portraitUrl
     : storePortraitUrl
 
-  const welcome = useMemo(() => buildWelcomeTurn(goalDoc), [goalDoc])
-  const [messages, setMessages] = useState<Turn[]>([welcome])
   const [input, setInput] = useState('')
   const [pending, setPending] = useState(false)
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setMessages([welcome])
-    setInput('')
-    setPending(false)
-  }, [welcome])
-
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
-  }, [messages, pending])
 
   const send = () => {
     const text = input.trim()
     if (!text || pending) return
-    const me: Turn = { id: `me-${Date.now()}`, from: 'me', text }
-    setMessages((m) => [...m, me])
     setInput('')
     setPending(true)
     window.setTimeout(() => {
-      setMessages((m) => [
-        ...m,
-        { id: `ai-${Date.now()}`, from: 'ai', text: pickReply() },
-      ])
       setPending(false)
     }, 720)
   }

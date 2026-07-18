@@ -4,7 +4,176 @@
 // call site. Regenerate via scripts if the icon set changes.
 import { forwardRef, createElement } from 'react'
 import type { ComponentType } from 'react'
-import * as T from '@tabler/icons-react'
+import {
+  IconActivity,
+  IconAlertCircle,
+  IconAlertTriangle,
+  IconAlignBoxLeftStretch,
+  IconAlignBoxRightStretch,
+  IconAppWindow,
+  IconArchive,
+  IconArrowDown,
+  IconArrowLeft,
+  IconArrowRight,
+  IconArrowUp,
+  IconArrowUpRight,
+  IconArrowsDiagonal,
+  IconArrowsSort,
+  IconFolderPlus,
+  IconArrowsLeftRight,
+  IconArrowsMove,
+  IconBan,
+  IconBell,
+  IconBolt,
+  IconBook,
+  IconBook2,
+  IconBooks,
+  IconBox,
+  IconBoxMultiple,
+  IconBriefcase,
+  IconBrush,
+  IconBulb,
+  IconCalendar,
+  IconCamera,
+  IconChartBar,
+  IconCheck,
+  IconChevronDown,
+  IconChevronLeft,
+  IconChevronRight,
+  IconChevronsRight,
+  IconChevronUp,
+  IconCircleCheck,
+  IconClock,
+  IconCode,
+  IconCoins,
+  IconColumns,
+  IconCopy,
+  IconCpu,
+  IconCrop,
+  IconCurrencyDollar,
+  IconDatabase,
+  IconDeviceDesktop,
+  IconDeviceFloppy,
+  IconDeviceGamepad2,
+  IconDeviceMobile,
+  IconDeviceTv,
+  IconDots,
+  IconDownload,
+  IconEraser,
+  IconExternalLink,
+  IconEye,
+  IconFile,
+  IconFileCode,
+  IconFileDescription,
+  IconFileInfo,
+  IconFileSearch,
+  IconFileSettings,
+  IconFileText,
+  IconFileTypeJs,
+  IconFlag,
+  IconFlame,
+  IconFlask,
+  IconFolder,
+  IconFolderCode,
+  IconFolderOpen,
+  IconFolders,
+  IconGauge,
+  IconGavel,
+  IconGift,
+  IconGitBranch,
+  IconHeadphones,
+  IconHeadset,
+  IconHeart,
+  IconHelpCircle,
+  IconHistory,
+  IconHome,
+  IconInbox,
+  IconInfoCircle,
+  IconLayout,
+  IconLayoutDashboard,
+  IconLayoutGrid,
+  IconLayoutSidebar,
+  IconLayoutSidebarRight,
+  IconLayoutSidebarRightExpand,
+  IconListCheck,
+  IconListTree,
+  IconLoader2,
+  IconLock,
+  IconLogout,
+  IconMail,
+  IconMenu2,
+  IconMenu4,
+  IconMessage,
+  IconMessageCircle,
+  IconMessageExclamation,
+  IconMessageHeart,
+  IconMessagePlus,
+  IconMessages,
+  IconMinus,
+  IconMoodSmile,
+  IconMoon,
+  IconMovie,
+  IconMusic,
+  IconNotebook,
+  IconPalette,
+  IconPaperclip,
+  IconPencil,
+  IconPhoto,
+  IconPhotoPlus,
+  IconPin,
+  IconPinnedOff,
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconPlus,
+  IconPresentation,
+  IconRefresh,
+  IconRobot,
+  IconRocket,
+  IconRosetteDiscountCheck,
+  IconRotate,
+  IconRuler2,
+  IconScale,
+  IconScissors,
+  IconSearch,
+  IconServer,
+  IconSettings,
+  IconShare,
+  IconShieldCheck,
+  IconShieldExclamation,
+  IconShoppingBag,
+  IconShoppingCart,
+  IconSparkles,
+  IconSpeakerphone,
+  IconSquareCheck,
+  IconStack2,
+  IconStar,
+  IconSun,
+  IconTable,
+  IconTag,
+  IconTarget,
+  IconTelescope,
+  IconTerminal2,
+  IconThumbDown,
+  IconThumbUp,
+  IconTool,
+  IconTrash,
+  IconTrendingDown,
+  IconTrendingUp,
+  IconTrophy,
+  IconTypography,
+  IconUpload,
+  IconUser,
+  IconUserCircle,
+  IconUserSquareRounded,
+  IconUsers,
+  IconUsersGroup,
+  IconVideo,
+  IconVolume,
+  IconWand,
+  IconWaveSine,
+  IconWorld,
+  IconX,
+} from '@tabler/icons-react'
 
 export interface IconProps {
   size?: number | string
@@ -32,176 +201,179 @@ function wrap(Comp: unknown): LucideIcon {
   return Wrapped as unknown as LucideIcon
 }
 
-export const Activity = wrap(T.IconActivity)
-export const AlignBoxLeftStretch = wrap(T.IconAlignBoxLeftStretch)
-export const AlignBoxRightStretch = wrap(T.IconAlignBoxRightStretch)
-export const AlertTriangle = wrap(T.IconAlertTriangle)
-export const AppWindow = wrap(T.IconAppWindow)
-export const Archive = wrap(T.IconArchive)
-export const ArrowDown = wrap(T.IconArrowDown)
-export const ArrowLeft = wrap(T.IconArrowLeft)
-export const ArrowRight = wrap(T.IconArrowRight)
-export const ArrowUp = wrap(T.IconArrowUp)
-export const ArrowUpRight = wrap(T.IconArrowUpRight)
-export const AudioLines = wrap(T.IconWaveSine)
-export const BadgeCheck = wrap(T.IconRosetteDiscountCheck)
-export const BadgeDollarSign = wrap(T.IconCurrencyDollar)
-export const Ban = wrap(T.IconBan)
-export const BarChart3 = wrap(T.IconChartBar)
-export const Beaker = wrap(T.IconFlask)
-export const Bell = wrap(T.IconBell)
-export const Box = wrap(T.IconBox)
-export const Blocks = wrap(T.IconStack2)
-export const BookOpen = wrap(T.IconBook)
-export const BookText = wrap(T.IconBook2)
-export const Bot = wrap(T.IconRobot)
-export const Boxes = wrap(T.IconBoxMultiple)
-export const BriefcaseBusiness = wrap(T.IconBriefcase)
-export const Brush = wrap(T.IconBrush)
-export const Calendar = wrap(T.IconCalendar)
-export const Camera = wrap(T.IconCamera)
-export const Check = wrap(T.IconCheck)
-export const CheckCircle2 = wrap(T.IconCircleCheck)
-export const CheckSquare = wrap(T.IconSquareCheck)
-export const ChevronDown = wrap(T.IconChevronDown)
-export const ChevronLeft = wrap(T.IconChevronLeft)
-export const ChevronRight = wrap(T.IconChevronRight)
-export const ChevronUp = wrap(T.IconChevronUp)
-export const CircleAlert = wrap(T.IconAlertCircle)
-export const CircleHelp = wrap(T.IconHelpCircle)
-export const Clapperboard = wrap(T.IconMovie)
-export const Clock = wrap(T.IconClock)
-export const Code2 = wrap(T.IconCode)
-export const Coins = wrap(T.IconCoins)
-export const Columns2 = wrap(T.IconColumns)
-export const Copy = wrap(T.IconCopy)
-export const Cpu = wrap(T.IconCpu)
-export const Database = wrap(T.IconDatabase)
-export const Download = wrap(T.IconDownload)
-export const Eraser = wrap(T.IconEraser)
-export const DollarSign = wrap(T.IconCurrencyDollar)
-export const ExternalLink = wrap(T.IconExternalLink)
-export const Eye = wrap(T.IconEye)
-export const File = wrap(T.IconFile)
-export const FileCode2 = wrap(T.IconFileCode)
-export const FileCog = wrap(T.IconFileSettings)
-export const FileInfo = wrap(T.IconFileInfo)
-export const FileJson = wrap(T.IconFileTypeJs)
-export const FileSearch = wrap(T.IconFileSearch)
-export const FileText = wrap(T.IconFileText)
-export const Film = wrap(T.IconMovie)
-export const Flag = wrap(T.IconFlag)
-export const Flame = wrap(T.IconFlame)
-export const Flashlight = wrap(T.IconBulb)
-export const FolderClosed = wrap(T.IconFolder)
-export const FolderCode = wrap(T.IconFolderCode)
-export const FolderOpen = wrap(T.IconFolderOpen)
-export const FolderTree = wrap(T.IconFolders)
-export const Gamepad2 = wrap(T.IconDeviceGamepad2)
-export const Gauge = wrap(T.IconGauge)
-export const Gift = wrap(T.IconGift)
-export const GitBranch = wrap(T.IconGitBranch)
-export const Globe = wrap(T.IconWorld)
-export const Headphones = wrap(T.IconHeadphones)
-export const Headset = wrap(T.IconHeadset)
-export const Heart = wrap(T.IconHeart)
-export const Home = wrap(T.IconHome)
-export const History = wrap(T.IconHistory)
-export const Image = wrap(T.IconPhoto)
-export const ImagePlus = wrap(T.IconPhotoPlus)
-export const Inbox = wrap(T.IconInbox)
-export const Info = wrap(T.IconInfoCircle)
-export const Layers = wrap(T.IconStack2)
-export const LayoutDashboard = wrap(T.IconLayoutDashboard)
-export const LayoutGrid = wrap(T.IconLayoutGrid)
-export const Lock = wrap(T.IconLock)
-export const LayoutTemplate = wrap(T.IconLayout)
-export const Library = wrap(T.IconBooks)
-export const Lightbulb = wrap(T.IconBulb)
-export const Maximize2 = wrap(T.IconArrowsDiagonal)
-export const ListCollapse = wrap(T.IconListTree)
-export const ListChecks = wrap(T.IconListCheck)
-export const Loader2 = wrap(T.IconLoader2)
-export const Mail = wrap(T.IconMail)
-export const Menu = wrap(T.IconMenu2)
-export const Minus = wrap(T.IconMinus)
-export const Megaphone = wrap(T.IconSpeakerphone)
-export const MessageCircle = wrap(T.IconMessageCircle)
-export const MessageCircleHeart = wrap(T.IconMessageHeart)
-export const MessageSquare = wrap(T.IconMessage)
-export const MessageSquarePlus = wrap(T.IconMessagePlus)
-export const MessageSquareText = wrap(T.IconMessage)
-export const MessageSquareWarning = wrap(T.IconMessageExclamation)
-export const MessagesSquare = wrap(T.IconMessages)
-export const Monitor = wrap(T.IconDeviceDesktop)
-export const MonitorPlay = wrap(T.IconDeviceTv)
-export const Moon = wrap(T.IconMoon)
-export const MoreHorizontal = wrap(T.IconDots)
-export const Move = wrap(T.IconArrowsMove)
-export const Music = wrap(T.IconMusic)
-export const Music2 = wrap(T.IconMusic)
-export const Notebook = wrap(T.IconNotebook)
-export const Palette = wrap(T.IconPalette)
-export const PanelLeft = wrap(T.IconLayoutSidebar)
-export const PanelRight = wrap(T.IconLayoutSidebarRight)
-export const PanelRightOpen = wrap(T.IconLayoutSidebarRightExpand)
-export const Paperclip = wrap(T.IconPaperclip)
-export const Pencil = wrap(T.IconPencil)
-export const PencilLine = wrap(T.IconPencil)
-export const Pin = wrap(T.IconPin)
-export const PinOff = wrap(T.IconPinnedOff)
-export const Star = wrap(T.IconStar)
-export const LogOut = wrap(T.IconLogout)
-export const Menu4 = wrap(T.IconMenu4)
-export const Play = wrap(T.IconPlayerPlay)
-export const Pause = wrap(T.IconPlayerPause)
-export const Scissors = wrap(T.IconScissors)
-export const Crop = wrap(T.IconCrop)
-export const Ruler = wrap(T.IconRuler2)
-export const Plus = wrap(T.IconPlus)
-export const Presentation = wrap(T.IconPresentation)
-export const RefreshCw = wrap(T.IconRefresh)
-export const Rocket = wrap(T.IconRocket)
-export const RotateCcw = wrap(T.IconRotate)
-export const Save = wrap(T.IconDeviceFloppy)
-export const Scale = wrap(T.IconScale)
-export const ScrollText = wrap(T.IconFileDescription)
-export const Search = wrap(T.IconSearch)
-export const Server = wrap(T.IconServer)
-export const Settings = wrap(T.IconSettings)
-export const Share2 = wrap(T.IconShare)
-export const ShieldAlert = wrap(T.IconShieldExclamation)
-export const ShieldCheck = wrap(T.IconShieldCheck)
-export const ShoppingBag = wrap(T.IconShoppingBag)
-export const ShoppingCart = wrap(T.IconShoppingCart)
-export const Smartphone = wrap(T.IconDeviceMobile)
-export const Smile = wrap(T.IconMoodSmile)
-export const Sparkles = wrap(T.IconSparkles)
-export const SquareUser = wrap(T.IconUserSquareRounded)
-export const Sun = wrap(T.IconSun)
-export const Table = wrap(T.IconTable)
-export const Tag = wrap(T.IconTag)
-export const Target = wrap(T.IconTarget)
-export const Telescope = wrap(T.IconTelescope)
-export const Terminal = wrap(T.IconTerminal2)
-export const ThumbsDown = wrap(T.IconThumbDown)
-export const ThumbsUp = wrap(T.IconThumbUp)
-export const Trash2 = wrap(T.IconTrash)
-export const Trophy = wrap(T.IconTrophy)
-export const Gavel = wrap(T.IconGavel)
-export const ArrowsLeftRight = wrap(T.IconArrowsLeftRight)
-export const TrendingUp = wrap(T.IconTrendingUp)
-export const TrendingDown = wrap(T.IconTrendingDown)
-export const Type = wrap(T.IconTypography)
-export const Upload = wrap(T.IconUpload)
-export const User = wrap(T.IconUser)
-export const UserRound = wrap(T.IconUserCircle)
-export const Users = wrap(T.IconUsers)
-export const UsersRound = wrap(T.IconUsersGroup)
-export const Video = wrap(T.IconVideo)
-export const Volume2 = wrap(T.IconVolume)
-export const Wand2 = wrap(T.IconWand)
-export const WandSparkles = wrap(T.IconWand)
-export const Wrench = wrap(T.IconTool)
-export const X = wrap(T.IconX)
-export const Zap = wrap(T.IconBolt)
+export const Activity = wrap(IconActivity)
+export const AlignBoxLeftStretch = wrap(IconAlignBoxLeftStretch)
+export const AlignBoxRightStretch = wrap(IconAlignBoxRightStretch)
+export const AlertTriangle = wrap(IconAlertTriangle)
+export const ArrowUpDown = wrap(IconArrowsSort)
+export const FolderPlus = wrap(IconFolderPlus)
+export const AppWindow = wrap(IconAppWindow)
+export const Archive = wrap(IconArchive)
+export const ArrowDown = wrap(IconArrowDown)
+export const ArrowLeft = wrap(IconArrowLeft)
+export const ArrowRight = wrap(IconArrowRight)
+export const ArrowUp = wrap(IconArrowUp)
+export const ArrowUpRight = wrap(IconArrowUpRight)
+export const AudioLines = wrap(IconWaveSine)
+export const BadgeCheck = wrap(IconRosetteDiscountCheck)
+export const BadgeDollarSign = wrap(IconCurrencyDollar)
+export const Ban = wrap(IconBan)
+export const BarChart3 = wrap(IconChartBar)
+export const Beaker = wrap(IconFlask)
+export const Bell = wrap(IconBell)
+export const Box = wrap(IconBox)
+export const Blocks = wrap(IconStack2)
+export const BookOpen = wrap(IconBook)
+export const BookText = wrap(IconBook2)
+export const Bot = wrap(IconRobot)
+export const Boxes = wrap(IconBoxMultiple)
+export const BriefcaseBusiness = wrap(IconBriefcase)
+export const Brush = wrap(IconBrush)
+export const Calendar = wrap(IconCalendar)
+export const Camera = wrap(IconCamera)
+export const Check = wrap(IconCheck)
+export const CheckCircle2 = wrap(IconCircleCheck)
+export const CheckSquare = wrap(IconSquareCheck)
+export const ChevronDown = wrap(IconChevronDown)
+export const ChevronLeft = wrap(IconChevronLeft)
+export const ChevronRight = wrap(IconChevronRight)
+export const ChevronsRight = wrap(IconChevronsRight)
+export const ChevronUp = wrap(IconChevronUp)
+export const CircleAlert = wrap(IconAlertCircle)
+export const CircleHelp = wrap(IconHelpCircle)
+export const Clapperboard = wrap(IconMovie)
+export const Clock = wrap(IconClock)
+export const Code2 = wrap(IconCode)
+export const Coins = wrap(IconCoins)
+export const Columns2 = wrap(IconColumns)
+export const Copy = wrap(IconCopy)
+export const Cpu = wrap(IconCpu)
+export const Database = wrap(IconDatabase)
+export const Download = wrap(IconDownload)
+export const Eraser = wrap(IconEraser)
+export const DollarSign = wrap(IconCurrencyDollar)
+export const ExternalLink = wrap(IconExternalLink)
+export const Eye = wrap(IconEye)
+export const File = wrap(IconFile)
+export const FileCode2 = wrap(IconFileCode)
+export const FileCog = wrap(IconFileSettings)
+export const FileInfo = wrap(IconFileInfo)
+export const FileJson = wrap(IconFileTypeJs)
+export const FileSearch = wrap(IconFileSearch)
+export const FileText = wrap(IconFileText)
+export const Film = wrap(IconMovie)
+export const Flag = wrap(IconFlag)
+export const Flame = wrap(IconFlame)
+export const Flashlight = wrap(IconBulb)
+export const FolderClosed = wrap(IconFolder)
+export const FolderCode = wrap(IconFolderCode)
+export const FolderOpen = wrap(IconFolderOpen)
+export const FolderTree = wrap(IconFolders)
+export const Gamepad2 = wrap(IconDeviceGamepad2)
+export const Gauge = wrap(IconGauge)
+export const Gift = wrap(IconGift)
+export const GitBranch = wrap(IconGitBranch)
+export const Globe = wrap(IconWorld)
+export const Headphones = wrap(IconHeadphones)
+export const Headset = wrap(IconHeadset)
+export const Heart = wrap(IconHeart)
+export const Home = wrap(IconHome)
+export const History = wrap(IconHistory)
+export const Image = wrap(IconPhoto)
+export const ImagePlus = wrap(IconPhotoPlus)
+export const Inbox = wrap(IconInbox)
+export const Info = wrap(IconInfoCircle)
+export const Layers = wrap(IconStack2)
+export const LayoutDashboard = wrap(IconLayoutDashboard)
+export const LayoutGrid = wrap(IconLayoutGrid)
+export const Lock = wrap(IconLock)
+export const LayoutTemplate = wrap(IconLayout)
+export const Library = wrap(IconBooks)
+export const Lightbulb = wrap(IconBulb)
+export const Maximize2 = wrap(IconArrowsDiagonal)
+export const ListCollapse = wrap(IconListTree)
+export const ListChecks = wrap(IconListCheck)
+export const Loader2 = wrap(IconLoader2)
+export const Mail = wrap(IconMail)
+export const Menu = wrap(IconMenu2)
+export const Minus = wrap(IconMinus)
+export const Megaphone = wrap(IconSpeakerphone)
+export const MessageCircle = wrap(IconMessageCircle)
+export const MessageCircleHeart = wrap(IconMessageHeart)
+export const MessageSquare = wrap(IconMessage)
+export const MessageSquarePlus = wrap(IconMessagePlus)
+export const MessageSquareText = wrap(IconMessage)
+export const MessageSquareWarning = wrap(IconMessageExclamation)
+export const MessagesSquare = wrap(IconMessages)
+export const Monitor = wrap(IconDeviceDesktop)
+export const MonitorPlay = wrap(IconDeviceTv)
+export const Moon = wrap(IconMoon)
+export const MoreHorizontal = wrap(IconDots)
+export const Move = wrap(IconArrowsMove)
+export const Music = wrap(IconMusic)
+export const Music2 = wrap(IconMusic)
+export const Notebook = wrap(IconNotebook)
+export const Palette = wrap(IconPalette)
+export const PanelLeft = wrap(IconLayoutSidebar)
+export const PanelRight = wrap(IconLayoutSidebarRight)
+export const PanelRightOpen = wrap(IconLayoutSidebarRightExpand)
+export const Paperclip = wrap(IconPaperclip)
+export const Pencil = wrap(IconPencil)
+export const PencilLine = wrap(IconPencil)
+export const Pin = wrap(IconPin)
+export const PinOff = wrap(IconPinnedOff)
+export const Star = wrap(IconStar)
+export const LogOut = wrap(IconLogout)
+export const Menu4 = wrap(IconMenu4)
+export const Play = wrap(IconPlayerPlay)
+export const Pause = wrap(IconPlayerPause)
+export const Scissors = wrap(IconScissors)
+export const Crop = wrap(IconCrop)
+export const Ruler = wrap(IconRuler2)
+export const Plus = wrap(IconPlus)
+export const Presentation = wrap(IconPresentation)
+export const RefreshCw = wrap(IconRefresh)
+export const Rocket = wrap(IconRocket)
+export const RotateCcw = wrap(IconRotate)
+export const Save = wrap(IconDeviceFloppy)
+export const Scale = wrap(IconScale)
+export const ScrollText = wrap(IconFileDescription)
+export const Search = wrap(IconSearch)
+export const Server = wrap(IconServer)
+export const Settings = wrap(IconSettings)
+export const Share2 = wrap(IconShare)
+export const ShieldAlert = wrap(IconShieldExclamation)
+export const ShieldCheck = wrap(IconShieldCheck)
+export const ShoppingBag = wrap(IconShoppingBag)
+export const ShoppingCart = wrap(IconShoppingCart)
+export const Smartphone = wrap(IconDeviceMobile)
+export const Smile = wrap(IconMoodSmile)
+export const Sparkles = wrap(IconSparkles)
+export const SquareUser = wrap(IconUserSquareRounded)
+export const Sun = wrap(IconSun)
+export const Table = wrap(IconTable)
+export const Tag = wrap(IconTag)
+export const Target = wrap(IconTarget)
+export const Telescope = wrap(IconTelescope)
+export const Terminal = wrap(IconTerminal2)
+export const ThumbsDown = wrap(IconThumbDown)
+export const ThumbsUp = wrap(IconThumbUp)
+export const Trash2 = wrap(IconTrash)
+export const Trophy = wrap(IconTrophy)
+export const Gavel = wrap(IconGavel)
+export const ArrowsLeftRight = wrap(IconArrowsLeftRight)
+export const TrendingUp = wrap(IconTrendingUp)
+export const TrendingDown = wrap(IconTrendingDown)
+export const Type = wrap(IconTypography)
+export const Upload = wrap(IconUpload)
+export const User = wrap(IconUser)
+export const UserRound = wrap(IconUserCircle)
+export const Users = wrap(IconUsers)
+export const UsersRound = wrap(IconUsersGroup)
+export const Video = wrap(IconVideo)
+export const Volume2 = wrap(IconVolume)
+export const Wand2 = wrap(IconWand)
+export const WandSparkles = wrap(IconWand)
+export const Wrench = wrap(IconTool)
+export const X = wrap(IconX)
+export const Zap = wrap(IconBolt)

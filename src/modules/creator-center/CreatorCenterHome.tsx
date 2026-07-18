@@ -1,5 +1,7 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import * as Popover from '@radix-ui/react-popover'
+import { motion, useReducedMotion } from 'framer-motion'
+import { toast } from 'sonner'
 import {
   ChevronDown,
   ChevronRight,
@@ -24,19 +26,43 @@ import {
   PUBLISH_ICON,
   SIDE_MENU,
   SMART_CREATE_ENTRIES,
+  type PublishEntryId,
   type ProductId,
 } from './data'
-import ActivityPage from './ActivityPage'
-import CollabPage from './CollabPage'
-import ContentPage from './ContentPage'
-import CopyrightPage from './CopyrightPage'
-import DouyinIndexPage from './DouyinIndexPage'
-import IncomePage from './IncomePage'
-import LivePage from './LivePage'
 import MaskIcon from './MaskIcon'
-import PublishVideoPage from './PublishVideoPage'
 import { ActivityCenterCard, HomeFooter, InteractionSection, MonetizationSection, QuickNavCard } from './HomeSections'
-import { OverviewRadar, SimpleAreaChart, TrendAreaChart } from './HomeCharts'
+import AiAssistantPanel from '@/shared/components/AiAssistantPanel'
+import { assistantContextFor } from './assistant-contexts'
+
+const ActivityPage = lazy(() => import('./ActivityPage'))
+const CollabPage = lazy(() => import('./CollabPage'))
+const ContentPage = lazy(() => import('./ContentPage'))
+const CopyrightPage = lazy(() => import('./CopyrightPage'))
+const DouyinIndexPage = lazy(() => import('./DouyinIndexPage'))
+const IncomePage = lazy(() => import('./IncomePage'))
+const LivePage = lazy(() => import('./LivePage'))
+const PublishVideoPage = lazy(() => import('./PublishVideoPage'))
+const OverviewRadar = lazy(() =>
+  import('./HomeCharts').then((module) => ({ default: module.OverviewRadar })),
+)
+const SimpleAreaChart = lazy(() =>
+  import('./HomeCharts').then((module) => ({ default: module.SimpleAreaChart })),
+)
+const TrendAreaChart = lazy(() =>
+  import('./HomeCharts').then((module) => ({ default: module.TrendAreaChart })),
+)
+
+function SectionLoader({ height = 240 }: { height?: number }) {
+  return (
+    <div
+      role="status"
+      className="flex items-center justify-center text-[13px] text-[#252632]/45"
+      style={{ minHeight: height }}
+    >
+      加载中…
+    </div>
+  )
+}
 
 const RANGE_LABELS: { value: StatsRange; label: string }[] = [
   { value: 'yesterday', label: '昨天' },
@@ -47,11 +73,12 @@ const RANGE_LABELS: { value: StatsRange; label: string }[] = [
 /** 时间范围切换 — 受控，切换会触发面板重新向 /api/creator/stats 查询。 */
 function RangeSwitch({ value, onChange }: { value: StatsRange; onChange: (r: StatsRange) => void }) {
   return (
-    <div className="flex items-center rounded-lg bg-[#F2F3F5] p-0.5 text-[12px]">
+    <div role="group" aria-label="统计时间范围" className="flex items-center rounded-lg bg-[#F2F3F5] p-0.5 text-[12px]">
       {RANGE_LABELS.map((r) => (
         <button
           key={r.value}
           type="button"
+          aria-pressed={value === r.value}
           onClick={() => onChange(r.value)}
           className={`rounded-md px-3 py-1 transition-colors ${
             value === r.value ? 'bg-white font-medium text-[#252632] shadow-sm' : 'text-[#252632]/55 hover:text-[#252632]'
@@ -105,8 +132,23 @@ interface SideMenuItem {
   children?: string[]
 }
 
+function isPublishPage(page: string) {
+  return page.startsWith('publish-')
+}
+
+function publishPageKey(id: PublishEntryId) {
+  return `publish-${id}`
+}
+
+function publishKindFromPage(page: string): PublishEntryId {
+  if (page === 'publish-image') return 'image'
+  if (page === 'publish-panorama') return 'panorama'
+  if (page === 'publish-article') return 'article'
+  return 'video'
+}
+
 function SideNav({ active, onSelect }: { active: string; onSelect: (key: string) => void }) {
-  const [serviceOpen, setServiceOpen] = useState(true)
+  const [serviceOpen, setServiceOpen] = useState(false)
   const liveEnabled = useLiveMgmt((s) => s.enabled)
   // 直播管理是权限菜单，开启时插在「内容」上方
   const menu: SideMenuItem[] = []
@@ -116,64 +158,122 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
   }
   return (
     // <lg 收缩为「只有 icon」的窄导航（icon rail），≥lg 展开为完整侧栏
-    <aside className="flex w-14 shrink-0 flex-col gap-1 border-r border-black/5 bg-white px-2 pt-4 lg:w-[176px] lg:px-3">
+    <aside aria-label="创作者中心侧栏" className="flex w-14 shrink-0 flex-col gap-1 border-r border-black/5 bg-white px-2 pt-4 lg:w-[200px] lg:px-6">
       <button
         type="button"
         title="发布"
+        aria-current={isPublishPage(active) ? 'page' : undefined}
         onClick={() => onSelect('publish-video')}
         className="mb-2 flex h-10 items-center justify-center rounded-xl bg-[#161823] px-0 text-[14px] font-medium text-white hover:bg-[#161823]/90 lg:justify-between lg:px-4"
       >
         <span className="flex items-center gap-2">
-          <MaskIcon url={PUBLISH_ICON} size={15} />
+          <MaskIcon url={PUBLISH_ICON} size={20} />
           <span className="hidden lg:inline">发布</span>
         </span>
-        <ChevronDown size={15} className="hidden lg:block" />
+        <ChevronRight size={15} className="hidden lg:block" />
       </button>
       {menu.map((m) => {
         // 收缩态下父项在其子页高亮，方便看出当前所在模块
         const isActive = active === m.key || (Boolean(m.children) && active.startsWith(`service:`))
         const hasChildren = Boolean(m.children)
+        const itemClass = `flex h-9 w-full items-center justify-center gap-2.5 rounded-lg px-3 text-[13px] transition-colors lg:justify-start ${
+          isActive
+            ? 'bg-black/5 font-medium text-[#252632]'
+            : 'font-normal text-[#252632]/55 hover:bg-black/[0.03] hover:text-[#252632]/80'
+        }`
+
+        if (hasChildren) {
+          return (
+            <div key={m.key}>
+              {/* 折叠栏使用 Popover，避免子菜单在窄屏完全不可达。 */}
+              <div className="lg:hidden">
+                <Popover.Root>
+                  <Popover.Trigger asChild>
+                    <button type="button" title={m.label} aria-label={`打开${m.label}菜单`} className={itemClass}>
+                      {m.lucide ? <m.lucide size={18} strokeWidth={1.8} /> : <MaskIcon url={m.icon!} size={18} />}
+                    </button>
+                  </Popover.Trigger>
+                  <Popover.Portal>
+                    <Popover.Content
+                      side="right"
+                      align="start"
+                      sideOffset={8}
+                      aria-label={m.label}
+                      className="z-[80] min-w-36 rounded-xl border border-black/5 bg-white p-2 shadow-lg"
+                    >
+                      <div className="px-2 pb-1.5 text-[12px] font-medium text-[#252632]/60">{m.label}</div>
+                      {m.children!.map((c) => (
+                        <Popover.Close asChild key={c}>
+                          <button
+                            type="button"
+                            aria-current={active === `service:${c}` ? 'page' : undefined}
+                            onClick={() => onSelect(`service:${c}`)}
+                            className={`flex h-8 w-full items-center rounded-lg px-2 text-[13px] ${
+                              active === `service:${c}`
+                                ? 'bg-black/5 font-medium text-[#252632]'
+                                : 'text-[#252632]/60 hover:bg-black/[0.03] hover:text-[#252632]'
+                            }`}
+                          >
+                            {c}
+                          </button>
+                        </Popover.Close>
+                      ))}
+                    </Popover.Content>
+                  </Popover.Portal>
+                </Popover.Root>
+              </div>
+
+              <button
+                type="button"
+                aria-expanded={serviceOpen}
+                aria-controls="creator-service-submenu"
+                onClick={() => setServiceOpen((v) => !v)}
+                className={`${itemClass} hidden lg:flex`}
+              >
+                {m.lucide ? <m.lucide size={18} strokeWidth={1.8} /> : <MaskIcon url={m.icon!} size={18} />}
+                <span>{m.label}</span>
+                {serviceOpen ? (
+                  <ChevronUp size={13} className="ml-auto text-[#252632]/40" />
+                ) : (
+                  <ChevronDown size={13} className="ml-auto text-[#252632]/40" />
+                )}
+              </button>
+              {serviceOpen && (
+                <div id="creator-service-submenu" className="mt-0.5 hidden space-y-0.5 lg:block">
+                  {m.children!.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      aria-current={active === `service:${c}` ? 'page' : undefined}
+                      onClick={() => onSelect(`service:${c}`)}
+                      className={`flex h-8 w-full items-center rounded-lg pl-[38px] text-[13px] transition-colors ${
+                        active === `service:${c}`
+                          ? 'bg-black/5 text-[#252632]'
+                          : 'text-[#252632]/55 hover:bg-black/[0.03] hover:text-[#252632]/80'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        }
+
         return (
           <div key={m.key}>
             <button
               type="button"
               title={m.label}
-              onClick={() => (hasChildren ? setServiceOpen((v) => !v) : onSelect(m.key))}
-              className={`flex h-9 w-full items-center justify-center gap-2.5 rounded-lg px-3 text-[13px] transition-colors lg:justify-start ${
-                isActive
-                  ? 'bg-black/5 font-medium text-[#252632]'
-                  : 'font-normal text-[#252632]/45 hover:bg-black/[0.03] hover:text-[#252632]/70'
-              }`}
+              aria-current={isActive ? 'page' : undefined}
+              onClick={() => onSelect(m.key)}
+              className={itemClass}
             >
               {/* icon 跟随文字色：选中深色 #252632，未选中灰（svg 填充已统一无透明度） */}
-              {m.lucide ? <m.lucide size={15} strokeWidth={1.8} /> : <MaskIcon url={m.icon!} size={15} />}
+              {m.lucide ? <m.lucide size={18} strokeWidth={1.8} /> : <MaskIcon url={m.icon!} size={18} />}
               <span className="hidden lg:inline">{m.label}</span>
-              {hasChildren &&
-                (serviceOpen ? (
-                  <ChevronUp size={13} className="ml-auto hidden text-[#252632]/40 lg:block" />
-                ) : (
-                  <ChevronDown size={13} className="ml-auto hidden text-[#252632]/40 lg:block" />
-                ))}
             </button>
-            {/* 子菜单为缩进文字，窄栏放不下 —— 仅在 ≥lg 展示 */}
-            {hasChildren && serviceOpen && (
-              <div className="mt-0.5 hidden space-y-0.5 lg:block">
-                {m.children!.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => onSelect(`service:${c}`)}
-                    className={`flex h-8 w-full items-center rounded-lg pl-[38px] text-[13px] transition-colors ${
-                      active === `service:${c}`
-                        ? 'bg-black/5 text-[#252632]'
-                        : 'text-[#252632]/45 hover:bg-black/[0.03] hover:text-[#252632]/75'
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )
       })}
@@ -193,26 +293,29 @@ function ProfileHeader({ stats }: { stats: CreatorStats | null }) {
       ]
     : null
   return (
-    <div className="flex items-start gap-4">
-      <img src={p.avatar} alt={p.name} className="h-[72px] w-[72px] rounded-full object-cover ring-2 ring-white" />
-      <div className="min-w-0 pt-1">
+    <div className="flex min-h-[80px] items-center gap-3">
+      <img src={p.avatar} alt={p.name} className="size-[74px] rounded-full border border-[#E4E4E6] object-cover" />
+      <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <h2 className="text-[18px] font-semibold text-[#252632]">{p.name}</h2>
-          <span className="flex items-center gap-1 rounded-full bg-[#FFF6DC] px-2 py-0.5 text-[11px] text-[#B57A00]">
+          <h2 className="text-[16px] font-semibold leading-6 text-[#252632]">{p.name}</h2>
+          <span className="flex items-center gap-1 rounded-full border border-white bg-white/70 px-1.5 py-0.5 text-[13px] leading-[18px] text-[#FF851D]">
             ✔ {p.badge}
           </span>
         </div>
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[#252632]/50">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] leading-4 text-[#252632]/60">
           <span className="text-[#4E83FD]">{p.authorize}</span>
+          <i className="h-3 w-px bg-[#E2E2E2]" />
           <span>{p.mcn}</span>
+          <i className="h-3 w-px bg-[#E2E2E2]" />
           <span>{p.douyinId}</span>
+          <i className="h-3 w-px bg-[#E2E2E2]" />
           <span className="truncate">{p.signature}</span>
         </div>
-        <div className="mt-2 flex items-center gap-5 text-[13px]">
+        <div className="mt-2 flex items-center gap-6 text-[12px] font-semibold tabular-nums">
           {nums
             ? nums.map((s) => (
                 <span key={s.label} className="text-[#252632]/55">
-                  {s.label} <b className="ml-0.5 font-semibold text-[#252632]">{s.value}</b>
+                  {s.label} <b className="ml-1 text-[14px] font-bold leading-5 text-[#252632]">{s.value}</b>
                 </span>
               ))
             : <span className="h-4 w-48 animate-pulse rounded bg-black/5" />}
@@ -224,8 +327,8 @@ function ProfileHeader({ stats }: { stats: CreatorStats | null }) {
 
 /* ─── 入口卡 ─── */
 
-/** 入口卡（设计稿 947-41110/947-41212）：图标以「贴纸」构图悬出卡片左上角
- *  （绝对定位 77×84，顶部超出约 6px，正面卡与卡片精确等高贴齐），文字从 86px 起排。
+/** 入口卡（设计稿 1-24030）：图标容器 77×84；前卡 60×75，视觉上与入口卡等高。
+ *  容器上移 5px 抵消前卡内部偏移，文字从 86px 起排。
  *  whileHover 变体向下传播，驱动 CardImageIcon 的后卡扇开。 */
 function EntryCard({
   icon,
@@ -247,7 +350,7 @@ function EntryCard({
       whileHover="spread"
       className="relative h-[75px] rounded-2xl border-[0.5px] border-black/5 bg-white py-[16px] pl-[86px] pr-3 text-left shadow-[0_7px_8px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_10px_16px_rgba(0,0,0,0.08)]"
     >
-      <span className="pointer-events-none absolute -left-px -top-1.5 z-[1] h-[84px] w-[77px]">{icon}</span>
+      <span className="pointer-events-none absolute -left-px top-[-5.1px] z-[1] h-[84px] w-[77px]">{icon}</span>
       <div className="min-w-0">
         <div className="truncate text-[14px] font-semibold text-[#252632]">{label}</div>
         <div className="mt-1 truncate text-[12px] text-[#252632]/50">{desc}</div>
@@ -258,21 +361,28 @@ function EntryCard({
 
 /** 入口卡图标：正卡（front，设计稿导出的 4x 贴纸）在左，后卡与正卡等大、在右后方
  *  斜置探出（有 back 图则铺图，否则用中性浅色底板——对应设计里作品发布/工坊的白底后卡）。
- *  hover 时后卡以左下角为圆心再向右轻扇（spring 回弹）。 */
+ *  默认几何与 hover 增量分层：内层固定设计稿 10°，外层绕左下角向右再扇 4°。 */
 function CardImageIcon({ front, back }: { front: string; back?: string }) {
+  const reduceMotion = useReducedMotion()
+
   return (
     <span className="relative block h-full w-full">
-      {/* 后卡：与正卡等大，右后方斜置探出 */}
+      {/* 后卡：设计稿 x=17.936, y=0, 60×75, rotate=10°, skewX=-1.54° */}
       <motion.span
-        className="pointer-events-none absolute left-[14%] top-[1%] h-[95%] w-[83%] overflow-hidden rounded-[13px] border border-white/80 bg-gradient-to-b from-[#f2f3f5] to-[#e0e3e9] shadow-[0_5px_10px_rgba(0,0,0,0.12)]"
+        className="pointer-events-none absolute left-[17.94px] top-0 h-[75px] w-[60px]"
         style={{ transformOrigin: '0% 100%' }}
-        variants={{ rest: { rotate: 9 }, spread: { rotate: 13 } }}
-        transition={{ type: 'spring', stiffness: 320, damping: 17 }}
+        variants={{ rest: { rotate: 0 }, spread: { rotate: reduceMotion ? 0 : 4 } }}
+        transition={{ duration: reduceMotion ? 0 : 0.18, ease: 'easeOut' }}
       >
-        {back && <img src={back} alt="" className="h-full w-full object-cover" />}
+        <span
+          className="absolute inset-0 overflow-hidden rounded-xl border border-white/80 bg-gradient-to-b from-[#f2f3f5] to-[#e0e3e9] shadow-[0_5px_10px_rgba(0,0,0,0.12)]"
+          style={{ transform: 'rotate(10deg) skewX(-1.54deg)', transformOrigin: '0% 0%' }}
+        >
+          {back && <img src={back} alt="" className="h-full w-full object-cover" />}
+        </span>
       </motion.span>
       {/* 正卡在左，压住后卡 */}
-      <img src={front} alt="" className="pointer-events-none absolute left-[-3%] top-0 w-[86%]" />
+      <img src={front} alt="" className="pointer-events-none absolute left-0 top-[5.1px] h-[75px] w-[60px] object-cover" />
     </span>
   )
 }
@@ -317,7 +427,9 @@ function OverviewSection() {
         <PanelFallback error={error} height={340} />
       ) : (
         <div className="mt-4 grid grid-cols-[minmax(0,460px)_1fr] gap-8">
-          <OverviewRadar dims={data.overview.dims} active={dimIdx} onSelect={setDimIdx} />
+          <Suspense fallback={<SectionLoader height={250} />}>
+            <OverviewRadar dims={data.overview.dims} active={dimIdx} onSelect={setDimIdx} />
+          </Suspense>
           <div className="min-w-0">
             <h4 className="text-[14px] font-semibold text-[#252632]">{dim.label}分析</h4>
             <p className="mt-2 rounded-xl bg-[#F7F8FA] p-4 text-[13px] leading-6 text-[#252632]/70">
@@ -338,7 +450,7 @@ function OverviewSection() {
               <h4 className="text-[14px] font-semibold text-[#252632]">
                 {dim.key === 'works' ? '本期发布作品' : `${dim.label}贡献TOP3`}
               </h4>
-              <button type="button" className="ml-auto text-[12px] text-[#4E83FD] hover:opacity-80">
+              <button type="button" onClick={() => toast('已打开全部作品（演示）')} className="ml-auto text-[12px] text-[#2C64E3] hover:opacity-80">
                 查看所有作品 ›
               </button>
             </div>
@@ -411,11 +523,12 @@ function MetricTabs({
   cols: number
 }) {
   return (
-    <div className="grid overflow-hidden rounded-xl border border-black/5" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+    <div role="group" aria-label="数据指标" className="grid overflow-hidden rounded-xl border border-black/5" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
       {defs.map((m, i) => (
         <button
           key={m.label}
           type="button"
+          aria-pressed={active === i}
           onClick={() => onSelect(i)}
           className={`relative flex flex-col gap-1 border-r border-black/5 px-4 py-3 text-left last:border-r-0 ${
             active === i ? 'bg-white' : 'bg-[#FAFBFC] hover:bg-white'
@@ -437,6 +550,7 @@ function ExportButton() {
   return (
     <button
       type="button"
+      onClick={() => toast('导出成功（演示）')}
       className="flex items-center gap-1 rounded-lg border border-black/10 px-2.5 py-1 text-[12px] text-[#252632]/70 hover:bg-black/[0.03]"
     >
       <Download size={13} /> 导出数据
@@ -462,11 +576,13 @@ function WorksSection() {
           </>
         }
       />
-      <div className="mt-3 flex gap-5 border-b border-black/5 text-[13px]">
+      <div role="tablist" aria-label="作品数据类型" className="mt-3 flex gap-5 border-b border-black/5 text-[13px]">
         {['投稿', '合集', '直播'].map((t) => (
           <button
             key={t}
             type="button"
+            role="tab"
+            aria-selected={tab === t}
             onClick={() => setTab(t)}
             className={`-mb-px border-b-2 pb-2 transition-colors ${
               tab === t
@@ -486,13 +602,15 @@ function WorksSection() {
             <MetricTabs defs={WORKS_METRIC_DEFS} data={data} active={metric} onSelect={setMetric} cols={8} />
           </div>
           <div className="mt-4">
-            <TrendAreaChart
-              data={data.works.trend}
-              dataKey={def.dataKey}
-              name={def.label}
-              id="works-trend"
-              rich={def.rich}
-            />
+            <Suspense fallback={<SectionLoader height={230} />}>
+              <TrendAreaChart
+                data={data.works.trend}
+                dataKey={def.dataKey}
+                name={def.label}
+                id="works-trend"
+                rich={def.rich}
+              />
+            </Suspense>
           </div>
         </>
       )}
@@ -525,7 +643,9 @@ function FansSection() {
             <MetricTabs defs={FANS_METRIC_DEFS} data={data} active={metric} onSelect={setMetric} cols={5} />
           </div>
           <div className="mt-4">
-            <TrendAreaChart data={data.fans.trend} dataKey={def.dataKey} name={def.label} id="fans-trend" />
+            <Suspense fallback={<SectionLoader height={230} />}>
+              <TrendAreaChart data={data.fans.trend} dataKey={def.dataKey} name={def.label} id="fans-trend" />
+            </Suspense>
           </div>
         </>
       )}
@@ -544,28 +664,28 @@ function fmtDelta(delta: number, type: 'count' | 'yuan') {
 
 function DataOverviewSection({ onViewDetail }: { onViewDetail: () => void }) {
   const { data, error } = useHomeOverview()
-  const [tab, setTab] = useState<'account' | 'live'>('account')
-  const trend = tab === 'account' ? data?.accountTrend : data?.liveTrend
+  const [tab, setTab] = useState<'account' | 'recent' | 'live'>('account')
+  const trend = tab === 'live' ? data?.liveTrend : data?.accountTrend
   return (
     <section className="rounded-[20px] bg-white p-6">
       <div className="flex items-center gap-2">
         <h2 className="text-[18px] font-semibold text-[#252632]">数据概览</h2>
         <CircleHelp size={14} className="text-[#252632]/30" />
         {data && <span className="text-[12px] text-[#252632]/40">更新时间: {data.updatedAt}</span>}
-        <button type="button" onClick={onViewDetail} className="ml-auto flex items-center text-[12px] text-[#4E83FD] hover:opacity-80">
-          查看详情 <ChevronRight size={13} />
+        <button type="button" onClick={onViewDetail} className="ml-auto flex items-center text-[12px] text-[#252632]/60 hover:text-[#252632]">
+          查看更多 <ChevronRight size={13} />
         </button>
       </div>
 
       {!data ? (
         <PanelFallback error={error} height={320} />
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
+        <div className="mt-3 grid grid-cols-1 gap-6 lg:grid-cols-[215px_1fr]">
           {/* 最新作品 */}
           <div>
             <h3 className="text-[14px] font-semibold text-[#252632]">最新作品</h3>
             {/* 堆叠（<lg）时限宽，避免竖版封面撑满整行 */}
-            <div className="relative mt-3 aspect-[3/4] max-w-[260px] overflow-hidden rounded-2xl">
+            <div className="relative mt-3 h-[280px] w-[191px] overflow-hidden rounded-xl">
               <img src={data.latestWork.cover} alt="" className="h-full w-full object-cover" />
               <div className="absolute inset-x-0 top-0 flex flex-col gap-1 bg-gradient-to-b from-black/50 to-transparent p-3 text-white">
                 <span className="text-[12px]">{data.latestWork.duration}</span>
@@ -581,35 +701,41 @@ function DataOverviewSection({ onViewDetail }: { onViewDetail: () => void }) {
           {/* 账号总览 / 直播数据 */}
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-y-2">
-              <div className="flex gap-5 text-[14px]">
-                {([['account', '账号总览'], ['live', '直播数据']] as const).map(([k, l]) => (
-                  <button key={k} type="button" onClick={() => setTab(k)}
+              <div role="tablist" aria-label="数据概览类型" className="flex gap-5 text-[14px]">
+                {([['account', '账号总览'], ['recent', '近期作品'], ['live', '直播数据']] as const).map(([k, l]) => (
+                  <button key={k} type="button" role="tab" aria-selected={tab === k} aria-controls="home-overview-panel" onClick={() => setTab(k)}
                     className={`-mb-px whitespace-nowrap border-b-2 pb-2 transition-colors ${tab === k ? 'border-[#FE2C55] font-medium text-[#252632]' : 'border-transparent text-[#252632]/45 hover:text-[#252632]/75'}`}>{l}</button>
                 ))}
               </div>
-              <div className="ml-auto flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-[#F2F3F5] px-3 py-1.5 text-[12px] text-[#252632]/60">
+              <button type="button" onClick={() => toast('当前展示近 7 天数据（演示）')} className="ml-auto flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-[#F2F3F5] px-3 py-1.5 text-[12px] text-[#252632]/60 hover:bg-[#EBEDF0]">
                 时间 近7天 <ChevronDown size={12} />
+              </button>
+            </div>
+            <div id="home-overview-panel" role="tabpanel" className="min-w-0">
+              <div className="mt-1 flex items-center justify-end gap-1.5 text-[11px] text-[#252632]/55">
+                <i className="size-1.5 rounded-full bg-[#4E83FD]" />播放量
               </div>
-            </div>
-            <div className="mt-1 flex items-center justify-end gap-1.5 text-[11px] text-[#252632]/55">
-              <i className="h-1.5 w-1.5 rounded-full bg-[#4E83FD]" />播放量
-            </div>
-            {trend && <SimpleAreaChart data={trend} id={`home-${tab}`} height={190} />}
-            {/* 8 指标 */}
-            <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-4">
-              {data.metrics.map((m) => (
-                <div key={m.label}>
-                  <div className="text-[12px] text-[#252632]/50">{m.label}</div>
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-[20px] font-semibold text-[#252632]">
-                      {m.type === 'yuan' ? fmtYuan(m.value) : fmtCount(m.value)}
-                    </span>
+              {trend && (
+                <Suspense fallback={<SectionLoader height={118} />}>
+                  <SimpleAreaChart data={trend} id={`home-${tab}`} height={118} />
+                </Suspense>
+              )}
+              {/* 8 指标 */}
+              <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-4">
+                {data.metrics.map((m) => (
+                  <div key={m.label}>
+                    <div className="text-[12px] text-[#252632]/55">{m.label}</div>
+                    <div className="mt-1 flex items-baseline gap-2 tabular-nums">
+                      <span className="text-[20px] font-bold text-[#252632]">
+                        {m.type === 'yuan' ? fmtYuan(m.value) : fmtCount(m.value)}
+                      </span>
+                      <span className="text-[11px] text-[#252632]/55">
+                        较前7日 <span className={m.delta >= 0 ? 'text-[#C92B2B]' : 'text-[#00875A]'}>{fmtDelta(m.delta, m.type)}</span>
+                      </span>
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-[11px] text-[#252632]/40">
-                    较前7日 <span className={m.delta >= 0 ? 'text-[#F53F3F]' : 'text-[#00B578]'}>{fmtDelta(m.delta, m.type)}</span>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -633,6 +759,63 @@ function DataCenter() {
   )
 }
 
+/** 装饰背景仅在可见且用户未请求减少动态效果时播放。 */
+function AmbientBackgroundVideo() {
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
+    let visible = true
+    const syncPlayback = () => {
+      if (motionPreference.matches || !visible) {
+        video.pause()
+      } else {
+        void video.play().catch(() => undefined)
+      }
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting
+        syncPlayback()
+      },
+      { threshold: 0.05 },
+    )
+
+    observer.observe(video)
+    motionPreference.addEventListener('change', syncPlayback)
+    syncPlayback()
+    return () => {
+      observer.disconnect()
+      motionPreference.removeEventListener('change', syncPlayback)
+      video.pause()
+    }
+  }, [])
+
+  return (
+    // 固定高度裁剪容器：视频 scale 溢出被裁掉，底边始终落在 430px，
+    // 不会露出缩放后的彩色底边；遮罩在容器内叠加。
+    <div className="pointer-events-none absolute inset-x-0 top-0 h-[430px] overflow-hidden">
+      <video
+        ref={videoRef}
+        aria-hidden="true"
+        tabIndex={-1}
+        className="absolute inset-0 h-full w-full scale-[1.05] object-cover object-[center_95%]"
+        src="/bg/ascii-animation2.mp4"
+        preload="metadata"
+        loop
+        muted
+        playsInline
+      />
+      {/* 遮罩：顶部一层轻遮让视频与顶栏过渡（更明显），中段全透明露出
+          视频主体，底部提前完全落到页面底色盖住视频底边。 */}
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(245,246,248,0.5)_0%,rgba(245,246,248,0.28)_16%,rgba(245,246,248,0.08)_30%,rgba(245,246,248,0)_42%,rgba(245,246,248,0.28)_58%,rgba(245,246,248,0.62)_74%,rgba(245,246,248,0.9)_86%,#F5F6F8_95%)]" />
+    </div>
+  )
+}
+
 /* ─── 首页主体 ─── */
 
 export default function CreatorCenterHome({
@@ -649,6 +832,7 @@ export default function CreatorCenterHome({
   const { data: profileData } = useCreatorStats('week')
   // 首页新板块（互动/变现/活动/快速导航）共用一次 home-overview 拉取
   const { data: homeData } = useHomeOverview()
+  const reduceMotion = useReducedMotion()
 
   return (
     <div className="flex h-full min-h-0 bg-[#F5F6F8]">
@@ -656,13 +840,14 @@ export default function CreatorCenterHome({
       {/* 只有内容区做载入动画；侧栏等框架保持静止 */}
       <motion.div
         key={page}
-        initial={{ opacity: 0, y: 8 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
         className="flex min-h-0 min-w-0 flex-1"
       >
-      {page === 'publish-video' ? (
-        <PublishVideoPage />
+      <Suspense fallback={<main className="min-w-0 flex-1 bg-[#F5F6F8]"><SectionLoader /></main>}>
+      {isPublishPage(page) ? (
+        <PublishVideoPage key={page} initialKind={publishKindFromPage(page)} />
       ) : page === 'content' ? (
         <ContentPage />
       ) : page === 'live' ? (
@@ -689,26 +874,19 @@ export default function CreatorCenterHome({
           </div>
         </main>
       ) : (
-      <main className="min-w-0 flex-1 overflow-y-auto">
-        {/* 顶部 ASCII 天空动画视频 + 淡蓝渐变遮罩（视频在后，遮罩把它向下淡出到页面底色，保证文字可读） */}
+      <main className="min-w-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* 完整 ASCII 动画靠底取景；遮罩不跟随视频放大，确保在内容区
+            底边完全落到页面底色，避免残留画面形成一条硬接缝。 */}
         <div className="relative overflow-hidden bg-[#F5F6F8]">
-          <video
-            className="pointer-events-none absolute inset-x-0 top-0 h-[300px] w-full object-cover"
-            src="/bg/ascii-animation.mp4"
-            autoPlay
-            loop
-            muted
-            playsInline
-          />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[300px] bg-[linear-gradient(180deg,rgba(226,238,247,0.08)_0%,rgba(230,239,247,0.4)_44%,rgba(243,245,248,0.9)_76%,#F5F6F8_100%)]" />
-          <div className="relative px-8 pb-2 pt-6">
+          <AmbientBackgroundVideo />
+          <div className="relative px-4 pb-2 pt-4">
             <ProfileHeader stats={profileData} />
 
             <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
               {/* 智能创作 */}
-              <section className="rounded-[20px] border border-[#f1f1f1] bg-gradient-to-b from-[rgba(251,251,251,0.9)] to-white p-4 backdrop-blur">
-                <h3 className="px-1 pb-3 text-[16px] font-semibold text-[#252632]">智能创作</h3>
-                <div className="grid grid-cols-2 gap-3">
+              <section className="h-[264px] rounded-[20px] border-[0.5px] border-[#f1f1f1] bg-gradient-to-b from-[rgba(251,251,251,0.9)] to-white px-3 pb-3 pt-6 backdrop-blur">
+                <h3 className="px-3 pb-4 text-[18px] font-semibold leading-[26px] text-[#252632]">智能创作</h3>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-[18px] px-2 py-1.5">
                   {SMART_CREATE_ENTRIES.map((e) => (
                     <EntryCard
                       key={e.id}
@@ -721,17 +899,22 @@ export default function CreatorCenterHome({
                 </div>
               </section>
               {/* 作品发布 */}
-              <section className="rounded-[20px] border border-[#f1f1f1] bg-gradient-to-b from-[rgba(251,251,251,0.9)] to-white p-4 backdrop-blur">
-                <h3 className="px-1 pb-3 text-[16px] font-semibold text-[#252632]">作品发布</h3>
-                <div className="grid grid-cols-2 gap-3">
+              <section className="h-[264px] rounded-[20px] border-[0.5px] border-[#f1f1f1] bg-gradient-to-b from-[rgba(251,251,251,0.9)] to-white px-3 pb-3 pt-6 backdrop-blur">
+                <div className="flex h-[42px] items-start px-3">
+                  <h3 className="text-[18px] font-semibold leading-[26px] text-[#252632]">作品发布</h3>
+                  <div className="ml-auto flex items-center gap-1 pt-1 text-[12px] leading-4 text-[#252632]/80">
+                    <span>你有一个上次未发布的作品</span>
+                    <button type="button" onClick={() => toast('已恢复上次未发布作品（演示）')} className="flex items-center font-semibold text-[#1769C2] hover:opacity-80">继续编辑 <ChevronRight size={14} /></button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-[18px] px-2 py-1.5">
                   {PUBLISH_ENTRIES.map((e) => (
                     <EntryCard
                       key={e.label}
                       icon={<CardImageIcon front={e.img} />}
                       label={e.label}
                       desc={e.desc}
-                      // 目前仅「发布高清视频」有对应表单页，其余为占位
-                      onClick={e.label === '发布高清视频' ? () => setPage('publish-video') : undefined}
+                      onClick={() => setPage(publishPageKey(e.id))}
                     />
                   ))}
                 </div>
@@ -740,15 +923,13 @@ export default function CreatorCenterHome({
           </div>
         </div>
 
-        <div className="px-8 pb-6 pt-2">
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_336px]">
-            {/* 左主栏 */}
+        <div className="px-4 pb-4 pt-2">
+          <DataOverviewSection onViewDetail={() => setPage('datacenter')} />
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:pr-2">
             <div className="min-w-0 space-y-4">
-              <DataOverviewSection onViewDetail={() => setPage('datacenter')} />
               {homeData && <InteractionSection data={homeData.interaction} onMore={() => setPage('content')} />}
               {homeData && <MonetizationSection data={homeData.monetization} onMore={() => setPage('income')} />}
             </div>
-            {/* 右侧栏 */}
             <div className="space-y-4">
               {homeData && <ActivityCenterCard data={homeData.calendar} onMore={() => setPage('service:活动管理')} />}
               {homeData && <QuickNavCard items={homeData.quickNav} onMore={() => setPage('service')} />}
@@ -758,7 +939,10 @@ export default function CreatorCenterHome({
         </div>
       </main>
       )}
+      </Suspense>
       </motion.div>
+      {/* AI 助手常驻内容区右侧，语境跟随左侧导航切换 */}
+      <AiAssistantPanel context={assistantContextFor(page)} />
     </div>
   )
 }

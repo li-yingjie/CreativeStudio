@@ -26,7 +26,6 @@ const MAX_PREVIEW_LINES = 400
 export default function GarudaCodeView() {
   const [active, setActive] = useState<FilePath>('garuda.js')
   const [cache, setCache] = useState<Record<string, string>>({})
-  const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -34,17 +33,16 @@ export default function GarudaCodeView() {
   useEffect(() => {
     if (cache[active] !== undefined) return
     let cancelled = false
-    setLoading(true)
     fetch(`/garuda/${active}`)
-      .then((r) => r.text())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.text()
+      })
       .then((txt) => {
         if (!cancelled) setCache((c) => ({ ...c, [active]: txt }))
       })
       .catch(() => {
         if (!cancelled) setCache((c) => ({ ...c, [active]: '[加载失败]' }))
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true
@@ -58,6 +56,7 @@ export default function GarudaCodeView() {
 
   const meta = FILES.find((f) => f.path === active)!
   const fullText = cache[active] ?? ''
+  const loading = cache[active] === undefined
   const allLines = useMemo(() => fullText.split('\n'), [fullText])
   const isExpanded = expanded[active] ?? false
   const visibleLines = isExpanded ? allLines : allLines.slice(0, MAX_PREVIEW_LINES)

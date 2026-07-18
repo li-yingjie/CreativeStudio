@@ -125,6 +125,35 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   // page leaves (children of 界面) are iconed by path in the consumer.
 }
 
+/** 关键节点的彩色图标底板（设计稿 WoW-26 661-99330）：14px 圆角 4 的
+ *  浅色 tint + 同色系饱和图标。只上到产品树的一级节点；子级叶子保持
+ *  单色。色值参照 Semi Design 的 light-1 tint 系。 */
+export const PRODUCT_CATEGORY_BADGES: Record<string, { bg: string; fg: string }> = {
+  预览: { bg: '#e0ecff', fg: '#3370ff' },
+  页面: { bg: '#e0ecff', fg: '#3370ff' },
+  界面: { bg: '#e0ecff', fg: '#3370ff' },
+  基础信息: { bg: '#d9f4f4', fg: '#0e9c9c' },
+  人设: { bg: '#fde6ee', fg: '#e5457a' },
+  人设指令: { bg: '#fde6ee', fg: '#e5457a' },
+  技能: { bg: '#f1e6fe', fg: '#8f47e6' },
+  能力技能: { bg: '#f1e6fe', fg: '#8f47e6' },
+  知识库: { bg: '#fde6f7', fg: '#d939b8' },
+  触发器: { bg: '#feeecf', fg: '#ff8800' },
+  数据库: { bg: '#dcf5e8', fg: '#18a058' },
+  文档: { bg: '#e3e6f7', fg: '#4b55bd' },
+  项目文档: { bg: '#e3e6f7', fg: '#4b55bd' },
+  素材: { bg: '#eaf6d4', fg: '#62a420' },
+  代码: { bg: '#d1d6f0', fg: '#4b55bd' },
+  代码文件: { bg: '#d1d6f0', fg: '#4b55bd' },
+  玩法: { bg: '#fde2e2', fg: '#e5484d' },
+  智能体: { bg: '#d9f4f4', fg: '#0e9c9c' },
+  小程序设置: { bg: '#e8eaed', fg: '#5f6673' },
+  诊断分析: { bg: '#d7f2ef', fg: '#0d9e8f' },
+  达人包: { bg: '#f1e6fe', fg: '#8f47e6' },
+  报告: { bg: '#e0ecff', fg: '#3370ff' },
+  看板: { bg: '#fdf3ce', fg: '#c29104' },
+}
+
 /* ─── tree-walk helpers ─── */
 
 /** Resolve a nested dir by name path, e.g. `dirAt(tree, ['src', 'pages'])`.

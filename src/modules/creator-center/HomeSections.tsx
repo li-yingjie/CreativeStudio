@@ -19,9 +19,9 @@ import {
 function CardHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   return (
     <div className="flex items-center">
-      <h3 className="text-[16px] font-semibold text-[#252632]">{title}</h3>
+      <h3 className="text-[18px] font-semibold leading-[26px] text-[#252632]">{title}</h3>
       {action && (
-        <button type="button" onClick={onAction} className="ml-auto flex items-center text-[12px] text-[#252632]/45 hover:text-[#252632]">
+        <button type="button" onClick={onAction} className="ml-auto flex items-center text-[12px] text-[#252632]/60 hover:text-[#252632]">
           {action} <ChevronRight size={13} />
         </button>
       )}
@@ -42,8 +42,8 @@ function InteractionItem({ title, count, time, text, sub }: {
         <span className="rounded bg-[#FFECEF] px-1.5 py-0.5 text-[11px] text-[#FE2C55]">+{count}</span>
         <span className="ml-auto text-[12px] text-[#252632]/40">{time}</span>
       </div>
-      <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-[#252632]/80">{text}</p>
-      <div className="mt-2 flex items-center gap-1 text-[12px] text-[#252632]/45">
+      <p className="mt-1 line-clamp-1 text-[13px] leading-5 text-[#252632]/80">{text}</p>
+      <div className="mt-1 flex items-center gap-1 text-[12px] text-[#252632]/45">
         {sub}
         <button type="button" onClick={() => toast('快捷回复（演示）')} className="ml-auto flex items-center gap-1 text-[#252632]/55 hover:text-[#252632]">
           <MessageCircle size={12} /> 快捷回复
@@ -55,12 +55,12 @@ function InteractionItem({ title, count, time, text, sub }: {
 
 export function InteractionSection({ data, onMore }: { data: HomeInteraction; onMore?: () => void }) {
   return (
-    <section className="rounded-[20px] bg-white p-6">
+    <section className="min-h-[152px] rounded-[20px] bg-white p-6">
       <CardHeader title="互动管理" action="查看详情" onAction={onMore ?? (() => toast('互动管理详情（演示）'))} />
-      <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:gap-8">
+      <div className="mt-3 flex flex-col gap-6 xl:flex-row xl:gap-8">
         <InteractionItem title="作品评论" count={data.comments.count} time={data.comments.time} text={data.comments.text}
           sub={<span className="truncate">来源作品：{data.comments.source}</span>} />
-        <div className="hidden w-px shrink-0 bg-black/5 lg:block" />
+        <div className="hidden w-px shrink-0 bg-black/5 xl:block" />
         <InteractionItem title="私信消息" count={data.messages.count} time={data.messages.time} text={data.messages.text}
           sub={
             <span className="flex items-center gap-1.5">
@@ -79,7 +79,7 @@ function MonetTaskCard({ tint, icon, label, count, desc }: {
   tint: string; icon: string; label: string; count: number; desc: string
 }) {
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-4 py-3" style={{ background: `${tint}0F` }}>
+    <div className="flex h-[72px] min-w-0 flex-1 items-center gap-3 rounded-xl px-4 py-3" style={{ background: `${tint}0F` }}>
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[15px]" style={{ background: `${tint}22` }}>{icon}</span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
@@ -95,7 +95,7 @@ function MonetTaskCard({ tint, icon, label, count, desc }: {
 
 export function MonetizationSection({ data, onMore }: { data: HomeMonetization; onMore?: () => void }) {
   return (
-    <section className="rounded-[20px] bg-white p-6">
+    <section className="min-h-[164px] rounded-[20px] bg-white p-6">
       <CardHeader title="收入变现" action="查看更多" onAction={onMore ?? (() => toast('收入变现（演示）'))} />
       <div className="mt-4 flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:gap-8">
         <div className="shrink-0">
@@ -105,7 +105,7 @@ export function MonetizationSection({ data, onMore }: { data: HomeMonetization; 
             <span className="text-[12px] text-[#252632]/40">较7天前 <span className="text-[#F53F3F]">+{data.delta}</span></span>
           </div>
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-3 md:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row">
           <MonetTaskCard tint="#FE2C55" icon="🎬" label="可参与任务" count={data.availableTasks} desc={data.availableTaskTitle} />
           <MonetTaskCard tint="#FF7A45" icon="🔔" label="我的任务" count={data.myTasks} desc={data.myTaskTitle} />
         </div>
@@ -131,13 +131,13 @@ export function ActivityCenterCard({ data, onMore }: { data: HomeCalendar; onMor
   // 选中日当天进行中的活动（落在其区间内）
   const dayEvents = data.events.filter((e) => selected >= e.startDay && selected <= e.endDay)
   return (
-    <section className="rounded-[20px] bg-white p-5">
-      <CardHeader title="活动中心" action="查看更多" onAction={onMore ?? (() => toast('活动中心（演示）'))} />
+    <section className="min-h-[571px] rounded-[20px] bg-white p-6">
+      <CardHeader title="活动管理" action="查看更多" onAction={onMore ?? (() => toast('活动管理（演示）'))} />
       {/* 月份切换 */}
       <div className="mt-4 flex items-center justify-center gap-4 text-[13px] font-medium text-[#252632]">
-        <button type="button" className="text-[#252632]/40 hover:text-[#252632]"><ChevronLeft size={16} /></button>
+        <button type="button" aria-label="查看上个月" onClick={() => toast('当前演示仅提供本月活动')} className="text-[#252632]/55 hover:text-[#252632]"><ChevronLeft size={16} /></button>
         {data.year}年{data.month}月
-        <button type="button" className="text-[#252632]/40 hover:text-[#252632]"><ChevronRight size={16} /></button>
+        <button type="button" aria-label="查看下个月" onClick={() => toast('当前演示仅提供本月活动')} className="text-[#252632]/55 hover:text-[#252632]"><ChevronRight size={16} /></button>
       </div>
       {/* 星期表头 */}
       <div className="mt-3 grid grid-cols-7 text-center text-[11px] text-[#252632]/40">
@@ -150,6 +150,8 @@ export function ActivityCenterCard({ data, onMore }: { data: HomeCalendar; onMor
             {d != null && (
               <button
                 type="button"
+                aria-pressed={d === selected}
+                aria-label={`${data.month}月${d}日${data.marks[String(d)] ? '，有活动' : ''}`}
                 onClick={() => setSelected(d)}
                 className="flex flex-col items-center"
               >
@@ -194,7 +196,7 @@ export function ActivityCenterCard({ data, onMore }: { data: HomeCalendar; onMor
 
 export function QuickNavCard({ items, onMore }: { items: HomeQuickNav[]; onMore?: () => void }) {
   return (
-    <section className="rounded-[20px] bg-white p-5">
+    <section className="min-h-[164px] rounded-[20px] bg-white p-6">
       <CardHeader title="快速导航" action="查看更多" onAction={onMore ?? (() => toast('快速导航（演示）'))} />
       <div className="mt-4 grid grid-cols-4 gap-2">
         {items.map((q) => (

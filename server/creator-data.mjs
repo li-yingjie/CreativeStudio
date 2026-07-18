@@ -31,12 +31,29 @@ function mulberry32(seed) {
   }
 }
 
+const SHANGHAI_DATE_FORMATTER = new Intl.DateTimeFormat('en', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+function shanghaiDateKey(date = new Date()) {
+  const parts = Object.fromEntries(
+    SHANGHAI_DATE_FORMATTER.formatToParts(date)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value]),
+  )
+  return `${parts.year}-${parts.month}-${parts.day}`
+}
+
 const dateKey = (d) => d.toISOString().slice(0, 10)
+let dataAnchorDate = shanghaiDateKey()
 
 /** 过去第 n 天（n=1 是昨天）。数据截至昨天 —— 「每日更新前一日数据」。 */
 function daysAgo(n) {
-  const d = new Date()
-  d.setUTCHours(0, 0, 0, 0)
+  const [year, month, day] = dataAnchorDate.split('-').map(Number)
+  const d = new Date(Date.UTC(year, month - 1, day))
   d.setUTCDate(d.getUTCDate() - n)
   return d
 }
@@ -88,7 +105,7 @@ function buildWorks() {
   return works
 }
 
-const works = buildWorks()
+let works = buildWorks()
 
 /* ─── daily_stats 表（60 行，截至昨天） ─── */
 
@@ -125,11 +142,11 @@ function buildDailyRow(n) {
 }
 
 const DAYS = 60
-const dailyStats = Array.from({ length: DAYS }, (_, i) => buildDailyRow(DAYS - i)) // 旧→新
+let dailyStats = Array.from({ length: DAYS }, (_, i) => buildDailyRow(DAYS - i)) // 旧→新
 
 /** 粉丝存量：基数 + 逐日净增累计。 */
 const FANS_BASE = 1398000
-const fansTotalByDate = (() => {
+function buildFansTotalByDate() {
   const map = new Map()
   let total = FANS_BASE
   for (const row of dailyStats) {
@@ -137,7 +154,19 @@ const fansTotalByDate = (() => {
     map.set(row.date, total)
   }
   return map
-})()
+}
+
+let fansTotalByDate = buildFansTotalByDate()
+
+/** Long-running servers rebuild the deterministic mock tables after Shanghai midnight. */
+function ensureFreshData() {
+  const currentDate = shanghaiDateKey()
+  if (currentDate === dataAnchorDate) return
+  dataAnchorDate = currentDate
+  works = buildWorks()
+  dailyStats = Array.from({ length: DAYS }, (_, i) => buildDailyRow(DAYS - i))
+  fansTotalByDate = buildFansTotalByDate()
+}
 
 /* ─── work_daily_plays：当日大盘按热度（近期作品加权）分给各作品 ─── */
 
@@ -448,12 +477,10 @@ function buildWorksList() {
 
 const fmtWan = (n) => (n >= 10000 ? `${(n / 10000).toFixed(1).replace(/\.0$/, '')}万` : String(n))
 
-export function handleCreatorWorks(_req, res) {
-  const body = JSON.stringify({ total: works.length, list: buildWorksList() })
-  res.statusCode = 200
-  res.setHeader('Content-Type', 'application/json; charset=utf-8')
-  res.setHeader('Cache-Control', 'no-store')
-  res.end(body)
+export function handleCreatorWorks(req, res) {
+  if (!acceptGet(req, res)) return
+  ensureFreshData()
+  sendCreatorJson(res, { total: works.length, list: buildWorksList() })
 }
 
 /* ─── 收入：我的变现 ───
@@ -512,11 +539,13 @@ const FEATURED_TASK = {
 }
 
 export function handleCreatorIncome(req, res) {
+  if (!acceptGet(req, res)) return
+  ensureFreshData()
   const url = new URL(req.url || '/', 'http://local')
   const range = RANGES[url.searchParams.get('range') || 'week'] ?? 7
   const yesterdayRow = dailyStats[dailyStats.length - 1]
   const trend = range === 1 ? hourlyIncome(yesterdayRow) : dailyStats.slice(-range).map(incomeRow)
-  const body = JSON.stringify({
+  sendCreatorJson(res, {
     updatedAt: `${yesterdayRow.date}（每天10点更新）`,
     summary: {
       yesterday: incomeRow(yesterdayRow).total,
@@ -529,10 +558,6 @@ export function handleCreatorIncome(req, res) {
     tasksInProgress: 25,
     featuredTask: FEATURED_TASK,
   })
-  res.statusCode = 200
-  res.setHeader('Content-Type', 'application/json; charset=utf-8')
-  res.setHeader('Cache-Control', 'no-store')
-  res.end(body)
 }
 
 /* ─── 作品共创（创作服务 · 作品共创） ─── */
@@ -602,16 +627,13 @@ const COLLAB_FAQS = [
   '如何解除已建立的共创关系？',
 ]
 
-export function handleCreatorCollab(_req, res) {
-  const body = JSON.stringify({
+export function handleCreatorCollab(req, res) {
+  if (!acceptGet(req, res)) return
+  sendCreatorJson(res, {
     remainingThisMonth: 4,
     faqs: COLLAB_FAQS,
     list: buildCollabList(),
   })
-  res.statusCode = 200
-  res.setHeader('Content-Type', 'application/json; charset=utf-8')
-  res.setHeader('Cache-Control', 'no-store')
-  res.end(body)
 }
 
 /* ─── 活动管理（创作服务 · 活动管理） ─── */
@@ -660,7 +682,8 @@ function buildActivities() {
   return { inspirations: ACTIVITY_INSPIRATIONS.map((c) => ({ ...c, desc: INSPIRATION_DESC })), myActivities: list }
 }
 
-export function handleCreatorActivities(_req, res) {
+export function handleCreatorActivities(req, res) {
+  if (!acceptGet(req, res)) return
   sendCreatorJson(res, buildActivities())
 }
 
@@ -697,7 +720,8 @@ function buildCopyright() {
   }
 }
 
-export function handleCreatorCopyright(_req, res) {
+export function handleCreatorCopyright(req, res) {
+  if (!acceptGet(req, res)) return
   sendCreatorJson(res, buildCopyright())
 }
 
@@ -722,7 +746,8 @@ function buildHotBoard(names, seed) {
   })
 }
 
-export function handleCreatorIndexHot(_req, res) {
+export function handleCreatorIndexHot(req, res) {
+  if (!acceptGet(req, res)) return
   sendCreatorJson(res, {
     tabs: ['关键词', '达人', '视频', '品牌', '话题'],
     bubbles: ['女装', '好物分享', '小米12', '护肤', '三农', '数码', '亲子'],
@@ -773,7 +798,8 @@ function buildLives() {
   })
 }
 
-export function handleCreatorLives(_req, res) {
+export function handleCreatorLives(req, res) {
+  if (!acceptGet(req, res)) return
   sendCreatorJson(res, { total: LIVE_TITLES.length, list: buildLives() })
 }
 
@@ -910,7 +936,9 @@ function buildHomeOverview() {
   }
 }
 
-export function handleCreatorHomeOverview(_req, res) {
+export function handleCreatorHomeOverview(req, res) {
+  if (!acceptGet(req, res)) return
+  ensureFreshData()
   sendCreatorJson(res, buildHomeOverview())
 }
 
@@ -919,7 +947,19 @@ function sendCreatorJson(res, obj) {
   res.statusCode = 200
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
   res.setHeader('Cache-Control', 'no-store')
+  res.setHeader('X-Content-Type-Options', 'nosniff')
   res.end(JSON.stringify(obj))
+}
+
+function acceptGet(req, res) {
+  if ((req.method || '').toUpperCase() === 'GET') return true
+  res.statusCode = 405
+  res.setHeader('Allow', 'GET')
+  res.setHeader('Content-Type', 'application/json; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-store')
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.end(JSON.stringify({ error: 'method not allowed' }))
+  return false
 }
 
 /* ─── HTTP 处理器 ─── */
@@ -927,11 +967,9 @@ function sendCreatorJson(res, obj) {
 const RANGES = { yesterday: 1, week: 7, month: 30 }
 
 export function handleCreatorStats(req, res) {
+  if (!acceptGet(req, res)) return
+  ensureFreshData()
   const url = new URL(req.url || '/', 'http://local')
   const range = RANGES[url.searchParams.get('range') || 'week'] ?? 7
-  const body = JSON.stringify(aggregate(range))
-  res.statusCode = 200
-  res.setHeader('Content-Type', 'application/json; charset=utf-8')
-  res.setHeader('Cache-Control', 'no-store')
-  res.end(body)
+  sendCreatorJson(res, aggregate(range))
 }

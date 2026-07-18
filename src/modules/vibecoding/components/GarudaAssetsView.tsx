@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- asset schema and selectors are shared with the project toolbar */
 import { useEffect, useRef, useState } from 'react'
 import { Music2, Image as ImageIcon, Film, ArrowLeft } from '@/shared/icons'
 
@@ -166,7 +167,7 @@ function FrameImage({
     }, 1000 / 15)
     return () => {
       clearInterval(id)
-      if (ref.current) ref.current.src = item.src
+      el.src = item.src
     }
   }, [playing, item])
   return <img ref={ref} src={item.src} alt={item.label} loading="lazy" className={className} />

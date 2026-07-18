@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
@@ -22,8 +22,11 @@ import {
 } from '@/shared/icons'
 import { usePublishFlowStore } from '@/modules/editor/store/publish-flow-store'
 import type { ProjectKind } from './ProjectProductView'
-import { getAvatarConfig } from './AvatarConfigData'
-import { getMiniProgramConfig } from './MiniProgramConfigData'
+import PublishObjectVisualThumb from './PublishObjectVisualThumb'
+import {
+  getPublishObjectVisual,
+  type PublishObjectVisual,
+} from './publish-object-visual'
 
 /**
  * 统一发布抽屉 — 所有「发布」按钮点击后从右侧滑出。顶部切换「发布配置 /
@@ -84,29 +87,6 @@ type HistoryEntry = {
   scenes?: { label: string; ok: boolean }[]
 }
 
-export type PublishObjectVisual =
-  | {
-      type: 'image'
-      src: string
-      alt: string
-      rounded: 'full' | 'lg'
-      fit?: 'cover' | 'contain'
-    }
-  | {
-      type: 'text'
-      text: string
-      alt: string
-      rounded: 'full' | 'lg'
-      className: string
-    }
-  | {
-      type: 'icon'
-      icon: LucideIcon
-      alt: string
-      rounded: 'full' | 'lg'
-      className?: string
-    }
-
 const PUBLISH_HISTORY: HistoryEntry[] = [
   { time: '2026-01-09 11:33:44', author: '莉莉安', current: true },
   {
@@ -162,19 +142,19 @@ export default function PublishDrawer({
   const [activityTarget, setActivityTarget] = useState<'existing' | 'new'>('new')
   const [activityName, setActivityName] = useState('')
 
-  // Reset to the config tab each time the drawer reopens.
-  useEffect(() => {
-    if (open) setTab('config')
-  }, [open])
+  const close = useCallback(() => {
+    setTab('config')
+    closeModal()
+  }, [closeModal])
 
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeModal()
+      if (e.key === 'Escape') close()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, closeModal])
+  }, [open, close])
 
   if (typeof document === 'undefined') return null
 
@@ -355,7 +335,7 @@ export default function PublishDrawer({
           {/* Transparent click-catcher — dismiss on outside click without a
               page dim, so it reads as a lightweight popover. */}
           <div
-            onClick={closeModal}
+            onClick={close}
             className="fixed inset-0 z-[290]"
           />
           <motion.aside
@@ -381,7 +361,7 @@ export default function PublishDrawer({
               </div>
               <button
                 type="button"
-                onClick={closeModal}
+                onClick={close}
                 aria-label="关闭"
                 className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-ink)]/55 hover:bg-[var(--fill-soft)] hover:text-[var(--color-ink)]"
               >
@@ -410,7 +390,7 @@ export default function PublishDrawer({
                 </div>
                 <button
                   type="button"
-                  onClick={closeModal}
+                  onClick={close}
                   className="mt-2 rounded-md bg-[var(--color-ink)] px-4 py-2 text-[12.5px] font-medium text-[var(--color-ink-contrast)] transition-opacity hover:opacity-90"
                 >
                   完成
@@ -457,7 +437,7 @@ export default function PublishDrawer({
                 <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-[var(--divider-soft)] px-4 py-3">
                   <button
                     type="button"
-                    onClick={closeModal}
+                    onClick={close}
                     className="rounded-md px-3 py-1.5 text-[12.5px] text-[var(--color-ink)]/70 hover:bg-[var(--fill-soft)] hover:text-[var(--color-ink)]"
                   >
                     取消
@@ -481,127 +461,6 @@ export default function PublishDrawer({
 }
 
 /* ─── publish history ─── */
-
-export function getPublishObjectVisual(
-  projectKind: ProjectKind,
-  projectKey: string,
-  fallbackIcon: LucideIcon,
-): PublishObjectVisual {
-  if (projectKind === 'ai-avatar') {
-    const avatarConfig = getAvatarConfig(projectKey)
-    if (avatarConfig?.iconURL) {
-      return {
-        type: 'image',
-        src: avatarConfig.iconURL,
-        alt: avatarConfig.name,
-        rounded: 'full',
-      }
-    }
-  }
-
-  if (projectKind === 'mini-program') {
-    const miniProgramConfig = getMiniProgramConfig(projectKey)
-    const logoAsset =
-      miniProgramConfig?.assets.find((asset) => /(logo|icon)/i.test(asset.name)) ??
-      miniProgramConfig?.assets[0]
-    if (logoAsset?.url) {
-      return {
-        type: 'image',
-        src: logoAsset.url,
-        alt: logoAsset.name,
-        rounded: 'lg',
-      }
-    }
-  }
-
-  if (projectKind === 'web-game') {
-    return {
-      type: 'image',
-      src: '/garuda/assets/Start.jpg',
-      alt: 'Garuda 游戏封面',
-      rounded: 'lg',
-    }
-  }
-
-  if (projectKind === 'marketing-h5') {
-    return {
-      type: 'image',
-      src: '/h5/children-day/hero-gifts.png',
-      alt: '六一儿童节活动头图',
-      rounded: 'lg',
-    }
-  }
-
-  if (projectKind === 'web-app') {
-    return {
-      type: 'text',
-      text: 'S°',
-      alt: 'STUDIO°',
-      rounded: 'lg',
-      className: 'bg-[#16161a] text-white',
-    }
-  }
-
-  if (projectKind === 'ops-proposal') {
-    return {
-      type: 'text',
-      text: '提',
-      alt: '提案',
-      rounded: 'lg',
-      className: 'bg-[#fff2cc] text-[#9a6700]',
-    }
-  }
-
-  return { type: 'icon', icon: fallbackIcon, alt: '产物', rounded: 'lg' }
-}
-
-export function PublishObjectVisualThumb({
-  visual,
-  size = 'sm',
-}: {
-  visual: PublishObjectVisual
-  size?: 'sm' | 'lg'
-}) {
-  const sizeClass = size === 'lg' ? 'h-8 w-8' : 'h-[18px] w-[18px]'
-  const roundedClass = visual.rounded === 'full' ? 'rounded-full' : 'rounded-md'
-
-  if (visual.type === 'image') {
-    return (
-      <div
-        className={`flex shrink-0 items-center justify-center overflow-hidden bg-[var(--fill-subtle)] ${sizeClass} ${roundedClass}`}
-      >
-        <img
-          src={visual.src}
-          alt={visual.alt}
-          className={`h-full w-full ${visual.fit === 'contain' ? 'object-contain' : 'object-cover'}`}
-        />
-      </div>
-    )
-  }
-
-  if (visual.type === 'text') {
-    return (
-      <div
-        className={`flex shrink-0 items-center justify-center text-[10px] font-semibold tracking-tight ${sizeClass} ${roundedClass} ${visual.className}`}
-        aria-label={visual.alt}
-        title={visual.alt}
-      >
-        {visual.text}
-      </div>
-    )
-  }
-
-  const Icon = visual.icon
-  return (
-    <div
-      className={`flex shrink-0 items-center justify-center bg-[var(--fill-subtle)] text-[var(--color-ink)]/70 ${sizeClass} ${roundedClass} ${visual.className ?? ''}`}
-      aria-label={visual.alt}
-      title={visual.alt}
-    >
-      <Icon size={size === 'lg' ? 16 : 11} strokeWidth={1.8} />
-    </div>
-  )
-}
 
 function HistoryTimeline({
   projectName,

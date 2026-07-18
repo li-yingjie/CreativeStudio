@@ -143,7 +143,10 @@
  * already consumes is remapped here. Components that hardcode dark hex
  * values won't flip automatically — they're migrated in follow-up
  * passes. */
-html.theme-light {
+/* `.light-scope` lets a subtree (e.g. 创作者中心右侧的 AI 助手面板) opt into
+ * the light palette regardless of the global html theme class. */
+html.theme-light,
+.light-scope {
   color-scheme: light;
 
   /* Flip ink / contrast */
@@ -480,17 +483,6 @@ samp {
 :focus-visible {
   outline: 2px solid var(--color-brand-400);
   outline-offset: 2px;
-}
-
-/* Form inputs manage their own focus styles — suppress the global ring */
-textarea:focus,
-textarea:focus-visible,
-input:focus,
-input:focus-visible,
-[contenteditable]:focus,
-[contenteditable]:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
 }
 
 /* Preview strip — re-flow the VrmControls grids into a single row of
@@ -879,6 +871,10 @@ html.theme-light .tab-scroll:hover {
 }
 html:not(.theme-light) .chat-editable:empty::before {
   color: rgba(255, 255, 255, 0.35);
+}
+/* 深色主题下，浅色子树里的占位符仍用深色墨色 */
+html:not(.theme-light) .light-scope .chat-editable:empty::before {
+  color: rgba(16, 18, 24, 0.35);
 }
 .chat-editable .mention-pill {
   display: inline-flex;

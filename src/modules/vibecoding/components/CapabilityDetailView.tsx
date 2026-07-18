@@ -12,9 +12,8 @@ import {
 } from '@/shared/icons'
 import type { LucideIcon } from '@/shared/icons'
 import MarkdownView from './MarkdownView'
-import CapabilityPreviewCanvas, {
-  hasCapabilityPreview,
-} from './CapabilityPreviewCanvas'
+import CapabilityPreviewCanvas from './CapabilityPreviewCanvas'
+import { hasCapabilityPreview } from './capability-preview-kind'
 import {
   CAPABILITY_LABEL,
   projectsUsingCapability,

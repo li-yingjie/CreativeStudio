@@ -9,51 +9,110 @@ export type PublishMode = 'chat' | 'modal'
  *  popover can float directly beneath it. */
 export type PublishAnchor = { top: number; left: number; right: number; bottom: number }
 
-interface PublishFlowState {
-  /** Current step in the publish-to-douyin flow. */
+type PublishFlow = {
   step: PublishStep
-  /** Whether the form is rendered as a chat turn or a centered modal. */
   mode: PublishMode
-  /** Selected Douyin scenes the user wants to publish to. */
   scenes: string[]
-  /** Anchor rect of the triggering 发布 button (modal mode only). */
   anchor: PublishAnchor | null
-  /** Open the flow. Top-right 发布/更新 buttons pass `'modal'` (plus the
-   *  button's rect so the popover floats below it); in-chat triggers pass
-   *  `'chat'`. */
-  start: (mode: PublishMode, anchor?: PublishAnchor | null) => void
-  toggleScene: (s: string) => void
-  /** First-step submit: moves from 'select' → 'review'. */
-  submit: () => void
-  /** Final confirm in the review card: moves to 'confirmed'. */
-  confirm: () => void
-  /** Reset back to idle. */
-  reset: () => void
-  /** Close the modal but keep the chat-embedded turn visible (modal-only
-   *  dismiss). The store falls back to whatever the chat is showing. */
-  closeModal: () => void
 }
 
-/** In-memory only — the flow is per-session, no need to persist. */
-export const usePublishFlowStore = create<PublishFlowState>((set, get) => ({
+const EMPTY_FLOW: PublishFlow = {
   step: 'idle',
   mode: 'chat',
   scenes: [],
   anchor: null,
-  start: (mode, anchor = null) => set({ step: 'select', mode, anchor }),
-  toggleScene: (s) => {
-    const cur = get().scenes
-    set({
-      scenes: cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s],
-    })
-  },
-  submit: () => {
-    if (get().scenes.length === 0) return
-    set({ step: 'review' })
-  },
-  confirm: () => set({ step: 'confirmed' }),
-  reset: () => set({ step: 'idle', scenes: [], mode: 'chat', anchor: null }),
-  closeModal: () => set({ step: 'idle', scenes: [], mode: 'chat', anchor: null }),
+}
+
+interface PublishFlowState extends PublishFlow {
+  /** Project whose flow is currently exposed through the top-level fields. */
+  projectId: string | null
+  /** In-memory flow state keyed by stable project id. */
+  flows: Record<string, PublishFlow>
+  /** Projects with at least one confirmed publish, independent of open flow UI. */
+  publishedProjectIds: string[]
+  /** Switch the exposed flow without leaking the previous project's state. */
+  activateProject: (projectId: string) => void
+  /** Open the flow. Top-right 发布/更新 buttons pass `'modal'` (plus the
+   *  button's rect so the popover floats below it); in-chat triggers pass
+   *  `'chat'`. */
+  start: (mode: PublishMode, anchor?: PublishAnchor | null) => void
+  toggleScene: (scene: string) => void
+  /** First-step submit: moves from 'select' → 'review'. */
+  submit: () => void
+  /** Final confirm in the review card: moves to 'confirmed'. */
+  confirm: () => void
+  /** Reset the active project's flow back to idle. */
+  reset: () => void
+  /** Close the active project's modal flow. */
+  closeModal: () => void
+}
+
+const updateActiveFlow = (
+  state: PublishFlowState,
+  update: (flow: PublishFlow) => PublishFlow,
+): Partial<PublishFlowState> => {
+  const projectId = state.projectId
+  if (!projectId) return {}
+  const next = update(state.flows[projectId] ?? EMPTY_FLOW)
+  return {
+    ...next,
+    flows: { ...state.flows, [projectId]: next },
+  }
+}
+
+/** In-memory only, but isolated by project so navigation cannot reassign a
+ * confirmed flow to the project that happens to render next. */
+export const usePublishFlowStore = create<PublishFlowState>((set) => ({
+  ...EMPTY_FLOW,
+  projectId: null,
+  flows: {},
+  publishedProjectIds: [],
+  activateProject: (projectId) =>
+    set((state) => {
+      const flow = state.flows[projectId] ?? EMPTY_FLOW
+      return { projectId, ...flow }
+    }),
+  start: (mode, anchor = null) =>
+    set((state) =>
+      updateActiveFlow(state, (flow) => ({
+        ...flow,
+        step: 'select',
+        mode,
+        anchor,
+      })),
+    ),
+  toggleScene: (scene) =>
+    set((state) =>
+      updateActiveFlow(state, (flow) => ({
+        ...flow,
+        scenes: flow.scenes.includes(scene)
+          ? flow.scenes.filter((item) => item !== scene)
+          : [...flow.scenes, scene],
+      })),
+    ),
+  submit: () =>
+    set((state) =>
+      updateActiveFlow(state, (flow) =>
+        flow.scenes.length === 0 ? flow : { ...flow, step: 'review' },
+      ),
+    ),
+  confirm: () =>
+    set((state) => {
+      const flowUpdate = updateActiveFlow(state, (flow) => ({
+        ...flow,
+        step: 'confirmed',
+      }))
+      if (!state.projectId || state.publishedProjectIds.includes(state.projectId)) {
+        return flowUpdate
+      }
+      return {
+        ...flowUpdate,
+        publishedProjectIds: [...state.publishedProjectIds, state.projectId],
+      }
+    }),
+  reset: () => set((state) => updateActiveFlow(state, () => ({ ...EMPTY_FLOW }))),
+  closeModal: () =>
+    set((state) => updateActiveFlow(state, () => ({ ...EMPTY_FLOW }))),
 }))
 
 export const PUBLISH_SCENES = ['AI 聊天', '评论区', '群聊', '私信'] as const

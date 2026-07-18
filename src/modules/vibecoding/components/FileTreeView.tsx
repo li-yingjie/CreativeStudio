@@ -1,27 +1,10 @@
 import {
-  File,
-  FileCode2,
-  FileCog,
-  FileJson,
-  FileText,
   FolderClosed,
   FolderOpen,
-  Image as ImageIcon,
-  Palette,
   type LucideIcon,
 } from '@/shared/icons'
 import type { FileNode } from './ProjectProductView'
-
-export function getFileIcon(name: string): typeof File {
-  const lower = name.toLowerCase()
-  if (/\.(tsx|ts|jsx|js|mjs|cjs)$/.test(lower)) return FileCode2
-  if (/\.json$/.test(lower)) return FileJson
-  if (/\.(css|less|scss|sass|styl)$/.test(lower)) return Palette
-  if (/\.(yaml|yml|toml|ini|env)$/.test(lower)) return FileCog
-  if (/\.(md|mdx|txt)$/.test(lower)) return FileText
-  if (/\.(png|jpe?g|gif|webp|svg|avif)$/.test(lower)) return ImageIcon
-  return File
-}
+import { getFileIcon } from './file-tree-utils'
 
 export function FileTreeView({
   nodes,
@@ -37,6 +20,7 @@ export function FileTreeView({
   rowBleedLeft = 0,
   roundedRows = false,
   iconFor,
+  badgeFor,
   isActive,
 }: {
   nodes: FileNode[]
@@ -75,6 +59,9 @@ export function FileTreeView({
    *  Returns undefined to fall back to the default folder / file icon.
    *  Applies to both dir and file nodes. */
   iconFor?: (node: FileNode, path: string, depth: number) => LucideIcon | undefined
+  /** 关键节点的彩色图标底板（设计稿 WoW-26）：返回 tint 色时，该行的
+   *  图标渲染在 14px 圆角 4 的彩色底板里；返回 undefined 保持单色。 */
+  badgeFor?: (node: FileNode, path: string, depth: number) => { bg: string; fg: string } | undefined
   /** Optional leaf-active predicate — the product view uses it to
    *  highlight the page node matching the current preview route. */
   isActive?: (node: FileNode, path: string) => boolean
@@ -111,6 +98,7 @@ export function FileTreeView({
           : { paddingLeft: pl }
         if (node.type === 'dir') {
           const DirIcon = iconFor?.(node, path, depth)
+          const badge = DirIcon ? badgeFor?.(node, path, depth) : undefined
           return (
             <div key={path}>
               <div className="relative">
@@ -120,12 +108,19 @@ export function FileTreeView({
                     if (showDirChildren) onToggleDir(path)
                     onOpenDir?.(node, path)
                   }}
-                  className={`box-border flex w-full items-center gap-1.5 py-1 text-[12px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/95 ${
-                    roundedRows ? 'rounded-md' : ''
+                  className={`box-border flex min-h-[26px] w-full items-center gap-1.5 py-1 text-[12.5px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/95 ${
+                    roundedRows ? 'rounded-[8px]' : ''
                   }`}
                   style={rowStyle}
                 >
-                  {DirIcon ? (
+                  {DirIcon && badge ? (
+                    <span
+                      className="flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-[4px]"
+                      style={{ background: badge.bg }}
+                    >
+                      <DirIcon size={9} strokeWidth={2.4} style={{ color: badge.fg }} />
+                    </span>
+                  ) : DirIcon ? (
                     <DirIcon size={13} className="shrink-0 text-[var(--color-ink)]/60" />
                   ) : isExpanded ? (
                     <FolderOpen size={13} className="shrink-0 text-[var(--color-ink)]/60" />
@@ -150,6 +145,7 @@ export function FileTreeView({
                   parentPath={path}
                   railStartDepth={railStartDepth}
                   iconFor={iconFor}
+                  badgeFor={badgeFor}
                   isActive={isActive}
                 />
               )}
@@ -157,14 +153,15 @@ export function FileTreeView({
           )
         }
         const Icon = iconFor?.(node, path, depth) ?? getFileIcon(node.name)
+        const leafBadge = badgeFor?.(node, path, depth)
         const active = isActive?.(node, path) ?? false
         return (
           <div key={path} className="relative">
             {renderRails()}
             <button
               onClick={() => onOpenFile(node.name)}
-              className={`box-border flex w-full items-center gap-1.5 py-1 text-[12px] transition-colors ${
-                roundedRows ? 'rounded-md' : ''
+              className={`box-border flex min-h-[26px] w-full items-center gap-1.5 py-1 text-[12.5px] transition-colors ${
+                roundedRows ? 'rounded-[8px]' : ''
               } ${
                 active
                   ? 'bg-[var(--color-ink)]/[0.07] text-[var(--color-ink)]'
@@ -172,10 +169,19 @@ export function FileTreeView({
               }`}
               style={rowStyle}
             >
-              <Icon
-                size={12}
-                className={`shrink-0 ${active ? 'text-[var(--color-ink)]/80' : 'text-[var(--color-ink)]/55'}`}
-              />
+              {leafBadge ? (
+                <span
+                  className="flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-[4px]"
+                  style={{ background: leafBadge.bg }}
+                >
+                  <Icon size={9} strokeWidth={2.4} style={{ color: leafBadge.fg }} />
+                </span>
+              ) : (
+                <Icon
+                  size={12}
+                  className={`shrink-0 ${active ? 'text-[var(--color-ink)]/80' : 'text-[var(--color-ink)]/55'}`}
+                />
+              )}
               {node.name}
             </button>
           </div>

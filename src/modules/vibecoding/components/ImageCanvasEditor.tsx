@@ -82,9 +82,20 @@ export default function ImageCanvasEditor({
   const [labels, setLabels] = useState<RowLabel[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
+  const [viewportW, setViewportW] = useState(0)
   // Scroll offset of the canvas — the floating toolbar is positioned in
   // viewport space, so it must re-anchor when the canvas scrolls.
   const [scroll, setScroll] = useState({ left: 0, top: 0 })
+
+  useLayoutEffect(() => {
+    const element = wrapRef.current
+    if (!element) return
+    const observer = new ResizeObserver(([entry]) => {
+      setViewportW(entry.contentRect.width)
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
 
   // Preload every image to measure its aspect ratio, then lay out once so
   // each row's items keep their natural proportions.
@@ -251,7 +262,7 @@ export default function ImageCanvasEditor({
             centerX={selectedItem.x + selectedItem.w / 2 - scroll.left}
             imgTop={selectedItem.y - scroll.top}
             imgBottom={selectedItem.y + selectedItem.h - scroll.top}
-            viewportW={wrapRef.current?.clientWidth ?? 0}
+            viewportW={viewportW}
           />
         )}
         <div

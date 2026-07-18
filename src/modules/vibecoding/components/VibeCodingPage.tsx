@@ -7,7 +7,6 @@ import ChatPreview from '@/modules/editor/components/preview/ChatPreview'
 import GlassIconButton from '@/modules/editor/components/layout/GlassIconButton'
 import { useDominantColors, rgbString } from '@/modules/editor/hooks/useDominantColors'
 import { getWorld } from '@/modules/editor/data/worlds'
-import LogoIconSpinOnce from '@/shared/components/LogoIconSpinOnce'
 import { useScrollEdges, fadeClassFromEdges } from '@/shared/hooks/useScrollEdges'
 import {
   usePublishFlowStore,
@@ -15,8 +14,11 @@ import {
   PUBLISH_SCENE_DESCRIPTIONS,
 } from '@/modules/editor/store/publish-flow-store'
 import { useThemeStore } from '@/shared/storage/theme'
-import { streamChat, type ChatMessage } from '@/shared/api/chat'
+import { type ChatMessage } from '@/shared/api/chat'
+import { LiveAiReply } from '@/shared/components/LiveAiReply'
+import { ChatEmptyState } from '@/shared/components/ChatEmptyState'
 import MiniAppPreview from './MiniAppPreview'
+import PlatformPlaceholderView from './PlatformPlaceholderView'
 import XiaohuaFeedPreview from './XiaohuaFeedPreview'
 import AgentHubPreview from './AgentHubPreview'
 import MarketingH5Preview from './MarketingH5Preview'
@@ -37,7 +39,6 @@ import FigmaIcon from './FigmaIcon'
 import PlatformHome from './PlatformHome'
 import { type H5Selection } from './H5LayerEditPanel'
 import H5FloatingEditPanel from './H5FloatingEditPanel'
-import OpsDataDrawer from './OpsDataDrawer'
 import GarudaCodeView from './GarudaCodeView'
 import GarudaEditPanel from './GarudaEditPanel'
 import ProductEditPanel from './ProductEditPanel'
@@ -49,7 +50,8 @@ import { PROJECT_DOCS, CHILDREN_DAY_PLAN_MD } from './data/project-docs'
 import { GENERIC_AI_REPLIES, CHAT_EMPTY_SUGGESTIONS, CHAT_SUGGESTIONS_BY_KIND, CHAT_SUGGESTIONS_BY_PROJECT } from './data/chat-suggestions'
 import { PROJECT_KINDS, SHAPE_BY_KIND, PROJECT_KIND_LABELS, type OutputShape } from './data/project-kinds'
 import { FlexAlignGlyph, ProductToolbar, ToolbarAction } from './Toolbar'
-import { getFileIcon, FileTreeView } from './FileTreeView'
+import { FileTreeView } from './FileTreeView'
+import { getFileIcon } from './file-tree-utils'
 import MentionPicker, { type MentionItem } from './MentionPicker'
 import TriggerDetailView from './TriggerDetailView'
 import { ChatFormCard, ChatFormStep, ChatFormSubmit } from './ChatFormCard'
@@ -59,10 +61,8 @@ import DataOpsView, { type DataOpsProject } from './DataOpsView'
 import ProposalGoalCard, { type ProposalGoalDraft } from './ProposalGoalCard'
 import ProposalDiagnosisCard from './ProposalDiagnosisCard'
 import ProposalAudienceDashboard from './ProposalAudienceDashboard'
-import ProposalPackCard, {
-  getPackProfile,
-  type ProposalPackId,
-} from './ProposalPackCard'
+import ProposalPackCard from './ProposalPackCard'
+import { getPackProfile, type ProposalPackId } from './proposal-pack-data'
 import ProposalBriefCard from './ProposalBriefCard'
 import ProposalDashboardCard from './ProposalDashboardCard'
 import ProposalReviewCard from './ProposalReviewCard'
@@ -76,7 +76,8 @@ import {
   renderReportMarkdown,
   renderReviewMarkdown,
 } from './proposal-docs'
-import UserEchoBubble, { truncate } from './UserEchoBubble'
+import UserEchoBubble from './UserEchoBubble'
+import { truncate } from './text-utils'
 import Stream, { RevealAfter, Sequential } from './Stream'
 import {
   ArtifactCard,
@@ -98,6 +99,7 @@ import {
   buildProductView,
   getProductPages,
   PRODUCT_CATEGORY_ICONS,
+  PRODUCT_CATEGORY_BADGES,
   WEB_PAGES,
   type FileNode,
   type ProjectKind,
@@ -107,7 +109,7 @@ import AvatarSystemPromptView, {
   type AvatarPromptCapability,
 } from './AvatarSystemPromptView'
 import CapabilityDetailView from './CapabilityDetailView'
-import { getAvatarConfig, type AvatarAppConfig } from './AvatarConfigData'
+import { getAvatarConfig, DEFAULT_AVATAR_PREVIEW, type AvatarAppConfig } from './AvatarConfigData'
 import MiniProgramAgentView from './MiniProgramAgentView'
 import MiniProgramSettingsForm from './MiniProgramSettingsForm'
 import AssetGridView from './AssetGridView'
@@ -164,7 +166,6 @@ function classifyProjectKind(prompt: string): ProjectKind {
 import {
   ArrowLeft,
   ArrowUp,
-  BarChart3,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -1012,6 +1013,9 @@ function PlatformSidebar({
   onDeleteProject,
   categoryExtras,
   createdProjects,
+  projectFilter,
+  variant = 'workshop',
+  onOpenPlaceholder,
 }: {
   /** Per-project file trees. Projects missing from this map render the
    *  "暂无文件" empty state when expanded. */
@@ -1037,8 +1041,9 @@ function PlatformSidebar({
   /** Open the 创意广场 placeholder page. */
   onOpenCreativeSquare: () => void
   /** Open the 数据运营 placeholder page. */
-  /** Which top-level nav is currently active — drives the highlight. */
-  activeNav: 'Skills' | '资源库' | '创意广场' | '运营数据' | null
+  /** Which top-level nav is currently active — drives the highlight.
+   *  除固定几项外，也可以是占位页 label（评测库/团队空间/我的空间）。 */
+  activeNav: string | null
   /** Active preview page label — highlights the matching 页面 node in
    *  the product view. null falls back to the default page (首页). */
   activeRoute: string | null
@@ -1063,9 +1068,19 @@ function PlatformSidebar({
   /** Dynamically created projects (e.g. game flow output) — appended
    *  to the top of the project list. */
   createdProjects: string[]
+  /** Variant-driven visibility filter over seeded + created projects. */
+  projectFilter?: (name: string) => boolean
+  /** avatar = AI 分身开通后的侧栏（设计稿 WoW-26 661-99150）：无 AI 创作
+   *  按钮，导航为 技能库/资源库/评测库/团队空间/我的空间，项目分组标题为
+   *  可折叠的「我的AI分身」，分身项目行用圆形头像。 */
+  variant?: 'workshop' | 'avatar'
+  /** 打开建设中的占位页（评测库/团队空间/我的空间）。 */
+  onOpenPlaceholder?: (label: string) => void
 }) {
   /* Inline-rename state for the 项目列表 rows. */
   const [renamingProject, setRenamingProject] = useState<string | null>(null)
+  /* 分身变体「我的AI分身」分组的折叠态。 */
+  const [avatarSectionCollapsed, setAvatarSectionCollapsed] = useState(false)
   /* Which project row's 更多 (重命名 / 删除) menu is open. */
   const [moreMenuProject, setMoreMenuProject] = useState<string | null>(null)
   const moreMenuRef = useRef<HTMLDivElement>(null)
@@ -1112,6 +1127,7 @@ function PlatformSidebar({
     '射击小游戏',
     // '沪上火锅·五一种草提案' — 先隐藏（运营提案 demo 暂不展示）。
   ]
+    .filter(projectFilter ?? (() => true))
     .filter((p) => !deletedProjects.has(p))
     // Pinned projects float to the top (in pin order); the rest keep their
     // natural order below.
@@ -1127,7 +1143,8 @@ function PlatformSidebar({
   return (
     <aside className="flex h-full w-full flex-col pt-3">
       {/* 品牌 logo / 收起按钮已随创作者中心外壳移除 — 侧栏常驻，顶栏统一管账号 */}
-      {/* + 新建项目 — 彩虹阴影 on hover */}
+      {/* + 新建项目 — 彩虹阴影 on hover。分身变体没有 AI 创作入口。 */}
+      {variant !== 'avatar' && (
       <div className="px-3 pt-4">
         <div className="group relative">
           {/* rainbow glow halo, revealed on hover */}
@@ -1148,27 +1165,38 @@ function PlatformSidebar({
           </button>
         </div>
       </div>
+      )}
 
       {/* Platform nav — pill-shaped rows with cool-gray tint when selected.
            Styling aligned with the Figma design: 13px semibold, 16px icons
-           inheriting text color, 6px gap, rounded-full container. */}
-      <nav className="mt-3 flex flex-col gap-2 px-3">
-        {(
-          [
-            { label: 'Skills', icon: FolderCode },
-            { label: '资源库', icon: Inbox },
-            // 运营数据已并入创作者中心（顶栏「首页」的数据看板），侧栏不再入口
-            { label: '创意广场', icon: Home },
-          ] as const
-        ).map(({ label, icon: Icon }) => {
-          const active = activeNav === label
+           inheriting text color, 6px gap, rounded-full container.
+           分身变体的导航按设计稿换为 技能库/资源库/评测库/团队空间/我的空间；
+           key 对齐 activeNav 的取值（Skills 页在分身侧展示为「技能库」）。 */}
+      <nav className={`flex flex-col gap-2 px-3 ${variant === 'avatar' ? 'pt-4' : 'mt-3'}`}>
+        {(variant === 'avatar'
+          ? [
+              { key: 'Skills', label: '技能库', icon: FolderCode },
+              { key: '资源库', label: '资源库', icon: Inbox },
+              { key: '评测库', label: '评测库', icon: ShieldCheck },
+              { key: '团队空间', label: '团队空间', icon: UsersRound },
+              { key: '我的空间', label: '我的空间', icon: UserRound },
+            ]
+          : [
+              { key: 'Skills', label: 'Skills', icon: FolderCode },
+              { key: '资源库', label: '资源库', icon: Inbox },
+              // 运营数据已并入创作者中心（顶栏「首页」的数据看板），侧栏不再入口
+              { key: '创意广场', label: '创意广场', icon: Home },
+            ]
+        ).map(({ key, label, icon: Icon }) => {
+          const active = activeNav === key
           return (
             <button
-              key={label}
+              key={key}
               onClick={() => {
-                if (label === '资源库') onOpenResourceLibrary()
-                else if (label === 'Skills') onOpenSkills()
-                else if (label === '创意广场') onOpenCreativeSquare()
+                if (key === '资源库') onOpenResourceLibrary()
+                else if (key === 'Skills') onOpenSkills()
+                else if (key === '创意广场') onOpenCreativeSquare()
+                else onOpenPlaceholder?.(key)
               }}
               className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[13px] font-semibold leading-5 text-[var(--color-ink)] transition-colors ${
                 active
@@ -1234,7 +1262,23 @@ function PlatformSidebar({
       ) : (
         /* ── List: every project, inline 产物视图 ── */
         <>
-          {/* 项目列表 header */}
+          {/* 项目列表 header — 分身变体换成可折叠的「我的AI分身」分组
+               （设计稿 661-99150），工坊保留原工具条。 */}
+          {variant === 'avatar' ? (
+            <button
+              type="button"
+              aria-expanded={!avatarSectionCollapsed}
+              onClick={() => setAvatarSectionCollapsed((v) => !v)}
+              className="mt-4 flex shrink-0 items-center gap-1 px-4 py-1.5 text-[12px] text-[var(--color-ink)]/55 transition-colors hover:text-[var(--color-ink)]/80"
+            >
+              <ChevronDown
+                size={13}
+                strokeWidth={1.8}
+                className={`shrink-0 transition-transform ${avatarSectionCollapsed ? '-rotate-90' : ''}`}
+              />
+              我的AI分身
+            </button>
+          ) : (
           <div className="mt-4 flex shrink-0 items-center justify-between px-5 py-1.5">
             <span className="text-[12px] text-[var(--color-ink)]/55">项目列表</span>
             <div className="flex items-center gap-1 text-[var(--color-ink)]/40">
@@ -1263,9 +1307,13 @@ function PlatformSidebar({
               </Tooltip>
             </div>
           </div>
+          )}
 
           {/* Project list — each project expands inline to its 产物视图;
                the hover drill button opens its full file directory. */}
+          {variant === 'avatar' && avatarSectionCollapsed ? (
+            <div className="flex-1" />
+          ) : (
           <div className="thin-scroll flex-1 overflow-y-auto pb-2">
             {ALL_PROJECTS.map((name) => {
               const open = openProjects.has(name)
@@ -1314,8 +1362,16 @@ function PlatformSidebar({
                         }`}
                       >
                         {/* Pinned projects swap the folder glyph for a pin
-                            (ti ti-pin) on the left, instead of a trailing pin. */}
-                        {isPinned ? (
+                            (ti ti-pin) on the left, instead of a trailing pin.
+                            分身变体：分身项目行用圆形头像（设计稿 661-99150）。 */}
+                        {variant === 'avatar' &&
+                        (PROJECT_KINDS[name] ?? 'mini-program') === 'ai-avatar' ? (
+                          <img
+                            src={getAvatarConfig(name)?.preview?.avatarUrl ?? DEFAULT_AVATAR_PREVIEW.avatarUrl}
+                            alt=""
+                            className="h-[15px] w-[15px] shrink-0 rounded-full object-cover ring-1 ring-black/5"
+                          />
+                        ) : isPinned ? (
                           <Pin
                             size={13}
                             strokeWidth={1.7}
@@ -1476,6 +1532,11 @@ function PlatformSidebar({
                                     ? Zap
                                   : PRODUCT_CATEGORY_ICONS[n.name]
                           }
+                          // 关键节点（产品树一级）上彩色图标底板；子级叶子
+                          // 保持单色（depth 从 1 起算）。
+                          badgeFor={(n, _path, d) =>
+                            d === 1 ? PRODUCT_CATEGORY_BADGES[n.name] : undefined
+                          }
                           isActive={
                             name === activeProjectName
                               ? (n) => n.name === (activeRoute ?? '首页')
@@ -1492,6 +1553,7 @@ function PlatformSidebar({
               )
             })}
           </div>
+          )}
         </>
       )}
 
@@ -1508,7 +1570,17 @@ function PlatformSidebar({
   )
 }
 
-export default function VibeCodingPage() {
+/** AI 分身样板项目 — workshop 变体从侧栏隐藏它，avatar 变体只展示它。 */
+const AVATAR_PROJECT = '陶白白 Sensei 分身'
+
+export default function VibeCodingPage({
+  variant = 'workshop',
+}: {
+  /** workshop = 完整 AI 工坊；avatar = AI 分身开通后的复刻界面，
+   *  项目列表只保留分身项目并直接进入它。 */
+  variant?: 'workshop' | 'avatar'
+}) {
+  const isAvatarStudio = variant === 'avatar'
   // Standalone build — no router; the top-left back button is a no-op.
   const handleBack = useCallback(() => {
     /* intentionally empty in standalone */
@@ -1657,11 +1729,16 @@ export default function VibeCodingPage() {
    *   • 'needs'   — matched 需求/新建/重新收集, needs-gathering form reset
    *   • 'none'    — plain message, just rendered as a user bubble
    */
-  type SentMessage = { text: string; trigger: 'none' | 'publish' | 'needs' | 'trigger' | 'proposal' | 'game' }
+  type MessageTrigger = 'none' | 'publish' | 'needs' | 'trigger' | 'proposal' | 'game'
+  type SentMessage = { id: string; text: string; trigger: MessageTrigger }
+  const messageSequenceRef = useRef(0)
+  const createMessageId = () =>
+    `m-${Date.now().toString(36)}-${(messageSequenceRef.current++).toString(36)}`
   const [sentMessages, setSentMessages] = useState<SentMessage[]>(() =>
     proposalDeepLink
       ? [
           {
+            id: 'proposal-deep-link',
             text: '帮我做沪上火锅品牌五一前的潜客种草提案，预算 50w，目标是 A3 种草和看后搜提升',
             trigger: 'proposal',
           },
@@ -1684,18 +1761,15 @@ export default function VibeCodingPage() {
   // 历史对话 dropdown (chat-header icon, right of 新建对话)
   const [historyMenuOpen, setHistoryMenuOpen] = useState(false)
   const historyMenuRef = useRef<HTMLDivElement>(null)
-  /* Per-project chat snapshots. Whenever the user switches projects we
-   * stash the outgoing project's full chat state here (messages,
-   * sessions, proposal/game/trigger flow state, open preview tabs, ...)
-   * and restore the incoming project's prior snapshot if any. This is
-   * what gives each project its own isolated conversation history. The
-   * shape is the same as what `captureProjectSnapshot()` returns. */
-  type ProjectChatSnapshot = {
+  /* Conversation state is stored under both project id and session id.
+   * The session list alone is not history: each row needs the messages and
+   * scripted-flow state that were visible when the user left it. */
+  type SessionChatSnapshot = {
     sentMessages: SentMessage[]
-    sessions: ChatSession[]
-    activeSessionId: string
+    chatDraft: string
     chatCleared: boolean
     needsFlowActive: boolean
+    needsThinkingVisible: boolean
     scene: string
     appType: string
     enabledCapabilities: Set<string>
@@ -1718,13 +1792,20 @@ export default function VibeCodingPage() {
     step3ClosingBubbleStreamed: boolean
     gameStep: GameStep
     gameSpec: GameSpecDraft | null
+  }
+  type ProjectChatSnapshot = {
+    sessions: ChatSession[]
+    activeSessionId: string
     openTabs: { label: string; closable: boolean }[]
     activePreviewTab: number
     previewRoute: string | null
     activeFilter: string
   }
   const projectChatsRef = useRef<Map<string, ProjectChatSnapshot>>(new Map())
-  /* Completed live AI replies, keyed by project + message index. Lets a
+  const sessionChatsRef = useRef<Map<string, Map<string, SessionChatSnapshot>>>(
+    new Map(),
+  )
+  /* Completed live AI replies, keyed by project + session + stable message id. Lets a
    * streamed reply render instantly (no re-fetch) when the chat remounts on
    * project switch, and feeds prior turns back as context for the next call. */
   const aiReplyCacheRef = useRef<Map<string, string>>(new Map())
@@ -1753,35 +1834,29 @@ export default function VibeCodingPage() {
    * claiming a `space-y` slot between the user bubble and the form. */
   const [needsThinkingVisible, setNeedsThinkingVisible] = useState(true)
   useEffect(() => {
-    if (!needsFlowActive) {
-      setNeedsThinkingVisible(true)
-      return
-    }
+    if (!needsFlowActive) return
     const t = setTimeout(() => setNeedsThinkingVisible(false), 900)
     return () => clearTimeout(t)
   }, [needsFlowActive])
-  /** Step 3 cascade — whenever appType is set (or changes) we re-seed
-   *  the recommended capabilities and drop step 3 into 'loading'. The
-   *  dedicated loading→ready timers (below) each own their own effect
-   *  so that re-running a multi-dep effect doesn't cancel the timer. */
-  useEffect(() => {
-    if (!appType) {
-      setCapabilitiesStep('idle')
-      setTagsStep('idle')
-      setTagsAddOpen(false)
-      return
-    }
+
+  const resetAppTypeSelection = () => {
+    setAppType('')
+    setCapabilitiesStep('idle')
+    setTagsStep('idle')
+    setTagsAddOpen(false)
+  }
+  const selectAppType = (nextAppType: string) => {
+    setAppType(nextAppType)
     setEnabledCapabilities(new Set(RECOMMENDED_CAPABILITIES))
     setCapabilitiesStep('loading')
     setTagsStep('idle')
     setTagsAddOpen(false)
-  }, [appType])
-  /** Step 4 kicks off the moment step 3 is confirmed. */
-  useEffect(() => {
-    if (capabilitiesStep !== 'confirmed') return
+  }
+  const confirmCapabilitiesSelection = () => {
+    setCapabilitiesStep('confirmed')
     setPersonalizationTags(new Set(RECOMMENDED_TAGS))
     setTagsStep('loading')
-  }, [capabilitiesStep])
+  }
   /** Shared loading→ready delays. Each watches a single step so setting
    *  the target state inside doesn't re-trigger-and-cancel the timer. */
   useEffect(() => {
@@ -1849,6 +1924,7 @@ export default function VibeCodingPage() {
   const publishStep = usePublishFlowStore((s) => s.step)
   const publishMode = usePublishFlowStore((s) => s.mode)
   const publishScenes = usePublishFlowStore((s) => s.scenes)
+  const activatePublishProject = usePublishFlowStore((s) => s.activateProject)
   const startPublish = usePublishFlowStore((s) => s.start)
   const resetPublish = usePublishFlowStore((s) => s.reset)
   const togglePublishScene = usePublishFlowStore((s) => s.toggleScene)
@@ -1982,6 +2058,7 @@ export default function VibeCodingPage() {
     setChatCleared(true)
     setSentMessages([])
     setComposerText('')
+    setMentionAnchor(null)
     setScene('')
     setAppType('')
     setEnabledCapabilities(new Set())
@@ -2001,6 +2078,14 @@ export default function VibeCodingPage() {
     setLastConfirmedTrigger(null)
     setEditingTriggerNameId(null)
     setTriggerSimulations([])
+    setProposalStep('idle')
+    setProposalGoal(null)
+    setProposalPack(null)
+    setProposalDocs({})
+    setStep2BubbleStreamed(false)
+    setStep3ClosingBubbleStreamed(false)
+    setGameStep('idle')
+    setGameSpec(null)
   }
 
   const handleNewSession = () => {
@@ -2011,10 +2096,20 @@ export default function VibeCodingPage() {
       resetChatState()
       return
     }
+    saveActiveSession(projectTitle)
     const id = `s-${Date.now()}`
     setSessions((prev) => [{ id, name: '新会话' }, ...prev])
     setActiveSessionId(id)
     resetChatState()
+  }
+
+  const switchSession = (sessionId: string) => {
+    if (sessionId === activeSessionId) return
+    saveActiveSession(projectTitle)
+    setActiveSessionId(sessionId)
+    const snapshot = sessionChatsRef.current.get(projectTitle)?.get(sessionId)
+    if (snapshot) applySessionSnapshot(snapshot)
+    else resetChatState()
   }
 
   /** New-project button click: reset session state + close any open
@@ -2033,6 +2128,7 @@ export default function VibeCodingPage() {
     setPlatformCreativeSquareOpen(false)
     setPlatformDataOpsOpen(false)
     setPlatformHomeOpen(true)
+    setPlatformPlaceholderPage(null)
   }
 
   /** Derive a unique project name from the prompt — capped, and de-duped
@@ -2081,6 +2177,8 @@ export default function VibeCodingPage() {
       return next
     })
     setProjectTitle(name)
+    projectTitleRef.current = name
+    activatePublishProject(name)
     setHomeDraft('')
     setPlatformHomeOpen(false)
     setPlatformResourceLibraryOpen(false)
@@ -2089,8 +2187,13 @@ export default function VibeCodingPage() {
     setPlatformDataOpsOpen(false)
     // Enter the chat flow with the right pane closed (Artifacts-style); it
     // opens once a previewable artifact appears — see sendChat / seedProductTabs.
-    initProjectDefaults(name, true)
-    sendChat(trimmed, { fromHomeEntry: true })
+    const sessionId = initProjectDefaults(name, true, kind, false)
+    sendChat(trimmed, {
+      fromHomeEntry: true,
+      projectId: name,
+      projectKind: kind,
+      sessionId,
+    })
     // 从 0 生成：AI 分身 用对话需求实时生成 config（Kimi → JSON），写入运行时
     // 配置后右侧预览自动打开并显示生成的分身。失败则回退到静态默认（陶白白）。
     if (kind === 'ai-avatar') {
@@ -2118,8 +2221,12 @@ export default function VibeCodingPage() {
       projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
     }
     const sid = `s-${Date.now()}`
+    const sessionName =
+      userPrompt.length > 20 ? `${userPrompt.slice(0, 20)}…` : userPrompt
     setProjectTitle('射击小游戏')
-    setSessions([{ id: sid, name: '新会话' }])
+    projectTitleRef.current = '射击小游戏'
+    activatePublishProject('射击小游戏')
+    setSessions([{ id: sid, name: sessionName }])
     setActiveSessionId(sid)
     setPlatformHomeOpen(false)
     setPlatformResourceLibraryOpen(false)
@@ -2160,7 +2267,7 @@ export default function VibeCodingPage() {
     setOpenTabs([])
     setPreviewCollapsed(false)
     setChatCleared(false)
-    setSentMessages([{ text: userPrompt, trigger: 'game' }])
+    setSentMessages([{ id: createMessageId(), text: userPrompt, trigger: 'game' }])
     setGameStep('confirming')
   }
 
@@ -2181,75 +2288,109 @@ export default function VibeCodingPage() {
     setGameStep('analyzing')
   }
 
-  /** Capture every per-project chat field into a plain snapshot. Called
-   *  by `openProject` right before it switches away so the outgoing
-   *  project's state can be restored later when the user comes back. */
-  const captureProjectSnapshot = (): ProjectChatSnapshot => ({
-    sentMessages,
-    sessions,
-    activeSessionId,
+  const captureSessionSnapshot = (): SessionChatSnapshot => ({
+    sentMessages: sentMessages.map((message) => ({ ...message })),
+    chatDraft,
     chatCleared,
     needsFlowActive,
+    needsThinkingVisible,
     scene,
     appType,
-    enabledCapabilities,
-    personalizationTags,
+    enabledCapabilities: new Set(enabledCapabilities),
+    personalizationTags: new Set(personalizationTags),
     capabilitiesStep,
     tagsStep,
     tagsAddOpen,
     formSubmitted,
-    triggers,
+    triggers: triggers.map((trigger) => ({
+      ...trigger,
+      event: { ...trigger.event },
+      action: { ...trigger.action },
+    })),
     triggerStep,
     pendingTrigger,
     lastConfirmedTrigger,
     editingTriggerNameId,
-    triggerSimulations,
+    triggerSimulations: triggerSimulations.map((simulation) => ({ ...simulation })),
     proposalStep,
     proposalGoal,
     proposalPack,
-    proposalDocs,
+    proposalDocs: { ...proposalDocs },
     step2BubbleStreamed,
     step3ClosingBubbleStreamed,
     gameStep,
     gameSpec,
-    openTabs,
-    activePreviewTab,
-    previewRoute,
-    activeFilter,
   })
 
-  /** Replay a previously-stashed snapshot onto the current setters so
-   *  re-opening a project shows the chat exactly where the user left
-   *  off. Pairs with `captureProjectSnapshot`. */
-  const applyProjectSnapshot = (snap: ProjectChatSnapshot) => {
-    setSentMessages(snap.sentMessages)
-    setSessions(snap.sessions)
-    setActiveSessionId(snap.activeSessionId)
+  const saveActiveSession = (projectId: string) => {
+    if (!projectId || !activeSessionId) return
+    const projectSessions =
+      sessionChatsRef.current.get(projectId) ?? new Map<string, SessionChatSnapshot>()
+    projectSessions.set(activeSessionId, captureSessionSnapshot())
+    sessionChatsRef.current.set(projectId, projectSessions)
+  }
+
+  /** Capture project-level navigation plus the active conversation. */
+  const captureProjectSnapshot = (projectId = projectTitle): ProjectChatSnapshot => {
+    saveActiveSession(projectId)
+    return {
+      sessions: sessions.map((session) => ({ ...session })),
+      activeSessionId,
+      openTabs: openTabs.map((tab) => ({ ...tab })),
+      activePreviewTab,
+      previewRoute,
+      activeFilter,
+    }
+  }
+
+  const applySessionSnapshot = (snap: SessionChatSnapshot) => {
+    setSentMessages(snap.sentMessages.map((message) => ({ ...message })))
+    setComposerText(snap.chatDraft)
     setChatCleared(snap.chatCleared)
     setNeedsFlowActive(snap.needsFlowActive)
+    setNeedsThinkingVisible(snap.needsThinkingVisible)
     setScene(snap.scene)
     setAppType(snap.appType)
-    setEnabledCapabilities(snap.enabledCapabilities)
-    setPersonalizationTags(snap.personalizationTags)
+    setEnabledCapabilities(new Set(snap.enabledCapabilities))
+    setPersonalizationTags(new Set(snap.personalizationTags))
     setCapabilitiesStep(snap.capabilitiesStep)
     setTagsStep(snap.tagsStep)
     setTagsAddOpen(snap.tagsAddOpen)
     setFormSubmitted(snap.formSubmitted)
-    setTriggers(snap.triggers)
+    setTriggers(
+      snap.triggers.map((trigger) => ({
+        ...trigger,
+        event: { ...trigger.event },
+        action: { ...trigger.action },
+      })),
+    )
     setTriggerStep(snap.triggerStep)
     setPendingTrigger(snap.pendingTrigger)
     setLastConfirmedTrigger(snap.lastConfirmedTrigger)
     setEditingTriggerNameId(snap.editingTriggerNameId)
-    setTriggerSimulations(snap.triggerSimulations)
+    setTriggerSimulations(
+      snap.triggerSimulations.map((simulation) => ({ ...simulation })),
+    )
     setProposalStep(snap.proposalStep)
     setProposalGoal(snap.proposalGoal)
     setProposalPack(snap.proposalPack)
-    setProposalDocs(snap.proposalDocs)
+    setProposalDocs({ ...snap.proposalDocs })
     setStep2BubbleStreamed(snap.step2BubbleStreamed)
     setStep3ClosingBubbleStreamed(snap.step3ClosingBubbleStreamed)
     setGameStep(snap.gameStep)
     setGameSpec(snap.gameSpec)
-    setOpenTabs(snap.openTabs)
+  }
+
+  /** Replay a previously-stashed project's active session and navigation. */
+  const applyProjectSnapshot = (projectId: string, snap: ProjectChatSnapshot) => {
+    setSessions(snap.sessions.map((session) => ({ ...session })))
+    setActiveSessionId(snap.activeSessionId)
+    const sessionSnapshot = sessionChatsRef.current
+      .get(projectId)
+      ?.get(snap.activeSessionId)
+    if (sessionSnapshot) applySessionSnapshot(sessionSnapshot)
+    else resetChatState()
+    setOpenTabs(snap.openTabs.map((tab) => ({ ...tab })))
     setActivePreviewTab(snap.activePreviewTab)
     setPreviewRoute(snap.previewRoute)
     setActiveFilter(snap.activeFilter)
@@ -2263,8 +2404,11 @@ export default function VibeCodingPage() {
   /** Default right-pane tabs for a project kind. Seeded immediately when
    *  opening an existing project (already has an artifact); deferred for
    *  home-created projects until the chat produces a previewable artifact. */
-  const defaultTabsForKind = (name: string) => {
-    const k = kindOf(name)
+  const defaultTabsForKind = (
+    name: string,
+    projectKind: ProjectKind = kindOf(name),
+  ) => {
+    const k = projectKind
     if (k === 'web-game')
       return [
         { label: '预览', closable: false },
@@ -2283,12 +2427,23 @@ export default function VibeCodingPage() {
   /** Open the right preview pane (Artifacts-style) by seeding its default
    *  tabs once the project has a previewable artifact. No-op if the pane is
    *  already populated, so it's safe to call from any chat / flow step. */
-  const seedProductTabs = () => {
-    setOpenTabs((prev) => (prev.length > 0 ? prev : defaultTabsForKind(projectTitle)))
+  const seedProductTabs = (
+    projectId = projectTitle,
+    projectKind: ProjectKind = kindOf(projectId),
+  ) => {
+    setOpenTabs((prev) =>
+      prev.length > 0 ? prev : defaultTabsForKind(projectId, projectKind),
+    )
   }
 
-  const initProjectDefaults = (name: string, deferProduct = false) => {
+  const initProjectDefaults = (
+    name: string,
+    deferProduct = false,
+    projectKind: ProjectKind = kindOf(name),
+    seedProposal = true,
+  ) => {
     const sid = `s-${Date.now()}`
+    sessionChatsRef.current.set(name, new Map())
     setSessions([{ id: sid, name: '新会话' }])
     setActiveSessionId(sid)
     setChatCleared(true)
@@ -2305,7 +2460,7 @@ export default function VibeCodingPage() {
     setFormSubmitted(false)
     // AI 分身 ships with one default trigger so the 触发器 section is
     // populated on first open; other kinds start with none.
-    if (kindOf(name) === 'ai-avatar') {
+    if (projectKind === 'ai-avatar') {
       setTriggers([
         {
           id: 'user-follow-seed01',
@@ -2336,12 +2491,13 @@ export default function VibeCodingPage() {
     setPreviewRoute(null)
     setActiveFilter('mini-program')
     resetPublish()
-    if (kindOf(name) === 'ops-proposal') {
+    if (projectKind === 'ops-proposal' && seedProposal) {
       setProposalStep('collecting')
       setChatCleared(false)
       setOpenTabs([])
       setSentMessages([
         {
+          id: createMessageId(),
           text: '帮我做沪上火锅品牌五一前的潜客种草提案，预算 50w，目标是 A3 种草和看后搜提升',
           trigger: 'proposal',
         },
@@ -2351,8 +2507,9 @@ export default function VibeCodingPage() {
       // (deferProduct) — the right pane stays closed until the chat produces
       // a previewable artifact (seedProductTabs on first follow-up / flow step).
       setProposalStep('idle')
-      setOpenTabs(deferProduct ? [] : defaultTabsForKind(name))
+      setOpenTabs(deferProduct ? [] : defaultTabsForKind(name, projectKind))
     }
+    return sid
   }
 
   /** Open an existing project by name — shared by sidebar clicks and
@@ -2361,7 +2518,7 @@ export default function VibeCodingPage() {
    *  intact, then either replays the target project's prior snapshot or
    *  initialises kind-specific defaults on first visit. */
   const openProject = (name: string) => {
-    if (name === projectTitle && !platformHomeOpen && !platformResourceLibraryOpen && !platformSkillsOpen && !platformCreativeSquareOpen && !platformDataOpsOpen) {
+    if (name === projectTitle && !platformHomeOpen && !platformResourceLibraryOpen && !platformSkillsOpen && !platformCreativeSquareOpen && !platformDataOpsOpen && platformPlaceholderPage === null) {
       // Already on this project — no need to re-snapshot or reset.
       return
     }
@@ -2369,18 +2526,30 @@ export default function VibeCodingPage() {
       projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
     }
     setProjectTitle(name)
+    projectTitleRef.current = name
+    activatePublishProject(name)
     setPlatformHomeOpen(false)
     setPlatformResourceLibraryOpen(false)
     setPlatformSkillsOpen(false)
     setPlatformCreativeSquareOpen(false)
     setPlatformDataOpsOpen(false)
+    setPlatformPlaceholderPage(null)
     const prior = projectChatsRef.current.get(name)
     if (prior) {
-      applyProjectSnapshot(prior)
+      applyProjectSnapshot(name, prior)
       return
     }
     initProjectDefaults(name)
   }
+
+  /* Avatar 变体开机即进入分身项目（跳过工坊 home），只执行一次。 */
+  const avatarBootRef = useRef(false)
+  useEffect(() => {
+    if (!isAvatarStudio || avatarBootRef.current) return
+    avatarBootRef.current = true
+    openProject(AVATAR_PROJECT)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (!sessionMenuOpen) return
@@ -2412,22 +2581,37 @@ export default function VibeCodingPage() {
    *  - otherwise → just append the message bubble
    *  Accepts an optional `override` text (used by empty-state suggestion
    *  chips to send immediately on click, bypassing the draft state). */
-  const sendChat = (override?: string, opts?: { fromHomeEntry?: boolean }) => {
+  const sendChat = (
+    override?: string,
+    opts?: {
+      fromHomeEntry?: boolean
+      projectId?: string
+      projectKind?: ProjectKind
+      sessionId?: string
+    },
+  ) => {
     const text = (override ?? chatDraft).trim()
     if (!text) return
+    const targetProjectId = opts?.projectId ?? projectTitle
+    const targetProjectKind = opts?.projectKind ?? kindOf(targetProjectId)
+    const targetSessionId = opts?.sessionId ?? activeSessionId
     // Any chat the user sends after entering a project counts as engaging with
     // it → reveal the right preview pane (Artifacts-style). The initial
     // home-entry prompt is excluded so the pane stays closed until then.
-    if (!opts?.fromHomeEntry) seedProductTabs()
-    let trigger: 'none' | 'publish' | 'needs' | 'trigger' = 'none'
-    if (/发布|更新/.test(text)) {
+    if (!opts?.fromHomeEntry) seedProductTabs(targetProjectId, targetProjectKind)
+    let trigger: MessageTrigger = 'none'
+    if (opts?.fromHomeEntry && targetProjectKind === 'ops-proposal') {
+      trigger = 'proposal'
+      setProposalStep('collecting')
+      setOpenTabs([])
+    } else if (/发布|更新/.test(text)) {
       trigger = 'publish'
       resetPublish()
       startPublish('chat')
       // Pre-select the primary scene so the card opens with a sensible default.
       togglePublishScene(PUBLISH_SCENES[0])
     } else if (
-      activeProjectKind === 'ai-avatar' &&
+      targetProjectKind === 'ai-avatar' &&
       /关注|评论|点赞|礼物|送礼|投稿时|投稿后/.test(text)
     ) {
       // Pick the preset event that matches the first keyword hit. Order
@@ -2459,6 +2643,7 @@ export default function VibeCodingPage() {
     } else if (/第五人格|小程序/.test(text)) {
       trigger = 'needs'
       setNeedsFlowActive(true)
+      setNeedsThinkingVisible(true)
       setScene('')
       setAppType('')
       setEnabledCapabilities(new Set())
@@ -2467,23 +2652,26 @@ export default function VibeCodingPage() {
       setTagsStep('idle')
       setFormSubmitted(false)
     }
-    if (chatCleared) setChatCleared(false)
+    // Always enqueue this after project/session initialisation. In React's
+    // batched update queue it overrides the fresh project's `true` value.
+    setChatCleared(false)
     // Clear the previous trigger confirmation so the success summary
     // doesn't linger above the next user message.
-    if (lastConfirmedTrigger) setLastConfirmedTrigger(null)
+    setLastConfirmedTrigger(null)
     // If this is the first message in a still-default-named session,
     // borrow the user's prompt as the session title (capped at ~20 chars).
-    if (sentMessages.length === 0) {
-      const nextName = text.length > 20 ? `${text.slice(0, 20)}…` : text
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === activeSessionId && s.name === '新会话'
-            ? { ...s, name: nextName }
-            : s,
-        ),
-      )
-    }
-    setSentMessages((prev) => [...prev, { text, trigger }])
+    const nextName = text.length > 20 ? `${text.slice(0, 20)}…` : text
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id === targetSessionId && session.name === '新会话'
+          ? { ...session, name: nextName }
+          : session,
+      ),
+    )
+    setSentMessages((prev) => [
+      ...prev,
+      { id: createMessageId(), text, trigger },
+    ])
     // Clear both the state AND the contentEditable DOM (innerText won't
     // auto-reset from setChatDraft since the div is uncontrolled).
     setComposerText('')
@@ -2554,6 +2742,7 @@ export default function VibeCodingPage() {
 
   /* file tree */
   const [fileTreeOpen, setFileTreeOpen] = useState(false)
+  const fileTreePanelEnabled: boolean = false
   // Selected file inside the in-tab 代码文件 editor (left tree + right code).
   const [codeSelectedFile, setCodeSelectedFile] = useState<string>('')
   // 游戏 素材 kind filter (图像/音频/视频) — lifted so the preview toolbar
@@ -2565,13 +2754,6 @@ export default function VibeCodingPage() {
   // The H5 layer currently selected in the preview (edit mode) — the 编辑
   // panel refreshes to match. null = no element selected → 整体活动配置.
   const [h5Selected, setH5Selected] = useState<H5Selection | null>(null)
-  // 运营数据 drawer (opens from the 发布 button's left-side entry).
-  const [opsDataOpen, setOpsDataOpen] = useState(false)
-  // Projects that have completed a publish — only then does 运营数据 unlock
-  // (there's no data before the product is live).
-  const [publishedProjects, setPublishedProjects] = useState<Set<string>>(new Set())
-  // Project to pre-select when jumping into the 运营数据 menu from the drawer.
-  const [dataOpsFocusProject, setDataOpsFocusProject] = useState<string | null>(null)
   const [fileTreeWidth, setFileTreeWidth] = useState(220)
   const fileTreeDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
   /* File-tree panel is split into two accordion sections that can be
@@ -3133,7 +3315,7 @@ export default function VibeCodingPage() {
   /** The active project's product-view tree (synthetic plain-language
    *  categories), recomputed per call so it tracks tree edits. */
   const getActiveProductTree = (): FileNode[] => {
-    const tree = projectTrees[projectTitle]
+    const tree = projectTreeFor(projectTitle)
     if (!tree) return []
     const kind = kindOf(projectTitle)
     return mergeCategoryExtras(
@@ -3167,11 +3349,10 @@ export default function VibeCodingPage() {
         n.type === 'dir' &&
         (n.children ?? []).some((c) => c.type === 'file' && c.name === child),
     )?.name
-  /** Page categories drive the live preview route (phone / browser) rather
-   *  than a renderTab body. web-game has no per-screen route (its preview is
-   *  one playable canvas), so its 页面 children render as renderTab bodies. */
+  /** Page categories drive the visual preview route rather than a text or
+   *  code body. Games use static screen artwork for their key UI states. */
   const isPageCategory = (category: string): boolean =>
-    category === '页面' && activeProjectKind !== 'web-game'
+    category === '页面'
 
   /** Open (or focus) a category tab, selecting `child` (defaults to the
    *  first child). Page categories also sync the preview route so the
@@ -3293,7 +3474,7 @@ export default function VibeCodingPage() {
     }
     // Product-view 页面 nodes aren't files — clicking one navigates the
     // right-side preview to that page and focuses the 预览 tab.
-    const activeTree = projectTrees[projectTitle]
+    const activeTree = projectTreeFor(projectTitle)
     if (activeTree && getProductPages(activeTree).some((p) => p.label === filename)) {
       setPreviewRoute(filename)
       const idx = openTabs.findIndex((t) => t.label === '预览')
@@ -3433,13 +3614,16 @@ export default function VibeCodingPage() {
   const [platformCreativeSquareOpen, setPlatformCreativeSquareOpen] =
     useState(false)
   const [platformDataOpsOpen, setPlatformDataOpsOpen] = useState(false)
+  /** 分身变体导航里的建设中页面（评测库/团队空间/我的空间）— 存 label。 */
+  const [platformPlaceholderPage, setPlatformPlaceholderPage] = useState<string | null>(null)
   /** Any non-workspace platform-level overlay is open. Used to hide the
    *  chat aside, header, and adjust body margins / padding. */
   const platformSecondaryPageOpen =
     platformResourceLibraryOpen ||
     platformSkillsOpen ||
     platformCreativeSquareOpen ||
-    platformDataOpsOpen
+    platformDataOpsOpen ||
+    platformPlaceholderPage !== null
   // Resource library / Skills view state (the original 资源-Skills page is
   // rendered in the Skills menu; the 资源库 menu uses the new ResourceHub).
   const [resourceLibraryPrimary, setResourceLibraryPrimary] =
@@ -3484,6 +3668,7 @@ export default function VibeCodingPage() {
     setPlatformSkillsOpen(false)
     setPlatformCreativeSquareOpen(false)
     setPlatformDataOpsOpen(false)
+    setPlatformPlaceholderPage(null)
     setPlatformResourceLibraryOpen(true)
   }
 
@@ -3505,7 +3690,6 @@ export default function VibeCodingPage() {
     sync()
     window.addEventListener('popstate', sync)
     return () => window.removeEventListener('popstate', sync)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   /** Mirror the library-open state back to the URL so the page is
@@ -3532,6 +3716,7 @@ export default function VibeCodingPage() {
     setPlatformResourceLibraryOpen(false)
     setPlatformCreativeSquareOpen(false)
     setPlatformDataOpsOpen(false)
+    setPlatformPlaceholderPage(null)
     setPlatformSkillsOpen(true)
   }
   const openPlatformCreativeSquarePage = () => {
@@ -3539,14 +3724,17 @@ export default function VibeCodingPage() {
     setPlatformResourceLibraryOpen(false)
     setPlatformSkillsOpen(false)
     setPlatformDataOpsOpen(false)
+    setPlatformPlaceholderPage(null)
     setPlatformCreativeSquareOpen(true)
   }
-  const openPlatformDataOpsPage = () => {
+  /** 分身变体：打开建设中的占位页（评测库/团队空间/我的空间）。 */
+  const openPlatformPlaceholderPage = (label: string) => {
     setPlatformHomeOpen(false)
     setPlatformResourceLibraryOpen(false)
     setPlatformSkillsOpen(false)
     setPlatformCreativeSquareOpen(false)
-    setPlatformDataOpsOpen(true)
+    setPlatformDataOpsOpen(false)
+    setPlatformPlaceholderPage(label)
   }
 
   const closeTab = (index: number) => {
@@ -3641,7 +3829,6 @@ export default function VibeCodingPage() {
       setActivePreviewTab(next.length - 1)
       return next
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proposalDocs])
 
   /** Step 2 — run the audience & traffic diagnosis. Appends both the
@@ -4326,17 +4513,19 @@ export default function VibeCodingPage() {
   const projectTitleRef = useRef(projectTitle)
   useEffect(() => {
     projectTitleRef.current = projectTitle
-  }, [projectTitle])
+    activatePublishProject(projectTitle)
+  }, [activatePublishProject, projectTitle])
 
-  // Keep the active AI 分身 project's tree in sync with the live triggers[]
-  // (the initial projectTrees snapshot is frozen before any triggers seed),
-  // so the product view's 触发器 section reflects the current config.
-  useEffect(() => {
-    if (kindOf(projectTitle) !== 'ai-avatar') return
-    setProjectTrees((prev) => ({ ...prev, [projectTitle]: aiPersonaFileTree }))
-    // aiPersonaFileTree is derived from `triggers`; resync whenever it changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [triggers, projectTitle])
+  // The active AI 分身 tree is derived from live trigger state rather than
+  // copied into projectTrees in an effect, so session restore stays atomic.
+  const projectTreeFor = (name: string): FileNode[] | undefined =>
+    name === projectTitle && kindOf(name) === 'ai-avatar'
+      ? aiPersonaFileTree
+      : projectTrees[name]
+  const projectTreesForSidebar =
+    kindOf(projectTitle) === 'ai-avatar'
+      ? { ...projectTrees, [projectTitle]: aiPersonaFileTree }
+      : projectTrees
 
   /* Open a product leaf in the context of *its owning project*. The sidebar
    * lists every project's product view, so a click may target a project
@@ -4361,50 +4550,45 @@ export default function VibeCodingPage() {
     openProject(projectName)
   }
   useEffect(() => {
-    // A project switch always collapses the visual-edit panel — its
-    // contents are scoped to the previous project's kind.
-    setEditPanelOpen(false)
-    setCanvasEditOpen(false)
-    setAvatarPromptEditing(false)
-    // Switching to a specific product leaf takes priority…
-    if (pendingProductOpenRef.current) {
-      const f = pendingProductOpenRef.current
-      pendingProductOpenRef.current = null
-      openFileInTab(f)
-      return
-    }
-    // …otherwise a plain project-name switch lands on the 预览 tab.
-    setActivePreviewTab((cur) => {
-      const idx = openTabs.findIndex((t) => t.label === '预览')
-      return idx >= 0 ? idx : cur
+    const frame = requestAnimationFrame(() => {
+      // Project-bound panels close after the target snapshot is committed.
+      setEditPanelOpen(false)
+      setCanvasEditOpen(false)
+      setAvatarPromptEditing(false)
+      if (pendingProductOpenRef.current) {
+        const filename = pendingProductOpenRef.current
+        pendingProductOpenRef.current = null
+        openFileInTab(filename)
+        return
+      }
+      setActivePreviewTab((current) => {
+        const index = openTabs.findIndex((tab) => tab.label === '预览')
+        return index >= 0 ? index : current
+      })
     })
+    return () => cancelAnimationFrame(frame)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectTitle])
   // The visual-edit panel is bound to the currently-active object/tab — so
   // switching tabs collapses it (re-open it explicitly on the new tab) and
   // clears any opened game-asset canvas selection.
   useEffect(() => {
-    setEditPanelOpen(false)
-    setCanvasEditOpen(false)
-    setAvatarPromptEditing(false)
-    setGameSelectedAsset(null)
-    setH5Selected(null)
+    const frame = requestAnimationFrame(() => {
+      setEditPanelOpen(false)
+      setCanvasEditOpen(false)
+      setAvatarPromptEditing(false)
+      setGameSelectedAsset(null)
+      setH5Selected(null)
+    })
+    return () => cancelAnimationFrame(frame)
   }, [activePreviewTab])
   // Each time the H5 edit panel closes, drop the layer selection so the next
   // open starts on the 整体活动配置 (overall) view rather than a stale element.
   useEffect(() => {
-    if (!editPanelOpen) setH5Selected(null)
+    if (editPanelOpen) return
+    const frame = requestAnimationFrame(() => setH5Selected(null))
+    return () => cancelAnimationFrame(frame)
   }, [editPanelOpen])
-  // A confirmed publish unlocks the active project's 运营数据.
-  useEffect(() => {
-    if (publishStep !== 'confirmed') return
-    setPublishedProjects((prev) => {
-      if (prev.has(projectTitle)) return prev
-      const next = new Set(prev)
-      next.add(projectTitle)
-      return next
-    })
-  }, [publishStep, projectTitle])
   /* Derive the active project's "kind" from its title — controls which
    * preview renders on the right and what label the product tab shows.
    * Unknown project names default to mini-program so arbitrary renames
@@ -4425,7 +4609,7 @@ export default function VibeCodingPage() {
    * whether the right-side preview renders the phone mock or an empty
    * state. Stub projects (no entry in `projectTrees`) get the empty
    * state since there's nothing meaningful to preview yet. */
-  const activeProjectHasTree = !!projectTrees[projectTitle]
+  const activeProjectHasTree = !!projectTreeFor(projectTitle)
   const emptyProjectPreview = (
     <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-8 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--fill-subtle)] text-[var(--color-ink)]/35">
@@ -4455,6 +4639,11 @@ export default function VibeCodingPage() {
     </div>
   )
 
+  const activeGameScreen =
+    activeProjectKind === 'web-game' && openTabs[activePreviewTab]?.label === '页面'
+      ? previewRoute
+      : null
+
   /* Right-side preview surface — picks the inner preview for the active
    * project. web-app renders the site full-bleed (its address bar lives
    * in the top strip); everything else keeps the phone frame. Stub
@@ -4465,7 +4654,7 @@ export default function VibeCodingPage() {
   ) : activeProjectKind === 'web-game' ? (
     <div className="relative min-h-0 w-full flex-1 overflow-hidden bg-black">
       {gameStep === 'idle' || gameStep === 'done' ? (
-        <GarudaGamePreview key={miniAppKey} />
+        <GarudaGamePreview key={`${miniAppKey}-${activeGameScreen ?? 'playable'}`} screen={activeGameScreen} />
       ) : (
         <GameBuildProgress step={gameStep} />
       )}
@@ -4510,8 +4699,7 @@ export default function VibeCodingPage() {
   /* Mention-picker data — derived every render so it stays in sync with
    * the active project's file tree + triggers. Skills stay static since
    * they come from the platform catalog, not per-project state. */
-  const activeFileTree =
-    projectTrees[projectTitle] ?? (activeProjectKind === 'ai-avatar' ? aiPersonaFileTree : fileTree)
+  const activeFileTree = projectTreeFor(projectTitle) ?? fileTree
   const mentionSkills: MentionItem[] = CAPABILITY_OPTIONS.map((c) => ({
     id: c.id,
     name: c.title,
@@ -4687,6 +4875,7 @@ export default function VibeCodingPage() {
         projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
       }
       setPlatformHomeOpen(true)
+      setPlatformPlaceholderPage(null)
     }
   }
   // Preview-strip tabs. AI 分身 projects collapse to a single「AI分身」
@@ -4773,10 +4962,9 @@ export default function VibeCodingPage() {
            clip hides them as the width closes. ── */}
       {isPlatform && (
         <div
-          className="fixed inset-y-0 left-0 z-40 overflow-hidden transition-[width] duration-300 ease-out"
+          className="absolute inset-y-0 left-0 z-40 overflow-hidden transition-[width] duration-300 ease-out"
           style={{
             width: sidebarCollapsed ? 0 : platformSidebarWidth,
-            top: 'var(--cc-top, 0px)',
           }}
           aria-hidden={sidebarCollapsed}
         >
@@ -4788,6 +4976,13 @@ export default function VibeCodingPage() {
             style={{ width: platformSidebarWidth }}
           >
           <PlatformSidebar
+            variant={variant}
+            onOpenPlaceholder={openPlatformPlaceholderPage}
+            projectFilter={
+              isAvatarStudio
+                ? (p) => p === AVATAR_PROJECT
+                : (p) => p !== AVATAR_PROJECT
+            }
             projectTrees={
               // While the Garuda 0→1 generation flow is still mid-run,
               // suppress its pre-baked tree so the sidebar shows the
@@ -4795,11 +4990,11 @@ export default function VibeCodingPage() {
               // finished file list before the build animation completes.
               gameStep !== 'idle' && gameStep !== 'done'
                 ? (() => {
-                    const { '射击小游戏': _omit, ...rest } = projectTrees
+                    const { '射击小游戏': _omit, ...rest } = projectTreesForSidebar
                     void _omit
                     return rest
                   })()
-                : projectTrees
+                : projectTreesForSidebar
             }
             expandedDirs={expandedDirs}
             toggleDir={toggleDir}
@@ -4825,7 +5020,7 @@ export default function VibeCodingPage() {
                     ? '创意广场'
                     : platformDataOpsOpen
                       ? '运营数据'
-                      : null
+                      : platformPlaceholderPage
             }
             activeRoute={previewRoute}
             activeProjectName={platformHomeOpen ? '' : projectTitle}
@@ -4865,7 +5060,7 @@ export default function VibeCodingPage() {
       {isPlatform && (
         <div
           aria-hidden
-          className="pointer-events-none fixed z-[5] top-3 bottom-3 right-3 rounded-[16px] bg-[var(--color-surface-0)] transition-[left] duration-300 ease-out"
+          className="pointer-events-none absolute z-[5] top-3 bottom-3 right-3 rounded-[16px] bg-[var(--color-surface-0)] transition-[left] duration-300 ease-out"
           style={{ left: effectiveSidebarWidth }}
         />
       )}
@@ -4876,8 +5071,7 @@ export default function VibeCodingPage() {
           onClick={() => setSidebarCollapsed(false)}
           title="展开侧栏"
           aria-label="展开侧栏"
-          className="fixed left-6 z-50 flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
-          style={{ top: 'calc(var(--cc-top, 0px) + 20px)' }}
+          className="absolute left-6 top-5 z-50 flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
         >
           <FlexAlignGlyph side="left" size={13} />
         </button>
@@ -4923,7 +5117,7 @@ export default function VibeCodingPage() {
       <header
         className={`z-20 flex items-center justify-between px-4 transition-[margin] duration-300 ${
           isPlatform
-            ? 'fixed top-3 right-3 h-[44px] rounded-t-[16px] border-b border-[var(--divider-soft)]'
+            ? 'absolute top-3 right-3 h-[44px] rounded-t-[16px] border-b border-[var(--divider-soft)]'
             : `relative h-14 shrink-0 ${
                 chatOnLeft ? '' : 'border-b border-[var(--divider-soft)]'
               } ${chatCollapsed ? '' : headerMarginClass}`
@@ -5084,31 +5278,10 @@ export default function VibeCodingPage() {
            Left margin for platform tracks the draggable chat width and is
            applied via inline style since Tailwind arbitrary values are
            compile-time. */}
-      <div
-        className={`relative z-10 flex min-h-0 flex-1 overflow-hidden ${
-          isPlatform && (platformHomeOpen || platformSecondaryPageOpen)
-            ? ''
-            : 'transition-[margin] duration-300 ease-out'
-        } ${chatCollapsed || isPlatform ? '' : bodyMarginClass} ${
-          isPlatform && !platformHomeOpen && !platformSecondaryPageOpen ? 'pt-3' : ''
-        }`}
-        style={
-          isPlatform
-            ? {
-                marginLeft:
-                  platformHomeOpen || platformSecondaryPageOpen
-                    ? effectiveSidebarWidth
-                    : previewHidden
-                      ? `calc(${effectiveSidebarWidth}px + min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px))`
-                      : effectiveSidebarWidth + platformChatWidth,
-              }
-            : undefined
-        }
-      >
         {/* ────── Chat aside — fixed to viewport. Code: below header, flush left with 20px gutter. Platform: flush against the preview inside the shared card (card frame is painted separately just below). Otherwise: pins top-0 on the right with a rounded glass panel. Hidden when platform home screen / resource library page is active. ────── */}
         {!(isPlatform && (platformHomeOpen || platformSecondaryPageOpen)) && (
         <aside
-          className={`fixed z-30 flex flex-col transition-[width,left] duration-300 ease-out ${
+          className={`absolute z-30 flex flex-col transition-[width,left] duration-300 ease-out ${
             isPlatform
               ? `top-3 bottom-3 ${previewHidden ? '' : 'border-r border-[var(--divider-soft)]'}`
               : chatOnLeft
@@ -5197,8 +5370,7 @@ export default function VibeCodingPage() {
                           onClick={() => {
                             if (isEditing) return
                             if (s.id !== activeSessionId) {
-                              setActiveSessionId(s.id)
-                              resetChatState()
+                              switchSession(s.id)
                             }
                             setSessionMenuOpen(false)
                           }}
@@ -5288,8 +5460,7 @@ export default function VibeCodingPage() {
                               type="button"
                               onClick={() => {
                                 if (s.id !== activeSessionId) {
-                                  setActiveSessionId(s.id)
-                                  resetChatState()
+                                  switchSession(s.id)
                                 }
                                 setHistoryMenuOpen(false)
                               }}
@@ -5357,7 +5528,7 @@ export default function VibeCodingPage() {
                  messages let needsFlowActive / showChatPublish render
                  their specific response further down. ── */}
             {sentMessages.map((m, i) => (
-              <Fragment key={`sent-${i}`}>
+              <Fragment key={m.id}>
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -5369,7 +5540,7 @@ export default function VibeCodingPage() {
                   </div>
                 </motion.div>
                 {m.trigger === 'none' && (() => {
-                  const replyKey = `${projectTitle}#${i}`
+                  const replyKey = `${projectTitle}::${activeSessionId}::${m.id}`
                   const cached = aiReplyCacheRef.current.get(replyKey)
                   // Build the conversation context: the system framing plus
                   // every plain user turn up to here, interleaved with the
@@ -5393,7 +5564,10 @@ export default function VibeCodingPage() {
                     if (sentMessages[k]?.trigger !== 'none') continue
                     history.push({ role: 'user', content: sentMessages[k].text })
                     if (k < i) {
-                      const prev = aiReplyCacheRef.current.get(`${projectTitle}#${k}`)
+                      const previousMessage = sentMessages[k]
+                      const prev = aiReplyCacheRef.current.get(
+                        `${projectTitle}::${activeSessionId}::${previousMessage.id}`,
+                      )
                       if (prev) history.push({ role: 'assistant', content: prev })
                     }
                   }
@@ -6209,7 +6383,7 @@ export default function VibeCodingPage() {
                     onChange={(v) => {
                       setScene(v)
                       // Reset later steps when upstream changes.
-                      setAppType('')
+                      resetAppTypeSelection()
                       setFormSubmitted(false)
                     }}
                   />
@@ -6233,7 +6407,7 @@ export default function VibeCodingPage() {
                       selected={appType}
                       locked={capabilitiesStep !== 'idle'}
                       onChange={(v) => {
-                        setAppType(v)
+                        selectAppType(v)
                         setFormSubmitted(false)
                       }}
                     />
@@ -6349,7 +6523,7 @@ export default function VibeCodingPage() {
                           <div className="mt-3 flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => setCapabilitiesStep('confirmed')}
+                              onClick={confirmCapabilitiesSelection}
                               className="rounded-lg bg-[var(--color-ink)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-ink-contrast)] shadow-[0_4px_12px_-4px_rgba(16,18,24,0.25)] transition-opacity hover:opacity-90"
                             >
                               确认引入
@@ -6358,8 +6532,8 @@ export default function VibeCodingPage() {
                               type="button"
                               onClick={() => {
                                 // Back to step 2 — wipe appType so the
-                                // effect re-runs when it's picked again.
-                                setAppType('')
+                                // recommendations restart when it's picked again.
+                                resetAppTypeSelection()
                               }}
                               className="ml-1 rounded-lg px-2 py-1.5 text-[12px] text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
                             >
@@ -7031,6 +7205,27 @@ export default function VibeCodingPage() {
           )}
         </aside>
         )}
+      <div
+        className={`relative z-10 flex min-h-0 flex-1 overflow-hidden ${
+          isPlatform && (platformHomeOpen || platformSecondaryPageOpen)
+            ? ''
+            : 'transition-[margin] duration-300 ease-out'
+        } ${chatCollapsed || isPlatform ? '' : bodyMarginClass} ${
+          isPlatform && !platformHomeOpen && !platformSecondaryPageOpen ? 'pt-3' : ''
+        }`}
+        style={
+          isPlatform
+            ? {
+                marginLeft:
+                  platformHomeOpen || platformSecondaryPageOpen
+                    ? effectiveSidebarWidth
+                    : previewHidden
+                      ? `calc(${effectiveSidebarWidth}px + min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px))`
+                      : effectiveSidebarWidth + platformChatWidth,
+              }
+            : undefined
+        }
+      >
 
         {layout === 'editor' && (
           <>
@@ -7173,7 +7368,7 @@ export default function VibeCodingPage() {
                   <div className="relative shrink-0" style={{ width: fileTreeWidth }}>
                     <div className="thin-scroll flex h-full flex-col overflow-y-auto border-r border-[var(--divider-soft)] bg-[var(--color-surface-0)]/50 py-2">
                       <FileTreeView
-                        nodes={projectTrees[projectTitle] ?? fileTree}
+                        nodes={projectTreeFor(projectTitle) ?? fileTree}
                         expanded={expandedDirs}
                         onToggleDir={toggleDir}
                         onOpenFile={openFileInTab}
@@ -7302,7 +7497,7 @@ export default function VibeCodingPage() {
                   <div className="relative shrink-0" style={{ width: fileTreeWidth }}>
                     <div className="thin-scroll flex h-full flex-col overflow-y-auto border-r border-[var(--code-divider)] py-2">
                       <FileTreeView
-                        nodes={projectTrees[projectTitle] ?? fileTree}
+                        nodes={projectTreeFor(projectTitle) ?? fileTree}
                         expanded={expandedDirs}
                         onToggleDir={toggleDir}
                         onOpenFile={openFileInTab}
@@ -7490,15 +7685,8 @@ export default function VibeCodingPage() {
               onSearchChange={setResourceLibrarySearch}
               onUseCapabilityInChat={useCapabilityInChat}
               onOpenProject={(name) => {
-                setProjectTitle(name)
-                handleNewSession()
-                setPlatformHomeOpen(false)
-                setPlatformResourceLibraryOpen(false)
                 setResourceLibraryCapability(null)
-                setPlatformSkillsOpen(false)
-                setPlatformCreativeSquareOpen(false)
-                setPlatformDataOpsOpen(false)
-                setActivePreviewTab(0)
+                openProject(name)
               }}
             />
           </motion.div>
@@ -7508,6 +7696,28 @@ export default function VibeCodingPage() {
           <div className="@container mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px] bg-[var(--color-surface-0)]">
             <AgentHubPreview hideSidebar />
           </div>
+        )}
+
+        {/* 分身变体导航的建设中页面（评测库/团队空间/我的空间）。 */}
+        {isPlatform && platformPlaceholderPage && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px]"
+          >
+            <PlatformPlaceholderView
+              icon={
+                platformPlaceholderPage === '评测库'
+                  ? ShieldCheck
+                  : platformPlaceholderPage === '团队空间'
+                    ? UsersRound
+                    : UserRound
+              }
+              title={platformPlaceholderPage}
+              description="这里将提供分身的评测、协作与个人空间能力，正在建设中。"
+            />
+          </motion.div>
         )}
 
         {isPlatform && platformDataOpsOpen && (() => {
@@ -7520,6 +7730,7 @@ export default function VibeCodingPage() {
             '抖音 AI 工坊设计探索',
             '射击小游戏',
           ]
+            .filter((n) => (isAvatarStudio ? n === AVATAR_PROJECT : n !== AVATAR_PROJECT))
             .filter((n) => !deletedProjects.has(n))
             .map((n) => ({
               name: n,
@@ -7533,7 +7744,7 @@ export default function VibeCodingPage() {
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
               className="mt-3 mb-3 mr-3 flex min-h-0 flex-1 overflow-hidden rounded-[16px] border border-[var(--divider-soft)]"
             >
-              <DataOpsView projects={published} focusName={dataOpsFocusProject} />
+              <DataOpsView projects={published} />
             </motion.div>
           )
         })()}
@@ -7635,7 +7846,7 @@ export default function VibeCodingPage() {
                    * container forces overflow-y: auto (browser
                    * compensation for overflow-x: auto), which would
                    * otherwise clip an absolute-positioned dropdown. */
-                  const tree = projectTrees[projectTitle]
+                  const tree = projectTreeFor(projectTitle)
                   if (!tree) return null
                   const kind = kindOf(projectTitle)
                   const productTree =
@@ -7729,16 +7940,6 @@ export default function VibeCodingPage() {
             <div className="flex shrink-0 items-center gap-1.5">
               <button
                 type="button"
-                disabled={!publishedProjects.has(projectTitle)}
-                onClick={() => setOpsDataOpen(true)}
-                className="flex h-7 items-center gap-1.5 rounded-md border border-[var(--divider)] px-2.5 text-[12px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--color-ink)]/75"
-                title={publishedProjects.has(projectTitle) ? '运营数据' : '发布后可查看运营数据'}
-              >
-                <BarChart3 size={12} strokeWidth={1.8} />
-                运营数据
-              </button>
-              <button
-                type="button"
                 onClick={(e) => {
                   const r = e.currentTarget.getBoundingClientRect()
                   resetPublish()
@@ -7787,9 +7988,12 @@ export default function VibeCodingPage() {
                 )
               } else if (activeProjectKind === 'web-game') {
                 // 素材 tab → 图像/音频/视频 filters live in the toolbar (same
-                // style as 小程序/Feed 卡); other tabs show a plain label.
+                // style as 小程序/Feed 卡); 页面 tab mirrors the mini-program
+                // route switcher; other tabs show a plain label.
                 toolbarTabs =
-                  lbl === '素材' ? (
+                  isPageTab ? (
+                    renderCategoryTabs(lbl)
+                  ) : lbl === '素材' ? (
                     <div className="flex items-center gap-6">
                       {garudaKindTabs().map((k) => (
                         <button
@@ -8128,7 +8332,7 @@ export default function VibeCodingPage() {
             // Mirrors the (now-hidden) far-right 项目代码库 panel, moved into a
             // tab opened from the + menu.
             const projectCodeView = () => {
-              const tree = projectTrees[projectTitle] ?? fileTree
+              const tree = projectTreeFor(projectTitle) ?? fileTree
               const leaves: string[] = []
               const walk = (ns: FileNode[]) =>
                 ns.forEach((n) =>
@@ -8806,7 +9010,7 @@ export default function VibeCodingPage() {
 
           {/* Right-side 项目代码库 panel hidden — code moved into the
               「代码文件」editor tab (opened from the + menu). */}
-          {false && fileTreeOpen && (
+          {fileTreePanelEnabled && fileTreeOpen && (
             <div className="relative shrink-0" style={{ width: fileTreeWidth }}>
               <div className="thin-scroll flex h-full flex-col overflow-y-auto border-l border-[var(--divider-soft)] bg-[var(--color-surface-0)]/50">
                 {/* ── Section 1 — 对话上下文 (referenced skills / knowledge) ── */}
@@ -8868,7 +9072,7 @@ export default function VibeCodingPage() {
                   {projectSectionOpen && (
                     <div className="min-h-0 flex-1 py-1">
                       <FileTreeView
-                        nodes={projectTrees[projectTitle] ?? fileTree}
+                        nodes={projectTreeFor(projectTitle) ?? fileTree}
                         expanded={expandedDirs}
                         onToggleDir={toggleDir}
                         onOpenFile={openFileInTab}
@@ -8912,18 +9116,6 @@ export default function VibeCodingPage() {
         projectName={displayProjectName(projectTitle)}
         projectKey={projectTitle}
         projectKind={activeProjectKind}
-      />
-
-      {/* ── 运营数据 drawer — opens from the 发布 button's left-side entry ── */}
-      <OpsDataDrawer
-        open={opsDataOpen}
-        onClose={() => setOpsDataOpen(false)}
-        projectName={displayProjectName(projectTitle)}
-        onViewMore={() => {
-          setDataOpsFocusProject(projectTitle)
-          setOpsDataOpen(false)
-          openPlatformDataOpsPage()
-        }}
       />
 
       {/* ── Pin menu popover (fixed, so it escapes the tab bar overflow clip) ── */}
@@ -9021,159 +9213,5 @@ function PublishSwitch({
         }`}
       />
     </button>
-  )
-}
-
-/** Live AI reply block — streams a real reply from the Kimi-backed
- *  /api/chat proxy, showing a thinking indicator until the first token
- *  lands. Caches the finished text in the parent (via `cached` / `onDone`)
- *  so re-opening a project renders instantly instead of re-fetching, and
- *  falls back to a canned line if the request fails. */
-function LiveAiReply({
-  messages,
-  cached,
-  fallback,
-  onDone,
-}: {
-  /** Full conversation context (system + prior turns + this user message). */
-  messages: ChatMessage[]
-  /** Previously-streamed reply for this turn; when set, render it instantly. */
-  cached?: string
-  /** Canned reply shown if the API call fails. */
-  fallback: string
-  /** Called once with the final text so the parent can cache it. */
-  onDone?: (reply: string) => void
-}) {
-  const [text, setText] = useState(cached ?? '')
-  const [thinking, setThinking] = useState(cached == null)
-  const onDoneRef = useRef(onDone)
-  useEffect(() => {
-    onDoneRef.current = onDone
-  })
-  // Capture the message context from first render — the reply is tied to this
-  // turn, so later re-renders shouldn't change what we asked.
-  const messagesRef = useRef(messages)
-  useEffect(() => {
-    if (cached != null) return // already have the reply — no fetch
-    const controller = new AbortController()
-    let acc = ''
-    streamChat(messagesRef.current, {
-      signal: controller.signal,
-      onToken: (token) => {
-        acc += token
-        setThinking(false)
-        setText(acc)
-      },
-    })
-      .then((full) => {
-        const reply = (acc || full || '').trim() || fallback
-        setThinking(false)
-        setText(reply)
-        onDoneRef.current?.(reply)
-      })
-      .catch(() => {
-        if (controller.signal.aborted) return
-        setThinking(false)
-        setText(fallback)
-        onDoneRef.current?.(fallback)
-      })
-    return () => controller.abort()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-  return (
-    <div className="space-y-2.5">
-      {thinking && (
-        <div className="flex items-center gap-1.5 text-[12px] text-[var(--color-ink)]/45">
-          {[0, 1, 2].map((k) => (
-            <motion.span
-              key={k}
-              animate={{ y: [0, -3, 0], opacity: [0.35, 0.85, 0.35] }}
-              transition={{ duration: 0.9, delay: k * 0.15, repeat: Infinity, ease: 'easeInOut' }}
-              className="h-1.5 w-1.5 rounded-full bg-[var(--color-ink)]"
-            />
-          ))}
-          <span className="ml-1">AI 正在回复</span>
-        </div>
-      )}
-      {text && (
-        <motion.p
-          initial={cached != null ? false : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={cached != null ? { duration: 0 } : { duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="whitespace-pre-wrap text-[14px] leading-[20px] text-[var(--color-ink)]"
-        >
-          {text}
-        </motion.p>
-      )}
-    </div>
-  )
-}
-
-
-function ChatEmptyState({
-  suggestions,
-  onPick,
-}: {
-  suggestions: string[]
-  onPick: (text: string) => void
-}) {
-  const themeMode = useThemeStore((s) => s.mode)
-  const isLight = themeMode === 'light'
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="flex h-full flex-col items-center justify-center gap-8 px-3 text-center"
-    >
-      <div className="relative z-0 flex h-14 w-14 items-center justify-center">
-        {/* Halo glow PNG behind the logo. Rendered only in dark mode —
-             the light panel doesn't need it and the PNG's dark backdrop
-             reads like an ink blot there. */}
-        {!isLight && (
-          <motion.img
-            src="/bg/chat-empty-halo.png"
-            alt=""
-            aria-hidden
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.5, ease: 'easeOut' }}
-            className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[420px] w-[420px] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
-          />
-        )}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="relative"
-        >
-          <LogoIconSpinOnce className="h-14 w-14 text-[var(--color-ink)]" />
-        </motion.div>
-      </div>
-      <div className="relative z-10 flex flex-col items-center gap-3">
-        <h2 className="text-[20px] font-medium leading-[24px] text-[var(--color-ink)]">
-          嗨，我是你的 AI 助理
-        </h2>
-        <p className="text-[14px] leading-[24px] text-[var(--color-ink)]/60">
-          你可以让我调整这个项目，下面这些你可以试试
-        </p>
-      </div>
-      <div className="relative z-10 flex flex-wrap items-center justify-center gap-2">
-        {suggestions.map((s, i) => (
-          <motion.button
-            key={s}
-            type="button"
-            onClick={() => onPick(s)}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 + i * 0.06, duration: 0.3 }}
-            whileHover={{ y: -1 }}
-            className="rounded-full bg-[var(--fill-subtle)] px-[13px] py-[7px] text-[11px] leading-[16.5px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-          >
-            {s}
-          </motion.button>
-        ))}
-      </div>
-    </motion.div>
   )
 }

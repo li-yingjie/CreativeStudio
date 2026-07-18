@@ -62,17 +62,19 @@ export const SMART_CREATE_ENTRIES: {
   },
 ]
 
+export type PublishEntryId = 'video' | 'image' | 'panorama' | 'article'
+
 /** 首页「作品发布」入口卡 — 图标为设计稿导出的 4x 贴纸卡（浅底 + 高饱和图标块）。 */
-export const PUBLISH_ENTRIES: { label: string; desc: string; img: string }[] = [
-  { label: '发布高清视频', desc: '支持常用格式推荐mp4', img: '/icons/creator-center/publish-video.png' },
-  { label: '发布图文', desc: '支持常用图片格式png/jpg', img: '/icons/creator-center/publish-image.png' },
-  { label: '发布全景视频', desc: '推荐分辨率为4K 及以上', img: '/icons/creator-center/publish-panorama.png' },
-  { label: '发布文章', desc: '支持上传8000字和30个图片素材', img: '/icons/creator-center/publish-article.png' },
+export const PUBLISH_ENTRIES: { id: PublishEntryId; label: string; desc: string; img: string }[] = [
+  { id: 'video', label: '发布高清视频', desc: '支持常用格式推荐mp4', img: '/icons/creator-center/publish-video.png' },
+  { id: 'image', label: '发布图文', desc: '支持常用图片格式png/jpg', img: '/icons/creator-center/publish-image.png' },
+  { id: 'panorama', label: '发布全景视频', desc: '推荐分辨率为4K 及以上', img: '/icons/creator-center/publish-panorama.png' },
+  { id: 'article', label: '发布文章', desc: '支持上传8000字和30个图片素材', img: '/icons/creator-center/publish-article.png' },
 ]
 
 /** 创作者身份信息（统计数字由接口返回）。 */
 export const CREATOR_PROFILE = {
-  avatar: '/icons/creator-center/creator-avatar.png',
+  avatar: '/assets/kingjaylee.PNG',
   name: '创作者用户昵称',
   badge: '抖音音乐人',
   authorize: '发起授权',

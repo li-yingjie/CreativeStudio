@@ -2,10 +2,50 @@ import { defineConfig, type PluginOption } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 // @ts-expect-error — plain .mjs handler, no types needed
-import { handleChat, handleHealth } from './server/kimi.mjs'
+import * as kimiApi from './server/kimi.mjs'
 // @ts-expect-error — plain .mjs handler, no types needed
-import { handleCreatorStats, handleCreatorWorks, handleCreatorIncome, handleCreatorCollab, handleCreatorActivities, handleCreatorCopyright, handleCreatorIndexHot, handleCreatorLives, handleCreatorHomeOverview } from './server/creator-data.mjs'
+import * as creatorApi from './server/creator-data.mjs'
+
+const { handleChat, handleHealth } = kimiApi
+
+const {
+  handleCreatorActivities,
+  handleCreatorCollab,
+  handleCreatorCopyright,
+  handleCreatorHomeOverview,
+  handleCreatorIncome,
+  handleCreatorIndexHot,
+  handleCreatorLives,
+  handleCreatorStats,
+  handleCreatorWorks,
+} = creatorApi
+
+type ApiHandler = (req: IncomingMessage, res: ServerResponse) => unknown
+
+const apiRoutes = new Map<string, { method: 'GET' | 'POST'; handler: ApiHandler }>([
+  ['/api/health', { method: 'GET', handler: handleHealth }],
+  ['/api/chat', { method: 'POST', handler: handleChat }],
+  ['/api/creator/stats', { method: 'GET', handler: handleCreatorStats }],
+  ['/api/creator/works', { method: 'GET', handler: handleCreatorWorks }],
+  ['/api/creator/income', { method: 'GET', handler: handleCreatorIncome }],
+  ['/api/creator/collab', { method: 'GET', handler: handleCreatorCollab }],
+  ['/api/creator/activities', { method: 'GET', handler: handleCreatorActivities }],
+  ['/api/creator/copyright', { method: 'GET', handler: handleCreatorCopyright }],
+  ['/api/creator/index-hot', { method: 'GET', handler: handleCreatorIndexHot }],
+  ['/api/creator/lives', { method: 'GET', handler: handleCreatorLives }],
+  ['/api/creator/home-overview', { method: 'GET', handler: handleCreatorHomeOverview }],
+])
+
+function sendApiJson(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) {
+  res.statusCode = status
+  res.setHeader('Content-Type', 'application/json; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-store')
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  for (const [name, value] of Object.entries(headers)) res.setHeader(name, value)
+  res.end(JSON.stringify(body))
+}
 
 // Runs the Kimi proxy inside the Vite dev server so /api works in dev with no
 // separate process. The key stays server-side; the browser only sees /api.
@@ -14,19 +54,22 @@ function kimiDevApi(): PluginOption {
     name: 'kimi-dev-api',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        const url = (req.url || '').split('?')[0]
-        if (url === '/api/health') return handleHealth(req, res)
-        if (url === '/api/chat' && req.method === 'POST') return handleChat(req, res)
-        if (url === '/api/creator/stats') return handleCreatorStats(req, res)
-        if (url === '/api/creator/works') return handleCreatorWorks(req, res)
-        if (url === '/api/creator/income') return handleCreatorIncome(req, res)
-        if (url === '/api/creator/collab') return handleCreatorCollab(req, res)
-        if (url === '/api/creator/activities') return handleCreatorActivities(req, res)
-        if (url === '/api/creator/copyright') return handleCreatorCopyright(req, res)
-        if (url === '/api/creator/index-hot') return handleCreatorIndexHot(req, res)
-        if (url === '/api/creator/lives') return handleCreatorLives(req, res)
-        if (url === '/api/creator/home-overview') return handleCreatorHomeOverview(req, res)
-        next()
+        const pathname = new URL(req.url || '/', 'http://local').pathname
+        if (pathname !== '/api' && !pathname.startsWith('/api/')) return next()
+
+        const route = apiRoutes.get(pathname)
+        if (!route) {
+          sendApiJson(res, 404, { error: 'API route not found' })
+          return
+        }
+        if (req.method !== route.method) {
+          sendApiJson(res, 405, { error: 'method not allowed' }, { Allow: route.method })
+          return
+        }
+        Promise.resolve(route.handler(req, res)).catch((error: unknown) => {
+          console.error(`[vite-api] ${req.method} ${pathname} failed`, error)
+          if (!res.headersSent) sendApiJson(res, 500, { error: 'internal server error' })
+        })
       })
     },
   }
@@ -39,8 +82,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  // 支持 PORT 环境变量，便于 5173 被占用时自动换端口
+  // 开发端口与 Express 的 PORT 分开，避免读取 .env 后预览从
+  // 5173 意外跳到生产 API 端口。
   server: {
-    port: Number(process.env.PORT) || 5173,
+    port: Number(process.env.VITE_DEV_PORT) || 5173,
   },
 })
