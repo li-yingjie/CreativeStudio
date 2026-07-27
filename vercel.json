@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/sidebar",
+      "destination": "/index.html"
+    }
+  ]
+}
