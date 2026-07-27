@@ -8,24 +8,28 @@ export default function MarketingDocEditor({
   title = '项目文档',
   value,
   onChange,
+  hideHeader = false,
 }: {
   title?: string
   value: string
   onChange: (next: string) => void
+  hideHeader?: boolean
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-surface-0)]">
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--divider-soft)] px-4 py-2">
-        <h1 className="min-w-0 truncate text-[13px] font-semibold text-[var(--color-ink)]">
-          {title}
-        </h1>
-        <span className="flex shrink-0 items-center gap-1 rounded-md bg-[var(--fill-subtle)] px-2 py-1 text-[11px] text-[var(--color-ink)]/55">
-          <Pencil size={12} strokeWidth={1.8} />
-          编辑
-        </span>
-      </header>
+      {!hideHeader && (
+        <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--divider-soft)] px-4 py-2">
+          <h1 className="min-w-0 truncate text-[13px] font-semibold text-[var(--color-ink)]">
+            {title}
+          </h1>
+          <span className="flex shrink-0 items-center gap-1 rounded-md bg-[var(--fill-subtle)] px-2 py-1 text-[11px] text-[var(--color-ink)]/55">
+            <Pencil size={12} strokeWidth={1.8} />
+            编辑
+          </span>
+        </header>
+      )}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

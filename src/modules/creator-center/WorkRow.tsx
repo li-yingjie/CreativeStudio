@@ -10,6 +10,7 @@ import {
   TrendingUp,
 } from '@/shared/icons'
 import { fmtCount, type WorkItem } from './api'
+import { fmtWorkDate } from './work-format'
 
 /* ─── 内容管理页的「作品行」组件（设计稿 创作者中心26.7 · 20-8421） ───
  * 封面（置顶/张数/时长角标）+ 标题与行内操作 + 活动标签 + 日期状态 +
@@ -29,8 +30,8 @@ function Metric({
 }) {
   const inner = (
     <>
-      <div className="truncate text-[12px] text-[#252632]/45">{label}</div>
-      <div className="mt-1 text-[14px] font-semibold tabular-nums text-[#252632]">{value}</div>
+      <div className="truncate text-[13px] text-[rgba(22,24,35,0.34)]">{label}</div>
+      <div className="mt-0.5 text-[15px] font-bold tabular-nums text-[#161823]">{value}</div>
     </>
   )
   if (onClick) {
@@ -41,14 +42,14 @@ function Metric({
           e.stopPropagation()
           onClick()
         }}
-        className="min-w-[92px] rounded-md border-l border-black/5 px-3 text-left transition-colors first:border-l-0 first:pl-0 hover:bg-black/5"
+        className="min-w-[92px] rounded-[4px] border-l border-[rgba(22,24,35,0.12)] px-3 text-left transition-colors first:border-l-0 first:pl-0 hover:bg-[rgba(83,96,143,0.07)]"
       >
         {inner}
       </button>
     )
   }
   return (
-    <div className="min-w-[92px] border-l border-black/5 px-3 first:border-l-0 first:pl-0">
+    <div className="min-w-[92px] border-l border-[rgba(22,24,35,0.12)] px-3 first:border-l-0 first:pl-0">
       {inner}
     </div>
   )
@@ -74,11 +75,11 @@ function ActionLink({
         onClick?.()
       }}
       disabled={!onClick}
-      className={`flex items-center gap-1 text-[12px] transition-colors ${
-        danger ? 'text-[#F53F3F] hover:text-[#d63030]' : 'text-[#252632]/60 hover:text-[#252632]'
+      className={`flex items-center gap-1 text-[13px] font-medium leading-[18px] transition-colors ${
+        danger ? 'text-[#fe2c55] hover:text-[#d92348]' : 'text-[rgba(22,24,35,0.6)] hover:text-[#161823]'
       }`}
     >
-      <Icon size={13} strokeWidth={1.8} />
+      <Icon size={12} strokeWidth={1.8} />
       {label}
     </button>
   )
@@ -120,20 +121,6 @@ function metricCells(w: WorkItem): { label: string; value: string }[] {
   return [...common, ...typed, { label: '吸粉量', value: fmtCount(m.fanGain) }]
 }
 
-/** '2025-05-05[ HH:MM]' → '2025年05月05日 00:01'。没带时间时由 id
- *  稳定派生一个演示值。 */
-export function fmtWorkDate(w: WorkItem): string {
-  const [datePart, timePart] = w.publishedAt.split(' ')
-  const [y, mo, d] = datePart.split('-')
-  let time = timePart
-  if (!time) {
-    let h = 0
-    for (const ch of w.id) h = (h * 31 + ch.charCodeAt(0)) % 1440
-    time = `${String(Math.floor(h / 60)).padStart(2, '0')}:${String(h % 60).padStart(2, '0')}`
-  }
-  return `${y}年${mo}月${d}日 ${time}`
-}
-
 export default function WorkRow({
   work,
   onOpen,
@@ -167,17 +154,20 @@ export default function WorkRow({
             onOpen?.(work)
           }
         }}
-        className="group -mx-3 flex cursor-pointer flex-col gap-4 rounded-xl px-3 py-5 transition-colors hover:bg-black/[0.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4E83FD] sm:flex-row"
+        // 审核中作品整卡灰底(设计稿 rgba(51,52,63,0.04))
+        className={`group flex cursor-pointer flex-col gap-4 rounded-lg p-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4E83FD] sm:flex-row ${
+          work.status === '审核中' ? 'bg-[rgba(51,52,63,0.04)]' : 'hover:bg-black/[0.02]'
+        }`}
       >
         {/* 封面 */}
-        <div className="relative h-[160px] w-[120px] shrink-0 overflow-hidden rounded-lg bg-black/5">
+        <div className="relative h-[160px] w-[120px] shrink-0 overflow-hidden rounded-[6px] bg-black/5">
           <img
             src={work.cover}
             alt={work.title}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
           {work.pinned && (
-            <span className="absolute left-0 top-2 rounded-r bg-[#FF9F1A] px-1.5 py-0.5 text-[11px] font-medium text-white">
+            <span className="absolute left-2 top-2 flex h-5 items-center rounded-[4px] bg-[#feb400] px-1 text-[12px] font-medium text-[#161823]">
               置顶
             </span>
           )}
@@ -193,7 +183,7 @@ export default function WorkRow({
           )}
           {/* 视频时长 / 图文张数（工坊作品无此角标） */}
           {!work.workshopKind && (
-            <span className="absolute bottom-1.5 left-1.5 rounded bg-black/55 px-1.5 py-0.5 text-[11px] text-white">
+            <span className="absolute inset-x-0 bottom-0 flex justify-end bg-gradient-to-b from-transparent to-black/60 p-2 text-[13px] font-medium leading-[18px] text-white">
               {work.type === 'gallery' ? `${work.imageCount}张` : work.duration}
             </span>
           )}
@@ -202,7 +192,7 @@ export default function WorkRow({
         {/* 右侧内容 */}
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:gap-6">
-            <h4 className="min-w-0 flex-1 truncate text-[15px] font-medium text-[#252632] decoration-black/30 underline-offset-2 group-hover:underline">
+            <h4 className="min-w-0 flex-1 truncate text-[15px] font-medium text-[#161823] decoration-black/30 underline-offset-2 group-hover:underline">
               {work.title}
             </h4>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 xl:shrink-0">
@@ -222,7 +212,7 @@ export default function WorkRow({
               {work.tags.map((t) => (
                 <span
                   key={t}
-                  className="flex items-center gap-1 rounded border border-black/8 px-1.5 py-0.5 text-[12px] text-[#252632]/75"
+                  className="flex h-5 items-center gap-1 rounded-[4px] border-[0.5px] border-[rgba(22,24,35,0.12)] px-1.5 text-[12px] text-[#161823]"
                 >
                   {t.startsWith('挑战') ? (
                     <Target size={12} className="text-[#252632]/55" />
@@ -235,14 +225,16 @@ export default function WorkRow({
             </div>
           )}
 
-          <div className="mt-2 flex items-center gap-2.5 text-[13px]">
-            <span className="text-[#252632]/60">{fmtWorkDate(work)}</span>
+          <div className="mt-2 flex items-center gap-2 text-[13px]">
+            <span className="text-[rgba(22,24,35,0.6)]">{fmtWorkDate(work)}</span>
             {work.trafficDown ? (
-              <span className="flex items-center text-[#F5533D] group-hover:opacity-80">
-                流量减少 <ChevronRight size={13} />
+              <span className="flex items-center font-medium text-[#fe3824] group-hover:opacity-80">
+                流量减少 <ChevronRight size={12} />
               </span>
             ) : (
-              <span className="text-[#00B578]">{work.status}</span>
+              <span className={`font-medium ${work.status === '审核中' ? 'text-[#ff851d]' : work.status === '未通过' ? 'text-[#fe3824]' : 'text-[#3eb346]'}`}>
+                {work.status}
+              </span>
             )}
           </div>
 

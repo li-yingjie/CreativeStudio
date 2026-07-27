@@ -1,5 +1,9 @@
 import type { ReactNode } from 'react'
-import type { ProjectKind } from './ProjectProductView'
+import {
+  DATA_CONFIG_LABEL,
+  GAMEPLAY_CONFIG_LABEL,
+  type ProjectKind,
+} from './ProjectProductView'
 
 /**
  * 每个项目「产物对象」的真实化 mock 内容。
@@ -7,7 +11,7 @@ import type { ProjectKind } from './ProjectProductView'
  * 之前许多对象（基础信息 / 页面 / 玩法 / 技能 / 知识库 / 数据库 / 素材）都复用
  * 通用的代码编辑器或文档视图，内容与项目并不匹配。这里按项目类型给每个对象
  * 准备贴合的静态内容，并在 renderTab 里优先命中。命中不到时返回 null，让调用方
- * 走原有的兜底视图（文档 / 代码文件等）。
+ * 走原有的兜底视图（文档 / 项目文件等）。
  */
 
 type InfoContent = {
@@ -29,7 +33,7 @@ type ObjectContent = InfoContent | DbContent | CardsContent
 const CONTENT: Record<string, Record<string, ObjectContent>> = {
   /* ── 塔罗小程序（mini-program）。技能为类目，复用 分身 的能力详情视图 ── */
   '塔罗小程序': {
-    数据库: {
+    [DATA_CONFIG_LABEL]: {
       type: 'database',
       tables: [
         {
@@ -108,7 +112,7 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
         },
       ],
     },
-    玩法: {
+    [GAMEPLAY_CONFIG_LABEL]: {
       type: 'cards',
       note: '活动内的互动玩法与奖励规则。',
       items: [
@@ -154,7 +158,7 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
         },
       ],
     },
-    数据库: {
+    [DATA_CONFIG_LABEL]: {
       type: 'database',
       tables: [
         {
@@ -300,7 +304,7 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
         },
       ],
     },
-    玩法: {
+    [GAMEPLAY_CONFIG_LABEL]: {
       type: 'cards',
       note: '核心玩法与系统设计。',
       items: [
@@ -312,7 +316,7 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
         { icon: '💎', title: '道具掉落', desc: '护盾 / 炸弹 / 金币，限时拾取。' },
       ],
     },
-    数据库: {
+    [DATA_CONFIG_LABEL]: {
       type: 'database',
       tables: [
         {

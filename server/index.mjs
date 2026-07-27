@@ -3,7 +3,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { createBrotliCompress, createGzip, constants as zlibConstants } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
-import { handleChat, handleHealth, loadKimiConfig } from './kimi.mjs'
+import { handleChat, handleHealth, handleProductIntent, loadKimiConfig } from './kimi.mjs'
 import {
   handleCreatorActivities,
   handleCreatorCollab,
@@ -24,6 +24,7 @@ const COMPRESSIBLE_EXTENSIONS = new Set(['.css', '.html', '.js', '.json', '.map'
 const apiRoutes = new Map([
   ['/api/health', { method: 'GET', handler: handleHealth }],
   ['/api/chat', { method: 'POST', handler: handleChat }],
+  ['/api/product-intent', { method: 'POST', handler: handleProductIntent }],
   ['/api/creator/stats', { method: 'GET', handler: handleCreatorStats }],
   ['/api/creator/works', { method: 'GET', handler: handleCreatorWorks }],
   ['/api/creator/income', { method: 'GET', handler: handleCreatorIncome }],

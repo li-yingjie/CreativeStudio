@@ -2,6 +2,8 @@ import { motion, useReducedMotion } from 'framer-motion'
 import * as Popover from '@radix-ui/react-popover'
 import { toast } from 'sonner'
 import { Video } from '@/shared/icons'
+import AccountSwitcherPanel from './AccountSwitcher'
+import FigmaGlyph from './FigmaGlyph'
 import MaskIcon from './MaskIcon'
 import { useLiveMgmt } from './live-store'
 import { CREATOR_PROFILE, PRODUCTS, STARLIGHT, type ProductId } from './data'
@@ -54,7 +56,10 @@ export default function TopNav({
                 />
               )}
               <span className="relative z-10 flex items-center gap-1.5">
-                <MaskIcon url={p.icon} />
+                {/* 图标不吃文字的 70% 透明度 — 未激活也用实色 */}
+                <span className={`flex items-center ${isActive ? 'text-white' : 'text-[#161823]'}`}>
+                  <MaskIcon url={p.icon} />
+                </span>
                 <span className="hidden md:inline">{p.label}</span>
               </span>
             </button>
@@ -79,7 +84,11 @@ export default function TopNav({
   )
 }
 
-/** 头像下拉：账号信息 + 权限开关（直播管理）。 */
+/* 菜单行公共样式 — 16px 图标 + 14px 文字,hover 蓝灰填充(设计稿 semi fill-0) */
+const menuRow =
+  'flex w-full items-center gap-2 rounded-md px-2 py-2 text-[14px] leading-5 text-[#1c1f23] transition-colors hover:bg-[rgba(83,96,143,0.07)]'
+
+/** 头像下拉：账号菜单 + 权限开关（直播管理）。 */
 function AvatarMenu() {
   const liveEnabled = useLiveMgmt((s) => s.enabled)
   const toggleLive = useLiveMgmt((s) => s.toggle)
@@ -95,34 +104,58 @@ function AvatarMenu() {
         </button>
       </Popover.Trigger>
       <Popover.Portal>
+        {/* 设计稿 创作者中心26.7 788-20791:身份认证/通知中心/切换账号/退出登录;
+            权限管理(直播管理开关)保留在菜单底部。切换账号 hover 出二级账号面板。 */}
         <Popover.Content
           side="bottom"
           align="end"
           sideOffset={8}
-          aria-label="账号与权限"
-          className="z-[90] w-[240px] overflow-hidden rounded-xl border border-black/5 bg-white shadow-[0_12px_32px_rgba(0,0,0,0.12)]"
+          aria-label="账号菜单"
+          className="z-[90] w-[200px] rounded-lg bg-white p-2 shadow-[0_4px_7px_rgba(0,0,0,0.1),0_0_0.5px_rgba(0,0,0,0.3)]"
         >
-          <div className="flex items-center gap-3 border-b border-black/5 p-4">
-            <img src={CREATOR_PROFILE.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
-            <div className="min-w-0">
-              <div className="truncate text-[14px] font-semibold text-[#252632]">{CREATOR_PROFILE.name}</div>
-              <div className="truncate text-[11px] text-[#252632]/45">{CREATOR_PROFILE.douyinId}</div>
+          <button type="button" onClick={() => toast('身份认证（演示）')} className={menuRow}>
+            <FigmaGlyph src="/icons/account-menu/certificate.svg" inset="3.57%" />
+            <span className="flex-1 text-left">身份认证</span>
+          </button>
+          <button type="button" onClick={() => toast('通知中心（演示）')} className={menuRow}>
+            <FigmaGlyph src="/icons/account-menu/notification.svg" inset="8.33%" />
+            <span className="flex flex-1 items-center gap-1 text-left">
+              通知中心
+              <span className="rounded-full bg-[#ff2c55] px-1 py-px text-[10px] leading-[14px] text-white">12</span>
+            </span>
+          </button>
+          <div className="group relative">
+            <button type="button" className={menuRow}>
+              <FigmaGlyph src="/icons/account-menu/switch.svg" inset="8.33% 12.5%" />
+              <span className="flex-1 text-left">切换账号</span>
+              <FigmaGlyph src="/icons/account-menu/chevron-right.svg" inset="20.83% 33.33%" className="text-[#1c1f23]/60" />
+            </button>
+            {/* 二级账号面板 — 悬停展开,pr 作为鼠标移动的悬停桥 */}
+            <div className="absolute right-full top-0 hidden pr-2 group-hover:block">
+              <AccountSwitcherPanel />
             </div>
           </div>
-          <div className="px-2 py-1.5">
-            <div className="px-2 pb-1 pt-1 text-[11px] font-medium text-[#252632]/40">权限管理</div>
-            <button
-              type="button"
-              onClick={toggleLive}
-              role="switch"
-              aria-checked={liveEnabled}
-              className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-black/[0.03]"
-            >
-              <Video size={15} className="text-[#252632]/60" />
-              <span className="flex-1 text-[13px] text-[#252632]">直播管理</span>
-              <Switch on={liveEnabled} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => toast('退出登录（演示）')}
+            className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-[14px] leading-5 text-[#f74331] transition-colors hover:bg-[rgba(83,96,143,0.07)]"
+          >
+            <FigmaGlyph src="/icons/account-menu/login.svg" inset="8.33%" />
+            <span className="flex-1 text-left">退出登录</span>
+          </button>
+          <div className="mx-2 my-1.5 h-px bg-black/5" />
+          <div className="px-2 pb-1 text-[11px] font-medium text-[#252632]/40">权限管理</div>
+          <button
+            type="button"
+            onClick={toggleLive}
+            role="switch"
+            aria-checked={liveEnabled}
+            className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-[rgba(83,96,143,0.07)]"
+          >
+            <Video size={15} className="text-[#252632]/60" />
+            <span className="flex-1 text-[13px] text-[#252632]">直播管理</span>
+            <Switch on={liveEnabled} />
+          </button>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

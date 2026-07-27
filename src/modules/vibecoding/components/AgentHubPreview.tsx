@@ -11,6 +11,7 @@ import {
   Search,
   Star,
 } from '@/shared/icons'
+import { SIDE_NAV_DEFAULT_BACKGROUND } from '@/shared/components/SideNav'
 
 /**
  * 智能体广场 — 静态预览页（移植自 li-yingjie/DYAI 的 agent-hub 页面）。
@@ -475,7 +476,10 @@ function AgentHubPreview({ hideSidebar = false }: { hideSidebar?: boolean } = {}
         {/* ── Left rail —— fills the visible pane height; content scrolls.
              Hidden when embedded under a host nav (e.g. 创意广场). ── */}
         <aside className={`${hideSidebar ? 'hidden' : 'hidden @[700px]:block'} h-full w-[220px] shrink-0 px-2 py-2`}>
-          <nav className="relative flex h-full flex-col justify-between rounded-[24px] bg-[#f2f2f7] px-4 py-4">
+          <nav
+            className="relative flex h-full flex-col justify-between rounded-[24px] px-4 py-4"
+            style={{ background: SIDE_NAV_DEFAULT_BACKGROUND }}
+          >
             <div className="w-full">
               <div className="flex items-center justify-between gap-2">
                 <img alt="" className="h-[15px] w-auto shrink-0" src={SIDEBAR_ASSETS.logoExpanded} />

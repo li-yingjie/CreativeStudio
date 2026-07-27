@@ -1,15 +1,12 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import * as Popover from '@radix-ui/react-popover'
 import { motion, useReducedMotion } from 'framer-motion'
 import { toast } from 'sonner'
 import {
   ChevronDown,
   ChevronRight,
-  ChevronUp,
   CircleHelp,
   Download,
 } from '@/shared/icons'
-import type { LucideIcon } from '@/shared/icons'
 import { useLiveMgmt } from './live-store'
 import {
   fmtCount,
@@ -23,13 +20,19 @@ import {
 import {
   CREATOR_PROFILE,
   PUBLISH_ENTRIES,
-  PUBLISH_ICON,
   SIDE_MENU,
   SMART_CREATE_ENTRIES,
   type PublishEntryId,
   type ProductId,
 } from './data'
-import MaskIcon from './MaskIcon'
+import * as Popover from '@radix-ui/react-popover'
+import SharedSideNav, { SideNavActionButton, type SideNavItem } from '@/shared/components/SideNav'
+import AccountSwitcherPanel from './AccountSwitcher'
+import FigmaGlyph from './FigmaGlyph'
+import { SlideWideAddLinearIcon } from 'master-icon/react/SlideWideAddLinearIcon'
+import { LayoutLeftLinearIcon } from 'master-icon/react/LayoutLeftLinearIcon'
+import { LiveStreaming01LinearIcon } from 'master-icon/react/LiveStreaming01LinearIcon'
+import SideNavDisclosureIcon from '@/shared/components/SideNavDisclosureIcon'
 import { ActivityCenterCard, HomeFooter, InteractionSection, MonetizationSection, QuickNavCard } from './HomeSections'
 import AiAssistantPanel from '@/shared/components/AiAssistantPanel'
 import { assistantContextFor } from './assistant-contexts'
@@ -124,13 +127,7 @@ function PanelFallback({ error, height }: { error: string | null; height: number
 
 /* ─── 左侧栏 ─── */
 
-interface SideMenuItem {
-  key: string
-  label: string
-  icon?: string
-  lucide?: LucideIcon
-  children?: string[]
-}
+type SideMenuItem = SideNavItem
 
 function isPublishPage(page: string) {
   return page.startsWith('publish-')
@@ -148,136 +145,84 @@ function publishKindFromPage(page: string): PublishEntryId {
 }
 
 function SideNav({ active, onSelect }: { active: string; onSelect: (key: string) => void }) {
-  const [serviceOpen, setServiceOpen] = useState(false)
   const liveEnabled = useLiveMgmt((s) => s.enabled)
+  // 与 AI 工坊同一轮廓框架：透明侧栏（设计稿 统一导航 250-37291），
+  // 顶部「发布作品」下拉，底部「收起导航」手动收起为 icon rail。
+  const [collapsed, setCollapsed] = useState(false)
   // 直播管理是权限菜单，开启时插在「内容」上方
   const menu: SideMenuItem[] = []
   for (const m of SIDE_MENU as SideMenuItem[]) {
-    if (m.key === 'content' && liveEnabled) menu.push({ key: 'live', label: '直播管理', icon: '/icons/zhibo.svg' })
+    if (m.key === 'content' && liveEnabled) menu.push({ key: 'live', label: '直播管理', Icon: LiveStreaming01LinearIcon })
     menu.push(m)
   }
   return (
-    // <lg 收缩为「只有 icon」的窄导航（icon rail），≥lg 展开为完整侧栏
-    <aside aria-label="创作者中心侧栏" className="flex w-14 shrink-0 flex-col gap-1 border-r border-black/5 bg-white px-2 pt-4 lg:w-[200px] lg:px-6">
-      <button
-        type="button"
-        title="发布"
-        aria-current={isPublishPage(active) ? 'page' : undefined}
-        onClick={() => onSelect('publish-video')}
-        className="mb-2 flex h-10 items-center justify-center rounded-xl bg-[#161823] px-0 text-[14px] font-medium text-white hover:bg-[#161823]/90 lg:justify-between lg:px-4"
-      >
-        <span className="flex items-center gap-2">
-          <MaskIcon url={PUBLISH_ICON} size={20} />
-          <span className="hidden lg:inline">发布</span>
-        </span>
-        <ChevronRight size={15} className="hidden lg:block" />
-      </button>
-      {menu.map((m) => {
-        // 收缩态下父项在其子页高亮，方便看出当前所在模块
-        const isActive = active === m.key || (Boolean(m.children) && active.startsWith(`service:`))
-        const hasChildren = Boolean(m.children)
-        const itemClass = `flex h-9 w-full items-center justify-center gap-2.5 rounded-lg px-3 text-[13px] transition-colors lg:justify-start ${
-          isActive
-            ? 'bg-black/5 font-medium text-[#252632]'
-            : 'font-normal text-[#252632]/55 hover:bg-black/[0.03] hover:text-[#252632]/80'
-        }`
-
-        if (hasChildren) {
-          return (
-            <div key={m.key}>
-              {/* 折叠栏使用 Popover，避免子菜单在窄屏完全不可达。 */}
-              <div className="lg:hidden">
-                <Popover.Root>
-                  <Popover.Trigger asChild>
-                    <button type="button" title={m.label} aria-label={`打开${m.label}菜单`} className={itemClass}>
-                      {m.lucide ? <m.lucide size={18} strokeWidth={1.8} /> : <MaskIcon url={m.icon!} size={18} />}
-                    </button>
-                  </Popover.Trigger>
-                  <Popover.Portal>
-                    <Popover.Content
-                      side="right"
-                      align="start"
-                      sideOffset={8}
-                      aria-label={m.label}
-                      className="z-[80] min-w-36 rounded-xl border border-black/5 bg-white p-2 shadow-lg"
-                    >
-                      <div className="px-2 pb-1.5 text-[12px] font-medium text-[#252632]/60">{m.label}</div>
-                      {m.children!.map((c) => (
-                        <Popover.Close asChild key={c}>
-                          <button
-                            type="button"
-                            aria-current={active === `service:${c}` ? 'page' : undefined}
-                            onClick={() => onSelect(`service:${c}`)}
-                            className={`flex h-8 w-full items-center rounded-lg px-2 text-[13px] ${
-                              active === `service:${c}`
-                                ? 'bg-black/5 font-medium text-[#252632]'
-                                : 'text-[#252632]/60 hover:bg-black/[0.03] hover:text-[#252632]'
-                            }`}
-                          >
-                            {c}
-                          </button>
-                        </Popover.Close>
-                      ))}
-                    </Popover.Content>
-                  </Popover.Portal>
-                </Popover.Root>
-              </div>
-
-              <button
-                type="button"
-                aria-expanded={serviceOpen}
-                aria-controls="creator-service-submenu"
-                onClick={() => setServiceOpen((v) => !v)}
-                className={`${itemClass} hidden lg:flex`}
+    <SharedSideNav
+      ariaLabel="创作者中心侧栏"
+      chrome="panel"
+      collapsed={collapsed}
+      items={menu}
+      activeKey={active}
+      onSelect={onSelect}
+      header={
+        <div className="px-[var(--sn-px)] pb-3">
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <SideNavActionButton
+                aria-label="发布作品"
+                variant="dark"
+                collapsed={collapsed}
+                className={collapsed ? '' : 'justify-between'}
               >
-                {m.lucide ? <m.lucide size={18} strokeWidth={1.8} /> : <MaskIcon url={m.icon!} size={18} />}
-                <span>{m.label}</span>
-                {serviceOpen ? (
-                  <ChevronUp size={13} className="ml-auto text-[#252632]/40" />
-                ) : (
-                  <ChevronDown size={13} className="ml-auto text-[#252632]/40" />
-                )}
-              </button>
-              {serviceOpen && (
-                <div id="creator-service-submenu" className="mt-0.5 hidden space-y-0.5 lg:block">
-                  {m.children!.map((c) => (
+                <span className="flex items-center gap-2">
+                  <SlideWideAddLinearIcon size={16} />
+                  {!collapsed && '发布作品'}
+                </span>
+                {!collapsed && <SideNavDisclosureIcon className="opacity-70" />}
+              </SideNavActionButton>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                side="bottom"
+                align="start"
+                sideOffset={6}
+                className="z-[80] w-[176px] rounded-xl border border-black/5 bg-white p-2 shadow-lg"
+              >
+                {PUBLISH_ENTRIES.map((e) => (
+                  <Popover.Close asChild key={e.id}>
                     <button
-                      key={c}
                       type="button"
-                      aria-current={active === `service:${c}` ? 'page' : undefined}
-                      onClick={() => onSelect(`service:${c}`)}
-                      className={`flex h-8 w-full items-center rounded-lg pl-[38px] text-[13px] transition-colors ${
-                        active === `service:${c}`
-                          ? 'bg-black/5 text-[#252632]'
-                          : 'text-[#252632]/55 hover:bg-black/[0.03] hover:text-[#252632]/80'
-                      }`}
+                      onClick={() => onSelect(publishPageKey(e.id))}
+                      className="flex h-8 w-full items-center rounded-lg px-2 text-[13px] text-[#252632]/70 hover:bg-black/[0.03] hover:text-[#252632]"
                     >
-                      {c}
+                      {e.label}
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )
-        }
-
-        return (
-          <div key={m.key}>
-            <button
-              type="button"
-              title={m.label}
-              aria-current={isActive ? 'page' : undefined}
-              onClick={() => onSelect(m.key)}
-              className={itemClass}
-            >
-              {/* icon 跟随文字色：选中深色 #252632，未选中灰（svg 填充已统一无透明度） */}
-              {m.lucide ? <m.lucide size={18} strokeWidth={1.8} /> : <MaskIcon url={m.icon!} size={18} />}
-              <span className="hidden lg:inline">{m.label}</span>
-            </button>
-          </div>
-        )
-      })}
-    </aside>
+                  </Popover.Close>
+                ))}
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
+        </div>
+      }
+      footer={
+        <div className="px-[var(--sn-px)] pb-3">
+          <button
+            type="button"
+            onClick={() => setCollapsed((v) => !v)}
+            aria-label={collapsed ? '展开导航' : '收起导航'}
+            title={collapsed ? '展开导航' : '收起导航'}
+            className={`flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] text-[#252632]/70 transition-colors hover:bg-black/[0.03] hover:text-[#252632]/85 ${
+              collapsed ? 'justify-center' : ''
+            }`}
+          >
+            <LayoutLeftLinearIcon
+              size={18}
+              className={`shrink-0 text-[#252632] transition-transform ${collapsed ? 'rotate-180' : ''}`}
+            />
+            {!collapsed && '收起导航'}
+          </button>
+        </div>
+      }
+    />
   )
 }
 
@@ -295,27 +240,52 @@ function ProfileHeader({ stats }: { stats: CreatorStats | null }) {
   return (
     <div className="flex min-h-[80px] items-center gap-3">
       <img src={p.avatar} alt={p.name} className="size-[74px] rounded-full border border-[#E4E4E6] object-cover" />
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <h2 className="text-[16px] font-semibold leading-6 text-[#252632]">{p.name}</h2>
-          <span className="flex items-center gap-1 rounded-full border border-white bg-white/70 px-1.5 py-0.5 text-[13px] leading-[18px] text-[#FF851D]">
-            ✔ {p.badge}
-          </span>
+      {/* 字段结构按设计稿 788-20834:昵称+三角chip、同行 抖音号|签名,下行 关注/粉丝/获赞 */}
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2">
+            <h2 className="text-[16px] font-semibold leading-6 text-[#252632]">{p.name}</h2>
+            {/* 昵称下拉 — 账号切换（设计稿 788-22480） */}
+            <Popover.Root>
+              <Popover.Trigger asChild>
+                <button
+                  type="button"
+                  aria-label="切换账号"
+                  className="flex size-4 items-center justify-center rounded-full bg-[#E6E8EA] text-[#252632]/75 transition-colors hover:bg-[#DCDEE1] hover:text-[#252632]"
+                >
+                  {/* 素材为朝右三角,旋转 90° 后成为设计稿的朝下三角 */}
+                  <FigmaGlyph src="/icons/account-menu/triangle-down.svg" size={12} inset="27% 32%" className="rotate-90" />
+                </button>
+              </Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Content side="bottom" align="start" sideOffset={6} className="z-[80]">
+                  <AccountSwitcherPanel />
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
+          </div>
+          <div className="flex min-w-0 items-center gap-3 text-[12px] leading-4 text-[#232323]/60">
+            <span className="shrink-0">{p.douyinId}</span>
+            <i className="h-3 w-px shrink-0 bg-[#E2E2E2]" />
+            <span className="truncate">{p.signature}</span>
+          </div>
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] leading-4 text-[#252632]/60">
-          <span className="text-[#4E83FD]">{p.authorize}</span>
-          <i className="h-3 w-px bg-[#E2E2E2]" />
-          <span>{p.mcn}</span>
-          <i className="h-3 w-px bg-[#E2E2E2]" />
-          <span>{p.douyinId}</span>
-          <i className="h-3 w-px bg-[#E2E2E2]" />
-          <span className="truncate">{p.signature}</span>
-        </div>
-        <div className="mt-2 flex items-center gap-6 text-[12px] font-semibold tabular-nums">
+        <div className="flex items-center gap-6 tabular-nums">
           {nums
-            ? nums.map((s) => (
-                <span key={s.label} className="text-[#252632]/55">
-                  {s.label} <b className="ml-1 text-[14px] font-bold leading-5 text-[#252632]">{s.value}</b>
+            ? nums.map((s, i) => (
+                <span key={s.label} className="flex items-center gap-2">
+                  <span className="text-[12px] font-semibold leading-4 text-[#252632]/60">{s.label}</span>
+                  <b className="text-[16px] font-bold leading-5 text-[#252632]">
+                    {s.value.endsWith('万') ? (
+                      <>
+                        {s.value.slice(0, -1)}
+                        <span className="text-[14px] font-semibold">万</span>
+                      </>
+                    ) : (
+                      s.value
+                    )}
+                  </b>
+                  {i < 2 && <ChevronRight size={12} className="text-[#252632]/45" />}
                 </span>
               ))
             : <span className="h-4 w-48 animate-pulse rounded bg-black/5" />}
@@ -421,7 +391,7 @@ function OverviewSection() {
   const dim = data?.overview.dims[dimIdx]
   const days = data?.period.days ?? 7
   return (
-    <section className="rounded-[20px] bg-white p-5">
+    <section className="bg-white p-5">
       <PanelHeader title="数据总览" period={periodText(data)} extra={<RangeSwitch value={range} onChange={setRange} />} />
       {!data || !dim ? (
         <PanelFallback error={error} height={340} />
@@ -565,7 +535,7 @@ function WorksSection() {
   const { data, error } = useCreatorStats(range)
   const def = WORKS_METRIC_DEFS[metric]
   return (
-    <section className="rounded-[20px] bg-white p-5">
+    <section className="bg-white p-5">
       <PanelHeader
         title="作品数据"
         period={periodText(data)}
@@ -624,7 +594,7 @@ function FansSection() {
   const { data, error } = useCreatorStats(range)
   const def = FANS_METRIC_DEFS[metric]
   return (
-    <section className="rounded-[20px] bg-white p-5">
+    <section className="bg-white p-5">
       <PanelHeader
         title="粉丝数据"
         period={periodText(data)}
@@ -667,7 +637,7 @@ function DataOverviewSection({ onViewDetail }: { onViewDetail: () => void }) {
   const [tab, setTab] = useState<'account' | 'recent' | 'live'>('account')
   const trend = tab === 'live' ? data?.liveTrend : data?.accountTrend
   return (
-    <section className="rounded-[20px] bg-white p-6">
+    <section className="rounded-[20px] border-[0.5px] border-black/10 bg-white p-6 shadow-[0_6px_6px_rgba(0,0,0,0.02)]">
       <div className="flex items-center gap-2">
         <h2 className="text-[18px] font-semibold text-[#252632]">数据概览</h2>
         <CircleHelp size={14} className="text-[#252632]/30" />
@@ -748,9 +718,9 @@ function DataOverviewSection({ onViewDetail }: { onViewDetail: () => void }) {
 
 function DataCenter() {
   return (
-    <main className="min-w-0 flex-1 overflow-y-auto bg-[#F5F6F8]">
+    <main className="min-w-0 flex-1 overflow-y-auto bg-white">
       {/* 无页面级大标题——与内容管理等页一致，标题由各卡片自带（数据总览…） */}
-      <div className="space-y-4 px-8 py-6">
+      <div className="space-y-4">
         <OverviewSection />
         <WorksSection />
         <FansSection />
@@ -759,8 +729,8 @@ function DataCenter() {
   )
 }
 
-/** 装饰背景仅在可见且用户未请求减少动态效果时播放。 */
-function AmbientBackgroundVideo() {
+/** 装饰背景仅在当前产品可见且用户未请求减少动态效果时播放。 */
+function AmbientBackgroundVideo({ active }: { active: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -770,7 +740,7 @@ function AmbientBackgroundVideo() {
     const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
     let visible = true
     const syncPlayback = () => {
-      if (motionPreference.matches || !visible) {
+      if (motionPreference.matches || !visible || !active) {
         video.pause()
       } else {
         void video.play().catch(() => undefined)
@@ -792,7 +762,7 @@ function AmbientBackgroundVideo() {
       motionPreference.removeEventListener('change', syncPlayback)
       video.pause()
     }
-  }, [])
+  }, [active])
 
   return (
     // 固定高度裁剪容器：视频 scale 溢出被裁掉，底边始终落在 430px，
@@ -812,6 +782,8 @@ function AmbientBackgroundVideo() {
       {/* 遮罩：顶部一层轻遮让视频与顶栏过渡（更明显），中段全透明露出
           视频主体，底部提前完全落到页面底色盖住视频底边。 */}
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(245,246,248,0.5)_0%,rgba(245,246,248,0.28)_16%,rgba(245,246,248,0.08)_30%,rgba(245,246,248,0)_42%,rgba(245,246,248,0.28)_58%,rgba(245,246,248,0.62)_74%,rgba(245,246,248,0.9)_86%,#F5F6F8_95%)]" />
+      {/* 横向遮罩：左缘落到页面底色再渐显，与透明侧栏一侧融合无硬切 */}
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,#F5F6F8_0%,rgba(245,246,248,0.72)_12%,rgba(245,246,248,0.32)_26%,rgba(245,246,248,0)_42%)]" />
     </div>
   )
 }
@@ -819,8 +791,10 @@ function AmbientBackgroundVideo() {
 /* ─── 首页主体 ─── */
 
 export default function CreatorCenterHome({
+  active,
   onOpenProduct,
 }: {
+  active: boolean
   onOpenProduct: (id: ProductId) => void
 }) {
   // 左侧栏当前页：data=数据看板 content=内容管理 其余为建设中占位
@@ -840,8 +814,8 @@ export default function CreatorCenterHome({
       {/* 只有内容区做载入动画；侧栏等框架保持静止 */}
       <motion.div
         key={page}
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
         className="flex min-h-0 min-w-0 flex-1"
       >
@@ -878,13 +852,13 @@ export default function CreatorCenterHome({
         {/* 完整 ASCII 动画靠底取景；遮罩不跟随视频放大，确保在内容区
             底边完全落到页面底色，避免残留画面形成一条硬接缝。 */}
         <div className="relative overflow-hidden bg-[#F5F6F8]">
-          <AmbientBackgroundVideo />
-          <div className="relative px-4 pb-2 pt-4">
+          <AmbientBackgroundVideo active={active} />
+          <div className="relative px-4 pb-4 pt-6">
             <ProfileHeader stats={profileData} />
 
-            <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
               {/* 智能创作 */}
-              <section className="h-[264px] rounded-[20px] border-[0.5px] border-[#f1f1f1] bg-gradient-to-b from-[rgba(251,251,251,0.9)] to-white px-3 pb-3 pt-6 backdrop-blur">
+              <section className="h-[264px] rounded-[20px] border-[0.5px] border-black/10 bg-white px-3 pb-3 pt-6 shadow-[0_6px_6px_rgba(0,0,0,0.02)]">
                 <h3 className="px-3 pb-4 text-[18px] font-semibold leading-[26px] text-[#252632]">智能创作</h3>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-[18px] px-2 py-1.5">
                   {SMART_CREATE_ENTRIES.map((e) => (
@@ -899,7 +873,7 @@ export default function CreatorCenterHome({
                 </div>
               </section>
               {/* 作品发布 */}
-              <section className="h-[264px] rounded-[20px] border-[0.5px] border-[#f1f1f1] bg-gradient-to-b from-[rgba(251,251,251,0.9)] to-white px-3 pb-3 pt-6 backdrop-blur">
+              <section className="h-[264px] rounded-[20px] border-[0.5px] border-black/10 bg-white px-3 pb-3 pt-6 shadow-[0_6px_6px_rgba(0,0,0,0.02)]">
                 <div className="flex h-[42px] items-start px-3">
                   <h3 className="text-[18px] font-semibold leading-[26px] text-[#252632]">作品发布</h3>
                   <div className="ml-auto flex items-center gap-1 pt-1 text-[12px] leading-4 text-[#252632]/80">
@@ -923,9 +897,9 @@ export default function CreatorCenterHome({
           </div>
         </div>
 
-        <div className="px-4 pb-4 pt-2">
+        <div className="px-4 pb-4">
           <DataOverviewSection onViewDetail={() => setPage('datacenter')} />
-          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:pr-2">
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_292px]">
             <div className="min-w-0 space-y-4">
               {homeData && <InteractionSection data={homeData.interaction} onMore={() => setPage('content')} />}
               {homeData && <MonetizationSection data={homeData.monetization} onMore={() => setPage('income')} />}
@@ -941,8 +915,12 @@ export default function CreatorCenterHome({
       )}
       </Suspense>
       </motion.div>
-      {/* AI 助手常驻内容区右侧，语境跟随左侧导航切换 */}
-      <AiAssistantPanel context={assistantContextFor(page)} />
+      {/* 创作主页用模型理解产品意图；隐藏首页与其他内容页保持纯对话。 */}
+      <AiAssistantPanel
+        defaultOpen={false}
+        context={assistantContextFor(page)}
+        onOpenProduct={active && page === 'data' ? onOpenProduct : undefined}
+      />
     </div>
   )
 }

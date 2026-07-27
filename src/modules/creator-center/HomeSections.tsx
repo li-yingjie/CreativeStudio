@@ -55,7 +55,7 @@ function InteractionItem({ title, count, time, text, sub }: {
 
 export function InteractionSection({ data, onMore }: { data: HomeInteraction; onMore?: () => void }) {
   return (
-    <section className="min-h-[152px] rounded-[20px] bg-white p-6">
+    <section className="min-h-[152px] rounded-[20px] border-[0.5px] border-black/10 bg-white p-6 shadow-[0_6px_6px_rgba(0,0,0,0.02)]">
       <CardHeader title="互动管理" action="查看详情" onAction={onMore ?? (() => toast('互动管理详情（演示）'))} />
       <div className="mt-3 flex flex-col gap-6 xl:flex-row xl:gap-8">
         <InteractionItem title="作品评论" count={data.comments.count} time={data.comments.time} text={data.comments.text}
@@ -95,7 +95,7 @@ function MonetTaskCard({ tint, icon, label, count, desc }: {
 
 export function MonetizationSection({ data, onMore }: { data: HomeMonetization; onMore?: () => void }) {
   return (
-    <section className="min-h-[164px] rounded-[20px] bg-white p-6">
+    <section className="min-h-[164px] rounded-[20px] border-[0.5px] border-black/10 bg-white p-6 shadow-[0_6px_6px_rgba(0,0,0,0.02)]">
       <CardHeader title="收入变现" action="查看更多" onAction={onMore ?? (() => toast('收入变现（演示）'))} />
       <div className="mt-4 flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:gap-8">
         <div className="shrink-0">
@@ -131,7 +131,7 @@ export function ActivityCenterCard({ data, onMore }: { data: HomeCalendar; onMor
   // 选中日当天进行中的活动（落在其区间内）
   const dayEvents = data.events.filter((e) => selected >= e.startDay && selected <= e.endDay)
   return (
-    <section className="min-h-[571px] rounded-[20px] bg-white p-6">
+    <section className="min-h-[571px] rounded-[20px] border-[0.5px] border-black/10 bg-white p-6 shadow-[0_6px_6px_rgba(0,0,0,0.02)]">
       <CardHeader title="活动管理" action="查看更多" onAction={onMore ?? (() => toast('活动管理（演示）'))} />
       {/* 月份切换 */}
       <div className="mt-4 flex items-center justify-center gap-4 text-[13px] font-medium text-[#252632]">
@@ -196,7 +196,7 @@ export function ActivityCenterCard({ data, onMore }: { data: HomeCalendar; onMor
 
 export function QuickNavCard({ items, onMore }: { items: HomeQuickNav[]; onMore?: () => void }) {
   return (
-    <section className="min-h-[164px] rounded-[20px] bg-white p-6">
+    <section className="min-h-[164px] rounded-[20px] border-[0.5px] border-black/10 bg-white p-6 shadow-[0_6px_6px_rgba(0,0,0,0.02)]">
       <CardHeader title="快速导航" action="查看更多" onAction={onMore ?? (() => toast('快速导航（演示）'))} />
       <div className="mt-4 grid grid-cols-4 gap-2">
         {items.map((q) => (

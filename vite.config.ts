@@ -8,7 +8,7 @@ import * as kimiApi from './server/kimi.mjs'
 // @ts-expect-error — plain .mjs handler, no types needed
 import * as creatorApi from './server/creator-data.mjs'
 
-const { handleChat, handleHealth } = kimiApi
+const { handleChat, handleHealth, handleProductIntent } = kimiApi
 
 const {
   handleCreatorActivities,
@@ -27,6 +27,7 @@ type ApiHandler = (req: IncomingMessage, res: ServerResponse) => unknown
 const apiRoutes = new Map<string, { method: 'GET' | 'POST'; handler: ApiHandler }>([
   ['/api/health', { method: 'GET', handler: handleHealth }],
   ['/api/chat', { method: 'POST', handler: handleChat }],
+  ['/api/product-intent', { method: 'POST', handler: handleProductIntent }],
   ['/api/creator/stats', { method: 'GET', handler: handleCreatorStats }],
   ['/api/creator/works', { method: 'GET', handler: handleCreatorWorks }],
   ['/api/creator/income', { method: 'GET', handler: handleCreatorIncome }],

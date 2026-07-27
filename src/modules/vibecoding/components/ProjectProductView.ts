@@ -12,26 +12,25 @@
  * clicking still resolves the right file. Empty categories are omitted.
  */
 import type { LucideIcon } from '@/shared/icons'
-import {
-  Database,
-  Eye,
-  FileCode2,
-  FileInfo,
-  FileSearch,
-  FileText,
-  FolderCode,
-  Gamepad2,
-  Image as ImageIcon,
-  LayoutDashboard,
-  LayoutGrid,
-  MessageCircle,
-  Notebook,
-  ScrollText,
-  Settings,
-  SquareUser,
-  UsersRound,
-  Zap,
-} from '@/shared/icons'
+/* 产物树图标统一走 MasterIcon（与左侧栏菜单同一套字形）。 */
+import { Analytics01LinearIcon } from 'master-icon/react/Analytics01LinearIcon'
+import { BotLinearIcon } from 'master-icon/react/BotLinearIcon'
+import { Database01LinearIcon } from 'master-icon/react/Database01LinearIcon'
+import { EyeLinearIcon } from 'master-icon/react/EyeLinearIcon'
+import { InformationCircleLinearIcon } from 'master-icon/react/InformationCircleLinearIcon'
+import { FileCodeLinearIcon } from 'master-icon/react/FileCodeLinearIcon'
+import { FileSearchLinearIcon } from 'master-icon/react/FileSearchLinearIcon'
+import { FileTextLinearIcon } from 'master-icon/react/FileTextLinearIcon'
+import { MagicWand01LinearIcon } from 'master-icon/react/MagicWand01LinearIcon'
+import { GameController01LinearIcon } from 'master-icon/react/GameController01LinearIcon'
+import { Image01LinearIcon } from 'master-icon/react/Image01LinearIcon'
+import { LayoutGrid1LinearIcon } from 'master-icon/react/LayoutGrid1LinearIcon'
+import { LightningLinearIcon } from 'master-icon/react/LightningLinearIcon'
+import { Notebook01LinearIcon } from 'master-icon/react/Notebook01LinearIcon'
+import { Scroll01LinearIcon } from 'master-icon/react/Scroll01LinearIcon'
+import { Settings01LinearIcon } from 'master-icon/react/Settings01LinearIcon'
+import { UserMultipleLinearIcon } from 'master-icon/react/UserMultipleLinearIcon'
+import { UserSettings01LinearIcon } from 'master-icon/react/UserSettings01LinearIcon'
 import type { AvatarAppConfig } from './AvatarConfigData'
 import type { MiniProgramConfig } from './MiniProgramConfigData'
 
@@ -54,7 +53,20 @@ export type ProjectKind =
   | 'web-game'
   | 'marketing-h5'
 
-/** A page of an app-like project — surfaced in the product view's 页面
+/** Shared product-tree labels. They are also consumed by tab routing so
+ *  directory copy and interaction logic cannot drift apart. */
+export const BASIC_INFO_LABEL = '基础信息'
+export const PERSONA_CONFIG_LABEL = '人设配置'
+export const ABILITY_CONFIG_LABEL = '能力配置'
+export const PAGE_CONFIG_LABEL = '页面配置'
+export const DATA_CONFIG_LABEL = '数据配置'
+export const GAMEPLAY_CONFIG_LABEL = '玩法配置'
+export const TRIGGER_CONFIG_LABEL = '触发器配置'
+/** AI 分身用自己的一套模块名，与左侧栏入口一字不差（技能库 / 触发器）。 */
+export const AVATAR_SKILL_LABEL = '技能库'
+export const AVATAR_TRIGGER_LABEL = '触发器'
+
+/** A page of an app-like project — surfaced in the product view's 页面配置
  *  category. `label` is the user-facing route name (also the route id the
  *  preview navigates by); `dir` is the source folder under src/pages. */
 export interface ProductPage {
@@ -96,32 +108,39 @@ const PAGE_LABELS: Record<string, string> = {
  *  prop; names not present here fall back to the folder / file icon. */
 export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   // Every project surfaces a 项目文档 (project brief) leaf.
-  项目文档: FileText,
-  文档: FileText,
-  界面: LayoutGrid,
-  页面: LayoutGrid,
+  项目文档: FileTextLinearIcon,
+  文档: FileTextLinearIcon,
+  界面: LayoutGrid1LinearIcon,
+  [PAGE_CONFIG_LABEL]: LayoutGrid1LinearIcon,
   // The primary 预览 tab — content varies by kind, one shared icon.
-  预览: Eye,
-  素材: ImageIcon,
-  代码: FileCode2,
-  代码文件: FileCode2,
-  数据库: Database,
-  玩法: Gamepad2,
-  能力技能: FolderCode,
-  人设: SquareUser,
-  基础信息: FileInfo,
-  人设指令: ScrollText,
-  技能: FolderCode,
-  知识库: Notebook,
-  触发器: Zap,
+  预览: EyeLinearIcon,
+  素材: Image01LinearIcon,
+  代码: FileCodeLinearIcon,
+  // 「项目文件」是四级分类里唯一的「文件夹」，不给分类图标 —— 交给
+  // FileTreeView 兜底成文件夹图标（展开/收起两态），与内部目录一致。
+  数据库: Database01LinearIcon,
+  [DATA_CONFIG_LABEL]: Database01LinearIcon,
+  玩法: GameController01LinearIcon,
+  [GAMEPLAY_CONFIG_LABEL]: GameController01LinearIcon,
+  能力技能: MagicWand01LinearIcon,
+  人设: UserSettings01LinearIcon,
+  [PERSONA_CONFIG_LABEL]: UserSettings01LinearIcon,
+  [BASIC_INFO_LABEL]: InformationCircleLinearIcon,
+  人设指令: Scroll01LinearIcon,
+  技能: MagicWand01LinearIcon,
+  [ABILITY_CONFIG_LABEL]: MagicWand01LinearIcon,
+  [AVATAR_SKILL_LABEL]: MagicWand01LinearIcon,
+  [AVATAR_TRIGGER_LABEL]: LightningLinearIcon,
+  知识库: Notebook01LinearIcon,
+  [TRIGGER_CONFIG_LABEL]: LightningLinearIcon,
   // mini-program sections
-  智能体: MessageCircle,
-  小程序设置: Settings,
+  智能体: BotLinearIcon,
+  小程序设置: Settings01LinearIcon,
   // ops-proposal sections
-  诊断分析: FileSearch,
-  达人包: UsersRound,
-  报告: FileText,
-  看板: LayoutDashboard,
+  诊断分析: FileSearchLinearIcon,
+  达人包: UserMultipleLinearIcon,
+  报告: FileTextLinearIcon,
+  看板: Analytics01LinearIcon,
   // page leaves (children of 界面) are iconed by path in the consumer.
 }
 
@@ -130,22 +149,28 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
  *  单色。色值参照 Semi Design 的 light-1 tint 系。 */
 export const PRODUCT_CATEGORY_BADGES: Record<string, { bg: string; fg: string }> = {
   预览: { bg: '#e0ecff', fg: '#3370ff' },
-  页面: { bg: '#e0ecff', fg: '#3370ff' },
+  [PAGE_CONFIG_LABEL]: { bg: '#e0ecff', fg: '#3370ff' },
   界面: { bg: '#e0ecff', fg: '#3370ff' },
-  基础信息: { bg: '#d9f4f4', fg: '#0e9c9c' },
+  [BASIC_INFO_LABEL]: { bg: '#d9f4f4', fg: '#0e9c9c' },
   人设: { bg: '#fde6ee', fg: '#e5457a' },
+  [PERSONA_CONFIG_LABEL]: { bg: '#fde6ee', fg: '#e5457a' },
   人设指令: { bg: '#fde6ee', fg: '#e5457a' },
   技能: { bg: '#f1e6fe', fg: '#8f47e6' },
+  [ABILITY_CONFIG_LABEL]: { bg: '#f1e6fe', fg: '#8f47e6' },
   能力技能: { bg: '#f1e6fe', fg: '#8f47e6' },
   知识库: { bg: '#fde6f7', fg: '#d939b8' },
-  触发器: { bg: '#feeecf', fg: '#ff8800' },
+  [TRIGGER_CONFIG_LABEL]: { bg: '#feeecf', fg: '#ff8800' },
+  [AVATAR_SKILL_LABEL]: { bg: '#fde6f7', fg: '#d939b8' },
+  [AVATAR_TRIGGER_LABEL]: { bg: '#feeecf', fg: '#ff8800' },
   数据库: { bg: '#dcf5e8', fg: '#18a058' },
+  [DATA_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
   文档: { bg: '#e3e6f7', fg: '#4b55bd' },
   项目文档: { bg: '#e3e6f7', fg: '#4b55bd' },
   素材: { bg: '#eaf6d4', fg: '#62a420' },
   代码: { bg: '#d1d6f0', fg: '#4b55bd' },
-  代码文件: { bg: '#d1d6f0', fg: '#4b55bd' },
+  // 「项目文件」走文件夹图标，不加彩色底板（见 PRODUCT_CATEGORY_ICONS）
   玩法: { bg: '#fde2e2', fg: '#e5484d' },
+  [GAMEPLAY_CONFIG_LABEL]: { bg: '#fde2e2', fg: '#e5484d' },
   智能体: { bg: '#d9f4f4', fg: '#0e9c9c' },
   小程序设置: { bg: '#e8eaed', fg: '#5f6673' },
   诊断分析: { bg: '#d7f2ef', fg: '#0d9e8f' },
@@ -190,7 +215,7 @@ function category(name: string, children: FileNode[]): FileNode | null {
 }
 
 /** The pages of an app-like project, read from src/pages/* folders.
- *  Used both to build the 页面 category and to recognise page-node
+ *  Used both to build the 页面配置 category and to recognise page-node
  *  clicks (each page label drives the preview route). */
 export function getProductPages(tree: FileNode[]): ProductPage[] {
   return childrenAt(tree, ['src', 'pages'])
@@ -200,62 +225,39 @@ export function getProductPages(tree: FileNode[]): ProductPage[] {
 
 /* ─── per-kind bucketing ─── */
 
-/** Shared bucketing for "app-like" kinds (mini-program / web-app). The
- *  dev-facing categories (配置 / 代码文件) are deliberately dropped — they
- *  stay in the file view. Pages are listed under a 页面 category, one leaf
- *  per route; clicking a leaf navigates the preview to that page.
- *  `assetsPath` differs by kind (mini-program keeps assets under src/,
- *  web projects under public/). */
-function appLikeView(tree: FileNode[], assetsPath: string[]): FileNode[] {
-  const pages = getProductPages(tree)
-  return [
-    pages.length > 0
-      ? ({
-          name: '页面',
-          type: 'dir',
-          children: pages.map((p) => ({ name: p.label, type: 'file' as const })),
-        } as FileNode)
-      : null,
-    category('素材', childrenAt(tree, assetsPath)),
-    category('技能', childrenAt(tree, ['.agent', 'skills'])),
-  ].filter((c): c is FileNode => c != null)
-}
-
-/** A page category (页面) built from the project's src/pages routes, or
+/** A page category (页面配置) built from the project's src/pages routes, or
  *  null when the project has no pages. */
 function pageCategory(tree: FileNode[]): FileNode | null {
   const pages = getProductPages(tree)
   return pages.length > 0
     ? {
-        name: '页面',
+        name: PAGE_CONFIG_LABEL,
         type: 'dir',
         children: pages.map((p) => ({ name: p.label, type: 'file' as const })),
       }
     : null
 }
 
-/** 产品设计 (web-app): 基础信息 / 页面 / 文档 / 素材 / 数据库 / 代码文件. */
+/** 产品设计 (web-app): 基础信息 / 页面配置 / 数据配置 / 素材 / 项目文件. */
 function webAppView(tree: FileNode[]): FileNode[] {
   return [
-    { name: '基础信息', type: 'file' as const },
+    { name: BASIC_INFO_LABEL, type: 'file' as const },
     pageCategory(tree),
-    { name: '文档', type: 'file' as const },
+    { name: DATA_CONFIG_LABEL, type: 'file' as const },
     { name: '素材', type: 'file' as const },
-    { name: '数据库', type: 'file' as const },
-    { name: '代码文件', type: 'file' as const },
+    { name: '项目文件', type: 'dir' as const, children: tree },
   ].filter((c): c is FileNode => c != null)
 }
 
-/** Static child items for 技能 / 知识库 categories on non-config projects, so
- *  they render as the same category-tab + capability-detail surface the AI
- *  分身 uses (keeps same-type objects visually consistent across projects). */
-export const MINIPROGRAM_SKILL_ITEMS = [
+/** Capability items shown under the seeded mini-program's 能力配置. */
+export const MINIPROGRAM_CAPABILITY_ITEMS = [
+  '智能体',
   '每日塔罗抽牌',
   '牌意词典查询',
   '订阅消息提醒',
   '分享得抽牌次数',
 ]
-/** Key in-game screens surfaced as 页面 sub-items. The secondary screens
+/** Key in-game screens surfaced as 页面配置 sub-items. The secondary screens
  *  (暂停面板 / 排行榜 / 商店) are intentionally folded away. */
 export const GAME_KEY_PAGES = ['开始界面', '游戏进行中', '结算界面']
 
@@ -263,16 +265,16 @@ function namedCategory(name: string, items: string[]): FileNode {
   return { name, type: 'dir', children: items.map((n) => ({ name: n, type: 'file' as const })) }
 }
 
-/** 游戏 (web-game): 基础信息 / 页面 / 文档 / 素材 / 代码文件.
- *  页面 is a category whose children are the key in-game screens. 玩法 /
- *  知识库 / 数据库 are hidden for this kind. */
-function gameView(): FileNode[] {
+/** 游戏 (web-game): 基础信息 / 玩法配置 / 页面配置 / 数据配置 /
+ *  素材 / 项目文件. */
+function gameView(tree: FileNode[]): FileNode[] {
   return [
-    { name: '基础信息', type: 'file' },
-    namedCategory('页面', GAME_KEY_PAGES),
-    { name: '文档', type: 'file' },
+    { name: BASIC_INFO_LABEL, type: 'file' },
+    { name: GAMEPLAY_CONFIG_LABEL, type: 'file' },
+    namedCategory(PAGE_CONFIG_LABEL, GAME_KEY_PAGES),
+    { name: DATA_CONFIG_LABEL, type: 'file' },
     { name: '素材', type: 'file' },
-    { name: '代码文件', type: 'file' },
+    { name: '项目文件', type: 'dir', children: tree },
   ]
 }
 
@@ -286,10 +288,12 @@ function aiAvatarView(tree: FileNode[]): FileNode[] {
   ]
 
   return [
-    category('人设', filesByName(tree, ['persona.yaml', 'greeting.md', 'voice-guide.md'])),
-    category('技能', skills),
+    { name: BASIC_INFO_LABEL, type: 'file' },
+    { name: PERSONA_CONFIG_LABEL, type: 'file' },
+    category(ABILITY_CONFIG_LABEL, skills),
     category('知识库', childrenAt(tree, ['knowledge'])),
-    category('触发器', childrenAt(tree, ['triggers'])),
+    category(TRIGGER_CONFIG_LABEL, childrenAt(tree, ['triggers'])),
+    { name: '项目文件', type: 'dir', children: tree },
   ].filter((c): c is FileNode => c != null)
 }
 
@@ -311,19 +315,19 @@ export function buildProductView(
 ): FileNode[] {
   switch (kind) {
     case 'mini-program':
-      return appLikeView(tree, ['src', 'assets'])
+      return buildMiniProgramProductView(tree, undefined)
     case 'web-app':
       return webAppView(tree)
     case 'web-game':
-      return gameView()
+      return gameView(tree)
     case 'marketing-h5':
-      // H5 活动页: 基础信息 / 文档 / 素材 / 玩法 / 代码文件。
+      // H5 活动页: 基础信息 / 玩法配置 / 页面配置 / 素材 / 项目文件。
       return [
-        { name: '基础信息', type: 'file' },
-        { name: '文档', type: 'file' },
+        { name: BASIC_INFO_LABEL, type: 'file' },
+        { name: GAMEPLAY_CONFIG_LABEL, type: 'file' },
+        { name: PAGE_CONFIG_LABEL, type: 'file' },
         { name: '素材', type: 'file' },
-        { name: '玩法', type: 'file' },
-        { name: '代码文件', type: 'file' },
+        { name: '项目文件', type: 'dir', children: tree },
       ]
     case 'ai-avatar':
       return aiAvatarView(tree)
@@ -334,25 +338,24 @@ export function buildProductView(
   }
 }
 
-/** Build the ai-avatar product view from its app config — five plain
- *  sections: 基础信息 / 人设指令 / 知识库 / 技能 / 触发器. 基础信息 and
- *  人设指令 are single leaves (open a form / doc); 知识库 and 技能 are
- *  categories whose leaves are the config's referenced items; 触发器
- *  children still come from the tree's triggers/ folder. Falls back to
- *  the file-tree bucketing when no config is available. */
+/** Build the ai-avatar product view from its app config — 基础信息 /
+ *  人设配置 / 能力配置 / 知识库 / 触发器配置 / 项目文件. */
 export function buildAvatarProductView(
   tree: FileNode[],
   config: AvatarAppConfig | undefined,
 ): FileNode[] {
   if (!config) return aiAvatarView(tree)
-  // 人设 is no longer surfaced as its own product object — the persona now
-  // lives as a real file (avatar-agent/persona.yaml) in the 代码文件 tree.
-  const out: FileNode[] = [{ name: '基础信息', type: 'file' }]
+  // 人设配置 edits the prompt; the underlying persona.yaml remains available
+  // from 项目文件 for developers.
+  const out: FileNode[] = [
+    { name: BASIC_INFO_LABEL, type: 'file' },
+    { name: PERSONA_CONFIG_LABEL, type: 'file' },
+  ]
   const skills = [...config.skillInfoList, ...config.toolInfoList].map(
     (s): FileNode => ({ name: s.name, type: 'file' }),
   )
   if (skills.length > 0) {
-    out.push({ name: '技能', type: 'dir', children: skills })
+    out.push({ name: AVATAR_SKILL_LABEL, type: 'dir', children: skills })
   }
   const knowledge = config.knowledgeInfoList.map(
     (k): FileNode => ({ name: k.name, type: 'file' }),
@@ -362,27 +365,29 @@ export function buildAvatarProductView(
   }
   const triggers = childrenAt(tree, ['triggers'])
   if (triggers.length > 0) {
-    out.push({ name: '触发器', type: 'dir', children: triggers })
+    out.push({ name: AVATAR_TRIGGER_LABEL, type: 'dir', children: triggers })
   }
+  out.push({ name: '项目文件', type: 'dir', children: tree })
   return out
 }
 
-/** Build the mini-program product view — 基础信息 / 页面 / 文档 / 技能 /
- *  数据库 / 代码文件. 基础信息 opens the settings form; 页面 is a category
- *  whose leaves are the src/pages routes; the rest reuse shared views in
- *  the consumer. Falls back to the file-tree bucketing when no config. */
+/** Build the mini-program product view — 基础信息 / 能力配置 / 页面配置 /
+ *  数据配置 / 项目文件. */
 export function buildMiniProgramProductView(
   tree: FileNode[],
   config: MiniProgramConfig | undefined,
 ): FileNode[] {
-  if (!config) return appLikeView(tree, ['src', 'assets'])
+  const rawCapabilities = childrenAt(tree, ['.agent', 'skills'])
+  const capabilities: FileNode = config
+    ? namedCategory(ABILITY_CONFIG_LABEL, MINIPROGRAM_CAPABILITY_ITEMS)
+    : rawCapabilities.length > 0
+      ? { name: ABILITY_CONFIG_LABEL, type: 'dir', children: rawCapabilities }
+      : { name: ABILITY_CONFIG_LABEL, type: 'file' }
   return [
-    { name: '基础信息', type: 'file' as const },
+    { name: BASIC_INFO_LABEL, type: 'file' as const },
+    capabilities,
     pageCategory(tree),
-    { name: '文档', type: 'file' as const },
-    // 技能 is a category (capability-detail children) to match 分身.
-    namedCategory('技能', MINIPROGRAM_SKILL_ITEMS),
-    { name: '数据库', type: 'file' as const },
-    { name: '代码文件', type: 'file' as const },
+    { name: DATA_CONFIG_LABEL, type: 'file' as const },
+    { name: '项目文件', type: 'dir' as const, children: tree },
   ].filter((c): c is FileNode => c != null)
 }

@@ -14,8 +14,8 @@ export default function PlaceholderPage({
   return (
     <div className="flex h-full items-center justify-center bg-[#F5F6F8]">
       <motion.div
-        initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
         className="flex w-[400px] flex-col items-center gap-4 rounded-3xl bg-white px-12 py-12 shadow-[0_10px_40px_rgba(0,0,0,0.06)]"
       >

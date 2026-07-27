@@ -167,10 +167,10 @@ export default function IncomePage() {
   )
 
   return (
-    <main className="min-w-0 flex-1 overflow-y-auto bg-[#F5F6F8]">
+    <main className="min-w-0 flex-1 overflow-y-auto bg-white">
       <div className="space-y-4 px-8 py-6">
         {/* 我的变现 */}
-        <section className="rounded-[20px] bg-white p-6">
+        <section className="bg-white p-6">
           <div className="flex items-center gap-2">
             <h2 className="text-[18px] font-semibold text-[#252632]">我的变现</h2>
             <Eye size={14} className="text-[#252632]/35" />
@@ -251,7 +251,7 @@ export default function IncomePage() {
         </section>
 
         {/* 商单任务进行中 */}
-        <section className="rounded-[20px] bg-white p-6">
+        <section className="bg-white p-6">
           <div className="flex items-center">
             <h3 className="text-[16px] font-semibold text-[#252632]">
               商单任务进行中（{data?.tasksInProgress ?? '…'}）
@@ -304,7 +304,7 @@ export default function IncomePage() {
         </section>
 
         {/* 变现广场 */}
-        <section className="rounded-[20px] bg-white p-6">
+        <section className="bg-white p-6">
           <h3 className="text-[16px] font-semibold text-[#252632]">变现广场</h3>
           <div className="mt-4 flex items-center gap-2">
             {PLAZA_TABS.map((t) => (

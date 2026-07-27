@@ -1,8 +1,20 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowUp, ChevronDown, ChevronsRight, FolderCode, Plus } from '@/shared/icons'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import {
+  ArrowUp,
+  ChevronDown,
+  ChevronsRight,
+  FolderCode,
+  Paperclip,
+} from '@/shared/icons'
 import type { ChatMessage } from '@/shared/api/chat'
+import {
+  classifyProductIntent,
+  type ProductIntent,
+  type ProductIntentTarget,
+} from '@/shared/api/product-intent'
 import Logo2Lottie from './Logo2Lottie'
+import FigmaIcon from './FigmaIcon'
 import { LiveAiReply } from './LiveAiReply'
 import { ChatEmptyState } from './ChatEmptyState'
 
@@ -23,6 +35,15 @@ export interface AiAssistantContext {
 interface UserMsg {
   id: number
   text: string
+  intentStatus: 'pending' | 'chat' | 'routed'
+  routeTarget?: ProductIntentTarget
+}
+
+const NAVIGATION_REPLIES: Record<ProductIntentTarget, string> = {
+  'ai-avatar': '识别到你想创建或管理一个可持续互动的 AI 人设，正在前往 AI 分身。',
+  wiki: '识别到你想沉淀一份知识或文字内容，正在前往百科。',
+  suibian: '识别到你想生成一段创意短片，正在前往随变。',
+  workshop: '识别到你想搭建一个可交互的数字产物，正在前往 AI 工坊。',
 }
 
 const FALLBACK_REPLY = '这个问题我需要结合更多账号数据来分析，你可以先看看页面里的数据面板，或换个问法试试～'
@@ -36,11 +57,18 @@ const FALLBACK_REPLY = '这个问题我需要结合更多账号数据来分析�
 export default function AiAssistantPanel({
   context,
   className = '',
+  onOpenProduct,
+  defaultOpen = true,
 }: {
   context: AiAssistantContext
   className?: string
+  /** 仅首页注入；其他页面的助手保持纯对话。 */
+  onOpenProduct?: (target: ProductIntentTarget) => void
+  /** 初始是否展开 — 首页默认收起为悬浮球。 */
+  defaultOpen?: boolean
 }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(defaultOpen)
+  const reduceMotion = useReducedMotion() ?? false
   /** 面板宽度 — 左边缘可拖拽（300~560px）。 */
   const [panelWidth, setPanelWidth] = useState(340)
   /** 拖拽中 — 抑制展开/收起的宽度过渡，让拖拽即时跟手。 */
@@ -70,6 +98,8 @@ export default function AiAssistantPanel({
   const [replyCache] = useState(() => new Map<string, string>())
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLDivElement>(null)
+  const onOpenProductRef = useRef(onOpenProduct)
+  const intentControllersRef = useRef(new Map<number, AbortController>())
 
   const msgs = threads[context.key] ?? []
 
@@ -79,7 +109,19 @@ export default function AiAssistantPanel({
   }
   useEffect(scrollToBottom, [msgs.length, context.key])
 
-  // 展开面板时自动聚焦输入框，直接进入激活态（蓝色描边）。
+  useEffect(() => {
+    onOpenProductRef.current = onOpenProduct
+  }, [onOpenProduct])
+
+  useEffect(() => {
+    const controllers = intentControllersRef.current
+    return () => {
+      controllers.forEach((controller) => controller.abort())
+      controllers.clear()
+    }
+  }, [])
+
+  // 展开面板时自动聚焦输入框，直接进入输入状态。
   // 展开有宽度动画，稍延迟等 DOM 就绪再聚焦。
   useEffect(() => {
     if (!open) return
@@ -87,14 +129,57 @@ export default function AiAssistantPanel({
     return () => clearTimeout(t)
   }, [open])
 
+  const resolveProductIntent = async (
+    messageId: number,
+    text: string,
+    threadKey: string,
+    controller: AbortController,
+  ) => {
+    let intent: ProductIntent = 'none'
+    try {
+      intent = await classifyProductIntent(text, { signal: controller.signal })
+    } catch {
+      // 语义服务不可用时回到普通对话，不用字符规则猜测跳转。
+    } finally {
+      intentControllersRef.current.delete(messageId)
+    }
+
+    const openProduct = onOpenProductRef.current
+    const routeTarget = intent !== 'none' && openProduct ? intent : undefined
+    setThreads((current) => ({
+      ...current,
+      [threadKey]: (current[threadKey] ?? []).map((message) =>
+        message.id === messageId
+          ? {
+              ...message,
+              intentStatus: routeTarget ? 'routed' : 'chat',
+              routeTarget,
+            }
+          : message,
+      ),
+    }))
+    if (routeTarget) openProduct?.(routeTarget)
+  }
+
   const send = (raw: string) => {
     const text = raw.trim()
     if (!text) return
+    const shouldClassify = Boolean(onOpenProduct)
     idRef.current += 1
-    const msg: UserMsg = { id: idRef.current, text }
+    const messageId = idRef.current
+    const msg: UserMsg = {
+      id: messageId,
+      text,
+      intentStatus: shouldClassify ? 'pending' : 'chat',
+    }
     setThreads((t) => ({ ...t, [context.key]: [...(t[context.key] ?? []), msg] }))
     setDraft('')
     if (inputRef.current) inputRef.current.innerText = ''
+    if (shouldClassify) {
+      const controller = new AbortController()
+      intentControllersRef.current.set(messageId, controller)
+      void resolveProductIntent(messageId, text, context.key, controller)
+    }
   }
 
   /** 组装该条用户消息之前的完整上下文（系统提示 + 已完成的往返）。 */
@@ -112,9 +197,12 @@ export default function AiAssistantPanel({
       },
     ]
     for (let k = 0; k <= index; k++) {
-      history.push({ role: 'user', content: msgs[k].text })
+      const previousMessage = msgs[k]
+      history.push({ role: 'user', content: previousMessage.text })
       if (k < index) {
-        const prev = replyCache.get(`${context.key}::${msgs[k].id}`)
+        const prev = previousMessage.routeTarget
+          ? NAVIGATION_REPLIES[previousMessage.routeTarget]
+          : replyCache.get(`${context.key}::${previousMessage.id}`)
         if (prev) history.push({ role: 'assistant', content: prev })
       }
     }
@@ -213,16 +301,38 @@ export default function AiAssistantPanel({
                     {m.text}
                   </div>
                 </motion.div>
-                <LiveAiReply
-                  key={replyKey}
-                  messages={historyFor(i)}
-                  cached={replyCache.get(replyKey)}
-                  fallback={FALLBACK_REPLY}
-                  onDone={(reply) => {
-                    replyCache.set(replyKey, reply)
-                    scrollToBottom()
-                  }}
-                />
+                {m.routeTarget ? (
+                  <motion.p
+                    role="status"
+                    initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.18, ease: 'easeOut' }}
+                    className="text-pretty whitespace-pre-wrap text-[14px] leading-[20px] text-[var(--color-ink)]"
+                  >
+                    {NAVIGATION_REPLIES[m.routeTarget]}
+                  </motion.p>
+                ) : m.intentStatus === 'pending' ? (
+                  <motion.p
+                    role="status"
+                    initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.18, ease: 'easeOut' }}
+                    className="text-pretty text-[13px] leading-5 text-[var(--color-ink)]/55"
+                  >
+                    正在理解你的创作需求…
+                  </motion.p>
+                ) : (
+                  <LiveAiReply
+                    key={replyKey}
+                    messages={historyFor(i)}
+                    cached={replyCache.get(replyKey)}
+                    fallback={FALLBACK_REPLY}
+                    onDone={(reply) => {
+                      replyCache.set(replyKey, reply)
+                      scrollToBottom()
+                    }}
+                  />
+                )}
               </Fragment>
             )
           })
@@ -247,9 +357,8 @@ export default function AiAssistantPanel({
 
       {/* ── Composer — 与工坊同款：圆角 24 白卡 + 顶部彩虹光晕 +
            contentEditable 输入 + 扩展/附件/Figma + Auto/发送。 ── */}
-      <div className="mx-3 mb-3 flex-shrink-0">
-        {/* focus 态(focus-within)：1px 灰边换成 1.5px 柔和深灰描边。 */}
-        <div className="relative flex flex-col gap-4 overflow-hidden rounded-[24px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)] transition-shadow focus-within:shadow-[0_0_0_1.5px_rgba(22,24,35,0.35),0_10px_15px_-5px_rgba(0,0,0,0.05)]">
+      <div className="mx-5 mb-2 flex-shrink-0">
+        <div className="relative flex flex-col gap-4 overflow-hidden rounded-[24px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]">
           {/* Top rainbow-tint blur decoration */}
           <div
             aria-hidden
@@ -285,17 +394,24 @@ export default function AiAssistantPanel({
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                aria-label="新建"
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                <Plus size={16} strokeWidth={1.8} />
-              </button>
-              <button
-                type="button"
                 className="flex h-8 items-center gap-1 rounded-full border border-[var(--divider)] px-3 text-[13px] font-medium text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
               >
                 <FolderCode size={14} strokeWidth={1.8} />
                 扩展
+              </button>
+              <button
+                type="button"
+                aria-label="附件"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+              >
+                <Paperclip size={14} strokeWidth={1.8} />
+              </button>
+              <button
+                type="button"
+                aria-label="Figma"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+              >
+                <FigmaIcon size={14} />
               </button>
             </div>
             <div className="flex items-center gap-1.5">

@@ -24,7 +24,7 @@ import {
 } from '@/shared/icons'
 import { fmtCount, type WorkItem } from './api'
 import { CREATOR_PROFILE } from './data'
-import { fmtWorkDate } from './WorkRow'
+import { fmtWorkDate } from './work-format'
 
 /* ─── 作品详情页（设计稿 创作者中心26.7 · 1-38221 总览 / 1-38571 评论管理） ───
  * 从内容管理的作品列表点入。头部作品卡 + 总览/评论管理两个可用 tab
@@ -33,6 +33,12 @@ import { fmtWorkDate } from './WorkRow'
 export type WorkDetailTab = '总览' | '流量分析' | '粉丝分析' | '评论管理'
 
 const BLUE = '#4E83FD'
+
+const UPDATED_AT = (() => {
+  const date = new Date()
+  date.setDate(date.getDate() - 1)
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日23:58`
+})()
 
 /** 由 spark 派生的逐小时演示序列，缩放到目标总量级。 */
 function hourlySeries(spark: number[], scaleTo: number) {
@@ -465,10 +471,6 @@ export default function WorkDetailPage({
   onNext?: () => void
 }) {
   const [tab, setTab] = useState<WorkDetailTab>(initialTab)
-  const updatedAt = useMemo(() => {
-    const d = new Date(Date.now() - 86400000)
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日23:58`
-  }, [])
   const hasChallenge = work.tags.some((t) => t.startsWith('挑战'))
   const hasTopic = work.title.includes('#')
 
@@ -591,7 +593,7 @@ export default function WorkDetailPage({
               </button>
             )
           })}
-          <span className="ml-auto pr-1 text-[12px] text-[#252632]/40">数据更新于{updatedAt}</span>
+          <span className="ml-auto pr-1 text-[12px] text-[#252632]/40">数据更新于{UPDATED_AT}</span>
         </div>
 
         {tab === '评论管理' ? (

@@ -124,7 +124,7 @@ const PUBLISH_CONTEXT: AiAssistantContext = {
 export const DEFAULT_ASSISTANT_CONTEXT: AiAssistantContext = {
   key: 'default',
   label: '创作者中心',
-  greeting: '嗨，我是你的 AI 创作助手，有任何创作、数据、变现的问题都可以问我～',
+  greeting: '有任何创作、数据、变现的问题都可以问我，下面这些你可以试试～',
   suggestions: ['我下一条视频拍什么好？', '帮我分析账号近期表现', '如何提升作品完播率？'],
   systemHint: PROFILE_HINT,
 }

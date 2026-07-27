@@ -8,7 +8,7 @@ import LogoIconSpinOnce from './LogoIconSpinOnce'
 export function ChatEmptyState({
   suggestions,
   onPick,
-  title = '嗨，我是你的 AI 助理',
+  title = '嗨，我是你的创作助手',
   subtitle = '你可以让我调整这个项目，下面这些你可以试试',
   forceLight = false,
 }: {

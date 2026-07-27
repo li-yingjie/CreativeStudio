@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import test from 'node:test'
-import { handleChat, handleHealth } from '../server/kimi.mjs'
+import {
+  handleChat,
+  handleHealth,
+  handleProductIntent,
+  parseProductIntentTarget,
+} from '../server/kimi.mjs'
 import { handleCreatorStats } from '../server/creator-data.mjs'
 
 class MockResponse extends EventEmitter {
@@ -121,6 +126,82 @@ test('chat endpoint rejects unapproved models and malformed conversations', asyn
   )
   assert.equal(roleResponse.statusCode, 400)
   assert.match(parsed(roleResponse).error, /last message/i)
+})
+
+test('product intent endpoint validates input before upstream access', async () => {
+  process.env.KIMI_API_KEY = 'test-key'
+
+  const crossOrigin = new MockResponse()
+  await handleProductIntent(
+    request({
+      method: 'POST',
+      headers: {
+        host: 'app.test',
+        origin: 'https://evil.test',
+        'content-type': 'application/json',
+      },
+      body: { text: '做一个粉丝抽签页' },
+    }),
+    crossOrigin,
+  )
+  assert.equal(crossOrigin.statusCode, 403)
+
+  const invalidText = new MockResponse()
+  await handleProductIntent(
+    request({
+      method: 'POST',
+      headers: { host: 'app.test', 'content-type': 'application/json' },
+      body: { text: '' },
+    }),
+    invalidText,
+  )
+  assert.equal(invalidText.statusCode, 400)
+  assert.match(parsed(invalidText).error, /text/i)
+})
+
+test('product intent endpoint returns only a server-controlled product enum', async () => {
+  process.env.KIMI_API_KEY = 'test-key'
+  process.env.KIMI_MODEL = 'moonshot-v1-8k'
+  const previousFetch = globalThis.fetch
+  let upstreamBody
+  globalThis.fetch = async (_url, options) => {
+    upstreamBody = JSON.parse(options.body)
+    return new Response(
+      JSON.stringify({ choices: [{ message: { content: 'workshop' } }] }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    )
+  }
+
+  try {
+    const response = new MockResponse()
+    await handleProductIntent(
+      request({
+        method: 'POST',
+        headers: { host: 'app.test', 'content-type': 'application/json' },
+        body: {
+          text: '做个每天提醒打卡、完成后还能领徽章的工具',
+          model: 'client-controlled-model',
+          temperature: 1,
+        },
+      }),
+      response,
+    )
+    assert.equal(response.statusCode, 200)
+    assert.deepEqual(parsed(response), { target: 'workshop' })
+    assert.equal(upstreamBody.model, 'moonshot-v1-8k')
+    assert.equal(upstreamBody.temperature, 0)
+    assert.equal(upstreamBody.stream, false)
+    assert.equal(upstreamBody.messages.at(-1).content, '做个每天提醒打卡、完成后还能领徽章的工具')
+  } finally {
+    globalThis.fetch = previousFetch
+  }
+})
+
+test('product intent parser rejects explanatory or unknown model output', () => {
+  assert.equal(parseProductIntentTarget('ai-avatar'), 'ai-avatar')
+  assert.equal(parseProductIntentTarget(' workshop\n'), 'workshop')
+  assert.equal(parseProductIntentTarget('建议跳转到 workshop'), null)
+  assert.equal(parseProductIntentTarget('unknown'), null)
 })
 
 test('creator stats returns bounded JSON and enforces GET', () => {

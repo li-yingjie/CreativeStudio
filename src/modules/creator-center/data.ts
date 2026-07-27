@@ -3,6 +3,12 @@
  * 只放界面结构类配置（菜单、入口卡、身份信息）。
  * 统计数据一律来自 mock 后端 /api/creator/stats（见 api.ts + server/creator-data.mjs）。
  */
+import { Album01LinearIcon } from 'master-icon/react/Album01LinearIcon'
+import { Analytics01LinearIcon } from 'master-icon/react/Analytics01LinearIcon'
+import { Home01LinearIcon } from 'master-icon/react/Home01LinearIcon'
+import { LightningLinearIcon } from 'master-icon/react/LightningLinearIcon'
+import { Wallet01LinearIcon } from 'master-icon/react/Wallet01LinearIcon'
+
 /** 顶部菜单里的产品入口。workshop 挂现有的抖音 AI 工坊。 */
 export type ProductId = 'home' | 'ai-avatar' | 'wiki' | 'suibian' | 'workshop'
 
@@ -83,14 +89,12 @@ export const CREATOR_PROFILE = {
   signature: '这个人很懒，没有留下任何签名，直接取签名的字段',
 }
 
-/** 首页左侧栏「发布」按钮图标。 */
-export const PUBLISH_ICON = '/icons/发布.svg'
-
-/** 左侧栏菜单（数据高亮为当前页），icon 为 public/icons 单色 SVG。 */
+/** 左侧栏菜单（数据高亮为当前页），图标统一来自 MasterIcon。 */
 export const SIDE_MENU = [
-  { key: 'data', label: '首页', icon: '/icons/Nav 菜单/ic-nav-Home.svg' },
-  { key: 'content', label: '内容管理', icon: '/icons/icon.svg' },
-  { key: 'datacenter', label: '数据中心', icon: '/icons/数据.svg' },
-  { key: 'income', label: '收入变现', icon: '/icons/收入.svg' },
-  { key: 'service', label: '创作服务', icon: '/icons/创作服务.svg', children: ['作品共创', '活动管理', '原创保护', '抖音指数'] },
+  { key: 'data', label: '首页', Icon: Home01LinearIcon },
+  { key: 'content', label: '内容管理', Icon: Album01LinearIcon },
+  { key: 'datacenter', label: '数据中心', Icon: Analytics01LinearIcon },
+  { key: 'income', label: '收入变现', Icon: Wallet01LinearIcon },
+  // 创作服务 = 一组创作便捷工具（不是客服），用闪电（统一导航稿 lightning-02）
+  { key: 'service', label: '创作服务', Icon: LightningLinearIcon, children: ['作品共创', '活动管理', '原创保护', '抖音指数'] },
 ]

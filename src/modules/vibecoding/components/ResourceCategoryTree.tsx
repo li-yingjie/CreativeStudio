@@ -154,33 +154,27 @@ export default function ResourceCategoryTree({
                   : 'hover:bg-[var(--fill-hover)]'
               }`}
             >
+              {/* 常驻披露箭头（macOS Finder 风格）：点箭头只展开/收起，
+                  点标题才筛选该分类。分类图标独立占位，不再与箭头互换。 */}
               <button
                 type="button"
-                aria-label={expanded ? '收起' : '展开'}
+                aria-expanded={expanded}
+                aria-label={`${expanded ? '收起' : '展开'}${primary}`}
                 onClick={(e) => {
                   e.stopPropagation()
                   onTogglePrimary(primary)
                 }}
-                className="relative flex h-[14px] w-[14px] shrink-0 items-center justify-center overflow-hidden rounded-[3.5px] text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--color-ink)]/10 hover:text-[var(--color-ink)]"
+                className="flex h-[14px] w-3.5 shrink-0 items-center justify-center text-[var(--color-ink)]/40 transition-colors hover:text-[var(--color-ink)]/80"
               >
-                {renderer.kind === 'lucide' ? (
-                  <renderer.icon
-                    size={12}
-                    strokeWidth={1.8}
-                    className="absolute transition-opacity duration-100 group-hover:opacity-0"
-                  />
-                ) : (
-                  <DouyinMark
-                    size={14}
-                    className="absolute transition-opacity duration-100 group-hover:opacity-0"
-                  />
-                )}
-                <ChevIcon
-                  size={12}
-                  strokeWidth={2}
-                  className="absolute opacity-0 transition-opacity duration-100 group-hover:opacity-100"
-                />
+                <ChevIcon size={11} strokeWidth={2.4} />
               </button>
+              <span className="flex h-[14px] w-[14px] shrink-0 items-center justify-center text-[var(--color-ink)]/70">
+                {renderer.kind === 'lucide' ? (
+                  <renderer.icon size={12} strokeWidth={1.8} />
+                ) : (
+                  <DouyinMark size={14} />
+                )}
+              </span>
               <button
                 type="button"
                 onClick={() => onSelect(primary, null)}
@@ -196,8 +190,9 @@ export default function ResourceCategoryTree({
             </div>
 
             {expanded && secondaries.length > 0 && (
-              <div className="pl-[14px] pt-1">
-                <div className="flex flex-col gap-1 border-l border-[rgba(16,18,24,0.08)] pl-px dark:border-[rgba(255,255,255,0.08)]">
+              /* 子级只靠缩进表达层级，不画连接线（macOS Finder 风格）。 */
+              <div className="pl-[18px] pt-1">
+                <div className="flex flex-col gap-1">
                   {secondaries.map((sec) => {
                     const isActive = false
                     const count = countMap.get(`${primary}::${sec}`) ?? 0

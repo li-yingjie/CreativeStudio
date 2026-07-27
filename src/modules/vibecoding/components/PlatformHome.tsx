@@ -1,116 +1,91 @@
-import { useEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useThemeStore } from '@/shared/storage/theme'
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import {
-  AppWindow,
   ArrowUp,
-  Bot,
   ChevronDown,
   ChevronRight,
+  Code2,
   FolderCode,
-  Gamepad2,
   Image as ImageIcon,
-  LayoutGrid,
-  Paperclip,
-  X,
-  type LucideIcon,
+  PencilLine,
+  Plus,
+  Sparkles,
+  Video,
 } from '@/shared/icons'
-import FigmaIcon from './FigmaIcon'
 
-/* ─── Platform home (new-project landing) ─── */
+/* ─── Platform home (new-project landing) — 按 Figma「统一导航」229:15581 实现 ─── */
 
-/** Scene pills under the home composer. Clicking a pill opens a flyout of
- *  that scene's quick commands; each command's `prompt` ghost-fills the
- *  composer on hover and is sent on click. */
-type SceneCommand = { label: string; prompt: string }
-type HomeScene = { label: string; icon: LucideIcon; svg?: string; commands: SceneCommand[] }
-const HOME_SCENES: HomeScene[] = [
+/** 兴趣卡展示：hover 时 prompt 灰字预填输入框，点击直接发送。 */
+const INTEREST_CARDS = [
   {
-    label: 'AI 分身',
-    icon: Bot,
-    svg: '/icons/bot-smile.svg',
-    commands: [
-      { label: '生成运营活动社群的 AI 分身', prompt: '帮我生成一个用于运营活动社群的 AI 分身，能在群里答疑、发活动通知、活跃气氛。' },
-      { label: '生成评论区回复用户问题的 AI 分身', prompt: '帮我生成一个能在评论区自动回复用户问题的 AI 分身。' },
-      { label: '做一个会聊星座情感的 AI 分身', prompt: '帮我做一个会聊星座和情感话题的 AI 分身，语气温柔治愈。' },
-      { label: '给分身配置自动欢迎语', prompt: '帮我给 AI 分身配置一套关注 / 进群时的自动欢迎语。' },
-      { label: '做一个客服答疑 AI 分身', prompt: '帮我做一个客服答疑 AI 分身，能回答常见售前售后问题。' },
-    ],
+    title: '猜猜小狗品种',
+    desc: '看图猜狗狗品种，四选一快速作答，挑战你的萌宠知识储备。',
+    ui: '/assets/workshop/phone-ui-dog.webp',
+    prompt: '帮我做一个「猜猜小狗品种」兴趣卡：看图猜狗狗品种，四选一快速作答，答完即时揭晓答案。',
   },
   {
-    label: '小程序',
-    icon: LayoutGrid,
-    svg: '/icons/mini-programs.svg',
-    commands: [
-      { label: '做一个每日打卡小程序', prompt: '帮我做一个每日打卡小程序，支持连续打卡、提醒和成就徽章。' },
-      { label: '做一个第五人格主题塔罗小程序', prompt: '帮我做一个第五人格主题的塔罗运势小程序，每天可抽一张牌。' },
-      { label: '做一个抽奖小程序', prompt: '帮我做一个抽奖小程序，支持每日抽奖、分享得机会。' },
-      { label: '做一个会员积分小程序', prompt: '帮我做一个会员积分小程序，支持积分累计与兑换。' },
-      { label: '做一个预约报名小程序', prompt: '帮我做一个预约报名小程序，支持选时段、填信息和提醒。' },
-    ],
+    title: '单词学习',
+    desc: '学习雅思高频词汇，结合释义与熟练度反馈，轻松巩固记忆。',
+    ui: '/assets/workshop/phone-ui-words.webp',
+    prompt: '帮我做一个「单词学习」兴趣卡：学习雅思高频词汇，结合释义与熟练度反馈巩固记忆。',
   },
   {
-    label: '营销设计',
-    icon: ImageIcon,
-    svg: '/icons/image-03.svg',
-    commands: [
-      { label: '做一张新品促销主视觉海报', prompt: '帮我做一张新品促销主视觉海报。' },
-      { label: '生成推广《剑来》动画的异形卡', prompt: '帮我生成一张推广《剑来》动画的异形卡海报。' },
-      { label: '做一个节日抽奖 H5 活动页', prompt: '帮我做一个节日主题的抽奖 H5 活动页，含倒计时、奖品楼层和分享。' },
-      { label: '生成一条新品种草短视频脚本', prompt: '帮我生成一条新品种草短视频脚本，含分镜、口播和字幕。' },
-      { label: '做一组朋友圈九宫格海报', prompt: '帮我做一组朋友圈九宫格拼图海报。' },
-    ],
+    title: '答案之书',
+    desc: '翻开专属答案之书，为当下的困惑获取一句随机启发与回应。',
+    ui: '/assets/workshop/phone-ui-answers.webp',
+    prompt: '帮我做一个「答案之书」兴趣卡：翻开答案之书，为当下的困惑获取一句随机启发。',
   },
   {
-    label: '产品设计',
-    icon: AppWindow,
-    svg: '/icons/browser.svg',
-    commands: [
-      { label: '做一个产品落地页', prompt: '帮我做一个产品落地页，突出卖点和转化。' },
-      { label: '设计一套产品 UI 界面与组件规范', prompt: '帮我设计一套产品 UI 界面与组件规范，含配色、字体和常用组件。' },
-      { label: '设计一个产品功能原型图', prompt: '帮我设计一个产品核心功能的交互原型图。' },
-      { label: '做一个个人作品集网站', prompt: '帮我做一个个人作品集网站，含首页、作品、关于和联系页。' },
-      { label: '做一个公司官网首页', prompt: '帮我做一个公司官网首页，含品牌介绍与业务板块。' },
-    ],
-  },
-  {
-    label: '游戏设计',
-    icon: Gamepad2,
-    svg: '/icons/gaming-pad-01.svg',
-    commands: [
-      { label: '做一款竖版弹幕射击 + Roguelike 太空游戏', prompt: '帮我做一款竖版弹幕射击 + Roguelike 的太空小游戏。' },
-      { label: '做一个翻牌记忆小游戏', prompt: '帮我做一个翻牌记忆配对小游戏。' },
-      { label: '做一个跑酷小游戏', prompt: '帮我做一个横版跑酷小游戏。' },
-      { label: '做一个答题闯关小游戏', prompt: '帮我做一个答题闯关小游戏。' },
-      { label: '做一个消除类小游戏', prompt: '帮我做一个三消消除类小游戏。' },
-    ],
+    title: '穿搭灵感',
+    desc: '根据场景与风格偏好智能推荐搭配，快速找到今天的穿衣灵感。',
+    ui: '/assets/workshop/phone-ui-outfit.webp',
+    prompt: '帮我做一个「穿搭灵感」兴趣卡：根据场景与风格偏好智能推荐今日穿搭。',
   },
 ]
 
-/** Scene icon — renders the project-provided SVG via a CSS mask so it picks
- *  up the ink color (theme-adaptive) regardless of the file's own fills.
- *  Falls back to the lucide/Tabler icon when no SVG is supplied. */
-function SceneGlyph({ scene }: { scene: HomeScene }) {
-  if (scene.svg) {
-    return (
-      <span
-        aria-hidden
-        className="h-[15px] w-[15px] shrink-0 bg-[var(--color-ink)]/55"
-        style={{
-          maskImage: `url(${scene.svg})`,
-          WebkitMaskImage: `url(${scene.svg})`,
-          maskSize: 'contain',
-          WebkitMaskSize: 'contain',
-          maskRepeat: 'no-repeat',
-          WebkitMaskRepeat: 'no-repeat',
-          maskPosition: 'center',
-          WebkitMaskPosition: 'center',
-        }}
-      />
-    )
-  }
-  const Icon = scene.icon
-  return <Icon size={14} strokeWidth={1.8} className="shrink-0 text-[var(--color-ink)]/55" />
+const FEATURED_PROJECTS = [
+  { title: 'SANGUORUSH', desc: '三国塔防游戏', img: '/assets/workshop/proj-sanguorush.webp' },
+  { title: 'Garuda', desc: '太空射击游戏', img: '/assets/workshop/proj-garuda.webp' },
+  { title: '蔚蓝守卫 Azure Keepers', desc: '保卫领土的割草游戏', img: '/assets/workshop/proj-azure.webp' },
+  { title: '漫画头像生成器', desc: '自动生成二次元漫画头像', img: '/assets/workshop/proj-avatar-gen.webp' },
+  { title: '商单评论洞察', desc: '深度解析目标视频的评论区用户画像与情感倾向，精准提炼痛点与购买意向，反哺选品与投流策略', img: '/assets/workshop/proj-comment.webp' },
+  { title: '爆款脚本拆解', desc: '一键提取高赞视频的叙事结构与黄金前三秒 Hook，自动生成可复用的分镜脚本，大幅降低内容创作门槛', img: '/assets/workshop/proj-script.webp' },
+  { title: '音视频结构化总结', desc: '将播客或长视频快速转化为带有时间戳的思维导图与核心要点，适用于知识付费与泛知识类创作者', img: '/assets/workshop/proj-summary.webp' },
+  { title: '家装智能报价', desc: '一键提取高赞视频的叙事结构与黄金前三秒 Hook，自动生成可复用的分镜脚本，大幅降低内容创作门槛', img: '/assets/workshop/proj-quote.webp' },
+  { title: '天气预报', desc: '突破传统的天气数据展示。基于实时气象 API 与用户所处环境，AI 自动进行逻辑推理，一键生成个性化生活简报。', img: '/assets/workshop/proj-weather.webp' },
+  { title: '冥想时间', desc: '为高压节奏的创作者定制的正念空间，白噪音与呼吸引导帮你快速回到专注状态', img: '/assets/workshop/proj-meditate.webp' },
+  { title: '活动收集', desc: '将播客或长视频快速转化为带有时间戳的思维导图与核心要点，适用于知识付费与泛知识类创作者', img: '/assets/workshop/proj-events.webp' },
+  { title: '灵感图文种草机', desc: '迎合抖音图文带货趋势的创作沙盒。输入商品名称或核心卖点，AI 自动生成高级质感的轮播图文，100% 可二次编辑。', img: '/assets/workshop/proj-carousel.webp' },
+]
+
+const PLACEHOLDER =
+  '帮我生成一个「今天吃什么」兴趣卡。用户选择预算、口味、用餐人数等条件后，随机推荐适合的菜品，并支持"再来一个"随机切换结果，帮助用户快速做出选择。'
+
+/** 玻璃手机 mockup — 屏幕截图 + 玻璃边框两层叠加，底部由卡片裁掉。 */
+function GlassPhone({ ui }: { ui: string }) {
+  return (
+    <div
+      className="pointer-events-none absolute left-1/2 top-[138px] h-[286px] w-[141px] -translate-x-1/2 select-none"
+      style={{ filter: 'drop-shadow(5px 10px 15px rgba(0,0,0,0.2)) drop-shadow(10px 20px 20px rgba(0,0,0,0.12))' }}
+    >
+      <img src={ui} alt="" className="absolute left-[5px] top-[3px] w-[130px] rounded-[11px]" />
+      <img src="/assets/workshop/phone-frame.webp" alt="" className="absolute inset-0 w-[141px]" />
+    </div>
+  )
+}
+
+/** 输入框工具条按钮（带文字）。装饰态，与设计稿一致。 */
+function ToolChip({ icon: Icon, label }: { icon: typeof Code2; label: string }) {
+  return (
+    <button
+      type="button"
+      className="flex h-9 items-center gap-1 rounded-full px-1.5 text-[14px] font-semibold text-[#1C1F23]/80 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
+    >
+      <Icon size={16} strokeWidth={1.8} />
+      {label}
+    </button>
+  )
 }
 
 export default function PlatformHome({
@@ -122,76 +97,39 @@ export default function PlatformHome({
   setDraft: (s: string) => void
   onSubmit: (text: string) => void
 }) {
-  const isLight = useThemeStore((s) => s.mode) === 'light'
-
-  /* Scene quick-command flyout. Clicking a scene pill opens a popover of
-   * that scene's commands; hovering a command ghost-fills the composer (via
-   * the placeholder, which renders grey), clicking sends it. */
-  const [activeScene, setActiveScene] = useState<string | null>(null)
   const [ghostText, setGhostText] = useState<string | null>(null)
-  const sceneAreaRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!activeScene) return
-    const handler = (e: PointerEvent) => {
-      if (sceneAreaRef.current && !sceneAreaRef.current.contains(e.target as Node)) {
-        setActiveScene(null)
-        setGhostText(null)
-      }
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
-  }, [activeScene])
-  const openScene = HOME_SCENES.find((s) => s.label === activeScene)
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.22, ease: 'easeOut' }}
-      className={`relative my-3 mr-3 flex min-w-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-[16px] px-6 pb-48 pt-6 ${
-        isLight ? 'bg-white' : 'bg-[var(--color-surface-0)]'
-      }`}
+      className="relative min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
+      style={{
+        backgroundImage:
+          'linear-gradient(90deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.9) 100%), linear-gradient(180deg, #F2F2F7 0%, #F5F5F5 100%)',
+      }}
     >
-      {/* Ambient illustration — grainy pastel glow pinned to the top-right.
-           Only shown in light mode; dark mode keeps the flat surface. */}
-      {isLight && (
-        <img
-          aria-hidden
-          src="/bg/platform-home-glow.png"
-          alt=""
-          className="pointer-events-none absolute right-0 top-0 h-auto w-[720px] max-w-[70%] select-none object-contain object-right-top"
-        />
-      )}
+      {/* ASCII 世界地图纹理 — 设计稿导出，压在渐变底上 */}
+      <img
+        aria-hidden
+        src="/assets/workshop/ascii-map.webp"
+        alt=""
+        className="pointer-events-none absolute left-1/2 top-[-340px] w-[1537px] max-w-none -translate-x-1/2 select-none opacity-60"
+      />
 
-      {/* Hero */}
-      <div className="relative flex flex-col items-center gap-2">
-        <div className="text-center font-semibold tracking-[0.64px] text-[var(--color-ink)]">
-          <span className="text-[32px]">抖音</span>
-          <span className="text-[16px]"> </span>
-          <span className="text-[32px]">AI</span>
-          <span className="text-[16px]"> </span>
-          <span className="text-[32px]">打开无限可能</span>
+      <div className="relative mx-auto w-full max-w-[1032px] px-6 pb-20">
+        {/* Hero */}
+        <div className="flex items-center justify-center gap-2 pt-[96px] text-center text-[38px] font-bold text-black">
+          <span>AI工坊</span>
+          <span>·</span>
+          <span>把好想法变成好玩法</span>
+          <span className="text-[43px]">💡</span>
         </div>
-        <p className="text-[16px] leading-[22px] text-[var(--color-ink)]/60">
-          所见即所得，链接抖音生态
-        </p>
-      </div>
 
-      {/* Prompt composer — h-[140px] fixed card, content justified to the
-           bottom (textarea grows upward from the action row). */}
-      <div className="relative mt-6 w-full max-w-[810px]">
-        <div className="relative flex h-[140px] flex-col justify-end gap-2 overflow-hidden rounded-[16px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]">
-          {/* rainbow tint */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-4 blur-[20px]"
-            style={{
-              backgroundImage:
-                'linear-gradient(0deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 100%), linear-gradient(98deg, rgba(255,186,51,0.15) 7.59%, rgba(78,217,44,0.15) 23.2%, rgba(69,146,242,0.15) 44.7%, rgba(110,124,253,0.15) 66.3%, rgba(225,53,248,0.15) 92.3%)',
-            }}
-          />
-
-          <div className="relative flex min-h-0 flex-1 flex-col pl-3 pt-1">
+        {/* 输入框 */}
+        <div className="mx-auto mt-[50px] max-w-[800px] rounded-[32px] border-[0.5px] border-[rgba(16,17,18,0.05)] shadow-[0_4px_64px_rgba(30,31,35,0.02)]">
+          <div className="flex flex-col gap-6 rounded-[32px] border border-white bg-gradient-to-b from-[rgba(251,251,251,0.6)] to-white p-[13px] backdrop-blur-[12px]">
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -201,151 +139,147 @@ export default function PlatformHome({
                   onSubmit(draft)
                 }
               }}
-              placeholder={ghostText ?? '请描述你的需求，我来帮你完成～'}
-              rows={1}
-              className="block h-full w-full flex-1 resize-none bg-transparent text-[14px] leading-[22px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/45"
+              placeholder={ghostText ?? PLACEHOLDER}
+              rows={3}
+              className="platform-home-composer-input block h-[64px] w-full resize-none bg-transparent px-3 pt-2 text-[14px] leading-[24px] text-[#1C1F23] outline-none placeholder:text-[#1C1F23]/35"
             />
-          </div>
-
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="flex h-9 items-center gap-1 rounded-full border border-[var(--divider)] px-4 text-[14px] font-semibold text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                <FolderCode size={16} strokeWidth={1.8} />
-                扩展
-              </button>
-              <button
-                type="button"
-                aria-label="附件"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                <Paperclip size={16} strokeWidth={1.8} />
-              </button>
-              <button
-                type="button"
-                aria-label="Figma"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                <FigmaIcon size={16} />
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="flex h-9 items-center gap-1 rounded-full px-4 text-[14px] font-semibold text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                Auto
-                <ChevronDown size={16} strokeWidth={1.8} />
-              </button>
-              <button
-                type="button"
-                aria-label="发送"
-                onClick={() => onSubmit(draft)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-ink)] text-[var(--color-ink-contrast)] transition-all hover:-translate-y-[1px] hover:opacity-90"
-              >
-                <ArrowUp size={16} strokeWidth={2} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Scene pills + per-scene quick-command flyout. The flyout is
-           absolutely positioned so opening it never shifts the composer. */}
-      <div
-        ref={sceneAreaRef}
-        className="relative z-20 mt-5 flex w-full max-w-[920px] flex-col items-center"
-      >
-        <div
-          className={`tab-scroll flex max-w-full flex-nowrap items-center justify-center gap-2 overflow-x-auto transition-opacity duration-150 ${
-            openScene ? 'pointer-events-none opacity-0' : 'opacity-100'
-          }`}
-        >
-          {HOME_SCENES.map((scene) => {
-            const { label } = scene
-            const active = activeScene === label
-            return (
-              <button
-                key={label}
-                type="button"
-                onClick={() => {
-                  setActiveScene(active ? null : label)
-                  setGhostText(null)
-                }}
-                className={`flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13px] transition-colors ${
-                  active
-                    ? 'border-[var(--color-ink)]/30 bg-[var(--fill-subtle)] text-[var(--color-ink)]'
-                    : 'border-[var(--divider)] bg-[var(--color-surface-0)] text-[var(--color-ink)]/80 hover:border-[var(--color-ink)]/25 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
-                }`}
-              >
-                <SceneGlyph scene={scene} />
-                {label}
-              </button>
-            )
-          })}
-        </div>
-
-        <AnimatePresence>
-        {openScene && (() => {
-          return (
-            <motion.div
-              key={openScene.label}
-              initial={{ opacity: 0, y: -6, scale: 0.985 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.985 }}
-              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-              style={{ transformOrigin: 'top center' }}
-              onClick={() => {
-                setActiveScene(null)
-                setGhostText(null)
-              }}
-              className="absolute left-1/2 top-0 z-30 w-[810px] max-w-[92vw] -translate-x-1/2 overflow-hidden rounded-2xl bg-[var(--color-surface-0)]"
-            >
-              <div className="flex items-center justify-between px-5 py-3">
-                <span className="flex items-center gap-1.5 text-[13px] text-[var(--color-ink)]/55">
-                  <SceneGlyph scene={openScene} />
-                  {openScene.label}
-                </span>
+            <div className="flex items-center justify-between p-1">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  aria-label="关闭"
-                  onClick={() => {
-                    setActiveScene(null)
-                    setGhostText(null)
-                  }}
-                  className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/45 transition-colors hover:bg-[var(--fill-soft)] hover:text-[var(--color-ink)]"
+                  aria-label="添加附件"
+                  className="flex size-9 items-center justify-center rounded-full text-[#1C1F23]/80 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
                 >
-                  <X size={14} strokeWidth={2} />
+                  <Plus size={16} strokeWidth={1.8} />
+                </button>
+                <span aria-hidden className="h-4 w-px bg-black/10" />
+                <div className="flex items-center gap-2">
+                  <ToolChip icon={Code2} label="兴趣卡" />
+                  <ToolChip icon={ImageIcon} label="图片" />
+                  <ToolChip icon={Video} label="视频" />
+                  <ToolChip icon={PencilLine} label="调研" />
+                </div>
+                <span aria-hidden className="h-4 w-px bg-black/10" />
+                <button
+                  type="button"
+                  className="flex h-9 items-center gap-1 rounded-full px-4 text-[14px] font-semibold text-[#1C1F23]/80 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
+                >
+                  <FolderCode size={16} strokeWidth={1.8} />
+                  扩展
                 </button>
               </div>
-              <div className="flex flex-col px-2 pb-2">
-                {openScene.commands.map((c) => (
-                  <button
-                    key={c.label}
-                    type="button"
-                    onMouseEnter={() => setGhostText(c.prompt)}
-                    onMouseLeave={() => setGhostText(null)}
-                    onClick={() => {
-                      onSubmit(c.prompt)
-                      setActiveScene(null)
-                      setGhostText(null)
-                    }}
-                    className="group flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-[14px] text-[var(--color-ink)] transition-colors hover:bg-[var(--fill-subtle)]"
-                  >
-                    <span className="min-w-0 truncate">{c.label}</span>
-                    <ChevronRight
-                      size={15}
-                      className="shrink-0 text-[var(--color-ink)]/35 opacity-0 transition-opacity group-hover:opacity-100"
-                    />
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="flex h-9 items-center gap-1 rounded-full px-4 text-[14px] font-semibold text-[#1C1F23]/80 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
+                >
+                  <Sparkles size={16} strokeWidth={1.8} />
+                  Auto
+                  <ChevronDown size={16} strokeWidth={1.8} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="发送"
+                  onClick={() => onSubmit(draft)}
+                  className="flex size-9 items-center justify-center rounded-full bg-[#1C1F23] text-white transition-all hover:-translate-y-[1px] hover:opacity-90"
+                >
+                  <ArrowUp size={16} strokeWidth={2} />
+                </button>
               </div>
-            </motion.div>
-          )
-        })()}
-        </AnimatePresence>
+            </div>
+          </div>
+        </div>
+
+        {/* 兴趣卡介绍 banner */}
+        <div className="relative mx-auto mt-[17px] h-[214px] max-w-[800px] rounded-[32px] border border-[rgba(45,66,107,0.06)]">
+          <div className="absolute inset-0 overflow-hidden rounded-[32px] border border-white shadow-[0_25px_50px_-12px_rgba(0,0,0,0.07)]">
+            <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-[rgba(255,255,255,0.45)] to-white backdrop-blur-[12px]" />
+            <img
+              src="/assets/workshop/banner-vibe.webp"
+              alt=""
+              className="absolute left-1 top-1 h-[204px] w-[293px] rounded-[28px] object-cover"
+            />
+            {/* CREATE 栏 */}
+            <div className="absolute left-[315px] top-[22px] w-[210px]">
+              <div className="text-[9px] font-bold uppercase tracking-[-0.08px] text-black/50">create</div>
+              <div className="mt-[13px] text-[16px] font-semibold leading-[22px] text-[#1C1F23]">创造兴趣卡 vibecoding</div>
+              <p className="mt-[19px] text-[12px] font-light leading-[18px] text-black">
+                抖音兴趣卡，是抖音全新的 Vibe Coding 内容形态。创作者无需代码，即可围绕用户兴趣生成并发布互动卡片，在 Feed 流中精准触达，让每个兴趣点都能被看见、被体验、被分享。
+              </p>
+            </div>
+            <span aria-hidden className="absolute left-[541px] top-[27px] h-[160px] w-px bg-black/10" />
+            {/* SEARCH 栏 */}
+            <div className="absolute left-[565px] top-[22px] w-[210px]">
+              <div className="text-[9px] font-bold uppercase tracking-[-0.08px] text-black/50">search</div>
+              <div className="mt-[13px] flex items-center justify-between">
+                <span className="text-[16px] font-semibold leading-[22px] text-[#1C1F23]">寻找你的兴趣</span>
+                <button
+                  type="button"
+                  className="flex h-6 items-center gap-1 rounded-full border border-[#E8E8E8] bg-white/70 px-2.5 text-[12px] font-semibold text-[#1C1F23] shadow-[0_8px_15px_rgba(0,0,0,0.02)] transition-colors hover:bg-white"
+                >
+                  宠物
+                  <ChevronDown size={10} strokeWidth={2.5} />
+                </button>
+              </div>
+              <p className="mt-[19px] text-[12px] font-light leading-[18px] text-black">
+                通过真实萌宠图片发起趣味识犬挑战，用户可从 4 个品种选项中快速作答，并即时查看答案。轻量有趣、操作简单，在连续挑战中认识更多狗狗品种，增加内容的互动性与探索感。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 兴趣卡 */}
+        <section className="mt-[60px]">
+          <h2 className="px-1 text-[14px] font-semibold leading-[22px] text-[#0F0F12]">兴趣卡</h2>
+          <div className="mt-[11px] grid grid-cols-4 gap-4 max-lg:grid-cols-2">
+            {INTEREST_CARDS.map((card) => (
+              <button
+                key={card.title}
+                type="button"
+                onMouseEnter={() => setGhostText(card.prompt)}
+                onMouseLeave={() => setGhostText(null)}
+                onClick={() => onSubmit(card.prompt)}
+                className="group relative flex h-[373px] flex-col items-stretch justify-start overflow-hidden rounded-[14px] border border-[rgba(45,66,107,0.06)] text-left shadow-[0_25px_50px_-12px_rgba(0,0,0,0.07)] transition-transform hover:-translate-y-1"
+              >
+                <div aria-hidden className="absolute inset-0 rounded-[14px] border border-white bg-gradient-to-b from-[rgba(255,255,255,0.45)] to-white backdrop-blur-[12px] shadow-[inset_0_1px_2px_0_white]" />
+                <div className="relative p-6">
+                  <div className="text-[16.5px] font-semibold leading-5 tracking-[0.14px] text-black">{card.title}</div>
+                  <p className="mt-[7px] w-[158px] text-[11px] font-light leading-[20.7px] text-black">{card.desc}</p>
+                  <ChevronRight
+                    size={14}
+                    strokeWidth={2}
+                    className="mt-[9px] text-black transition-transform group-hover:translate-x-0.5"
+                  />
+                </div>
+                <GlassPhone ui={card.ui} />
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* 精选项目 */}
+        <section className="mt-12">
+          <h2 className="px-1 text-[14px] font-semibold leading-[22px] text-[#0F0F12]">精选项目</h2>
+          <div className="mt-[11px] grid grid-cols-4 gap-4 max-lg:grid-cols-2">
+            {FEATURED_PROJECTS.map((p) => (
+              <button
+                key={p.title}
+                type="button"
+                onClick={() => toast(`打开「${p.title}」（演示）`)}
+                className="relative rounded-[16px] border border-[rgba(45,66,107,0.06)] text-left transition-transform hover:-translate-y-0.5"
+              >
+                <div className="relative flex flex-col gap-1 overflow-hidden rounded-[16px] border border-white p-[5px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.07)]">
+                  <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-[rgba(255,255,255,0.45)] to-white backdrop-blur-[12px] shadow-[inset_0_1px_2px_0_white]" />
+                  <img src={p.img} alt="" className="relative h-[130px] w-full rounded-[12px] object-cover" />
+                  <div className="relative px-[10px] pb-1.5 pt-1">
+                    <div className="truncate text-[16px] font-semibold leading-[22px] text-[#1C1F23]">{p.title}</div>
+                    <p className="mt-1 truncate text-[12px] leading-[17px] text-[#1C1F23]/35">{p.desc}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
     </motion.div>
   )

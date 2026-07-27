@@ -43,8 +43,8 @@ export default function AvatarLandingPage({
             <div aria-hidden className="absolute right-[8%] top-[30%] h-[140px] w-[170px] rounded-full bg-[#D8EBA5]/70 blur-[48px]" />
             <div aria-hidden className="absolute left-[24%] top-[62%] h-[90px] w-[130px] rounded-full bg-[#BFE8F2]/60 blur-[40px]" />
             <motion.img
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
               src={`${ASSETS}/avatar-hero.png`}
               alt="AI 分身"
@@ -57,8 +57,8 @@ export default function AvatarLandingPage({
           </div>
 
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
             className="mt-2 text-center"
           >
@@ -69,8 +69,8 @@ export default function AvatarLandingPage({
 
         {/* 账号开通卡 */}
         <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: 0.18, ease: 'easeOut' }}
           className="mt-9 rounded-2xl border border-black/5 bg-white/90 p-5 shadow-[0_10px_36px_rgba(0,0,0,0.06)] backdrop-blur-sm"
         >
@@ -101,8 +101,8 @@ export default function AvatarLandingPage({
 
         {/* 应用场景 */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: 0.26, ease: 'easeOut' }}
           className="mt-4 grid grid-cols-2 gap-3"
         >

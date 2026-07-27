@@ -128,9 +128,9 @@ function timeCutoff(range: string): string | null {
   return d.toISOString().slice(0, 10)
 }
 
-/** 灰底工具 chip（时间/体裁/排序/导出共用外观）。 */
+/** 灰底工具 chip（时间/体裁/排序/导出共用外观，统一导航 275-22737）。 */
 const CHIP =
-  'flex h-9 items-center gap-1.5 rounded-lg bg-[#F2F3F5] px-3 text-[13px] text-[#252632]/75 hover:bg-[#EBEDF0]'
+  'flex h-9 items-center gap-2 rounded-lg bg-[#f8f8f8] px-3 text-[14px] font-semibold text-[#1c1f23]/80 hover:bg-[#f0f0f0]'
 
 /** 状态文字筛选：全部｜已发布｜审核中…，竖线分隔（设计稿样式）。 */
 function StatusFilter({
@@ -146,13 +146,13 @@ function StatusFilter({
     <div role="group" aria-label="发布状态" className="flex items-center">
       {options.map((o, i) => (
         <span key={o} className="flex items-center">
-          {i > 0 && <i className="mx-2.5 h-3 w-px bg-black/10" />}
+          {i > 0 && <i className="mx-1 h-3 w-px bg-[#d9d9d9]" />}
           <button
             type="button"
             aria-pressed={value === o}
             onClick={() => onChange(o)}
-            className={`text-[13px] transition-colors ${
-              value === o ? 'font-medium text-[#252632]' : 'text-[#252632]/45 hover:text-[#252632]/75'
+            className={`px-2 py-1.5 text-[14px] leading-5 transition-colors ${
+              value === o ? 'font-semibold text-[#252632]' : 'text-[rgba(37,38,50,0.6)] hover:text-[#252632]/80'
             }`}
           >
             {o}
@@ -387,13 +387,14 @@ export default function ContentPage() {
   }
 
   return (
-    <main className="min-w-0 flex-1 overflow-y-auto bg-[#F5F6F8]">
-      <div className="px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-        <div className="rounded-[20px] bg-white p-6">
-          <h2 className="text-balance text-[18px] font-semibold text-[#252632]">内容管理</h2>
+    <main className="min-w-0 flex-1 overflow-y-auto bg-white">
+      {/* 统一导航 275-22737:页面 8px 内边距,头部 16px,筛选行下描边,卡片列表贴排 */}
+      <div className="p-2">
+        <div className="px-4 pt-4">
+          <h2 className="text-balance pb-3 text-[18px] font-semibold leading-6 text-[#161823]">内容管理</h2>
 
-          {/* 工具栏（设计稿：页签在左，状态/时间/体裁/搜索/导出靠右） */}
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          {/* 筛选行（设计稿：页签在左，状态/时间/体裁/搜索/导出靠右,底部描边） */}
+          <div className="flex flex-wrap items-center gap-4 border-b border-[rgba(45,66,107,0.12)] pb-4">
             <div role="tablist" aria-label="内容类型" className="flex items-center gap-2">
               {([
                 ['作品', `作品（${data ? data.total + WORKSHOP_WORKS.length : '…'}）`],
@@ -407,10 +408,10 @@ export default function ContentPage() {
                   aria-selected={tab === t}
                   aria-controls={`content-panel-${t}`}
                   onClick={() => setTab(t)}
-                  className={`h-9 rounded-lg px-3.5 text-[13px] transition-colors ${
+                  className={`h-9 rounded-[4px] px-3 text-[14px] leading-5 transition-colors ${
                     tab === t
-                      ? 'bg-[#F2F3F5] font-medium text-[#252632]'
-                      : 'text-[#252632]/45 hover:bg-black/[0.03] hover:text-[#252632]/70'
+                      ? 'bg-[rgba(46,50,56,0.09)] font-semibold text-[#1c1f23]'
+                      : 'bg-[#f8f8f8] text-[rgba(37,38,50,0.6)] hover:text-[#252632]/80'
                   }`}
                 >
                   {label}
@@ -418,7 +419,7 @@ export default function ContentPage() {
               ))}
             </div>
 
-            <div className="ml-auto flex flex-wrap items-center gap-3">
+            <div className="ml-auto flex flex-wrap items-center gap-4">
               {tab === '作品' ? (
                 <>
                   <StatusFilter
@@ -427,7 +428,7 @@ export default function ContentPage() {
                     onChange={setStatus}
                   />
                   <label className={`${CHIP} relative`}>
-                    <Calendar size={14} aria-hidden />
+                    <Calendar size={16} aria-hidden />
                     <select
                       aria-label="发布时间"
                       value={timeRange}
@@ -437,30 +438,30 @@ export default function ContentPage() {
                       {TIME_RANGES.map((option) => <option key={option}>{option}</option>)}
                     </select>
                   </label>
-                  <label className={`${CHIP} relative`}>
-                    体裁
+                  <label className="relative flex h-9 items-center gap-3 rounded-lg bg-[rgba(22,24,35,0.05)] px-3">
+                    <span className="text-[13px] text-[rgba(22,24,35,0.6)]">体裁</span>
                     <select
                       aria-label="体裁"
                       value={genre}
                       onChange={(e) => setGenre(e.target.value)}
-                      className="appearance-none bg-transparent pr-4 font-medium text-[#252632] outline-none"
+                      className="appearance-none bg-transparent pr-4 text-[14px] font-semibold text-[#1c1f23] outline-none"
                     >
                       {['全部', '视频', '图文', ...WORKSHOP_GENRES].map((option) => <option key={option}>{option}</option>)}
                     </select>
                     <ChevronDown size={13} aria-hidden className="pointer-events-none absolute right-2.5 text-[#252632]/50" />
                   </label>
-                  <label className="flex h-9 items-center gap-1.5 rounded-lg bg-[#F2F3F5] px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#4E83FD]">
+                  <label className="flex h-9 w-[180px] items-center gap-2 rounded-lg bg-[#f8f8f8] px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#4E83FD]">
                     <span className="sr-only">搜索作品</span>
-                    <Search size={14} aria-hidden className="text-[#252632]/45" />
+                    <Search size={16} aria-hidden className="text-[#252632]/45" />
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="搜索作品"
-                      className="w-28 bg-transparent text-[13px] text-[#252632] outline-none placeholder:text-[#252632]/40"
+                      className="w-full bg-transparent text-[14px] text-[#252632] outline-none placeholder:text-[rgba(37,38,50,0.6)]"
                     />
                   </label>
                   <button type="button" onClick={() => toast('导出成功（演示）')} className={CHIP}>
-                    <Upload size={14} /> 导出数据
+                    <Upload size={16} /> 导出数据
                   </button>
                 </>
               ) : (
@@ -471,7 +472,7 @@ export default function ContentPage() {
                     onChange={setColStatus}
                   />
                   <label className={`${CHIP} relative`}>
-                    <Calendar size={14} aria-hidden />
+                    <Calendar size={16} aria-hidden />
                     <select
                       aria-label="发布时间"
                       value={timeRange}
@@ -485,7 +486,7 @@ export default function ContentPage() {
                     <ArrowUpDown size={14} /> 设置排序
                   </button>
                   <button type="button" onClick={() => toast('导出成功（演示）')} className={CHIP}>
-                    <Upload size={14} /> 导出数据
+                    <Upload size={16} /> 导出数据
                   </button>
                   <button
                     type="button"
@@ -498,8 +499,9 @@ export default function ContentPage() {
               )}
             </div>
           </div>
+        </div>
 
-          {/* 列表 */}
+        {/* 列表 */}
           {tab === '作品合集' ? (
             <div id="content-panel-作品合集" role="tabpanel" aria-labelledby="content-tab-作品合集" className="mt-2">
               {(colStatus === '全部' || colStatus === '已发布' ? collections : []).map((col) => (
@@ -539,7 +541,6 @@ export default function ContentPage() {
               ))}
             </div>
           )}
-        </div>
       </div>
       <DeleteWorkDialog work={pendingDelete} onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />
     </main>

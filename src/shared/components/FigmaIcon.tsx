@@ -1,5 +1,11 @@
-/** Figma wordmark glyph — shared by the home composer and the chat composer. */
-export default function FigmaIcon({ size = 16, className = '' }: { size?: number; className?: string }) {
+/** Figma wordmark glyph shared by every chat composer. */
+export default function FigmaIcon({
+  size = 16,
+  className = '',
+}: {
+  size?: number
+  className?: string
+}) {
   return (
     <svg
       width={size}
