@@ -80,25 +80,121 @@ export const H5_LAYER_META: Record<H5LayerId, { label: string; icon: LucideIcon 
 
 type H5ObjectDisplayKind = 'page' | 'component' | H5ElementKind
 
-const COMPONENT_CHILD_COUNTS: Record<H5LayerId, number> = {
-  hero: 7,
-  countdown: 5,
-  intro: 4,
-  lottery: 18,
-  task: 3,
-  rules: 1,
+type H5ComponentPreviewCrop = {
+  sources: Array<{ src: string; top: number }>
+  sourceWidth: number
+  sourceHeight: number
+  x: number
+  y: number
+  width: number
+  height: number
 }
 
-const IMAGE_DIMENSIONS: Record<string, string> = {
-  'hero.visual': '750 × 600',
-  'hero.statusbar': '750 × 108',
-  'hero.titlebar': '750 × 88',
-  'hero.transition': '750 × 120',
-  'hero.wave': '750 × 180',
-  'countdown.switcher': '734 × 181',
-  'intro.video': '705 × 480',
-  'lottery.upper-image': '750 × 985',
-  'lottery.lower-image': '750 × 985',
+const GAME_SWITCHER_PREVIEW = '/assets/acg-new-year/exact-game-switcher.png'
+const WORK_CARD_PREVIEW_SOURCES = [
+  { src: '/assets/acg-new-year/exact-lower-top.png', top: 0 },
+  { src: '/assets/acg-new-year/exact-lower-bottom.png', top: 985 },
+] as const
+
+const CARD_COMPONENT_PREVIEWS: Record<string, H5ComponentPreviewCrop> = {
+  'countdown.dnf': {
+    sources: [{ src: GAME_SWITCHER_PREVIEW, top: 0 }],
+    sourceWidth: 734,
+    sourceHeight: 181,
+    x: 0,
+    y: 0,
+    width: 232,
+    height: 160,
+  },
+  'countdown.egg-party': {
+    sources: [{ src: GAME_SWITCHER_PREVIEW, top: 0 }],
+    sourceWidth: 734,
+    sourceHeight: 181,
+    x: 244,
+    y: 8,
+    width: 216,
+    height: 144,
+  },
+  'countdown.honor-of-kings': {
+    sources: [{ src: GAME_SWITCHER_PREVIEW, top: 0 }],
+    sourceWidth: 734,
+    sourceHeight: 181,
+    x: 480,
+    y: 8,
+    width: 199,
+    height: 144,
+  },
+  'intro.venue': {
+    sources: [{ src: '/assets/acg-new-year/exact-venue-entry.png', top: 0 }],
+    sourceWidth: 172,
+    sourceHeight: 120,
+    x: 0,
+    y: 0,
+    width: 172,
+    height: 120,
+  },
+  ...Object.fromEntries(
+    [162, 498, 834, 1170, 1506].map((y, index) => [
+      `lottery.card-${index + 1}`,
+      {
+        sources: [...WORK_CARD_PREVIEW_SOURCES],
+        sourceWidth: 750,
+        sourceHeight: 1970,
+        x: 28,
+        y,
+        width: 694,
+        height: 304,
+      },
+    ]),
+  ),
+}
+
+const LAYER_COMPONENT_PREVIEWS: Partial<Record<H5LayerId, H5ComponentPreviewCrop>> = {
+  hero: {
+    sources: [{ src: '/assets/acg-new-year/exact-hero-base.png', top: 0 }],
+    sourceWidth: 750,
+    sourceHeight: 600,
+    x: 0,
+    y: 0,
+    width: 750,
+    height: 600,
+  },
+  countdown: {
+    sources: [{ src: GAME_SWITCHER_PREVIEW, top: 0 }],
+    sourceWidth: 734,
+    sourceHeight: 181,
+    x: 0,
+    y: 0,
+    width: 734,
+    height: 181,
+  },
+  intro: {
+    sources: [{ src: '/assets/acg-new-year/exact-main-video.png', top: 0 }],
+    sourceWidth: 705,
+    sourceHeight: 480,
+    x: 0,
+    y: 0,
+    width: 705,
+    height: 480,
+  },
+  lottery: {
+    sources: [...WORK_CARD_PREVIEW_SOURCES],
+    sourceWidth: 750,
+    sourceHeight: 1970,
+    x: 0,
+    y: 0,
+    width: 750,
+    height: 600,
+  },
+  rules: {
+    sources: [{ src: '/assets/acg-new-year/exact-lower-bottom.png', top: 0 }],
+    sourceWidth: 750,
+    sourceHeight: 985,
+    x: 0,
+    y: 820,
+    width: 750,
+    height: 165,
+  },
 }
 
 export default function H5LayerEditPanel({
@@ -140,6 +236,15 @@ export default function H5LayerEditPanel({
         : null
   const layerMeta = layerId ? H5_LAYER_META[layerId] : null
   const el = selection?.type === 'element' ? selection.el : null
+  const layerComponentPreview =
+    selection?.type === 'layer' ? LAYER_COMPONENT_PREVIEWS[selection.layer] : undefined
+  const cardComponentPreview =
+    el?.kind === 'card' ? CARD_COMPONENT_PREVIEWS[el.id] : undefined
+  const componentPreview = layerComponentPreview
+    ? { label: layerMeta?.label ?? '当前组件', preview: layerComponentPreview }
+    : cardComponentPreview && el
+      ? { label: el.label, preview: cardComponentPreview }
+      : null
   const [historyOpen, setHistoryOpen] = useState(false)
 
   // Breadcrumb: 楼层 / 元素 — falls back to 活动配置 when nothing is picked.
@@ -204,9 +309,20 @@ export default function H5LayerEditPanel({
 
       {/* Body — element editor when an element is picked; else per-layer; else overall */}
       <div className="thin-scroll flex-1 overflow-y-auto px-4 py-4">
-        <ObjectInfoCard selection={selection} layerLabel={layerMeta?.label} />
+        {componentPreview && (
+          <SelectedComponentPreview
+            label={componentPreview.label}
+            preview={componentPreview.preview}
+          />
+        )}
         {canvasNode && onCanvasNodeChange && (
-          <div className="mt-5 border-t border-[var(--divider-soft)] pt-5">
+          <div
+            className={
+              componentPreview
+                ? 'mt-5 border-t border-[var(--divider-soft)] pt-5'
+                : undefined
+            }
+          >
             <CanvasTransformEditor
               node={canvasNode}
               onChange={onCanvasNodeChange}
@@ -217,7 +333,13 @@ export default function H5LayerEditPanel({
             />
           </div>
         )}
-        <div className="mt-5 border-t border-[var(--divider-soft)] pt-5">
+        <div
+          className={
+            componentPreview || (canvasNode && onCanvasNodeChange)
+              ? 'mt-5 border-t border-[var(--divider-soft)] pt-5'
+              : undefined
+          }
+        >
           {el ? (
             <ElementEditor key={el.id} el={el} />
           ) : layerId === null ? (
@@ -281,8 +403,8 @@ function ObjectTypeBadge({ kind }: { kind: H5ObjectDisplayKind }) {
       className: 'bg-fuchsia-50 text-fuchsia-700',
     },
     card: {
-      label: '卡片',
-      className: 'bg-amber-50 text-amber-700',
+      label: '组件',
+      className: 'bg-violet-50 text-violet-700',
     },
     button: {
       label: '按钮',
@@ -302,79 +424,58 @@ function ObjectTypeBadge({ kind }: { kind: H5ObjectDisplayKind }) {
   )
 }
 
-function ObjectInfoCard({
-  selection,
-  layerLabel,
+function SelectedComponentPreview({
+  label,
+  preview,
 }: {
-  selection: H5Selection | null
-  layerLabel?: string
+  label: string
+  preview: H5ComponentPreviewCrop
 }) {
-  const kind = selectionObjectKind(selection)
-  const element = selection?.type === 'element' ? selection.el : null
-  const layer = selection?.type === 'layer' ? selection.layer : element?.layer
-  const name =
-    element?.label ??
-    (selection?.type === 'layer' ? layerLabel ?? '当前组件' : '活动首页')
-  const objectId =
-    element?.id ??
-    (selection?.type === 'layer' ? `${selection.layer}.component` : 'page-1')
-  const extension = element?.value?.match(/\.([a-z0-9]+)(?:\?.*)?$/i)?.[1]?.toUpperCase()
-  const rows: Array<[string, string]> = [
-    ['对象名称', name],
-    ['对象 ID', objectId],
-  ]
-
-  if (kind === 'page') {
-    rows.push(['画布尺寸', '375 × 1551'], ['页面层级', '活动首页'])
-  } else if (kind === 'component' && layer) {
-    rows.push(
-      ['所属页面', '活动首页'],
-      ['子对象', `${COMPONENT_CHILD_COUNTS[layer]} 个`],
-    )
-  } else if (element) {
-    rows.push(['所属组件', H5_LAYER_META[element.layer].label])
-    if (kind === 'image') {
-      rows.push(
-        ['文件格式', extension ?? 'IMAGE'],
-        ['图片尺寸', IMAGE_DIMENSIONS[element.id] ?? '自适应'],
-        ['资源路径', element.value ?? '未绑定'],
-      )
-    } else if (kind === 'card') {
-      rows.push(['对象结构', '复合卡片'], ['交互状态', '可点击'])
-    } else if (kind === 'button') {
-      rows.push(['对象结构', '交互按钮'], ['点击埋点', '已启用'])
-    } else {
-      rows.push(['内容类型', '可编辑文本'], ['排版方式', '跟随组件'])
-    }
-  }
-
   return (
-    <section aria-label="对象信息">
-      <div className="mb-3 flex items-center gap-2">
-        <SectionTitle icon={kind === 'image' ? ImageIcon : Box}>对象信息</SectionTitle>
-        <ObjectTypeBadge kind={kind} />
+    <section aria-label={`${label}组件预览`}>
+      <div className="flex justify-start">
+        <ComponentCropPreview preview={preview} label={label} />
       </div>
-      <dl className="overflow-hidden rounded-lg border border-[var(--divider-soft)]">
-        {rows.map(([label, value], index) => (
-          <div
-            key={label}
-            className={`grid grid-cols-[68px_minmax(0,1fr)] gap-2 px-3 py-2 ${
-              index > 0 ? 'border-t border-[var(--divider-soft)]' : ''
-            }`}
-          >
-            <dt className="text-[10.5px] text-[var(--color-ink)]/40">{label}</dt>
-            <dd
-              className={`min-w-0 text-[11px] text-[var(--color-ink)]/72 ${
-                label === '资源路径' ? 'break-all font-mono text-[9.5px] leading-4' : 'truncate'
-              }`}
-              title={value}
-            >
-              {value}
-            </dd>
-          </div>
-        ))}
-      </dl>
     </section>
+  )
+}
+
+function ComponentCropPreview({
+  preview,
+  label,
+}: {
+  preview: H5ComponentPreviewCrop
+  label: string
+}) {
+  return (
+    <div
+      role="img"
+      aria-label={`${label}预览`}
+      className="relative w-full max-w-[280px] overflow-hidden rounded-xl bg-[var(--fill-subtle)] ring-1 ring-inset ring-[var(--divider-soft)]"
+      style={{ aspectRatio: `${preview.width} / ${preview.height}` }}
+    >
+      <div
+        className="absolute"
+        style={{
+          left: `${(-preview.x / preview.width) * 100}%`,
+          top: `${(-preview.y / preview.height) * 100}%`,
+          width: `${(preview.sourceWidth / preview.width) * 100}%`,
+          height: `${(preview.sourceHeight / preview.height) * 100}%`,
+        }}
+      >
+        {preview.sources.map((source) => (
+          <img
+            key={`${source.src}-${source.top}`}
+            src={source.src}
+            alt=""
+            aria-hidden
+            draggable={false}
+            className="pointer-events-none absolute left-0 w-full max-w-none select-none"
+            style={{ top: `${(source.top / preview.sourceHeight) * 100}%` }}
+          />
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -940,7 +1041,6 @@ function CardElementEditor({ el }: { el: H5ElementSel }) {
   const [radius, setRadius] = useState(12)
   return (
     <div className="space-y-5">
-      <SectionTitle icon={Box}>{el.label}</SectionTitle>
       <Field label={isWorkCard ? '作品标题' : '游戏名称'}>
         <input
           type="text"
