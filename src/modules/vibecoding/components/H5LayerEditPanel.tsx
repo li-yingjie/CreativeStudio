@@ -1041,7 +1041,7 @@ function CardElementEditor({ el }: { el: H5ElementSel }) {
   const [radius, setRadius] = useState(12)
   return (
     <div className="space-y-5">
-      <Field label={isWorkCard ? '作品标题' : '游戏名称'}>
+      <Field label={isWorkCard ? '作品标题' : '入口名称'}>
         <input
           type="text"
           value={title}
