@@ -1308,7 +1308,7 @@ function PlatformSidebar({
                     onChange={setSidebarSearch}
                     onToggle={() => onCollapseSidebar?.()}
                     collapsed={collapsed}
-                    placeholder={variant === 'avatar' ? '搜索分身' : '搜索项目'}
+                    placeholder="搜索"
                     ariaLabel={variant === 'avatar' ? '搜索分身' : '搜索项目'}
                   />
                 </div>

@@ -19,7 +19,7 @@ export default function SideNavSearchToolbar({
   return (
     <div className="flex h-10 w-full shrink-0 items-center justify-center gap-2">
       {!collapsed && (
-        <label className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-full bg-white px-2 text-[#1c1f23]/60 ring-[0.5px] ring-inset ring-[#2d426b]/[0.12] focus-within:ring-1 focus-within:ring-[#2d426b]/25">
+        <label className="flex h-8 min-w-0 flex-1 items-center gap-1.5 rounded-full bg-white px-2 text-[#1c1f23]/60 ring-[0.5px] ring-inset ring-[#2d426b]/[0.12] focus-within:ring-1 focus-within:ring-[#2d426b]/25">
           <Search01LinearIcon size={16} className="shrink-0" />
           <input
             type="search"

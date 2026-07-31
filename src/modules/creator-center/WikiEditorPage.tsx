@@ -347,7 +347,8 @@ export function WikiSideNav({
                 value={navSearch}
                 onChange={setNavSearch}
                 onToggle={onCollapse ?? (() => {})}
-                placeholder="搜索百科内容"
+                placeholder="搜索"
+                ariaLabel="搜索百科内容"
                 collapsed
               />
             </div>
@@ -433,7 +434,8 @@ export function WikiSideNav({
                     value={navSearch}
                     onChange={setNavSearch}
                     onToggle={onCollapse ?? (() => {})}
-                    placeholder="搜索百科内容"
+                    placeholder="搜索"
+                    ariaLabel="搜索百科内容"
                   />
                 ) : navVersion === 2 ? (
                   <UnifiedToolbar

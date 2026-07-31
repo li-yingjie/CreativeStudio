@@ -485,7 +485,8 @@ export function SuibianSideNav() {
                 value={navSearch}
                 onChange={setNavSearch}
                 onToggle={() => setSidebarCollapsed('suibian', false)}
-                placeholder="搜索随变内容"
+                placeholder="搜索"
+                ariaLabel="搜索随变内容"
                 collapsed
               />
             </div>
@@ -573,7 +574,8 @@ export function SuibianSideNav() {
                   value={navSearch}
                   onChange={setNavSearch}
                   onToggle={() => setSidebarCollapsed('suibian', true)}
-                  placeholder="搜索随变内容"
+                  placeholder="搜索"
+                  ariaLabel="搜索随变内容"
                 />
               ) : navVersion === 2 ? (
                 <UnifiedToolbar
