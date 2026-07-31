@@ -248,7 +248,7 @@ function webAppView(tree: FileNode[]): FileNode[] {
     { name: DATA_CONFIG_LABEL, type: 'file' as const },
     { name: ASSET_LIBRARY_LABEL, type: 'file' as const },
     { name: '项目文件', type: 'dir' as const, children: tree },
-  ].filter((c): c is FileNode => c != null)
+  ]
 }
 
 /** 游戏 (web-game): 素材库 / 基础信息（含文档）/

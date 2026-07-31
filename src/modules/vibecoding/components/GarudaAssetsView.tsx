@@ -224,12 +224,13 @@ export default function GarudaAssetsView({
     Array.from(files).forEach((file, index) => {
       const reader = new FileReader()
       reader.onload = () => {
-        if (typeof reader.result !== 'string') return
+        const src = reader.result
+        if (typeof src !== 'string') return
         setUploadedAssets((current) => [
           ...current,
           {
             id: `uploaded-${batchId}-${index}`,
-            src: reader.result,
+            src,
             label: file.name,
           },
         ])
