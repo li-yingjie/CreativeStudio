@@ -130,7 +130,7 @@ export default function TopNav({
 const menuRow =
   'flex w-full items-center gap-2 rounded-md px-2 py-2 text-[14px] leading-5 text-[#1c1f23] transition-colors hover:bg-[rgba(83,96,143,0.07)]'
 
-const AVATAR_NAV_VERSIONS = [1, 2, 3, 4, 5, 6] as const satisfies readonly NavVersion[]
+const AVATAR_NAV_VERSIONS = [1, 2, 3, 4, 5, 6, 7] as const satisfies readonly NavVersion[]
 const NAV_VERSION_NAMES: Record<NavVersion, string> = {
   1: 'L 型',
   2: '顶部工具栏',
@@ -138,21 +138,37 @@ const NAV_VERSION_NAMES: Record<NavVersion, string> = {
   4: '增加 Header',
   5: '底部工具栏',
   6: '搜索工具栏',
+  7: '独立工坊',
 }
 
-/** 头像下拉：账号菜单 + 导航方案。 */
-function AvatarMenu({ compact = false }: { compact?: boolean }) {
+/** 头像下拉：账号菜单 + 导航方案。带 label 时整行都作为触发区。 */
+export function AvatarMenu({
+  compact = false,
+  label,
+}: {
+  compact?: boolean
+  label?: string
+}) {
   const navVersion = useNavVersion((s) => s.version)
   const selectNavVersion = useNavVersion((s) => s.setVersion)
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <button type="button" aria-label="打开账号菜单" className="rounded-full">
+        <button
+          type="button"
+          aria-label="打开账号菜单"
+          className={
+            label
+              ? 'flex h-8 w-full items-center gap-2 rounded-md px-1 text-left text-[12px] font-medium text-[#34373D] hover:bg-black/[0.03]'
+              : 'rounded-full'
+          }
+        >
           <img
             src={CREATOR_PROFILE.avatar}
             alt=""
             className={`${compact ? 'size-6' : 'size-7'} rounded-full object-cover ring-1 ring-black/10 hover:ring-black/25`}
           />
+          {label && <span className="min-w-0 truncate">{label}</span>}
         </button>
       </Popover.Trigger>
       <Popover.Portal>

@@ -7,8 +7,9 @@ import { createJSONStorage, persist } from 'zustand/middleware'
  *  3 = 原始全宽顶栏；
  *  4 = 沿用方案 2，但顶部 tab 恢复 icon + 文字，产品侧栏头用「开启创作」；
  *  5 = 沿用方案 3，底部使用 icon-only 收起与项目设置入口；
- *  6 = 沿用方案 2，但各产品侧栏顶部统一为搜索工具栏（首页除外）。 */
-export type NavVersion = 1 | 2 | 3 | 4 | 5 | 6
+ *  6 = 沿用方案 2，但各产品侧栏顶部统一为搜索工具栏（首页除外）；
+ *  7 = 独立 AI 工坊，无全局顶栏，使用工坊原生项目导航。 */
+export type NavVersion = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
 export function usesSchemeFourLayout(version: NavVersion) {
   return version === 4
@@ -16,6 +17,10 @@ export function usesSchemeFourLayout(version: NavVersion) {
 
 export function usesSearchToolbarLayout(version: NavVersion) {
   return version === 6
+}
+
+export function usesStandaloneWorkshopLayout(version: NavVersion) {
+  return version === 7
 }
 
 export function usesProductHeaderLayout(version: NavVersion) {

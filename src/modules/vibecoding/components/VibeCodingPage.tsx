@@ -1,4 +1,12 @@
-import { Fragment, useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
+import {
+  Fragment,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Tooltip } from './Tooltip'
@@ -61,6 +69,7 @@ import ComposerLocalFileButton from '@/shared/components/ComposerLocalFileButton
 import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
 import SideNavSearchToolbar from '@/shared/components/SideNavSearchToolbar'
 import UnifiedToolbar from '@/modules/creator-center/UnifiedToolbar'
+import { AvatarMenu } from '@/modules/creator-center/TopNav'
 import SideNavPanelStateIcon from '@/shared/components/SideNavPanelStateIcon'
 import SideNavIconFooterActions, {
   SideNavCollapseFooterButton,
@@ -71,6 +80,7 @@ import {
   usesProductHeaderLayout,
   usesSchemeFourLayout,
   usesSearchToolbarLayout,
+  usesStandaloneWorkshopLayout,
 } from '@/shared/storage/nav-version'
 import { useProductSideNav, type ProductSideNavId } from '@/shared/storage/product-side-nav'
 import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
@@ -981,8 +991,8 @@ const SPACE_SECTIONS: { title: string; color: string; tiles: SpaceTile[] }[] = [
 ]
 
 /** Popover shown when the 个人空间 label is clicked — a dense tile grid
- *  grouped by platform/ops/governance sections. Positioned fixed so it
- *  escapes the 230px sidebar width. Selecting a tile routes the label
+ *  grouped by platform/ops/governance sections. Portaled so it escapes
+ *  the clipped sidebar wrapper. Selecting a tile routes the label
  *  back to the sidebar button via `onSelect`. */
 function SpaceMenuPopover({
   pos,
@@ -1000,12 +1010,23 @@ function SpaceMenuPopover({
     const onDown = (e: PointerEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose()
     }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    ref.current?.focus({ preventScroll: true })
     document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
   }, [onClose])
-  return (
+  return createPortal(
     <div
       ref={ref}
+      role="dialog"
+      aria-label="选择个人空间"
+      tabIndex={-1}
       style={{
         position: 'fixed',
         top: pos.top,
@@ -1047,7 +1068,8 @@ function SpaceMenuPopover({
           </div>
         </div>
       ))}
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -1059,6 +1081,12 @@ const WORKSHOP_SCHEME_TWO_TOOLBAR_ACTIONS = [
   'create',
   'settings',
   'search',
+] as const
+const STANDALONE_WORKSHOP_WIDTH = 280
+const STANDALONE_WORKSHOP_FAVORITES = [
+  { label: '天气查询', Icon: Terminal },
+  { label: '热点事件研判报道智能体', Icon: Zap },
+  { label: '视频创作cot生产', Icon: Video },
 ] as const
 
 function cleanTreePath(path: string) {
@@ -1173,6 +1201,8 @@ function PlatformSidebar({
   const [renamingProject, setRenamingProject] = useState<string | null>(null)
   const navVersion = useNavVersion((state) => state.version)
   const searchToolbarLayout = usesSearchToolbarLayout(navVersion)
+  const standaloneWorkshopLayout =
+    variant === 'workshop' && usesStandaloneWorkshopLayout(navVersion)
   /* 分身变体「我的AI分身」分组的折叠态。 */
   const [avatarSectionCollapsed, setAvatarSectionCollapsed] = useState(false)
   const [sidebarSearch, setSidebarSearch] = useState('')
@@ -1190,6 +1220,11 @@ function PlatformSidebar({
   const projName = (n: string) => projectDisplayNames[n]?.trim() || n
   const [spaceMenuPos, setSpaceMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [activeSpace, setActiveSpace] = useState('个人空间')
+  const spaceMenuTriggerRef = useRef<HTMLButtonElement>(null)
+  const closeSpaceMenu = useCallback(() => {
+    setSpaceMenuPos(null)
+    spaceMenuTriggerRef.current?.focus({ preventScroll: true })
+  }, [])
   // The project list is master/detail. The list shows every project's
   // plain-language 产物视图; drilling into a project (`drilledProject`)
   // swaps the panel for that one project's full file-view directory,
@@ -1256,7 +1291,11 @@ function PlatformSidebar({
         { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
       ]
     : [
-        { key: 'Skills', label: 'Skills', Icon: FolderCodeLinearIcon },
+        {
+          key: 'Skills',
+          label: standaloneWorkshopLayout ? '技能库' : 'Skills',
+          Icon: FolderCodeLinearIcon,
+        },
         { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
         // 运营数据已并入创作者中心（顶栏「首页」的数据看板），侧栏不再入口
         { key: '项目库', label: '项目库', Icon: FolderLibraryLinearIcon },
@@ -1267,6 +1306,9 @@ function PlatformSidebar({
           item.label.toLocaleLowerCase('zh-CN').includes(normalizedSidebarSearch),
         )
       : navItems
+  const sideNavItems = standaloneWorkshopLayout
+    ? visibleNavItems.filter((item) => item.key !== '项目库')
+    : visibleNavItems
 
   return (
     <SideNav
@@ -1276,14 +1318,15 @@ function PlatformSidebar({
       // 不再覆写 --sidenav-* —— 之前覆写成主题变量，导致未选中项比首页
       // 淡一档（60% vs 80%），是「同一个组件却看着不一样」的根源。
       chrome={navVersion === 1 ? 'plain' : 'panel'}
-      showDivider={navVersion !== 1}
+      showDivider={navVersion !== 1 && !standaloneWorkshopLayout}
       flushHeader={
         usesSchemeFourLayout(navVersion) ||
         searchToolbarLayout ||
+        standaloneWorkshopLayout ||
         navVersion === 1
       }
       collapsed={collapsed}
-      items={visibleNavItems}
+      items={sideNavItems}
       activeKey={activeNav}
       onSelect={(key) => {
         if (key === '资源库') onOpenResourceLibrary()
@@ -1291,10 +1334,80 @@ function PlatformSidebar({
         else if (key === '项目库') onOpenCreativeSquare()
         else onOpenPlaceholder?.(key)
       }}
+      style={
+        standaloneWorkshopLayout
+          ? ({
+              background: '#F2F2F7',
+              '--sn-top': '0px',
+              '--sn-px': '12px',
+              '--sn-rh': '28px',
+              '--sn-rr': '6px',
+              '--sn-rpx': '8px',
+              '--sn-rgap': '8px',
+              '--sn-rsp': '0px',
+              '--sn-rfs': '13px',
+            } as CSSProperties)
+          : undefined
+      }
       header={
         /* + 新建项目 — 白底按钮（与首页「发布作品」的黑底区分开）。
            分身变体没有 AI 创作入口；方案 2 / 4 / 6 显示各自顶部工具栏。 */
-        usesProductHeaderLayout(navVersion) || variant !== 'avatar' ? (
+        standaloneWorkshopLayout ? (
+          <div className="px-3 pb-3 pt-6">
+            <div className="mb-2 flex h-6 items-center gap-2 px-1">
+              <img
+                src="/assets/logo2.svg"
+                alt=""
+                aria-hidden
+                className="size-[18px] shrink-0 object-contain"
+              />
+              <span className="truncate text-[13px] font-semibold text-[#161823]">
+                抖音AI工坊
+              </span>
+              <button
+                ref={spaceMenuTriggerRef}
+                type="button"
+                aria-haspopup="dialog"
+                aria-expanded={spaceMenuPos !== null}
+                onClick={(event) => {
+                  const rect = event.currentTarget.getBoundingClientRect()
+                  setSpaceMenuPos((current) =>
+                    current
+                      ? null
+                      : {
+                          top: rect.bottom + 8,
+                          left: Math.min(
+                            Math.max(12, rect.left),
+                            Math.max(12, window.innerWidth - 636),
+                          ),
+                        },
+                  )
+                }}
+                className="ml-auto flex h-6 shrink-0 items-center rounded-md px-1.5 text-[11px] font-medium text-[#565A60] hover:bg-black/[0.04] hover:text-[#161823]"
+              >
+                {activeSpace}
+              </button>
+              <button
+                type="button"
+                onClick={() => onCollapseSidebar?.()}
+                aria-label="收起导航"
+                title="收起导航"
+                className="flex size-6 shrink-0 items-center justify-center rounded-md text-[#565A60] hover:bg-black/[0.04] hover:text-[#161823]"
+              >
+                <SideNavPanelStateIcon className="size-4 shrink-0" />
+              </button>
+            </div>
+            <SideNavActionButton
+              aria-label="新建项目"
+              onClick={onNewProject}
+              className="ring-inset"
+              style={{ height: 32, borderRadius: 6, fontWeight: 500 }}
+            >
+              <Plus size={15} strokeWidth={1.8} className="shrink-0" />
+              新建项目
+            </SideNavActionButton>
+          </div>
+        ) : usesProductHeaderLayout(navVersion) || variant !== 'avatar' ? (
           <div
             className={`px-[var(--sn-px)] ${
               usesProductHeaderLayout(navVersion) && variant === 'avatar' ? '' : 'pb-3'
@@ -1369,7 +1482,11 @@ function PlatformSidebar({
       }
       footer={
         /* 方案 1 / 4 工坊底部与百科「我的词条」保持同一位置和行样式。 */
-        navVersion === 3 ? (
+        standaloneWorkshopLayout ? (
+          <div className="px-3 pb-2 pt-1">
+            <AvatarMenu compact label="JJwwx2333" />
+          </div>
+        ) : navVersion === 3 ? (
           <div className="px-[var(--sn-px)] pb-3">
             <SideNavCollapseFooterButton
               collapsed={collapsed}
@@ -1400,6 +1517,54 @@ function PlatformSidebar({
     >
       {!collapsed && (
         <>
+      {standaloneWorkshopLayout && drilledProject === null && (
+        <>
+          <div className="mx-3 mt-2 border-t border-black/[0.06] pt-2">
+            <button
+              type="button"
+              aria-current={activeNav === '项目库' ? 'page' : undefined}
+              onClick={onOpenCreativeSquare}
+              className={`flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium ${
+                activeNav === '项目库'
+                  ? 'bg-[var(--sidenav-active)] text-[#1C1F23]'
+                  : 'text-[#34373D] hover:bg-black/[0.03]'
+              }`}
+            >
+              <FolderLibraryLinearIcon className="size-4 shrink-0" />
+              <span>项目库</span>
+            </button>
+          </div>
+          <section
+            aria-labelledby="standalone-workshop-favorites"
+            className="mx-3 border-b border-black/[0.06] pb-2 pt-1"
+          >
+            <h3
+              id="standalone-workshop-favorites"
+              className="px-2 py-1 text-[11px] font-normal text-[#878B99]"
+            >
+              我的收藏
+            </h3>
+            <div>
+              {STANDALONE_WORKSHOP_FAVORITES.map(({ label, Icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-current={activeNav === label ? 'page' : undefined}
+                  onClick={() => onOpenPlaceholder?.(label)}
+                  className={`flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-[12px] ${
+                    activeNav === label
+                      ? 'bg-[var(--sidenav-active)] text-[#1C1F23]'
+                      : 'text-[#34373D] hover:bg-black/[0.03]'
+                  }`}
+                >
+                  <Icon size={14} strokeWidth={1.7} className="shrink-0" />
+                  <span className="truncate">{label}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
       {drilledProject !== null ? (
         /* ── Detail: one project's full file-view directory ── */
         <>
@@ -1478,7 +1643,11 @@ function PlatformSidebar({
               </button>
             </div>
           ) : (
-          <div className="mt-0 flex shrink-0 items-center justify-between px-5 py-1.5">
+          <div
+            className={`mt-0 flex shrink-0 items-center justify-between py-1.5 ${
+              standaloneWorkshopLayout ? 'px-4' : 'px-5'
+            }`}
+          >
             <span className="text-[12px] text-[var(--color-ink)]/55">项目列表</span>
             {!searchToolbarLayout && (
               <div className="flex items-center gap-1 text-[var(--color-ink)]/40">
@@ -1818,7 +1987,7 @@ function PlatformSidebar({
           pos={spaceMenuPos}
           active={activeSpace}
           onSelect={setActiveSpace}
-          onClose={() => setSpaceMenuPos(null)}
+          onClose={closeSpaceMenu}
         />
       )}
         </>
@@ -1844,6 +2013,12 @@ export default function VibeCodingPage({
   onCanvasModeChange?: (open: boolean) => void
 }) {
   const isAvatarStudio = variant === 'avatar'
+  const navVersion = useNavVersion((state) => state.version)
+  const standaloneWorkshopLayout =
+    variant === 'workshop' && usesStandaloneWorkshopLayout(navVersion)
+  const initialResourceLibraryFromQuery =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('page') === 'resources'
   // Standalone build — no router; the top-left back button is a no-op.
   const handleBack = useCallback(() => {
     /* intentionally empty in standalone */
@@ -2079,7 +2254,9 @@ export default function VibeCodingPage({
    * Submitting returns to the normal workspace with the prompt routed
    * through sendChat. Closes when the user activates a project via
    * sidebar click. */
-  const [platformHomeOpen, setPlatformHomeOpen] = useState(isAvatarStudio)
+  const [platformHomeOpen, setPlatformHomeOpen] = useState(
+    isAvatarStudio || standaloneWorkshopLayout,
+  )
   const [homeDraft, setHomeDraft] = useState('')
   /* 第五人格 needs-collection mock — only surfaces when the user sends a
    * message containing 第五人格/小程序. Default off so the chat starts in
@@ -2205,7 +2382,6 @@ export default function VibeCodingPage({
   /* Platform-only: sidebar + chat widths are both user-draggable. Schemes
    * 2 / 3 / 6 retain the shared icon rail when collapsed; the other schemes
    * keep the legacy fully-hidden layout. */
-  const navVersion = useNavVersion((state) => state.version)
   const sideNavProductId: ProductSideNavId =
     variant === 'avatar' ? 'ai-avatar' : 'workshop'
   const sidebarCollapsed = useProductSideNav(
@@ -2227,6 +2403,9 @@ export default function VibeCodingPage({
     width: platformSidebarWidth,
     setWidth: setPlatformSidebarWidth,
   } = useResizableSideNavWidth()
+  const effectivePlatformSidebarWidth = standaloneWorkshopLayout
+    ? STANDALONE_WORKSHOP_WIDTH
+    : platformSidebarWidth
   const sidebarRailCollapsed =
     sidebarCollapsed &&
     (navVersion === 2 || navVersion === 3 || navVersion === 6)
@@ -2236,7 +2415,7 @@ export default function VibeCodingPage({
     ? sidebarRailCollapsed
       ? configuredCollapsedSidebarWidth
       : fullyHiddenSidebarWidth
-    : platformSidebarWidth
+    : effectivePlatformSidebarWidth
   useEffect(() => {
     if (sidebarFullyHidden) sidebarExpandButtonRef.current?.focus()
   }, [sidebarFullyHidden])
@@ -3906,17 +4085,23 @@ export default function VibeCodingPage({
   // Read the deep-link query at mount so the first paint already shows
   // the resource library — avoids the home-then-flash-to-library
   // hiccup that an effect-based hydration would produce.
-  const initialFromQuery =
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('page') === 'resources'
   const [platformResourceLibraryOpen, setPlatformResourceLibraryOpen] =
-    useState(initialFromQuery)
+    useState(initialResourceLibraryFromQuery && !standaloneWorkshopLayout)
   const [platformSkillsOpen, setPlatformSkillsOpen] = useState(false)
   const [platformCreativeSquareOpen, setPlatformCreativeSquareOpen] =
     useState(false)
   const [platformDataOpsOpen, setPlatformDataOpsOpen] = useState(false)
   /** 分身变体导航里的建设中页面（评测库）— 存 label。 */
   const [platformPlaceholderPage, setPlatformPlaceholderPage] = useState<string | null>(null)
+  useEffect(() => {
+    if (!standaloneWorkshopLayout) return
+    setPlatformResourceLibraryOpen(false)
+    setPlatformSkillsOpen(false)
+    setPlatformCreativeSquareOpen(false)
+    setPlatformDataOpsOpen(false)
+    setPlatformPlaceholderPage(null)
+    setPlatformHomeOpen(true)
+  }, [standaloneWorkshopLayout])
   /** Any non-workspace platform-level overlay is open. Used to hide the
    *  chat aside, header, and adjust body margins / padding. */
   const platformSecondaryPageOpen =
@@ -5364,7 +5549,7 @@ export default function VibeCodingPage({
                 ? 0
                 : sidebarRailCollapsed
                   ? configuredCollapsedSidebarWidth
-                  : platformSidebarWidth,
+                  : effectivePlatformSidebarWidth,
             pointerEvents: projectSidebarHidden ? 'none' : 'auto',
           }}
           aria-hidden={projectSidebarHidden}
@@ -5378,7 +5563,7 @@ export default function VibeCodingPage({
             style={{
               width: sidebarRailCollapsed
                 ? configuredCollapsedSidebarWidth
-                : platformSidebarWidth,
+                : effectivePlatformSidebarWidth,
             }}
           >
           <PlatformSidebar
@@ -5445,10 +5630,13 @@ export default function VibeCodingPage({
           </div>
         </motion.div>
       )}
-      {isPlatform && !immersiveCanvasModeOpen && !sidebarCollapsed && (
+      {isPlatform &&
+        !immersiveCanvasModeOpen &&
+        !sidebarCollapsed &&
+        !standaloneWorkshopLayout && (
         <div
           className="pointer-events-none absolute inset-y-0 z-50 w-0"
-          style={{ left: platformSidebarWidth }}
+          style={{ left: effectivePlatformSidebarWidth }}
         >
           <SideNavResizeHandle
             value={platformSidebarWidth}

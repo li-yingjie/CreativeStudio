@@ -3,7 +3,10 @@ import { motion, useReducedMotion } from 'framer-motion'
 import ErrorBoundary from '@/shared/components/ErrorBoundary'
 import SideNavPanelStateIcon from '@/shared/components/SideNavPanelStateIcon'
 import { useSideNavConfig } from '@/shared/components/side-nav-config'
-import { useNavVersion } from '@/shared/storage/nav-version'
+import {
+  useNavVersion,
+  usesStandaloneWorkshopLayout,
+} from '@/shared/storage/nav-version'
 import { useProductSideNav } from '@/shared/storage/product-side-nav'
 import CreatorCenterHome from './CreatorCenterHome'
 import TopNav from './TopNav'
@@ -183,11 +186,14 @@ function LShapedContentCorner({ left }: { left: number }) {
 /** 创作者中心外壳 — 顶部菜单切换各产品；AI 工坊是其中之一，
  *  首次进入后保持挂载，以产品层交叉淡化，切走再切回不丢工作状态。 */
 export default function CreatorCenterShell() {
-  const [active, setActive] = useState<ProductId>('home')
-  const reduceMotion = useReducedMotion() ?? false
-  const [workshopMounted, setWorkshopMounted] = useState(false)
-  const [workshopCanvasMode, setWorkshopCanvasMode] = useState(false)
   const navVersion = useNavVersion((s) => s.version)
+  const standaloneWorkshop = usesStandaloneWorkshopLayout(navVersion)
+  const [active, setActive] = useState<ProductId>(() =>
+    standaloneWorkshop ? 'workshop' : 'home',
+  )
+  const reduceMotion = useReducedMotion() ?? false
+  const [workshopMounted, setWorkshopMounted] = useState(standaloneWorkshop)
+  const [workshopCanvasMode, setWorkshopCanvasMode] = useState(false)
   const configuredSideNavWidth = useSideNavConfig((state) => state.config.width)
   const configuredCollapsedWidth = useSideNavConfig((state) => state.config.collapsedWidth)
   const activeSideNavCollapsed = useProductSideNav((state) => state.collapsed[active])
@@ -213,18 +219,25 @@ export default function CreatorCenterShell() {
   }
   const workshopImmersive =
     active === 'workshop' && workshopCanvasMode
+  const topNavHidden = workshopImmersive || standaloneWorkshop
+
+  useEffect(() => {
+    if (!standaloneWorkshop) return
+    setWorkshopMounted(true)
+    setActive('workshop')
+  }, [standaloneWorkshop])
 
   return (
     <div
       data-nav-version={navVersion}
       className="flex h-dvh flex-col"
       style={{
-        '--cc-top': workshopImmersive ? '0px' : NAV_H,
+        '--cc-top': topNavHidden ? '0px' : NAV_H,
         '--l-shaped-background-image': L_SHAPED_BACKGROUND,
         backgroundImage: navVersion === 1 ? L_SHAPED_BACKGROUND : undefined,
       } as React.CSSProperties}
     >
-      {!workshopImmersive && (
+      {!topNavHidden && (
         navVersion === 1 ? (
           <TopNav
             active={active}
