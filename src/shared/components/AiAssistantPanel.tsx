@@ -5,7 +5,6 @@ import {
   ChevronDown,
   ChevronsRight,
   FolderCode,
-  Paperclip,
 } from '@/shared/icons'
 import type { ChatMessage } from '@/shared/api/chat'
 import {
@@ -14,9 +13,10 @@ import {
   type ProductIntentTarget,
 } from '@/shared/api/product-intent'
 import Logo2Lottie from './Logo2Lottie'
-import FigmaIcon from './FigmaIcon'
+import { CHAT_COMPOSER_HEIGHT } from './ChatComposer'
 import { LiveAiReply } from './LiveAiReply'
 import { ChatEmptyState } from './ChatEmptyState'
+import ComposerLocalFileButton from './ComposerLocalFileButton'
 
 /** 一个页面/Tab 对应的助手语境：切换 context 即切换建议与对话线程。 */
 export interface AiAssistantContext {
@@ -50,7 +50,7 @@ const FALLBACK_REPLY = '这个问题我需要结合更多账号数据来分析�
 
 /** 系统级 AI 助手面板 — 与 AI 工坊聊天栏同一套视觉件：
  *  ChatEmptyState 空态、同款消息气泡、同款 composer 卡片（圆角 24 白卡 +
- *  顶部彩虹光晕 + contentEditable 输入 + 扩展/附件/Figma/Auto/发送按钮）。
+ *  顶部彩虹光晕 + contentEditable 输入 + 扩展/Auto/发送按钮）。
  *  面板通过 `.light-scope` 复用全局浅色变量（与创作者中心一致），不随
  *  暗色主题翻转。对话线程按 context.key 隔离，切换页面 Tab 会带出各自
  *  的建议和历史。 */
@@ -341,7 +341,7 @@ export default function AiAssistantPanel({
 
       {/* ── 对话中保留建议 chips（同工坊空态 chip 样式），随 Tab 切换 ── */}
       {msgs.length > 0 && (
-        <div className="flex shrink-0 flex-wrap gap-1.5 px-5 pb-2">
+        <div className="flex shrink-0 flex-col items-center gap-1.5 px-5 pb-2">
           {context.suggestions.slice(0, 2).map((s) => (
             <button
               key={s}
@@ -356,9 +356,12 @@ export default function AiAssistantPanel({
       )}
 
       {/* ── Composer — 与工坊同款：圆角 24 白卡 + 顶部彩虹光晕 +
-           contentEditable 输入 + 扩展/附件/Figma + Auto/发送。 ── */}
+           contentEditable 输入 + 扩展 + Auto/发送。 ── */}
       <div className="mx-5 mb-2 flex-shrink-0">
-        <div className="relative flex flex-col gap-4 overflow-hidden rounded-[24px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]">
+        <div
+          style={{ height: CHAT_COMPOSER_HEIGHT }}
+          className="relative flex flex-col gap-4 overflow-hidden rounded-[24px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]"
+        >
           {/* Top rainbow-tint blur decoration */}
           <div
             aria-hidden
@@ -369,8 +372,8 @@ export default function AiAssistantPanel({
             }}
           />
 
-          {/* Input area — default 32px tall, grows with content. */}
-          <div className="relative flex min-h-[32px] items-center pl-2">
+          {/* Input area — 卡片定高 114px，内容超出后内部滚动。 */}
+          <div className="relative min-h-0 flex-1 pl-2">
             <div
               ref={inputRef}
               contentEditable="plaintext-only"
@@ -385,33 +388,20 @@ export default function AiAssistantPanel({
                   send((e.currentTarget as HTMLDivElement).innerText)
                 }
               }}
-              className="chat-editable thin-scroll block max-h-[160px] min-h-0 w-full overflow-y-auto bg-transparent text-[14px] leading-[20px] text-[var(--color-ink)] outline-none"
+              className="chat-editable thin-scroll block h-full w-full overflow-y-auto bg-transparent text-[14px] leading-[20px] text-[var(--color-ink)] outline-none"
             />
           </div>
 
           {/* Action row */}
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-1.5">
+              <ComposerLocalFileButton className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]" />
               <button
                 type="button"
                 className="flex h-8 items-center gap-1 rounded-full border border-[var(--divider)] px-3 text-[13px] font-medium text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
               >
                 <FolderCode size={14} strokeWidth={1.8} />
                 扩展
-              </button>
-              <button
-                type="button"
-                aria-label="附件"
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                <Paperclip size={14} strokeWidth={1.8} />
-              </button>
-              <button
-                type="button"
-                aria-label="Figma"
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                <FigmaIcon size={14} />
               </button>
             </div>
             <div className="flex items-center gap-1.5">

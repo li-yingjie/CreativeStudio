@@ -1,7 +1,9 @@
 import { motion, useReducedMotion } from 'framer-motion'
+import type { ReactNode } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { toast } from 'sonner'
 import { Video } from '@/shared/icons'
+import { useNavVersion, type NavVersion } from '@/shared/storage/nav-version'
 import AccountSwitcherPanel from './AccountSwitcher'
 import FigmaGlyph from './FigmaGlyph'
 import MaskIcon from './MaskIcon'
@@ -9,26 +11,60 @@ import { useLiveMgmt } from './live-store'
 import { CREATOR_PROFILE, PRODUCTS, STARLIGHT, type ProductId } from './data'
 
 /** 创作者中心顶栏 — 左 logo、中间产品切换、右侧星光余额 + 头像。
- *  常驻所有产品页之上（包括 AI 工坊）。图标为 public/icons 下的 SVG 素材。 */
+ *  常驻所有产品页之上（包括 AI 工坊），产品入口统一使用 icon + 文字。
+ *  方案 3 由外壳把品牌 logo 放进贯通左栏。 */
 
 export default function TopNav({
   active,
   onSelect,
+  showLogo = true,
+  fused = false,
+  leftSlot,
 }: {
   active: ProductId
   onSelect: (id: ProductId) => void
+  showLogo?: boolean
+  /** 方案 3：与左上品牌区、产品侧栏共用同一导航底板。 */
+  fused?: boolean
+  /** 方案 3 全宽三段顶栏的左侧品牌区。 */
+  leftSlot?: ReactNode
 }) {
   const reduceMotion = useReducedMotion()
+  const centeredNavClass = showLogo
+    ? 'md:absolute md:left-1/2 md:ml-0 md:-translate-x-1/2 md:gap-1 md:overflow-visible'
+    : 'lg:absolute lg:left-1/2 lg:ml-0 lg:-translate-x-1/2 lg:gap-1 lg:overflow-visible'
 
   return (
-    <header className="relative z-[70] flex h-12 shrink-0 items-center border-b border-black/5 bg-white px-3 sm:px-4 lg:px-6">
+    <header
+      data-fused-nav={fused || undefined}
+      className={`relative z-[70] flex h-12 shrink-0 items-center ${
+        fused
+          ? 'gap-8 bg-transparent px-4 backdrop-blur-[22px]'
+          : 'border-b border-black/5 bg-white px-3 sm:px-4 lg:px-6'
+      }`}
+    >
+      {fused && (
+        <div className="flex min-w-0 flex-1 items-center overflow-hidden">
+          {leftSlot}
+        </div>
+      )}
+
       {/* logo */}
-      <button type="button" aria-label="返回创作者中心首页" onClick={() => onSelect('home')} className="flex shrink-0 items-center">
-        <img src="/icons/logo.svg" alt="" className="h-7 lg:h-8" />
-      </button>
+      {showLogo && (
+        <button type="button" aria-label="返回创作者中心首页" onClick={() => onSelect('home')} className="flex shrink-0 items-center">
+          <img src="/logo.png" alt="" className="h-6 w-auto" />
+        </button>
+      )}
 
       {/* 窄屏在两侧内容之间横向滚动，避免绝对居中菜单与账号区重叠。 */}
-      <nav aria-label="产品导航" className="ml-2 flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:absolute md:left-1/2 md:ml-0 md:-translate-x-1/2 md:gap-1 md:overflow-visible">
+      <nav
+        aria-label="产品导航"
+        className={`flex min-w-0 items-center overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          fused
+            ? 'shrink-0 gap-0.5 overflow-visible md:gap-1'
+            : `${showLogo ? 'ml-2' : ''} flex-1 gap-0.5 ${centeredNavClass}`
+        }`}
+      >
         {PRODUCTS.map((p) => {
           const isActive = p.id === active
           return (
@@ -67,18 +103,26 @@ export default function TopNav({
         })}
       </nav>
 
-      <div className="ml-1.5 flex shrink-0 items-center gap-1.5 sm:ml-auto sm:gap-3">
+      <div
+        className={
+          fused
+            ? 'flex min-w-0 flex-1 items-center justify-end gap-3'
+            : 'ml-1.5 flex shrink-0 items-center gap-1.5 sm:ml-auto sm:gap-3'
+        }
+      >
         {/* 星光余额（创作激励的计量单位，非通知数） */}
         <button
           type="button"
           aria-label={`星光余额 ${STARLIGHT}`}
           onClick={() => toast(`当前星光余额：${STARLIGHT}`)}
-          className="flex h-7 items-center gap-1 rounded-full px-1.5 text-[13px] font-medium tabular-nums text-[#161823] hover:bg-black/5 sm:px-2"
+          className={`flex items-center gap-1 rounded-full text-[13px] font-medium tabular-nums text-[#161823] hover:bg-black/5 ${
+            fused ? 'h-6 px-1' : 'h-7 px-1.5 sm:px-2'
+          }`}
         >
           <img src="/icons/AI.svg" alt="" className="size-4" />
           {STARLIGHT}
         </button>
-        <AvatarMenu />
+        <AvatarMenu compact={fused} />
       </div>
     </header>
   )
@@ -88,10 +132,14 @@ export default function TopNav({
 const menuRow =
   'flex w-full items-center gap-2 rounded-md px-2 py-2 text-[14px] leading-5 text-[#1c1f23] transition-colors hover:bg-[rgba(83,96,143,0.07)]'
 
-/** 头像下拉：账号菜单 + 权限开关（直播管理）。 */
-function AvatarMenu() {
+const AVATAR_NAV_VERSIONS = [1, 2, 3, 4, 5] as const satisfies readonly NavVersion[]
+
+/** 头像下拉：账号菜单 + 导航方案 + 权限开关（直播管理）。 */
+function AvatarMenu({ compact = false }: { compact?: boolean }) {
   const liveEnabled = useLiveMgmt((s) => s.enabled)
   const toggleLive = useLiveMgmt((s) => s.toggle)
+  const navVersion = useNavVersion((s) => s.version)
+  const selectNavVersion = useNavVersion((s) => s.setVersion)
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
@@ -99,7 +147,7 @@ function AvatarMenu() {
           <img
             src={CREATOR_PROFILE.avatar}
             alt=""
-            className="size-7 rounded-full object-cover ring-1 ring-black/10 hover:ring-black/25"
+            className={`${compact ? 'size-6' : 'size-7'} rounded-full object-cover ring-1 ring-black/10 hover:ring-black/25`}
           />
         </button>
       </Popover.Trigger>
@@ -143,6 +191,36 @@ function AvatarMenu() {
             <FigmaGlyph src="/icons/account-menu/login.svg" inset="8.33%" />
             <span className="flex-1 text-left">退出登录</span>
           </button>
+          <div className="mx-2 my-1.5 h-px bg-black/5" />
+          <div className="flex items-center justify-between px-2 pb-1">
+            <span className="text-[11px] font-medium text-[#252632]/40">导航方案</span>
+            <span className="text-[10px] text-[#252632]/35">当前：方案 {navVersion}</span>
+          </div>
+          <div
+            role="radiogroup"
+            aria-label="导航方案切换"
+            className="grid grid-cols-5 gap-1 px-2 pb-1"
+          >
+            {AVATAR_NAV_VERSIONS.map((version) => (
+              <Popover.Close asChild key={version}>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-label={`方案 ${version}`}
+                  aria-checked={navVersion === version}
+                  title={`方案 ${version}`}
+                  onClick={() => selectNavVersion(version)}
+                  className={`flex h-7 items-center justify-center rounded-md text-[12px] font-medium transition-colors ${
+                    navVersion === version
+                      ? 'bg-[#161823] text-white shadow-sm'
+                      : 'bg-[#f4f5f7] text-[#252632]/60 hover:bg-[#eceef2] hover:text-[#252632]'
+                  }`}
+                >
+                  {version}
+                </button>
+              </Popover.Close>
+            ))}
+          </div>
           <div className="mx-2 my-1.5 h-px bg-black/5" />
           <div className="px-2 pb-1 text-[11px] font-medium text-[#252632]/40">权限管理</div>
           <button

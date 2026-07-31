@@ -50,11 +50,11 @@ export const CHAT_SUGGESTIONS_BY_KIND: Record<ProjectKind, string[]> = {
     '优化手机端触控手感',
   ],
   'marketing-h5': [
-    '多加一个抽奖楼层',
-    '换成更童趣的配色',
-    '调整奖品和文案',
-    '加一个分享得抽奖机会',
-    '改一下活动时间',
+    '换一组主会场游戏',
+    '调整开年高燃榜单',
+    '给视频加自动播放',
+    '增加游戏分类入口',
+    '优化新春氛围动效',
   ],
   'ops-proposal': [
     '多找几个腰部达人',
@@ -67,7 +67,7 @@ export const CHAT_SUGGESTIONS_BY_KIND: Record<ProjectKind, string[]> = {
 
 /** Per-project overrides — finer-grained chips for specific projects. */
 export const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
-  '塔罗小程序': [
+  '塔罗兴趣卡': [
     '换套更神秘的配色',
     '给卡片加上翻面动效',
     '再写两个塔罗牌面',
@@ -75,6 +75,6 @@ export const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
     '加一个每日签到',
   ],
   '射击小游戏': CHAT_SUGGESTIONS_BY_KIND['web-game'],
-  '六一儿童节活动': CHAT_SUGGESTIONS_BY_KIND['marketing-h5'],
+  '抖音 ACG 游戏新春会': CHAT_SUGGESTIONS_BY_KIND['marketing-h5'],
   '沪上火锅·五一种草提案': CHAT_SUGGESTIONS_BY_KIND['ops-proposal'],
 }

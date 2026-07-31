@@ -1,6 +1,6 @@
 import { Fragment, useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Tooltip } from './Tooltip'
 import { toast } from 'sonner'
 import ChatPreview from '@/modules/editor/components/preview/ChatPreview'
@@ -18,11 +18,24 @@ import { type ChatMessage } from '@/shared/api/chat'
 import { LiveAiReply } from '@/shared/components/LiveAiReply'
 import { ChatEmptyState } from '@/shared/components/ChatEmptyState'
 import MiniAppPreview from './MiniAppPreview'
+import TarotInterestCardPreview, {
+  type TarotEditSelection,
+} from './TarotInterestCardPreview'
+import {
+  DEFAULT_TAROT_INTEREST_CARD_CONFIG,
+  type TarotInterestCardConfig,
+} from './TarotInterestCardModel'
+import TarotInterestCardEditPanel from './TarotInterestCardEditPanel'
 import PlatformPlaceholderView from './PlatformPlaceholderView'
 import XiaohuaFeedPreview from './XiaohuaFeedPreview'
 import AgentHubPreview from './AgentHubPreview'
 import MarketingH5Preview from './MarketingH5Preview'
-import GarudaGamePreview from './GarudaGamePreview'
+import H5CanvasEditor from './H5CanvasEditor'
+import H5CanvasLayerTree from './H5CanvasLayerTree'
+import GameCanvasEditor from './GameCanvasEditor'
+import GarudaGamePreview, {
+  type GameEditSelection,
+} from './GarudaGamePreview'
 import GarudaAssetsView, {
   KIND_META as ASSET_KIND_META,
   garudaKindTabs,
@@ -31,31 +44,47 @@ import GarudaAssetsView, {
   type AssetKind,
   type AssetItem,
 } from './GarudaAssetsView'
+import { ACG_NEW_YEAR_ASSET_GROUPS } from './ProjectAssetCatalog'
 import AssetEditPanel from './AssetEditPanel'
 import VideoEditor from './VideoEditor'
 import ImageCanvasEditor from './ImageCanvasEditor'
 import ErrorBoundary from '@/shared/components/ErrorBoundary'
-import FigmaIcon from '@/shared/components/FigmaIcon'
 import PlatformHome from './PlatformHome'
-import SideNav, { SideNavActionButton, type SideNavItem } from '@/shared/components/SideNav'
+import SideNav, {
+  SIDE_NAV_MOTION_DURATION,
+  SIDE_NAV_MOTION_OFFSET,
+  SideNavActionButton,
+  type SideNavItem,
+} from '@/shared/components/SideNav'
+import { CHAT_COMPOSER_HEIGHT } from '@/shared/components/ChatComposer'
+import ComposerLocalFileButton from '@/shared/components/ComposerLocalFileButton'
+import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
+import UnifiedToolbar from '@/modules/creator-center/UnifiedToolbar'
+import SideNavPanelStateIcon from '@/shared/components/SideNavPanelStateIcon'
+import SideNavIconFooterActions, {
+  SideNavCollapseFooterButton,
+} from '@/shared/components/SideNavIconFooterActions'
+import { useSideNavConfig } from '@/shared/components/side-nav-config'
 import {
-  SIDE_NAV_NUMERIC_CONSTRAINTS,
-  useSideNavConfig,
-} from '@/shared/components/side-nav-config'
+  useNavVersion,
+  usesProductHeaderLayout,
+  usesSchemeFourLayout,
+} from '@/shared/storage/nav-version'
+import { useProductSideNav, type ProductSideNavId } from '@/shared/storage/product-side-nav'
+import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
+import { useResizableSideNavWidth } from '@/shared/hooks/useResizableSideNavWidth'
 import { AppWindowLinearIcon } from 'master-icon/react/AppWindowLinearIcon'
 import { FolderCodeLinearIcon } from 'master-icon/react/FolderCodeLinearIcon'
-import { FolderOpenFrontLinearIcon } from 'master-icon/react/FolderOpenFrontLinearIcon'
 import { FolderLibraryLinearIcon } from 'master-icon/react/FolderLibraryLinearIcon'
 import { InboxLinearIcon } from 'master-icon/react/InboxLinearIcon'
 import { LightningLinearIcon } from 'master-icon/react/LightningLinearIcon'
 import { Notebook01LinearIcon } from 'master-icon/react/Notebook01LinearIcon'
-import { LayoutLeftLinearIcon } from 'master-icon/react/LayoutLeftLinearIcon'
 import { PinLinearIcon } from 'master-icon/react/PinLinearIcon'
 import { PinOffLinearIcon } from 'master-icon/react/PinOffLinearIcon'
 import { Search01LinearIcon } from 'master-icon/react/Search01LinearIcon'
+import { Settings01LinearIcon } from 'master-icon/react/Settings01LinearIcon'
 import { ToolsLinearIcon } from 'master-icon/react/ToolsLinearIcon'
-import { type H5Selection } from './H5LayerEditPanel'
-import H5FloatingEditPanel from './H5FloatingEditPanel'
+import H5LayerEditPanel, { type H5Selection } from './H5LayerEditPanel'
 import GarudaCodeView from './GarudaCodeView'
 import GarudaEditPanel from './GarudaEditPanel'
 import ProductEditPanel from './ProductEditPanel'
@@ -63,7 +92,7 @@ import GameGenerationFlow, { GameBuildProgress } from './GameGenerationFlow'
 import type { GameSpecDraft } from './GameConfirmCard'
 import AiPersonaChatPreview, { type TriggerSimulation } from './AiPersonaChatPreview'
 import { ProjectObjectView } from './ProjectObjectViews'
-import { PROJECT_DOCS, CHILDREN_DAY_PLAN_MD } from './data/project-docs'
+import { PROJECT_DOCS, ACG_NEW_YEAR_PLAN_MD } from './data/project-docs'
 import { GENERIC_AI_REPLIES, CHAT_EMPTY_SUGGESTIONS, CHAT_SUGGESTIONS_BY_KIND, CHAT_SUGGESTIONS_BY_PROJECT } from './data/chat-suggestions'
 import { PROJECT_KINDS, SHAPE_BY_KIND, PROJECT_KIND_LABELS, type OutputShape } from './data/project-kinds'
 import { FlexAlignGlyph, ProductToolbar, ToolbarAction } from './Toolbar'
@@ -117,12 +146,17 @@ import {
   ABILITY_CONFIG_LABEL,
   AVATAR_SKILL_LABEL,
   AVATAR_TRIGGER_LABEL,
+  ASSET_LIBRARY_LABEL,
   BASIC_INFO_LABEL,
   DATA_CONFIG_LABEL,
+  DATABASE_LABEL,
+  H5_GAMEPLAY_CONFIG_LABEL,
+  INTEREST_CARD_CONFIG_LABEL,
   GAMEPLAY_CONFIG_LABEL,
   getProductPages,
   PAGE_CONFIG_LABEL,
   PERSONA_CONFIG_LABEL,
+  PROJECT_MEMORY_LABEL,
   PRODUCT_CATEGORY_ICONS,
   PRODUCT_CATEGORY_BADGES,
   TRIGGER_CONFIG_LABEL,
@@ -138,7 +172,6 @@ import CapabilityDetailView from './CapabilityDetailView'
 import { getAvatarConfig, DEFAULT_AVATAR_PREVIEW, type AvatarAppConfig } from './AvatarConfigData'
 import MiniProgramAgentView from './MiniProgramAgentView'
 import MiniProgramSettingsForm from './MiniProgramSettingsForm'
-import AssetGridView from './AssetGridView'
 import MarketingDocEditor from './MarketingDocEditor'
 import ProjectInfoView from './ProjectInfoView'
 import PublishDrawer from './PublishDrawer'
@@ -215,7 +248,6 @@ import {
   Save,
   Search,
   Sparkles,
-  Paperclip,
   Pencil,
   ExternalLink,
   Plus,
@@ -763,19 +795,6 @@ ${title} 是一个「${kindLabel[kind]}」类项目，本文档记录其目标�
 `
 }
 
-/* 活动素材 — H5 页面用到的视觉资源（与 MarketingH5Preview 的 src
- * 路径保持一致）。Grouped to match the 游戏 素材 layout (GarudaAssetsView). */
-const CHILDREN_DAY_ASSET_GROUPS: AssetGroup[] = [
-  {
-    title: '页面主视觉',
-    desc: 'H5 抽奖页的核心 KV / 互动主图',
-    items: [
-      { src: '/h5/children-day/hero-gifts.png', label: 'hero-gifts' },
-      { src: '/h5/children-day/lottery-cube.png', label: 'lottery-cube' },
-    ],
-  },
-]
-
 /* 素材 for the 抖音 AI 工坊设计探索 站点 — reuses the shared GarudaAssetsView
  * so 素材 looks the same across H5 / 游戏 / 网站。 */
 const WEBAPP_ASSET_GROUPS: AssetGroup[] = [
@@ -801,16 +820,37 @@ const WEBAPP_ASSET_GROUPS: AssetGroup[] = [
   },
 ]
 
+function miniProgramAssetGroups(config: MiniProgramConfig): AssetGroup[] {
+  return [
+    {
+      title: '兴趣卡素材',
+      desc: `${config.name} · ${config.assets.length} 项原始图像素材`,
+      items: config.assets.map((asset, index) => ({
+        id: `${config.appID}-asset-${index + 1}`,
+        src: asset.url,
+        label: asset.name,
+        prompt: {
+          text: `为“${config.name}”生成“${asset.name}”图像素材。延续当前兴趣卡的视觉语言与色彩氛围，主体清晰、构图适配 Feed 卡片和落地页展示，边缘干净，无水印。`,
+          skillLabel: '兴趣卡视觉 skill',
+          model: 'NanoBanana',
+        },
+      })),
+    },
+  ]
+}
+
 function PhoneMockup({
   children,
   width = PHONE_W,
   height = PHONE_H,
   maxScale = 1,
+  framed = true,
 }: {
   children: React.ReactNode
   width?: number
   height?: number
   maxScale?: number
+  framed?: boolean
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
@@ -845,15 +885,19 @@ function PhoneMockup({
           transformOrigin: 'center center',
           ['--edge-alpha' as string]: isLight ? 0 : 0.3,
         }}
-        className="glass-edge relative shrink-0 rounded-[36px]"
+        className={`${framed ? 'glass-edge rounded-[36px]' : 'overflow-hidden rounded-[47px] shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_0_0_7px_#1a1c22,0_19px_56px_rgba(0,0,0,0.35)]'} relative shrink-0`}
       >
-        <div className="absolute inset-0 rounded-[36px] bg-[var(--phone-bezel)] p-[3px] shadow-[var(--phone-shadow)] ring-1 ring-[var(--divider-soft)]">
-          <div className="relative h-full w-full overflow-hidden rounded-[34px] bg-[var(--color-surface-0)] ring-1 ring-black/60">
-            <div className="relative h-full w-full overflow-hidden">
-              {children}
+        {framed ? (
+          <div className="absolute inset-0 rounded-[36px] bg-[var(--phone-bezel)] p-[3px] shadow-[var(--phone-shadow)] ring-1 ring-[var(--divider-soft)]">
+            <div className="relative h-full w-full overflow-hidden rounded-[34px] bg-[var(--color-surface-0)] ring-1 ring-black/60">
+              <div className="relative h-full w-full overflow-hidden">
+                {children}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   )
@@ -1006,6 +1050,14 @@ function SpaceMenuPopover({
 
 /* ─── Platform layout sidebar ─── */
 
+const AVATAR_SCHEME_TWO_TOOLBAR_ACTIONS = ['layout'] as const
+const WORKSHOP_SCHEME_TWO_TOOLBAR_ACTIONS = [
+  'layout',
+  'create',
+  'settings',
+  'search',
+] as const
+
 function cleanTreePath(path: string) {
   return path
     .replace(/^__code__\//, '')
@@ -1044,6 +1096,7 @@ function PlatformSidebar({
   createdProjects,
   projectFilter,
   variant = 'workshop',
+  collapsed = false,
   onOpenPlaceholder,
   onCollapseSidebar,
 }: {
@@ -1106,6 +1159,8 @@ function PlatformSidebar({
    *  按钮，导航为 技能库/资源库/评测库，项目分组标题为
    *  可折叠的「我的AI分身」，分身项目行用圆形头像。 */
   variant?: 'workshop' | 'avatar'
+  /** 方案 1 使用统一 SideNav 的 icon rail 收起形态。 */
+  collapsed?: boolean
   /** 打开建设中的评测库占位页。 */
   onOpenPlaceholder?: (label: string) => void
   /** 底部「收起导航」— 与创作者中心首页一致。 */
@@ -1113,8 +1168,10 @@ function PlatformSidebar({
 }) {
   /* Inline-rename state for the 项目列表 rows. */
   const [renamingProject, setRenamingProject] = useState<string | null>(null)
+  const navVersion = useNavVersion((state) => state.version)
   /* 分身变体「我的AI分身」分组的折叠态。 */
   const [avatarSectionCollapsed, setAvatarSectionCollapsed] = useState(false)
+  const [avatarSearch, setAvatarSearch] = useState('')
   /* Which project row's 更多 (重命名 / 删除) menu is open. */
   const [moreMenuProject, setMoreMenuProject] = useState<string | null>(null)
   const moreMenuRef = useRef<HTMLDivElement>(null)
@@ -1151,14 +1208,14 @@ function PlatformSidebar({
     // the fixed list below, so filter it out of createdProjects to
     // avoid double-listing.
     ...createdProjects.filter((p) => p !== '射击小游戏'),
-    // Order: 分身 → 小程序 → H5 → 产品设计 → 游戏.
+    // Workshop order: H5 → 游戏 → 兴趣卡；分身变体仍只显示分身。
     // 粉丝互动机器人 / 探店视频创作助手 / 每日打卡小程序 are hidden —
     // config exists but there's no scripted demo flow for them yet.
     '陶白白 Sensei 分身',
-    '塔罗小程序',
-    '六一儿童节活动',
-    '抖音 AI 工坊设计探索',
+    ACG_NEW_YEAR_PROJECT,
     '射击小游戏',
+    TAROT_INTEREST_CARD_PROJECT,
+    // '抖音 AI 工坊设计探索' — 暂隐藏，保留配置与文件树供后续恢复。
     // '沪上火锅·五一种草提案' — 先隐藏（运营提案 demo 暂不展示）。
   ]
     .filter(projectFilter ?? (() => true))
@@ -1173,6 +1230,12 @@ function PlatformSidebar({
       if (ib === -1) return -1
       return ia - ib
     })
+  const avatarDisplayName =
+    getAvatarConfig(AVATAR_PROJECT)?.name ?? DEFAULT_AVATAR_PREVIEW.displayName
+  const normalizedAvatarSearch = avatarSearch.trim().toLocaleLowerCase('zh-CN')
+  const avatarMatchesSearch =
+    normalizedAvatarSearch.length === 0 ||
+    avatarDisplayName.toLocaleLowerCase('zh-CN').includes(normalizedAvatarSearch)
 
   /* 顶部导航项 — 走统一 SideNav 菜单；分身变体为 技能库/资源库。 */
   const navItems: SideNavItem[] = variant === 'avatar'
@@ -1194,7 +1257,10 @@ function PlatformSidebar({
       // 与创作者中心首页完全一致：panel 灰底 + 组件默认配色。
       // 不再覆写 --sidenav-* —— 之前覆写成主题变量，导致未选中项比首页
       // 淡一档（60% vs 80%），是「同一个组件却看着不一样」的根源。
-      chrome="panel"
+      chrome={navVersion === 3 ? 'plain' : 'panel'}
+      showDivider={navVersion !== 3}
+      flushHeader={usesSchemeFourLayout(navVersion) || navVersion === 3}
+      collapsed={collapsed}
       items={navItems}
       activeKey={activeNav}
       onSelect={(key) => {
@@ -1205,30 +1271,129 @@ function PlatformSidebar({
       }}
       header={
         /* + 新建项目 — 白底按钮（与首页「发布作品」的黑底区分开）。
-           分身变体没有 AI 创作入口。 */
-        variant !== 'avatar' ? (
-	      <div className="px-[var(--sn-px)] pb-3">
-        <SideNavActionButton onClick={onNewProject}>
-          <Plus size={16} strokeWidth={2} className="shrink-0" />
-          AI 创作
-        </SideNavActionButton>
-      </div>
+           分身变体没有 AI 创作入口；方案 2 / 4 / 6 仍显示产品侧栏头。 */
+        usesProductHeaderLayout(navVersion) || variant !== 'avatar' ? (
+          <div
+            className={`px-[var(--sn-px)] ${
+              usesProductHeaderLayout(navVersion) && variant === 'avatar' ? '' : 'pb-3'
+            }`}
+          >
+            {usesProductHeaderLayout(navVersion) && (
+              navVersion === 2 && !collapsed ? (
+                <div className={variant === 'workshop' ? 'mb-3' : undefined}>
+                  <UnifiedToolbar
+                    ariaLabel={variant === 'avatar' ? 'AI 分身工具条' : 'AI 工坊工具条'}
+                    actions={
+                      variant === 'avatar'
+                        ? AVATAR_SCHEME_TWO_TOOLBAR_ACTIONS
+                        : WORKSHOP_SCHEME_TWO_TOOLBAR_ACTIONS
+                    }
+                    onAction={(action) => {
+                      if (action === 'layout') {
+                        onCollapseSidebar?.()
+                        return
+                      }
+                      if (action === 'create') {
+                        onNewProject()
+                        return
+                      }
+                      toast(action === 'settings' ? '项目设置（演示）' : '搜索项目（演示）')
+                    }}
+                  />
+                </div>
+              ) : navVersion === 6 && variant === 'avatar' ? (
+                <div className={`flex h-10 items-center ${collapsed ? 'justify-center' : 'gap-1 pl-1'}`}>
+                  {!collapsed && (
+                    <label className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-lg bg-white px-2 text-[#252632]/45 ring-1 ring-black/[0.08] transition-shadow focus-within:ring-black/20">
+                      <span aria-hidden="true" className="flex shrink-0 items-center">
+                        <Search01LinearIcon size={14} />
+                      </span>
+                      <input
+                        type="search"
+                        aria-label="搜索分身"
+                        aria-controls="avatar-project-list"
+                        placeholder="搜索分身"
+                        value={avatarSearch}
+                        onChange={(event) => setAvatarSearch(event.target.value)}
+                        className="min-w-0 flex-1 bg-transparent text-[12px] leading-5 text-[#161823] outline-none placeholder:text-[#252632]/40"
+                      />
+                    </label>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onCollapseSidebar?.()}
+                    aria-label={collapsed ? '展开导航' : '收起导航'}
+                    title={collapsed ? '展开导航' : '收起导航'}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-lg text-[#252632]/45 transition-colors hover:bg-black/[0.03] hover:text-[#252632]/70"
+                  >
+                    <SideNavPanelStateIcon collapsed={collapsed} />
+                  </button>
+                </div>
+              ) : (
+                <SideNavProductHeader
+                  {...(
+                    usesSchemeFourLayout(navVersion)
+                      ? { leadingText: variant === 'avatar' ? '管理分身' : '开启创作' }
+                      : {
+                          icon:
+                            variant === 'avatar'
+                              ? '/icons/nav-products/avatar.svg'
+                              : '/icons/nav-products/workshop.svg',
+                          productLabel: variant === 'avatar' ? 'AI 分身' : 'AI 工坊',
+                        }
+                  )}
+                  bottomGap={variant === 'avatar' ? 0 : 12}
+                  collapsed={collapsed}
+                  onToggle={() => onCollapseSidebar?.()}
+                />
+              )
+            )}
+            {variant !== 'avatar' && (
+              <SideNavActionButton
+                aria-label="AI 创作"
+                collapsed={collapsed}
+                onClick={onNewProject}
+                className={navVersion === 3 ? 'ring-inset' : undefined}
+              >
+                <Plus size={16} strokeWidth={2} className="shrink-0" />
+                {!collapsed && 'AI 创作'}
+              </SideNavActionButton>
+            )}
+          </div>
         ) : undefined
       }
       footer={
-        /* 收起导航 —— 与创作者中心首页同一行样式与行为 */
-	        <div className="px-[var(--sn-px)] pb-3">
-          <button
-            type="button"
-            onClick={onCollapseSidebar}
-            className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] text-[#252632]/70 transition-colors hover:bg-black/[0.03] hover:text-[#252632]/85"
-          >
-            <LayoutLeftLinearIcon size={18} className="shrink-0 text-[#252632]" />
-            收起导航
-          </button>
-        </div>
+        /* 方案 4 / 6 工坊底部与百科「我的词条」保持同一位置和行样式。 */
+        navVersion === 1 ? (
+          <div className="px-[var(--sn-px)] pb-3">
+            <SideNavCollapseFooterButton
+              collapsed={collapsed}
+              onToggle={() => onCollapseSidebar?.()}
+            />
+          </div>
+        ) : usesSchemeFourLayout(navVersion) && variant === 'workshop' ? (
+          <div className="pb-3">
+            <button
+              type="button"
+              onClick={() => toast('偏好设置（演示）')}
+              className="flex h-8 w-full items-center gap-1.5 rounded-lg pl-[22px] pr-2 text-[12px] font-medium text-[#252632]/80 transition-colors hover:bg-black/[0.03]"
+            >
+              <Settings01LinearIcon className="size-4 shrink-0" />
+              <span>偏好设置</span>
+            </button>
+          </div>
+        ) : navVersion === 5 ? (
+          <div className="px-[var(--sn-px)] pb-3">
+            <SideNavIconFooterActions
+              onToggle={() => onCollapseSidebar?.()}
+              onOpenProjectSettings={() => toast('项目设置（演示）')}
+            />
+          </div>
+        ) : undefined
       }
     >
+      {!collapsed && (
+        <>
       {drilledProject !== null ? (
         /* ── Detail: one project's full file-view directory ── */
         <>
@@ -1312,25 +1477,12 @@ function PlatformSidebar({
             <div className="flex items-center gap-1 text-[var(--color-ink)]/40">
               <Tooltip label="搜索全部项目文件">
                 <button
+                  type="button"
+                  aria-label="搜索全部项目文件"
+                  onClick={() => toast('搜索项目（演示）')}
                   className="flex h-6 w-6 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
                 >
                   <Search01LinearIcon size={16} />
-                </button>
-              </Tooltip>
-              <Tooltip label="收起全部">
-                <button
-                  onClick={onCollapseAll}
-                  className="flex h-6 w-6 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
-                >
-                  <Menu4 size={15} strokeWidth={1.8} />
-                </button>
-              </Tooltip>
-              <Tooltip label="查看全部项目">
-                <button
-                  onClick={() => setOpenProjects(new Set(ALL_PROJECTS))}
-                  className="flex h-6 w-6 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
-                >
-                  <FolderOpenFrontLinearIcon size={16} />
                 </button>
               </Tooltip>
             </div>
@@ -1343,23 +1495,33 @@ function PlatformSidebar({
             <div className="flex-1" />
           ) : variant === 'avatar' ? (
             /* ── 分身精简列表：当前分身 + 四个库入口，平铺无子级 ── */
-	            <div className="thin-scroll flex-1 overflow-y-auto px-[var(--sn-px)] pb-2">
-              <button
-                type="button"
-                onClick={() => onSwitchProject(AVATAR_PROJECT)}
-                className={`flex w-full items-center gap-2 rounded-md py-1.5 pl-7 pr-2 text-[13px] font-medium transition-colors ${
-                  activeProjectName === AVATAR_PROJECT && activeNav === null && !drilledProject
-                    ? 'bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]'
-                    : 'text-[var(--color-ink)]/85 hover:bg-[var(--color-ink)]/[0.04]'
-                }`}
-              >
-                <img
-                  src={getAvatarConfig(AVATAR_PROJECT)?.preview?.avatarUrl ?? DEFAULT_AVATAR_PREVIEW.avatarUrl}
-                  alt=""
-                  className="size-5 shrink-0 rounded-full object-cover ring-1 ring-black/5"
-                />
-                {getAvatarConfig(AVATAR_PROJECT)?.name ?? DEFAULT_AVATAR_PREVIEW.displayName}
-              </button>
+	            <div id="avatar-project-list" className="thin-scroll flex-1 overflow-y-auto px-[var(--sn-px)] pb-2">
+              {avatarMatchesSearch ? (
+                <button
+                  type="button"
+                  onClick={() => onSwitchProject(AVATAR_PROJECT)}
+                  className={`flex w-full items-center gap-2 rounded-md py-1.5 pl-7 pr-2 text-[13px] font-medium transition-colors ${
+                    activeProjectName === AVATAR_PROJECT && activeNav === null && !drilledProject
+                      ? 'bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]'
+                      : 'text-[var(--color-ink)]/85 hover:bg-[var(--color-ink)]/[0.04]'
+                  }`}
+                >
+                  <img
+                    src={getAvatarConfig(AVATAR_PROJECT)?.preview?.avatarUrl ?? DEFAULT_AVATAR_PREVIEW.avatarUrl}
+                    alt=""
+                    className="size-5 shrink-0 rounded-full object-cover ring-1 ring-black/5"
+                  />
+                  {avatarDisplayName}
+                </button>
+              ) : (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="px-7 py-2 text-[12px] text-[var(--color-ink)]/45"
+                >
+                  未找到相关分身
+                </div>
+              )}
               {[
                 { label: '技能库', Icon: FolderCodeLinearIcon, bg: '#fde6f7', fg: '#d939b8', open: AVATAR_SKILL_LABEL },
                 { label: '工具库', Icon: ToolsLinearIcon, bg: '#f1e6fe', fg: '#8f47e6', open: null },
@@ -1632,19 +1794,27 @@ function PlatformSidebar({
           onClose={() => setSpaceMenuPos(null)}
         />
       )}
+        </>
+      )}
     </SideNav>
   )
 }
 
 /** AI 分身样板项目 — workshop 变体从侧栏隐藏它，avatar 变体只展示它。 */
 const AVATAR_PROJECT = '陶白白 Sensei 分身'
+const TAROT_INTEREST_CARD_PROJECT = '塔罗兴趣卡'
+const ACG_NEW_YEAR_PROJECT = '抖音 ACG 游戏新春会'
+const WORKSHOP_DEFAULT_PROJECT = ACG_NEW_YEAR_PROJECT
 
 export default function VibeCodingPage({
   variant = 'workshop',
+  onCanvasModeChange,
 }: {
   /** workshop = 完整 AI 工坊；avatar = AI 分身开通后的复刻界面，
    *  项目列表只保留分身项目并直接进入它。 */
   variant?: 'workshop' | 'avatar'
+  /** 通知创作者中心外壳进入沉浸式画布，临时让出顶栏空间。 */
+  onCanvasModeChange?: (open: boolean) => void
 }) {
   const isAvatarStudio = variant === 'avatar'
   // Standalone build — no router; the top-left back button is a no-op.
@@ -1875,22 +2045,14 @@ export default function VibeCodingPage({
    * streamed reply render instantly (no re-fetch) when the chat remounts on
    * project switch, and feeds prior turns back as context for the next call. */
   const aiReplyCacheRef = useRef<Map<string, string>>(new Map())
-  /* Platform "home" / new-project landing view — shown on first load
-   * (no project selected yet) and whenever the user clicks + 新建项目.
+  /* Platform "home" / new-project landing view — shown whenever the user
+   * clicks + 新建项目. AI 工坊首次挂载直接进入默认塔罗项目；AI 分身
+   * 暂时用 home 遮住首帧，随后由 avatar boot effect 打开分身项目。
    * Contains a hero title + a large prompt composer + suggestion pills.
    * Submitting returns to the normal workspace with the prompt routed
    * through sendChat. Closes when the user activates a project via
    * sidebar click. */
-  // If a deep link points to a specific surface (resources / proposal),
-  // suppress the platform home on first paint so the right surface
-  // lands immediately.
-  const [platformHomeOpen, setPlatformHomeOpen] = useState(() => {
-    if (typeof window === 'undefined') return true
-    const p = new URLSearchParams(window.location.search)
-    if (p.get('page') === 'resources') return false
-    if (p.get('project') === 'proposal') return false
-    return true
-  })
+  const [platformHomeOpen, setPlatformHomeOpen] = useState(isAvatarStudio)
   const [homeDraft, setHomeDraft] = useState('')
   /* 第五人格 needs-collection mock — only surfaces when the user sends a
    * message containing 第五人格/小程序. Default off so the chat starts in
@@ -1980,7 +2142,7 @@ export default function VibeCodingPage({
         ? prev
         : [
             { label: '预览', closable: false },
-            { label: '素材', closable: false },
+            { label: ASSET_LIBRARY_LABEL, closable: false },
           ],
     )
     setActivePreviewTab(0)
@@ -2012,52 +2174,44 @@ export default function VibeCodingPage({
   const [layout] = useState<'workspace' | 'editor' | 'code' | 'platform'>('platform')
   const isPlatform = layout === 'platform'
   const chatOnLeft = layout === 'code' || isPlatform
-  const configuredSidebarWidth = useSideNavConfig((s) => s.config.width)
-  /* Platform-only: sidebar + chat widths are both user-draggable; the
-   * sidebar can also be collapsed via the PanelLeft button in the brand
-  * header. When collapsed, the card extends to 20px from viewport-left
-  * and the brand chrome (logo + 抖音AI工坊 + expand icon) relocates to
-  * the card's top-left header. */
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const reduceSideNavMotion = useReducedMotion() ?? false
+  /* Platform-only: sidebar + chat widths are both user-draggable. Schemes
+   * 1 / 2 retain the shared icon rail when collapsed; the other schemes
+   * keep the legacy fully-hidden layout. */
+  const navVersion = useNavVersion((state) => state.version)
+  const sideNavProductId: ProductSideNavId =
+    variant === 'avatar' ? 'ai-avatar' : 'workshop'
+  const sidebarCollapsed = useProductSideNav(
+    (state) => state.collapsed[sideNavProductId],
+  )
+  const setProductSideNavCollapsed = useProductSideNav(
+    (state) => state.setCollapsed,
+  )
+  const setSidebarCollapsed = useCallback(
+    (collapsed: boolean) =>
+      setProductSideNavCollapsed(sideNavProductId, collapsed),
+    [setProductSideNavCollapsed, sideNavProductId],
+  )
+  const configuredCollapsedSidebarWidth = useSideNavConfig(
+    (state) => state.config.collapsedWidth,
+  )
   const sidebarExpandButtonRef = useRef<HTMLButtonElement>(null)
-  // 全局配置提供基准宽度；本页拖拽仍只覆盖当前页面。
-  const [platformSidebarWidthState, setPlatformSidebarWidthState] = useState(() => ({
-    configuredWidth: configuredSidebarWidth,
-    width: configuredSidebarWidth,
-  }))
-  if (platformSidebarWidthState.configuredWidth !== configuredSidebarWidth) {
-    setPlatformSidebarWidthState({
-      configuredWidth: configuredSidebarWidth,
-      width: configuredSidebarWidth,
-    })
-  }
-  const platformSidebarWidth =
-    platformSidebarWidthState.configuredWidth === configuredSidebarWidth
-      ? platformSidebarWidthState.width
-      : configuredSidebarWidth
-  const effectiveSidebarWidth = sidebarCollapsed ? 12 : platformSidebarWidth
+  const {
+    width: platformSidebarWidth,
+    setWidth: setPlatformSidebarWidth,
+  } = useResizableSideNavWidth()
+  const sidebarRailCollapsed =
+    sidebarCollapsed && (navVersion === 1 || navVersion === 2)
+  const sidebarFullyHidden = sidebarCollapsed && !sidebarRailCollapsed
+  const fullyHiddenSidebarWidth = navVersion === 3 ? 0 : 12
+  const baseEffectiveSidebarWidth = sidebarCollapsed
+    ? sidebarRailCollapsed
+      ? configuredCollapsedSidebarWidth
+      : fullyHiddenSidebarWidth
+    : platformSidebarWidth
   useEffect(() => {
-    if (sidebarCollapsed) sidebarExpandButtonRef.current?.focus()
-  }, [sidebarCollapsed])
-  const sidebarDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
-  const onSidebarDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
-    sidebarDragRef.current = { startX: e.clientX, startWidth: platformSidebarWidth }
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-  }
-  const onSidebarDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const s = sidebarDragRef.current
-    if (!s) return
-    const { min, max } = SIDE_NAV_NUMERIC_CONSTRAINTS.width
-    const next = Math.min(max, Math.max(min, s.startWidth + (e.clientX - s.startX)))
-    setPlatformSidebarWidthState({
-      configuredWidth: configuredSidebarWidth,
-      width: next,
-    })
-  }
-  const onSidebarDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
-    sidebarDragRef.current = null
-    ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
-  }
+    if (sidebarFullyHidden) sidebarExpandButtonRef.current?.focus()
+  }, [sidebarFullyHidden])
   const [platformChatWidth, setPlatformChatWidth] = useState(420)
   const chatDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
   const onChatDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -2500,7 +2654,7 @@ export default function VibeCodingPage({
     if (k === 'web-game')
       return [
         { label: '预览', closable: false },
-        { label: '素材', closable: false },
+        { label: ASSET_LIBRARY_LABEL, closable: false },
       ]
     if (k === 'ai-avatar')
       return [
@@ -2606,8 +2760,18 @@ export default function VibeCodingPage({
    *  intact, then either replays the target project's prior snapshot or
    *  initialises kind-specific defaults on first visit. */
   const openProject = (name: string) => {
+    const focusAcgPreview = name === ACG_NEW_YEAR_PROJECT
+    const focusPreview = (tabs: { label: string; closable: boolean }[]) => {
+      const previewIndex = tabs.findIndex((tab) => tab.label === '预览')
+      setActivePreviewTab(previewIndex >= 0 ? previewIndex : 0)
+      setPreviewCollapsed(false)
+      setEditPanelOpen(false)
+      setCanvasEditOpen(false)
+      setH5Selected(null)
+    }
     if (name === projectTitle && !platformHomeOpen && !platformResourceLibraryOpen && !platformSkillsOpen && !platformCreativeSquareOpen && !platformDataOpsOpen && platformPlaceholderPage === null) {
-      // Already on this project — no need to re-snapshot or reset.
+      // 抖音 ACG 项目行是预览快捷入口；重复点击也要从任意产物页回到预览。
+      if (focusAcgPreview) focusPreview(openTabs)
       return
     }
     if (projectTitle && !platformHomeOpen) {
@@ -2625,9 +2789,11 @@ export default function VibeCodingPage({
     const prior = projectChatsRef.current.get(name)
     if (prior) {
       applyProjectSnapshot(name, prior)
+      if (focusAcgPreview) focusPreview(prior.openTabs)
       return
     }
     initProjectDefaults(name)
+    if (focusAcgPreview) focusPreview(defaultTabsForKind(name))
   }
 
   /* Avatar 变体开机即进入分身项目（跳过工坊 home），只执行一次。 */
@@ -2842,6 +3008,15 @@ export default function VibeCodingPage({
   // The H5 layer currently selected in the preview (edit mode) — the 编辑
   // panel refreshes to match. null = no element selected → 整体活动配置.
   const [h5Selected, setH5Selected] = useState<H5Selection | null>(null)
+  // Quick-edit object selection for the game and interest-card previews.
+  // Their right-side fields are derived from these semantic targets.
+  const [gameSelectedObject, setGameSelectedObject] =
+    useState<GameEditSelection | null>(null)
+  const [tarotSelectedObject, setTarotSelectedObject] =
+    useState<TarotEditSelection | null>(null)
+  // Canvas mode reuses the existing chat column instead of adding another
+  // sidebar. It always opens on conversation so ongoing AI work stays visible.
+  const [h5CanvasSidebarTab, setH5CanvasSidebarTab] = useState<'chat' | 'layers'>('chat')
   const [fileTreeWidth, setFileTreeWidth] = useState(220)
   const fileTreeDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
   /* File-tree panel is split into two accordion sections that can be
@@ -2867,9 +3042,9 @@ export default function VibeCodingPage({
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['src', 'src/pages', 'src/components']))
   /* Lifted from PlatformSidebar so opening a file anywhere can guarantee
    * the sidebar's owning project is expanded + visible. AI 分身直接进入
-   * 样板项目，因此首屏同步展开它的产物目录；工坊仍从空列表开始。 */
+   * 样板项目，因此首屏同步展开它的产物目录；工坊默认展开塔罗兴趣卡。 */
   const [platformOpenProjects, setPlatformOpenProjects] = useState<Set<string>>(
-    () => new Set(isAvatarStudio ? [AVATAR_PROJECT] : []),
+    () => new Set(isAvatarStudio ? [AVATAR_PROJECT] : [WORKSHOP_DEFAULT_PROJECT]),
   )
 
   const fileTree: FileNode[] = [
@@ -3233,14 +3408,14 @@ export default function VibeCodingPage({
    * 提案报告.md, 复盘.md, 执行看板.json …) into the 'briefs' / 'reports'
    * folders as the chat-driven steps complete. */
   const [projectTrees, setProjectTrees] = useState<Record<string, FileNode[]>>({
-    '塔罗小程序': fileTree,
+    [TAROT_INTEREST_CARD_PROJECT]: fileTree,
     '陶白白 Sensei 分身': aiPersonaFileTree,
     '粉丝互动机器人': aiPersonaFileTree,
-    // 六一儿童节 H5 — buildProductView('marketing-h5') will re-bucket
+    // 抖音 ACG 游戏新春会 H5 — buildProductView('marketing-h5') will re-bucket
     // this raw tree into 4 product leaves, so the concrete file list
     // here is mostly a placeholder so the row stops at "暂无文件".
-    '六一儿童节活动': [
-      { name: 'docs', type: 'dir', children: [{ name: '六一活动方案.md', type: 'file' }] },
+    '抖音 ACG 游戏新春会': [
+      { name: 'docs', type: 'dir', children: [{ name: '游戏新春会活动方案.md', type: 'file' }] },
       { name: 'assets', type: 'dir', children: [] },
       { name: 'gameplay', type: 'dir', children: [{ name: '玩法配置.json', type: 'file' }] },
       { name: 'config', type: 'dir', children: [{ name: 'h5.config.json', type: 'file' }] },
@@ -3256,34 +3431,16 @@ export default function VibeCodingPage({
   })
 
   /* preview tab */
-  // For proposal deep-link entries the right preview starts empty
-  // (artefact tabs auto-append later via the proposalDocs effect). For
-  // other project kinds we seed the standard 预览 + soul.md +
-  // app.tsx tabs.
+  // Proposal deep links start empty (artefact tabs append later); every
+  // existing product otherwise starts with only 预览. Files open on demand
+  // from the product tree or the + menu and remain in that project's snapshot.
   const wantsProposalDeepLink =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('project') === 'proposal'
-  const wantsChildrenDayDeepLink =
-    typeof window !== 'undefined' &&
-    ['h5', 'children-day'].includes(
-      new URLSearchParams(window.location.search).get('project') ?? '',
-    )
   const [openTabs, setOpenTabs] = useState(() =>
-    wantsProposalDeepLink
-      ? []
-      : wantsChildrenDayDeepLink
-        ? [{ label: '预览', closable: false }]
-      : [
-          { label: '预览', closable: false },
-          { label: 'soul.md', closable: true },
-          { label: 'app.tsx', closable: true },
-        ],
+    wantsProposalDeepLink ? [] : [{ label: '预览', closable: false }],
   )
-  // Default: 打开 soul.md（AI 分身定义）作为第一眼看到的文件，其次 app.tsx
-  // 可关。工作区布局下，预览 tab 也通过 productPinned 保持高亮。
-  const [activePreviewTab, setActivePreviewTab] = useState(
-    wantsProposalDeepLink || wantsChildrenDayDeepLink ? 0 : 1,
-  )
+  const [activePreviewTab, setActivePreviewTab] = useState(0)
 
   // When the right preview area is fully hidden (artifact-shape projects
   // with no artefacts yet), center the chat in the area between the
@@ -3344,11 +3501,11 @@ export default function VibeCodingPage({
   const [avatarPromptEdits, setAvatarPromptEdits] = useState<Record<string, string>>({})
   const [avatarPromptDrafts, setAvatarPromptDrafts] = useState<Record<string, string>>({})
   const [avatarPromptEditing, setAvatarPromptEditing] = useState(false)
-  /** Right-side edit panel (web-game only) — opens a visualization editor
-   *  alongside the game preview. */
+  /** Right-side edit panel — opens a visualization editor alongside the
+   *  active product preview. */
   const [editPanelOpen, setEditPanelOpen] = useState(false)
-  /** Canvas-style image editor (web-game 素材·图片) — lays every image on a
-   *  draggable board. Takes over the whole preview area when open. */
+  /** Canvas editor — web-game images use the asset board; marketing H5 uses
+   *  an immersive full-page canvas. Takes over the preview content when open. */
   const [canvasEditOpen, setCanvasEditOpen] = useState(false)
   // AI 分身 preview scene — toggled from the toolbar dropdown (left of the
   // refresh icon): 'chat' = 私信/AI 聊天 surface; 'comment' = 评论区 surface.
@@ -3388,16 +3545,6 @@ export default function VibeCodingPage({
     ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
   }
   const previewHidden = openTabs.length === 0 || previewCollapsed
-  const effectiveChatWidth: string | number = previewHidden
-    ? isPlatform
-      ? `calc(100vw - ${effectiveSidebarWidth}px)`
-      : `min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px)`
-    : chatWidthPx
-  const effectiveChatLeft: string | number = previewHidden
-    ? isPlatform
-      ? `${effectiveSidebarWidth}px`
-      : `calc(${effectiveSidebarWidth}px + max(0px, (100vw - ${effectiveSidebarWidth}px - ${PREVIEW_HIDDEN_CHAT_MAX}px) / 2))`
-    : effectiveSidebarWidth
 
   /* ─── Category-tab helpers ─── */
   /** The active project's product-view tree (synthetic plain-language
@@ -3577,8 +3724,8 @@ export default function VibeCodingPage({
     // source file. Everything under assets/ or docs/ → 资产.
     if (kindOf(projectTitle) === 'web-game') {
       if (filename.startsWith('…')) return
-      // 预览 / 素材 jump to the game's fixed runtime / assets tabs.
-      if (filename === '预览' || filename === '素材') {
+      // 预览 / 素材库 jump to the game's fixed runtime / assets tabs.
+      if (filename === '预览' || filename === ASSET_LIBRARY_LABEL) {
         const idx = openTabs.findIndex((t) => t.label === filename)
         if (idx >= 0) setActivePreviewTab(idx)
         return
@@ -3624,9 +3771,18 @@ export default function VibeCodingPage({
         return
       }
     }
-    // 小程序的基础信息合并基础设置与项目文档。
+    // 小程序的结构化叶子直接按语义标签打开，避免 synthetic product
+    // path 落入代码编辑器后丢失对应的设置 / 素材视图。
     const miniProgramConfig = getMiniProgramConfig(projectTitle)
-    if (miniProgramConfig && filename === BASIC_INFO_LABEL) {
+    if (
+      miniProgramConfig &&
+      (
+        filename === BASIC_INFO_LABEL ||
+        filename === INTEREST_CARD_CONFIG_LABEL ||
+        filename === ASSET_LIBRARY_LABEL ||
+        filename === PROJECT_MEMORY_LABEL
+      )
+    ) {
       openNamedTab(filename)
       return
     }
@@ -3649,7 +3805,23 @@ export default function VibeCodingPage({
       filename === '文档' &&
       !proposalDocs[filename]
     ) {
-      setProposalDocs((prev) => ({ ...prev, [filename]: CHILDREN_DAY_PLAN_MD }))
+      setProposalDocs((prev) => ({ ...prev, [filename]: ACG_NEW_YEAR_PLAN_MD }))
+    }
+    // H5 product leaves are structured views, not raw source files. Product
+    // tree paths include the synthetic `__product__/...` prefix, so route by
+    // the leaf name to keep renderTab's 文档 / 素材 dispatch reachable.
+    if (
+      activeProjectKind === 'marketing-h5' &&
+      (
+        filename === BASIC_INFO_LABEL ||
+        filename === '文档' ||
+        filename === DATABASE_LABEL ||
+        filename === H5_GAMEPLAY_CONFIG_LABEL ||
+        filename === ASSET_LIBRARY_LABEL
+      )
+    ) {
+      openNamedTab(filename)
+      return
     }
     // Raw source trees can contain repeated basenames (for example several
     // `index.ts` files). Keep the tree path in the tab identity so the active
@@ -3665,7 +3837,7 @@ export default function VibeCodingPage({
       const isProposalArtefact =
         filename in proposalDocs ||
         (activeProjectKind === 'marketing-h5' &&
-          (filename === '文档' || filename === '素材'))
+          (filename === '文档' || filename === ASSET_LIBRARY_LABEL))
       const next = [
         ...openTabs,
         { label: tabLabel, closable: !isProposalArtefact },
@@ -4588,6 +4760,10 @@ export default function VibeCodingPage({
 
   /* preview filter */
   const [activeFilter, setActiveFilter] = useState('mini-program')
+  const [tarotInterestCardConfig, setTarotInterestCardConfig] =
+    useState<TarotInterestCardConfig>(() => ({
+      ...DEFAULT_TAROT_INTEREST_CARD_CONFIG,
+    }))
   /* Project/session rename — pencil icons flip these flags, the paired
    * span is replaced with an input, save on Enter/blur. */
   // Deep-link: `?project=proposal` opens the 沪上火锅 proposal flow
@@ -4596,17 +4772,17 @@ export default function VibeCodingPage({
   const wantsProposalProject =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('project') === 'proposal'
-  const wantsChildrenDayProject =
+  const wantsAcgNewYearProject =
     typeof window !== 'undefined' &&
-    ['h5', 'children-day'].includes(
+    ['h5', 'children-day', 'acg-new-year'].includes(
       new URLSearchParams(window.location.search).get('project') ?? '',
     )
   const [projectTitle, setProjectTitle] = useState(
     wantsProposalProject
       ? '沪上火锅·五一种草提案'
-      : wantsChildrenDayProject
-        ? '六一儿童节活动'
-        : '塔罗小程序',
+      : wantsAcgNewYearProject
+        ? '抖音 ACG 游戏新春会'
+        : WORKSHOP_DEFAULT_PROJECT,
   )
   // Latest active project — read inside async generation callbacks to avoid
   // seeding the wrong project's preview if the user navigated away.
@@ -4686,14 +4862,20 @@ export default function VibeCodingPage({
       setAvatarPromptEditing(false)
       setGameSelectedAsset(null)
       setH5Selected(null)
+      setGameSelectedObject(null)
+      setTarotSelectedObject(null)
     })
     return () => cancelAnimationFrame(frame)
   }, [activePreviewTab])
-  // Each time the H5 edit panel closes, drop the layer selection so the next
-  // open starts on the 整体活动配置 (overall) view rather than a stale element.
+  // Each time quick edit closes, drop object selections so the next open
+  // starts from the project-level field set rather than a stale element.
   useEffect(() => {
     if (editPanelOpen) return
-    const frame = requestAnimationFrame(() => setH5Selected(null))
+    const frame = requestAnimationFrame(() => {
+      setH5Selected(null)
+      setGameSelectedObject(null)
+      setTarotSelectedObject(null)
+    })
     return () => cancelAnimationFrame(frame)
   }, [editPanelOpen])
   /* Derive the active project's "kind" from its title — controls which
@@ -4702,6 +4884,37 @@ export default function VibeCodingPage({
    * don't accidentally flip the preview. */
   const activeProjectKind: ProjectKind =
     kindOf(projectTitle)
+  const h5CanvasModeOpen =
+    canvasEditOpen &&
+    activeProjectKind === 'marketing-h5' &&
+    openTabs[activePreviewTab]?.label === '预览'
+  const gameCanvasModeOpen =
+    canvasEditOpen &&
+    activeProjectKind === 'web-game' &&
+    openTabs[activePreviewTab]?.label === '预览'
+  const immersiveCanvasModeOpen = h5CanvasModeOpen || gameCanvasModeOpen
+  const projectSidebarHidden =
+    sidebarFullyHidden || immersiveCanvasModeOpen
+  const effectiveSidebarWidth = immersiveCanvasModeOpen
+    ? 0
+    : baseEffectiveSidebarWidth
+  const effectiveChatWidth: string | number = previewHidden
+    ? isPlatform
+      ? `calc(100vw - ${effectiveSidebarWidth}px)`
+      : `min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px)`
+    : chatWidthPx
+  const effectiveChatLeft: string | number = previewHidden
+    ? isPlatform
+      ? `${effectiveSidebarWidth}px`
+      : `calc(${effectiveSidebarWidth}px + max(0px, (100vw - ${effectiveSidebarWidth}px - ${PREVIEW_HIDDEN_CHAT_MAX}px) / 2))`
+    : effectiveSidebarWidth
+  useEffect(() => {
+    onCanvasModeChange?.(immersiveCanvasModeOpen)
+  }, [immersiveCanvasModeOpen, onCanvasModeChange])
+  useEffect(
+    () => () => onCanvasModeChange?.(false),
+    [onCanvasModeChange],
+  )
   /** Drives the right-side preview container choice. Detailed kind still
    *  picks variants inside each shape (e.g. ai-avatar vs mini-program
    *  both live under 'app'). */
@@ -4761,7 +4974,13 @@ export default function VibeCodingPage({
   ) : activeProjectKind === 'web-game' ? (
     <div className="relative min-h-0 w-full flex-1 overflow-hidden bg-black">
       {gameStep === 'idle' || gameStep === 'done' ? (
-        <GarudaGamePreview key={`${miniAppKey}-${activeGameScreen ?? 'playable'}`} screen={activeGameScreen} />
+        <GarudaGamePreview
+          key={`${miniAppKey}-${activeGameScreen ?? 'playable'}`}
+          screen={activeGameScreen}
+          editing={editPanelOpen}
+          selection={gameSelectedObject}
+          onSelect={setGameSelectedObject}
+        />
       ) : (
         <GameBuildProgress step={gameStep} />
       )}
@@ -4778,6 +4997,20 @@ export default function VibeCodingPage({
         editing={editPanelOpen}
         selected={h5Selected}
         onSelect={setH5Selected}
+      />
+    </PhoneMockup>
+  ) : projectTitle === TAROT_INTEREST_CARD_PROJECT ? (
+    <PhoneMockup width={310} height={671} framed={false}>
+      <TarotInterestCardPreview
+        view={activeFilter === 'interest-card-landing' ? 'landing' : 'card'}
+        config={tarotInterestCardConfig}
+        editing={editPanelOpen}
+        selection={tarotSelectedObject}
+        onSelect={setTarotSelectedObject}
+        onViewChange={(view) => {
+          setTarotSelectedObject(null)
+          setActiveFilter(view === 'landing' ? 'interest-card-landing' : 'mini-program')
+        }}
       />
     </PhoneMockup>
   ) : activeFilter === 'ai-avatar' ? (
@@ -4993,6 +5226,11 @@ export default function VibeCodingPage({
       ? [{ label: 'AI分身', value: 'mini-program' }]
       : activeProjectKind === 'marketing-h5'
         ? [{ label: 'H5活动', value: 'mini-program' }]
+      : projectTitle === TAROT_INTEREST_CARD_PROJECT
+        ? [
+            { label: '兴趣卡', value: 'mini-program' },
+            { label: '兴趣卡落地页', value: 'interest-card-landing' },
+          ]
       : [
           { label: '小程序', value: 'mini-program' },
           { label: 'Feed 卡', value: 'xiaohua' },
@@ -5057,36 +5295,62 @@ export default function VibeCodingPage({
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className="fixed inset-0 flex min-h-0 flex-col overflow-hidden bg-[var(--color-surface-1)] font-[var(--font-sans)] text-[var(--color-ink)]"
       // 创作者中心外壳会设置 --cc-top（顶栏高度）；独立运行时为 0
-      style={{ top: 'var(--cc-top, 0px)' }}
+      style={{
+        top: immersiveCanvasModeOpen ? 0 : 'var(--cc-top, 0px)',
+      }}
     >
       {/* ── Platform layout: project sidebar on the far left. Width is
            user-draggable via the right-edge handle; collapse is toggled
-           via the PanelLeft button. Stays mounted while collapsed and
-           animates its width to 0 so the transition feels continuous —
-           the card frame's `left` and the body's `marginLeft` ride the
-           same eased width change. The inner column stays at its natural
-           width so its contents don't reflow mid-animation; the outer
-           clip hides them as the width closes. ── */}
+           via the PanelLeft button. The inner column stays at its natural
+           width while the outer wrapper clips it. Width and dependent
+           offsets update in the same frame so dragging exposes one edge. ── */}
       {isPlatform && (
-        <div
-          className="absolute inset-y-0 left-0 z-40 overflow-hidden transition-[width] duration-300 ease-out"
-          style={{
-            width: sidebarCollapsed ? 0 : platformSidebarWidth,
+        <motion.div
+          data-side-nav-motion
+          data-product={sideNavProductId}
+          data-state={projectSidebarHidden ? 'collapsed' : 'expanded'}
+          initial={false}
+          animate={{
+            x:
+              projectSidebarHidden && !reduceSideNavMotion
+                ? -SIDE_NAV_MOTION_OFFSET
+                : 0,
+            opacity: projectSidebarHidden ? 0 : 1,
           }}
-          aria-hidden={sidebarCollapsed}
-          inert={sidebarCollapsed}
+          transition={{
+            duration: reduceSideNavMotion ? 0 : SIDE_NAV_MOTION_DURATION,
+            ease: 'easeOut',
+          }}
+          className="absolute inset-y-0 left-0 z-40 overflow-hidden"
+          style={{
+            width: immersiveCanvasModeOpen
+              ? 0
+              : sidebarFullyHidden && navVersion === 3
+                ? 0
+                : sidebarRailCollapsed
+                  ? configuredCollapsedSidebarWidth
+                  : platformSidebarWidth,
+            pointerEvents: projectSidebarHidden ? 'none' : 'auto',
+          }}
+          aria-hidden={projectSidebarHidden}
+          inert={projectSidebarHidden}
         >
           {/* Inner column locked at the full sidebar width — clipping
               comes from the outer overflow-hidden, so contents stay
-              still while the wrapper width animates. */}
+              still while the wrapper closes. */}
           <div
             className="absolute inset-y-0 left-0"
-            style={{ width: platformSidebarWidth }}
+            style={{
+              width: sidebarRailCollapsed
+                ? configuredCollapsedSidebarWidth
+                : platformSidebarWidth,
+            }}
           >
           <PlatformSidebar
             variant={variant}
+            collapsed={sidebarRailCollapsed}
             onOpenPlaceholder={openPlatformPlaceholderPage}
-            onCollapseSidebar={() => setSidebarCollapsed(true)}
+            onCollapseSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
             projectFilter={
               isAvatarStudio
                 ? (p) => p === AVATAR_PROJECT
@@ -5143,59 +5407,37 @@ export default function VibeCodingPage({
             categoryExtras={categoryExtras}
             createdProjects={createdProjects}
           />
-          {/* Right-edge drag handle — only active when sidebar is expanded
-              (no point dragging a zero-width strip). */}
-          {!sidebarCollapsed && (
-            <div
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="调整侧栏宽度"
-              aria-valuemin={SIDE_NAV_NUMERIC_CONSTRAINTS.width.min}
-              aria-valuemax={SIDE_NAV_NUMERIC_CONSTRAINTS.width.max}
-              aria-valuenow={Math.round(platformSidebarWidth)}
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
-                e.preventDefault()
-                const { min, max } = SIDE_NAV_NUMERIC_CONSTRAINTS.width
-                setPlatformSidebarWidthState({
-                  configuredWidth: configuredSidebarWidth,
-                  width: Math.min(
-                    max,
-                    Math.max(
-                      min,
-                      platformSidebarWidth + (e.key === 'ArrowRight' ? 8 : -8),
-                    ),
-                  ),
-                })
-              }}
-              onPointerDown={onSidebarDragStart}
-              onPointerMove={onSidebarDragMove}
-              onPointerUp={onSidebarDragEnd}
-              onPointerCancel={onSidebarDragEnd}
-              className="group absolute right-0 top-0 bottom-0 z-10 w-1 translate-x-1/2 cursor-col-resize touch-none select-none"
-            >
-              <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
-            </div>
-          )}
           </div>
+        </motion.div>
+      )}
+      {isPlatform && !immersiveCanvasModeOpen && !sidebarCollapsed && (
+        <div
+          className="pointer-events-none absolute inset-y-0 z-50 w-0"
+          style={{ left: platformSidebarWidth }}
+        >
+          <SideNavResizeHandle
+            value={platformSidebarWidth}
+            onChange={setPlatformSidebarWidth}
+            ariaLabel="调整侧栏宽度"
+          />
         </div>
       )}
 
       {/* ── Platform layout: shared white card frame behind chat + preview.
            Lives below body content (z) so chat aside (z-30) and preview
            (inside body z-10) paint on top. Provides rounded/ring/bg so the
-           two columns read as a single card split by chat's border-r.
-           `left` animates with the sidebar width for a smooth grow/shrink. */}
+           two columns read as a single card split by chat's border-r. */}
       {isPlatform && (
         <div
           aria-hidden
-          className="pointer-events-none absolute z-[5] top-0 bottom-0 right-0 bg-[var(--color-surface-0)] transition-[left] duration-300 ease-out"
+          className={`pointer-events-none absolute z-[5] top-0 bottom-0 right-0 ${
+            navVersion === 3 ? 'bg-white' : 'bg-[var(--color-surface-0)]'
+          }`}
           style={{ left: effectiveSidebarWidth }}
         />
       )}
 
-      {isPlatform && sidebarCollapsed && (platformHomeOpen || platformSecondaryPageOpen) && (
+      {isPlatform && !immersiveCanvasModeOpen && sidebarFullyHidden && navVersion !== 3 && (platformHomeOpen || platformSecondaryPageOpen) && (
         <button
           ref={sidebarExpandButtonRef}
           type="button"
@@ -5204,7 +5446,7 @@ export default function VibeCodingPage({
           aria-label="展开侧栏"
           className="absolute left-6 top-5 z-50 flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
         >
-          <FlexAlignGlyph side="left" size={13} />
+          <SideNavPanelStateIcon collapsed />
         </button>
       )}
 
@@ -5237,8 +5479,7 @@ export default function VibeCodingPage({
       )}
 
       {/* The previous floating "expand preview" button was removed — the
-           same toggle now lives in the chat header (PanelRightOpen icon)
-           and works both directions. */}
+           same toggle now lives in the chat header and works both directions. */}
 
       {/* ══════ Header ══════ Non-platform layouts only: normal in-flow top
           bar. Platform layout no longer shows a top header — its utilities
@@ -5263,7 +5504,7 @@ export default function VibeCodingPage({
           )}
           {/* Platform + sidebar collapsed: relocate the brand SVG and an
                expand button into the card's top-left header. */}
-          {isPlatform && sidebarCollapsed && (
+          {isPlatform && sidebarFullyHidden && navVersion !== 3 && (
             <>
               <svg
                 width="108"
@@ -5295,7 +5536,7 @@ export default function VibeCodingPage({
                 aria-label="展开侧栏"
                 className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
               >
-                <FlexAlignGlyph side="left" size={13} />
+                <SideNavPanelStateIcon collapsed />
               </button>
               <div className="mx-1 h-4 w-px bg-[var(--divider)]" />
             </>
@@ -5414,9 +5655,9 @@ export default function VibeCodingPage({
         {/* ────── Chat aside — fixed to viewport. Code: below header, flush left with 20px gutter. Platform: flush against the preview inside the shared card (card frame is painted separately just below). Otherwise: pins top-0 on the right with a rounded glass panel. Hidden when platform home screen / resource library page is active. ────── */}
         {!(isPlatform && (platformHomeOpen || platformSecondaryPageOpen)) && (
         <aside
-          className={`absolute z-30 flex flex-col transition-[width,left] duration-300 ease-out ${
+          className={`absolute z-30 flex flex-col ${
             isPlatform
-              ? `top-0 bottom-0 ${previewHidden ? '' : 'border-r border-[var(--divider-soft)]'}`
+              ? `${immersiveCanvasModeOpen ? 'top-11' : 'top-0'} bottom-0 ${previewHidden ? '' : 'border-r border-[var(--divider-soft)]'}`
               : chatOnLeft
                 ? 'left-5 top-14 bottom-5'
                 : 'right-0 top-0 bottom-0'
@@ -5462,7 +5703,7 @@ export default function VibeCodingPage({
               Right: 分享 + 展开/收起 X. ══════ */}
           <div className="flex h-10 w-full shrink-0 items-center justify-between gap-2 px-3">
             <div className="flex min-w-0 flex-1 items-center gap-1.5">
-              {isPlatform && sidebarCollapsed && (
+              {isPlatform && !immersiveCanvasModeOpen && sidebarFullyHidden && navVersion !== 3 && (
                 <button
                   ref={sidebarExpandButtonRef}
                   type="button"
@@ -5471,7 +5712,7 @@ export default function VibeCodingPage({
                   aria-label="展开侧栏"
                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
                 >
-                  <FlexAlignGlyph side="left" size={13} />
+                  <SideNavPanelStateIcon collapsed />
                 </button>
               )}
               <div ref={sessionMenuRef} className="relative flex min-w-0 items-center">
@@ -5633,18 +5874,55 @@ export default function VibeCodingPage({
                 <button
                   type="button"
                   title="展开预览"
+                  aria-label="展开预览"
                   onClick={() => setPreviewCollapsed(false)}
                   className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
                 >
-                  <FlexAlignGlyph side="right" size={13} />
+                  <SideNavPanelStateIcon side="right" collapsed />
                 </button>
               )}
             </div>
           </div>
+          {h5CanvasModeOpen && (
+            <div
+              role="tablist"
+              aria-label="画布左侧面板"
+              className="flex h-9 shrink-0 items-end gap-4 border-b border-[var(--divider-soft)] px-4"
+            >
+              <button
+                id="h5-canvas-chat-tab"
+                type="button"
+                role="tab"
+                aria-selected={h5CanvasSidebarTab === 'chat'}
+                aria-controls="h5-canvas-chat-panel"
+                onClick={() => setH5CanvasSidebarTab('chat')}
+                className="relative flex h-full items-center px-0.5 text-[12px] font-medium text-[var(--color-ink)]/45 transition-colors hover:text-[var(--color-ink)]/75 aria-selected:text-[var(--color-ink)] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-transparent aria-selected:after:bg-sky-500"
+              >
+                对话
+              </button>
+              <button
+                id="h5-canvas-layers-tab"
+                type="button"
+                role="tab"
+                aria-selected={h5CanvasSidebarTab === 'layers'}
+                aria-controls="h5-canvas-layers-panel"
+                onClick={() => setH5CanvasSidebarTab('layers')}
+                className="relative flex h-full items-center px-0.5 text-[12px] font-medium text-[var(--color-ink)]/45 transition-colors hover:text-[var(--color-ink)]/75 aria-selected:text-[var(--color-ink)] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-transparent aria-selected:after:bg-sky-500"
+              >
+                图层
+              </button>
+            </div>
+          )}
           {/* ── Chat body: messages + composer. Lives under the Header
                in its own flex-col so the Header above can stay edge-to-
                edge while the body retains its inner padding. ── */}
-          <div className={`flex min-h-0 flex-1 flex-col ${isPlatform ? 'pb-2' : chatOnLeft ? '' : 'px-1.5 pt-3 pb-1.5'} ${isPlatform ? 'mx-auto w-full max-w-[760px]' : ''}`}>
+          <div
+            id={h5CanvasModeOpen ? 'h5-canvas-chat-panel' : undefined}
+            role={h5CanvasModeOpen ? 'tabpanel' : undefined}
+            aria-labelledby={h5CanvasModeOpen ? 'h5-canvas-chat-tab' : undefined}
+            hidden={h5CanvasModeOpen && h5CanvasSidebarTab === 'layers'}
+            className={`flex min-h-0 flex-1 flex-col ${isPlatform ? 'pb-2' : chatOnLeft ? '' : 'px-1.5 pt-3 pb-1.5'} ${isPlatform ? 'mx-auto w-full max-w-[760px]' : ''}`}
+          >
           {/* Scrollable messages */}
           <div ref={chatScrollRef} className={`thin-scroll flex-1 overflow-y-auto px-5 pt-8 pb-8 ${chatCleared ? '' : 'space-y-6'} ${fadeClassFromEdges(chatScrollEdges)}`}>
             {(chatCleared || (!needsFlowActive && !showChatPublish && sentMessages.length === 0)) && proposalStep === 'idle' ? (
@@ -7198,7 +7476,10 @@ export default function VibeCodingPage({
                 </span>
               </div>
             ) : (
-            <div className="relative flex flex-col gap-4 overflow-hidden rounded-[24px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]">
+            <div
+              style={{ height: CHAT_COMPOSER_HEIGHT }}
+              className="relative flex flex-col gap-4 overflow-hidden rounded-[24px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]"
+            >
               {/* Top rainbow-tint blur decoration */}
               <div
                 aria-hidden
@@ -7209,9 +7490,8 @@ export default function VibeCodingPage({
                 }}
               />
 
-              {/* Input area — default 32px tall, grows with content up
-                  to ~160px (8 lines) then scrolls internally. */}
-              <div className="relative flex min-h-[32px] items-center pl-2">
+              {/* Input area — 卡片定高 114px，内容超出后内部滚动。 */}
+              <div className="relative min-h-0 flex-1 pl-2">
                 <div
                   ref={chatInputRef}
                   contentEditable="plaintext-only"
@@ -7261,13 +7541,14 @@ export default function VibeCodingPage({
                       sendChat()
                     }
                   }}
-                  className="chat-editable thin-scroll block max-h-[160px] min-h-0 w-full overflow-y-auto bg-transparent text-[14px] leading-[20px] text-[var(--color-ink)] outline-none"
+                  className="chat-editable thin-scroll block h-full w-full overflow-y-auto bg-transparent text-[14px] leading-[20px] text-[var(--color-ink)] outline-none"
                 />
               </div>
 
               {/* Action row */}
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
+                  <ComposerLocalFileButton className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]" />
                   <button
                     type="button"
                     onClick={openResourceLibraryPage}
@@ -7275,20 +7556,6 @@ export default function VibeCodingPage({
                   >
                     <FolderCode size={14} strokeWidth={1.8} />
                     扩展
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="附件"
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-                  >
-                    <Paperclip size={14} strokeWidth={1.8} />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Figma"
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-                  >
-                    <FigmaIcon size={14} />
                   </button>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -7314,11 +7581,25 @@ export default function VibeCodingPage({
             )}
           </div>
           </div>
+          {h5CanvasModeOpen && (
+            <div
+              hidden={h5CanvasSidebarTab !== 'layers'}
+              className="flex min-h-0 flex-1 flex-col"
+            >
+              <H5CanvasLayerTree
+                selection={h5Selected}
+                onSelect={setH5Selected}
+              />
+            </div>
+          )}
           </div>
           {/* @mention picker — fixed positioning lets it escape the chat
                column stacking, anchored to the composer via anchor rect. */}
           <MentionPicker
-            open={!!mentionAnchor}
+            open={
+              !!mentionAnchor &&
+              (!h5CanvasModeOpen || h5CanvasSidebarTab === 'chat')
+            }
             anchor={mentionAnchor}
             skills={mentionSkills}
             tools={mentionTools}
@@ -7348,21 +7629,19 @@ export default function VibeCodingPage({
         )}
       <div
         className={`relative z-10 flex min-h-0 flex-1 overflow-hidden ${
-          isPlatform && (platformHomeOpen || platformSecondaryPageOpen)
-            ? ''
-            : 'transition-[margin] duration-300 ease-out'
-        } ${chatCollapsed || isPlatform ? '' : bodyMarginClass} ${
-          isPlatform && !platformHomeOpen && !platformSecondaryPageOpen ? 'pt-3' : ''
+          chatCollapsed || isPlatform ? '' : bodyMarginClass
         }`}
         style={
           isPlatform
             ? {
                 marginLeft:
-                  platformHomeOpen || platformSecondaryPageOpen
-                    ? effectiveSidebarWidth
-                    : previewHidden
-                      ? `calc(${effectiveSidebarWidth}px + min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px))`
-                      : effectiveSidebarWidth + platformChatWidth,
+                  immersiveCanvasModeOpen
+                    ? 0
+                    : platformHomeOpen || platformSecondaryPageOpen
+                      ? effectiveSidebarWidth
+                      : previewHidden
+                        ? `calc(${effectiveSidebarWidth}px + min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px))`
+                        : effectiveSidebarWidth + platformChatWidth,
               }
             : undefined
         }
@@ -7866,9 +8145,8 @@ export default function VibeCodingPage({
           // each with its display name + kind for the data dashboard.
           const published: DataOpsProject[] = [
             '陶白白 Sensei 分身',
-            '塔罗小程序',
-            '六一儿童节活动',
-            '抖音 AI 工坊设计探索',
+            TAROT_INTEREST_CARD_PROJECT,
+            '抖音 ACG 游戏新春会',
             '射击小游戏',
           ]
             .filter((n) => (isAvatarStudio ? n === AVATAR_PROJECT : n !== AVATAR_PROJECT))
@@ -7922,7 +8200,10 @@ export default function VibeCodingPage({
               has been collapsed into one toolbar — tab-specific actions
               (编辑 / 重新加载) live as small overlays on the content
               below so this header stays consistent across tabs. ══════ */}
-          <div className="flex h-10 shrink-0 items-center justify-between border-b border-[var(--divider-soft)] px-2">
+          <div
+            hidden={immersiveCanvasModeOpen}
+            className="flex h-10 shrink-0 items-center justify-between border-b border-[var(--divider-soft)] px-2"
+          >
             <div className="tab-scroll flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto">
               {openTabs.map((tab, i) => {
                 const isActive = i === activePreviewTab || (!tab.closable && productPinned)
@@ -8083,21 +8364,8 @@ export default function VibeCodingPage({
                 className="flex h-7 items-center gap-1.5 rounded-md bg-[var(--color-ink)] px-2.5 text-[12px] font-medium text-[var(--color-ink-contrast)] transition-opacity hover:opacity-90"
                 title="发布"
               >
-                <Upload size={11} strokeWidth={2} />
                 发布
               </button>
-              <div className="flex items-center gap-0.5">
-                {/* 项目文件 panel toggle hidden — code now lives in the
-                    在 + 菜单里打开的「项目文件」editor tab instead. */}
-                <button
-                  type="button"
-                  onClick={() => setPreviewCollapsed(true)}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink)]/45 transition-colors hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/75"
-                  title="收起预览"
-                >
-                  <FlexAlignGlyph side="right" size={13} />
-                </button>
-              </div>
             </div>
           </div>
 
@@ -8109,6 +8377,84 @@ export default function VibeCodingPage({
             const previewToolbar = (() => {
               const lbl = openTabs[activePreviewTab]?.label ?? ''
               const isPageTab = isPageCategory(lbl) && isMultiChildCategory(lbl)
+              const isUnifiedEditablePreview =
+                lbl === '预览' &&
+                (activeProjectKind === 'marketing-h5' ||
+                  activeProjectKind === 'web-game')
+              if (isUnifiedEditablePreview) {
+                const isGamePreview = activeProjectKind === 'web-game'
+                const toolbarProjectName = displayProjectName(projectTitle)
+                  .replace(/^抖音\s*ACG\s*/, '')
+                return (
+                  <div className="flex h-10 shrink-0 items-center gap-2 border-b border-black/[0.06] bg-white px-3">
+                    <div className="flex w-[196px] shrink-0 items-center">
+                      <span className="truncate rounded-lg bg-[#f5f7fa] px-2.5 py-1.5 text-[12px] font-semibold leading-4 text-[#1c1f23]">
+                        {toolbarProjectName}
+                      </span>
+                    </div>
+                    <div className="ml-auto flex min-w-0 items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        aria-label="重新加载"
+                        title="重新加载"
+                        onClick={() => setMiniAppKey((key) => key + 1)}
+                        className="flex size-6 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[#f5f7fa]"
+                      >
+                        <span className="flex size-3.5 items-center justify-center">
+                          <img
+                            src="/icons/h5-editor/refresh.svg"
+                            alt=""
+                            className="size-[11px]"
+                          />
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={canvasEditOpen}
+                        title="画布编辑"
+                        onClick={() => {
+                          setEditPanelOpen(false)
+                          if (isGamePreview) setGameSelectedAsset(null)
+                          else setH5Selected(null)
+                          setH5CanvasSidebarTab('chat')
+                          setConsoleOpen(false)
+                          setCanvasEditOpen(true)
+                        }}
+                        className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa] aria-pressed:bg-[#f5f7fa]"
+                      >
+                        <span className="flex size-4 items-center justify-center">
+                          <img
+                            src="/icons/h5-editor/canvas.svg"
+                            alt=""
+                            className="h-3 w-[13.333px]"
+                          />
+                        </span>
+                        <span>画布编辑</span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={editPanelOpen}
+                        title="快速编辑"
+                        onClick={() => {
+                          setCanvasEditOpen(false)
+                          if (isGamePreview) setGameSelectedAsset(null)
+                          setEditPanelOpen((open) => !open)
+                        }}
+                        className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa] aria-pressed:bg-[#f5f7fa]"
+                      >
+                        <span className="flex size-4 items-center justify-center">
+                          <img
+                            src="/icons/h5-editor/quick-select.svg"
+                            alt=""
+                            className="size-[14.474px]"
+                          />
+                        </span>
+                        <span>快速编辑</span>
+                      </button>
+                    </div>
+                  </div>
+                )
+              }
               // ── LEFT: object tabs / mode filters / surface label ──
               let toolbarTabs: ReactNode
               if (activeProjectKind === 'web-app') {
@@ -8128,7 +8474,7 @@ export default function VibeCodingPage({
                 toolbarTabs =
                   isPageTab ? (
                     renderCategoryTabs(lbl)
-                  ) : lbl === '素材' ? (
+                  ) : lbl === ASSET_LIBRARY_LABEL ? (
                     <div className="flex items-center gap-6">
                       {garudaKindTabs().map((k) => (
                         <button
@@ -8217,17 +8563,57 @@ export default function VibeCodingPage({
                     </div>
                   )}
                   <ToolbarAction icon={RefreshCw} label="重新加载" iconOnly onClick={() => setMiniAppKey((k) => k + 1)} />
-                  <ToolbarAction icon={Smartphone} label="真机预览" iconOnly />
-                  {lbl === '素材' && activeProjectKind === 'web-game' && gameAssetKind === 'image' && (
+                  {!(activeProjectKind === 'marketing-h5' && lbl === '预览') && (
+                    <ToolbarAction icon={Smartphone} label="真机预览" iconOnly />
+                  )}
+                  {lbl === ASSET_LIBRARY_LABEL && activeProjectKind === 'web-game' && gameAssetKind === 'image' && (
                     <ToolbarAction icon={LayoutGrid} label="画布编辑" onClick={() => setCanvasEditOpen(true)} />
                   )}
-                  {lbl === '素材' && <ToolbarAction icon={Upload} label="上传" />}
-                  <ToolbarAction
-                    icon={Pencil}
-                    label="编辑"
-                    active={editPanelOpen}
-                    onClick={() => setEditPanelOpen((v) => !v)}
-                  />
+                  {lbl === ASSET_LIBRARY_LABEL && <ToolbarAction icon={Upload} label="上传" />}
+                  {activeProjectKind === 'marketing-h5' && lbl === '预览' ? (
+                    <div
+                      role="group"
+                      aria-label="编辑模式"
+                      className="flex shrink-0 overflow-hidden rounded-lg border border-[var(--color-ink)]/8"
+                    >
+                      <button
+                        type="button"
+                        aria-pressed={editPanelOpen}
+                        title="快速编辑"
+                        onClick={() => {
+                          setCanvasEditOpen(false)
+                          setEditPanelOpen((v) => !v)
+                        }}
+                        className="flex h-7 items-center gap-1 whitespace-nowrap border-r border-[var(--color-ink)]/8 px-2 text-[11px] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] aria-pressed:bg-sky-100 aria-pressed:text-sky-700"
+                      >
+                        <Pencil className="size-3" />
+                        <span>快速编辑</span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={canvasEditOpen}
+                        title="画布编辑"
+                        onClick={() => {
+                          setEditPanelOpen(false)
+                          setH5Selected(null)
+                          setH5CanvasSidebarTab('chat')
+                          setConsoleOpen(false)
+                          setCanvasEditOpen(true)
+                        }}
+                        className="flex h-7 items-center gap-1 whitespace-nowrap px-2 text-[11px] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] aria-pressed:bg-sky-100 aria-pressed:text-sky-700"
+                      >
+                        <LayoutGrid className="size-3" />
+                        <span>画布编辑</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <ToolbarAction
+                      icon={Pencil}
+                      label="编辑"
+                      active={editPanelOpen}
+                      onClick={() => setEditPanelOpen((v) => !v)}
+                    />
+                  )}
                 </>
               )
               return <ProductToolbar tabs={toolbarTabs} actions={toolbarActions} />
@@ -8561,7 +8947,7 @@ export default function VibeCodingPage({
                 })
                 const docValue =
                   activeProjectKind === 'marketing-h5'
-                    ? proposalDocs['文档'] ?? CHILDREN_DAY_PLAN_MD
+                    ? proposalDocs['文档'] ?? ACG_NEW_YEAR_PLAN_MD
                     : projectDocEdits[projectTitle] ??
                       PROJECT_DOCS[projectTitle] ??
                       buildDefaultProjectDoc(projectTitle, activeProjectKind)
@@ -8794,7 +9180,7 @@ export default function VibeCodingPage({
                   return (
                     <MarketingDocEditor
                       title="文档"
-                      value={proposalDocs['文档'] ?? CHILDREN_DAY_PLAN_MD}
+                      value={proposalDocs['文档'] ?? ACG_NEW_YEAR_PLAN_MD}
                       onChange={(next) =>
                         setProposalDocs((prev) => ({ ...prev, ['文档']: next }))
                       }
@@ -8803,8 +9189,8 @@ export default function VibeCodingPage({
                 }
                 // 素材 — visual asset grid using the same layout as 游戏 素材
                 // (grouped sections, zoom modal).
-                if (label === '素材') {
-                  return <GarudaAssetsView groups={CHILDREN_DAY_ASSET_GROUPS} />
+                if (label === ASSET_LIBRARY_LABEL) {
+                  return <GarudaAssetsView groups={ACG_NEW_YEAR_ASSET_GROUPS} />
                 }
               }
               // 小程序 product-view sections — config-driven structured tabs.
@@ -8813,15 +9199,18 @@ export default function VibeCodingPage({
                 if (label === '基础信息') {
                   return <MiniProgramSettingsForm config={miniProgramConfig} />
                 }
+                if (label === INTEREST_CARD_CONFIG_LABEL) {
+                  return <MiniProgramSettingsForm config={miniProgramConfig} />
+                }
                 if (label === '智能体') {
                   return <MiniProgramAgentView config={miniProgramConfig} />
                 }
-                if (label === '素材') {
-                  return <AssetGridView assets={miniProgramConfig.assets} />
+                if (label === ASSET_LIBRARY_LABEL) {
+                  return <GarudaAssetsView groups={miniProgramAssetGroups(miniProgramConfig)} />
                 }
               }
               // 网站 素材 — same GarudaAssetsView surface as H5 / 游戏 素材.
-              if (activeProjectKind === 'web-app' && label === '素材') {
+              if (activeProjectKind === 'web-app' && label === ASSET_LIBRARY_LABEL) {
                 return <GarudaAssetsView groups={WEBAPP_ASSET_GROUPS} />
               }
               // Project-specific object content (基础信息 / 能力配置 / 页面配置 /
@@ -8854,7 +9243,7 @@ export default function VibeCodingPage({
               // editor so they always surface real project content.
               if (
                 label === PAGE_CONFIG_LABEL ||
-                label === '素材' ||
+                label === ASSET_LIBRARY_LABEL ||
                 label === GAMEPLAY_CONFIG_LABEL ||
                 label === '知识库' ||
                 label === DATA_CONFIG_LABEL ||
@@ -8863,6 +9252,44 @@ export default function VibeCodingPage({
                 return withDataSourceToolbar(label, projectCodeView())
               }
               return codeView(label)
+            }
+
+            const activeLabel = openTabs[activePreviewTab]?.label
+            if (
+              activeProjectKind === 'marketing-h5' &&
+              activeLabel === '预览' &&
+              canvasEditOpen
+            ) {
+              return (
+                <H5CanvasEditor
+                  projectName={displayProjectName(projectTitle)}
+                  leftInset={platformChatWidth}
+                  preview={
+                    (runtimeConfigs[projectTitle] as MarketingH5PreviewConfig) ??
+                    getMarketingH5Preview(projectTitle)
+                  }
+                  selection={h5Selected}
+                  onSelect={setH5Selected}
+                  onClose={() => {
+                    setCanvasEditOpen(false)
+                    setH5Selected(null)
+                  }}
+                />
+              )
+            }
+            if (
+              activeProjectKind === 'web-game' &&
+              activeLabel === '预览' &&
+              canvasEditOpen
+            ) {
+              return (
+                <GameCanvasEditor
+                  projectName={displayProjectName(projectTitle)}
+                  screen={activeGameScreen}
+                  leftInset={platformChatWidth}
+                  onClose={() => setCanvasEditOpen(false)}
+                />
+              )
             }
 
             if (productPinned) {
@@ -8916,10 +9343,9 @@ export default function VibeCodingPage({
             // Every other tab — code files, MD artefacts, dashboards —
             // routes through renderTab, which knows how to render each
             // kind from its filename.
-            const activeLabel = openTabs[activePreviewTab]?.label
             if (activeProjectKind === 'web-game') {
               if (activeLabel === '预览') return productView
-              if (activeLabel === '素材') {
+              if (activeLabel === ASSET_LIBRARY_LABEL) {
                 // 画布编辑 (图片) takes over the whole preview area: every image
                 // laid out on a draggable board.
                 if (canvasEditOpen && gameAssetKind === 'image') {
@@ -8943,7 +9369,6 @@ export default function VibeCodingPage({
                 }
                 return (
                   <>
-                    {previewToolbar}
                     <GarudaAssetsView
                       activeKind={gameAssetKind}
                       onKindChange={setGameAssetKind}
@@ -9037,7 +9462,7 @@ export default function VibeCodingPage({
 
           {/* ── Console panel ── */}
           <AnimatePresence>
-            {consoleOpen && (
+            {consoleOpen && !immersiveCanvasModeOpen && (
               <motion.div
                 initial={{ height: 0 }}
                 animate={{ height: consoleHeight }}
@@ -9095,7 +9520,7 @@ export default function VibeCodingPage({
           </AnimatePresence>
 
           {/* console toggle when closed — float button */}
-          {!consoleOpen && (
+          {!consoleOpen && !immersiveCanvasModeOpen && (
             <button
               onClick={() => setConsoleOpen(true)}
               title="展开控制台"
@@ -9106,7 +9531,7 @@ export default function VibeCodingPage({
           )}
 
           {/* zoom control — only on the 预览 surface; scales the preview */}
-          {openTabs[activePreviewTab]?.label === '预览' && (
+          {openTabs[activePreviewTab]?.label === '预览' && !immersiveCanvasModeOpen && (
           <div className="absolute bottom-3 right-3 z-20 flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_8px_rgba(16,18,24,0.10)]">
             <button
               type="button"
@@ -9136,15 +9561,30 @@ export default function VibeCodingPage({
           )}
           </div>
 
-          {/* ── Visual edit panel — opens to the right of the preview for most
-               products. web-game uses the game-specific GarudaEditPanel; every
-               other docked kind gets the config-driven ProductEditPanel. H5 is
-               the exception: it uses a draggable floating panel (rendered below)
-               that follows the selected object. Sits before the file tree so
-               the file/code panel stays pinned far right. ── */}
-          {editPanelOpen && activeProjectKind !== 'marketing-h5' && !(activeProjectKind === 'web-game' && gameSelectedAsset?.kind === 'video') && (
-            <div className="relative shrink-0 border-l border-[var(--divider-soft)]" style={{ width: editPanelWidth }}>
-              {activeProjectKind === 'web-game' ? (
+          {/* ── Visual edit panel — a docked flex sibling that keeps the
+               preview visible instead of covering it. H5 binds the panel to
+               the selected layer; web-game uses its game-specific editor;
+               every other kind uses the config-driven ProductEditPanel. ── */}
+          {editPanelOpen && !immersiveCanvasModeOpen && !(activeProjectKind === 'web-game' && gameSelectedAsset?.kind === 'video') && (
+            <aside
+              aria-label="编辑栏"
+              data-edit-panel-layout="docked"
+              className="relative shrink-0 border-l border-[var(--divider-soft)]"
+              style={{ width: editPanelWidth }}
+            >
+              {activeProjectKind === 'marketing-h5' ? (
+                <H5LayerEditPanel
+                  selection={h5Selected}
+                  onClose={() => setEditPanelOpen(false)}
+                />
+              ) : projectTitle === TAROT_INTEREST_CARD_PROJECT ? (
+                <TarotInterestCardEditPanel
+                  value={tarotInterestCardConfig}
+                  onChange={setTarotInterestCardConfig}
+                  selection={tarotSelectedObject}
+                  onClose={() => setEditPanelOpen(false)}
+                />
+              ) : activeProjectKind === 'web-game' ? (
                 // When an asset canvas is open, 编辑 binds to that specific
                 // asset object; otherwise it edits the whole game.
                 gameSelectedAsset ? (
@@ -9153,7 +9593,10 @@ export default function VibeCodingPage({
                     onClose={() => setEditPanelOpen(false)}
                   />
                 ) : (
-                  <GarudaEditPanel onClose={() => setEditPanelOpen(false)} />
+                  <GarudaEditPanel
+                    selection={gameSelectedObject}
+                    onClose={() => setEditPanelOpen(false)}
+                  />
                 )
               ) : (
                 (() => {
@@ -9182,6 +9625,7 @@ export default function VibeCodingPage({
               )}
               <div
                 role="separator"
+                aria-label="调整编辑栏宽度"
                 aria-orientation="vertical"
                 onPointerDown={onEditPanelDragStart}
                 onPointerMove={onEditPanelDragMove}
@@ -9191,20 +9635,12 @@ export default function VibeCodingPage({
               >
                 <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
               </div>
-            </div>
-          )}
-
-          {/* H5 编辑用可拖动浮层（默认右侧 → 跟随选中对象），不占预览的版面宽度。 */}
-          {editPanelOpen && activeProjectKind === 'marketing-h5' && (
-            <H5FloatingEditPanel
-              selection={h5Selected}
-              onClose={() => setEditPanelOpen(false)}
-            />
+            </aside>
           )}
 
           {/* Right-side 项目代码库 panel hidden — code moved into the
               「项目文件」editor tab (opened from the + menu). */}
-          {fileTreePanelEnabled && fileTreeOpen && (
+          {fileTreePanelEnabled && fileTreeOpen && !immersiveCanvasModeOpen && (
             <div className="relative shrink-0" style={{ width: fileTreeWidth }}>
               <div className="thin-scroll flex h-full flex-col overflow-y-auto border-l border-[var(--divider-soft)] bg-[var(--color-surface-0)]/50">
                 {/* ── Section 1 — 对话上下文 (referenced skills / knowledge) ── */}

@@ -10,6 +10,11 @@ import {
   Crop,
   Box,
   Move,
+  Copy,
+  Eye,
+  Lock,
+  ArrowUp,
+  ArrowDown,
   ChevronDown,
   Clock,
   FileText,
@@ -19,6 +24,7 @@ import {
   Sparkles,
   type LucideIcon,
 } from '@/shared/icons'
+import type { H5CanvasNode } from './H5CanvasModel'
 
 /**
  * H5 图层编辑面板 — 跟随左侧预览选中的对象刷新不同的编辑属性。两级选择：
@@ -55,33 +61,51 @@ export type H5Selection =
   | { type: 'layer'; layer: H5LayerId }
   | { type: 'element'; el: H5ElementSel }
 
-const HERO_IMG = '/h5/children-day/hero-gifts.png'
-const LOTTERY_IMG = '/h5/children-day/lottery-cube.png'
+const HERO_IMG = '/assets/acg-new-year/hero.jpg'
+const LOTTERY_IMG = '/assets/acg-new-year/main-video.jpg'
 
 // Shared with the preview/editor shell; keeping this map beside its layer
 // types avoids two sources of truth for the H5 editing model.
 // eslint-disable-next-line react-refresh/only-export-components
 export const H5_LAYER_META: Record<H5LayerId, { label: string; icon: LucideIcon }> = {
   hero: { label: '头图', icon: ImageIcon },
-  countdown: { label: '倒计时', icon: Clock },
-  intro: { label: '活动介绍', icon: FileText },
-  lottery: { label: '幸运抽奖', icon: Gift },
-  task: { label: '参与任务', icon: ListChecks },
-  rules: { label: '活动规则', icon: ScrollText },
+  countdown: { label: '游戏会场', icon: Clock },
+  intro: { label: '主会场视频', icon: FileText },
+  lottery: { label: '开年高燃', icon: Gift },
+  task: { label: '榜单互动', icon: ListChecks },
+  rules: { label: '页面尾部', icon: ScrollText },
 }
 
 export default function H5LayerEditPanel({
   selection,
   onClose,
+  title = '快速编辑',
   floating = false,
   onHeaderPointerDown,
+  canvasNode,
+  onCanvasNodeChange,
+  onDuplicate,
+  onMoveLayer,
+  onToggleVisible,
+  onToggleLocked,
 }: {
   /** 当前选择：楼层 / 元素；null ⇒ 整体活动配置。 */
   selection: H5Selection | null
   onClose: () => void
+  /** 面板标题：普通预览为快速编辑，沉浸式画布中作为属性检查器。 */
+  title?: string
   /** 浮层模式：header 变成可拖拽手柄（带 grip 图标 + move 光标）。 */
   floating?: boolean
   onHeaderPointerDown?: (e: React.PointerEvent) => void
+  /** 画布模式下的实例属性；普通快速编辑不传。 */
+  canvasNode?: H5CanvasNode
+  onCanvasNodeChange?: (
+    patch: Partial<Omit<H5CanvasNode, 'id' | 'kind' | 'parentId'>>,
+  ) => void
+  onDuplicate?: () => void
+  onMoveLayer?: (direction: 'forward' | 'backward') => void
+  onToggleVisible?: () => void
+  onToggleLocked?: () => void
 }) {
   const layerId =
     selection?.type === 'layer'
@@ -111,12 +135,13 @@ export default function H5LayerEditPanel({
         {floating && (
           <Move size={13} strokeWidth={1.8} className="-ml-1 shrink-0 text-[var(--color-ink)]/35" />
         )}
-        <span className="text-[12.5px] font-semibold text-[var(--color-ink)]">编辑</span>
+        <span className="text-[12.5px] font-semibold text-[var(--color-ink)]">{title}</span>
         <span className="min-w-0 truncate text-[11px] text-[var(--color-ink)]/40">{crumb}</span>
         <button
           type="button"
           onClick={onClose}
           onPointerDown={(e) => e.stopPropagation()}
+          aria-label="关闭编辑栏"
           title="关闭"
           className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink)]/45 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
         >
@@ -133,23 +158,35 @@ export default function H5LayerEditPanel({
 
       {/* Body — element editor when an element is picked; else per-layer; else overall */}
       <div className="thin-scroll flex-1 overflow-y-auto px-4 py-4">
-        {el ? (
-          <ElementEditor key={el.id} el={el} />
-        ) : layerId === null ? (
-          <OverallEditor />
-        ) : layerId === 'hero' ? (
-          <HeroEditor />
-        ) : layerId === 'countdown' ? (
-          <CountdownEditor />
-        ) : layerId === 'intro' ? (
-          <IntroEditor />
-        ) : layerId === 'lottery' ? (
-          <LotteryEditor />
-        ) : layerId === 'task' ? (
-          <TaskEditor />
-        ) : (
-          <RulesEditor />
+        {canvasNode && onCanvasNodeChange && (
+          <CanvasTransformEditor
+            node={canvasNode}
+            onChange={onCanvasNodeChange}
+            onDuplicate={onDuplicate}
+            onMoveLayer={onMoveLayer}
+            onToggleVisible={onToggleVisible}
+            onToggleLocked={onToggleLocked}
+          />
         )}
+        <div className={canvasNode ? 'mt-6 border-t border-[var(--divider-soft)] pt-5' : ''}>
+          {el ? (
+            <ElementEditor key={el.id} el={el} />
+          ) : layerId === null ? (
+            <OverallEditor />
+          ) : layerId === 'hero' ? (
+            <HeroEditor />
+          ) : layerId === 'countdown' ? (
+            <CountdownEditor />
+          ) : layerId === 'intro' ? (
+            <IntroEditor />
+          ) : layerId === 'lottery' ? (
+            <LotteryEditor />
+          ) : layerId === 'task' ? (
+            <TaskEditor />
+          ) : (
+            <RulesEditor />
+          )}
+        </div>
       </div>
 
       {/* Footer */}
@@ -171,6 +208,139 @@ export default function H5LayerEditPanel({
         </div>
       </div>
     </div>
+  )
+}
+
+function CanvasTransformEditor({
+  node,
+  onChange,
+  onDuplicate,
+  onMoveLayer,
+  onToggleVisible,
+  onToggleLocked,
+}: {
+  node: H5CanvasNode
+  onChange: (
+    patch: Partial<Omit<H5CanvasNode, 'id' | 'kind' | 'parentId'>>,
+  ) => void
+  onDuplicate?: () => void
+  onMoveLayer?: (direction: 'forward' | 'backward') => void
+  onToggleVisible?: () => void
+  onToggleLocked?: () => void
+}) {
+  return (
+    <div className="space-y-4">
+      <SectionTitle icon={Move}>位置与尺寸</SectionTitle>
+      <Field label="图层名称">
+        <input
+          type="text"
+          value={node.name}
+          onChange={(event) => onChange({ name: event.target.value })}
+          className="w-full rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[12.5px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
+        />
+      </Field>
+      <div className="grid grid-cols-2 gap-2">
+        <GeometryField
+          label="X"
+          value={node.x}
+          onChange={(value) => onChange({ x: value })}
+        />
+        <GeometryField
+          label="Y"
+          value={node.y}
+          onChange={(value) => onChange({ y: value })}
+        />
+        <GeometryField
+          label="宽"
+          value={node.width}
+          min={16}
+          onChange={(value) => onChange({ width: value })}
+        />
+        <GeometryField
+          label="高"
+          value={node.height}
+          min={16}
+          onChange={(value) => onChange({ height: value })}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={onDuplicate}
+          className="flex h-8 items-center justify-center gap-1.5 rounded-md border border-[var(--divider)] text-[11.5px] text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)]"
+        >
+          <Copy size={12} strokeWidth={1.8} />
+          复制图层
+        </button>
+        <button
+          type="button"
+          onClick={onToggleLocked}
+          aria-pressed={node.locked}
+          className="flex h-8 items-center justify-center gap-1.5 rounded-md border border-[var(--divider)] text-[11.5px] text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:bg-[var(--fill-subtle)] aria-pressed:text-[var(--color-ink)]"
+        >
+          <Lock size={12} strokeWidth={1.8} />
+          {node.locked ? '已锁定' : '锁定'}
+        </button>
+        <button
+          type="button"
+          onClick={onToggleVisible}
+          aria-pressed={!node.visible}
+          className="flex h-8 items-center justify-center gap-1.5 rounded-md border border-[var(--divider)] text-[11.5px] text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:bg-[var(--fill-subtle)] aria-pressed:text-[var(--color-ink)]"
+        >
+          <Eye size={12} strokeWidth={1.8} />
+          {node.visible ? '隐藏' : '显示'}
+        </button>
+        <div className="flex overflow-hidden rounded-md border border-[var(--divider)]">
+          <button
+            type="button"
+            aria-label="图层上移一层"
+            title="上移一层"
+            onClick={() => onMoveLayer?.('forward')}
+            className="flex h-8 flex-1 items-center justify-center text-[var(--color-ink)]/65 transition-colors hover:bg-[var(--fill-hover)]"
+          >
+            <ArrowUp size={12} strokeWidth={1.8} />
+          </button>
+          <div className="w-px bg-[var(--divider)]" />
+          <button
+            type="button"
+            aria-label="图层下移一层"
+            title="下移一层"
+            onClick={() => onMoveLayer?.('backward')}
+            className="flex h-8 flex-1 items-center justify-center text-[var(--color-ink)]/65 transition-colors hover:bg-[var(--fill-hover)]"
+          >
+            <ArrowDown size={12} strokeWidth={1.8} />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function GeometryField({
+  label,
+  value,
+  min,
+  onChange,
+}: {
+  label: string
+  value: number
+  min?: number
+  onChange: (value: number) => void
+}) {
+  return (
+    <label className="flex h-8 items-center gap-2 rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-2">
+      <span className="w-4 shrink-0 text-[10.5px] text-[var(--color-ink)]/40">{label}</span>
+      <input
+        type="number"
+        value={Math.round(value)}
+        min={min}
+        onChange={(event) => {
+          const next = Number(event.target.value)
+          if (Number.isFinite(next)) onChange(min == null ? next : Math.max(min, next))
+        }}
+        className="min-w-0 flex-1 bg-transparent text-right text-[11.5px] tabular-nums text-[var(--color-ink)]/75 outline-none"
+      />
+    </label>
   )
 }
 
@@ -271,14 +441,14 @@ function OverallEditor() {
           <Field label="活动名称">
             <input
               type="text"
-              defaultValue="六一童趣抽奖"
+              defaultValue="抖音 ACG 游戏新春会"
               className="w-full rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
             />
           </Field>
           <Field label="活动时间">
             <input
               type="text"
-              defaultValue="2026-05-25 ~ 2026-06-01"
+              defaultValue="2026-02-01 ~ 2026-02-24"
               className="w-full rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
             />
           </Field>
@@ -298,11 +468,11 @@ function OverallEditor() {
       <div>
         <SectionTitle icon={ListChecks}>页面楼层</SectionTitle>
         <div className="mt-3 space-y-3">
-          <ToggleRow label="倒计时" defaultOn />
-          <ToggleRow label="活动介绍" defaultOn />
-          <ToggleRow label="幸运抽奖" defaultOn />
-          <ToggleRow label="参与任务" defaultOn />
-          <ToggleRow label="活动规则" defaultOn />
+          <ToggleRow label="游戏会场" defaultOn />
+          <ToggleRow label="主会场视频" defaultOn />
+          <ToggleRow label="开年高燃榜单" defaultOn />
+          <ToggleRow label="榜单互动" defaultOn />
+          <ToggleRow label="页面尾部" defaultOn />
         </div>
       </div>
     </div>
@@ -327,21 +497,21 @@ function HeroEditor() {
       <div className="space-y-2.5">
         <FeatureCard icon={Ruler} label="资源位扩展">
           <div className="flex items-center gap-1">
-            <img src={HERO_IMG} className="h-9 w-9 rounded object-cover" />
+            <img src={HERO_IMG} alt="" className="h-9 w-9 rounded object-cover" />
             <span className="text-[var(--color-ink)]/30">→</span>
-            <img src={HERO_IMG} className="h-9 w-14 rounded object-cover" />
+            <img src={HERO_IMG} alt="" className="h-9 w-14 rounded object-cover" />
           </div>
         </FeatureCard>
         <FeatureCard icon={Play} label="动态头图">
           <div className="relative">
-            <img src={HERO_IMG} className="h-9 w-16 rounded object-cover" />
+            <img src={HERO_IMG} alt="" className="h-9 w-16 rounded object-cover" />
             <span className="absolute left-1 top-1 rounded bg-black/55 px-1 text-[8px] font-medium text-white">
               MP4
             </span>
           </div>
         </FeatureCard>
-        <FeatureCard icon={Crop} label="画布编辑">
-          <img src={HERO_IMG} className="h-9 w-16 rounded object-cover ring-1 ring-[#7c5cff]/60" />
+        <FeatureCard icon={Crop} label="裁剪画面">
+          <img src={HERO_IMG} alt="" className="h-9 w-16 rounded object-cover ring-1 ring-[#7c5cff]/60" />
         </FeatureCard>
       </div>
 
@@ -380,43 +550,43 @@ function HeroEditor() {
   )
 }
 
-/* ─────────── 倒计时 ─────────── */
+/* ─────────── 游戏会场 ─────────── */
 function CountdownEditor() {
   const [color, setColor] = useState('mint')
   return (
     <div className="space-y-5">
-      <SectionTitle icon={Clock}>倒计时</SectionTitle>
-      <Field label="结束时间">
+      <SectionTitle icon={Clock}>游戏会场</SectionTitle>
+      <Field label="默认游戏">
         <input
           type="text"
-          defaultValue="2026-06-01 23:59"
+          defaultValue="地下城与勇士"
           className="w-full rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
         />
       </Field>
-      <Field label="数字底色">
+      <Field label="选中态颜色">
         <Swatches value={color} onChange={setColor} />
       </Field>
-      <ToggleRow label="显示「天」单位" defaultOn />
+      <ToggleRow label="展示全部游戏入口" defaultOn />
     </div>
   )
 }
 
-/* ─────────── 活动介绍 ─────────── */
+/* ─────────── 主会场视频 ─────────── */
 function IntroEditor() {
   return (
     <div className="space-y-5">
-      <SectionTitle icon={FileText}>活动介绍</SectionTitle>
-      <Field label="标题">
+      <SectionTitle icon={FileText}>主会场视频</SectionTitle>
+      <Field label="推荐语">
         <input
           type="text"
-          defaultValue="六一童趣节，好礼送不停"
+          defaultValue="画面与音乐无缝契合，碰撞出高燃炸裂的顶级视觉火花"
           className="w-full rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
         />
       </Field>
-      <Field label="正文">
+      <Field label="视频说明">
         <textarea
           rows={5}
-          defaultValue={'童年是最美好的时光，陪伴是最珍贵的礼物。\n这个六一儿童节，抖音为你准备了超多惊喜好礼！'}
+          defaultValue={'好游戏一起过新年。\n汇聚热门游戏厂商与玩家创作的新春特别内容。'}
           className="thin-scroll w-full resize-none rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] leading-[1.6] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
         />
       </Field>
@@ -424,56 +594,56 @@ function IntroEditor() {
   )
 }
 
-/* ─────────── 幸运抽奖 ─────────── */
+/* ─────────── 开年高燃 ─────────── */
 function LotteryEditor() {
   const [prizes, setPrizes] = useState(4)
   return (
     <div className="space-y-5">
-      <SectionTitle icon={Gift}>幸运抽奖</SectionTitle>
+      <SectionTitle icon={Gift}>开年高燃</SectionTitle>
       <Field label="按钮文案">
         <input
           type="text"
-          defaultValue="立即抽奖"
+          defaultValue="好活加马"
           className="w-full rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
         />
       </Field>
-      <Slider label="奖品档位" value={prizes} min={1} max={8} onChange={setPrizes} />
-      <ToggleRow label="中奖名单滚动" defaultOn />
-      <ToggleRow label="显示剩余次数" defaultOn />
+      <Slider label="默认榜单条数" value={prizes} min={1} max={8} onChange={setPrizes} />
+      <ToggleRow label="展示马力值" defaultOn />
+      <ToggleRow label="展示创作者" defaultOn />
     </div>
   )
 }
 
-/* ─────────── 参与任务 ─────────── */
+/* ─────────── 榜单互动 ─────────── */
 function TaskEditor() {
   const [coins, setCoins] = useState(1000)
   return (
     <div className="space-y-5">
-      <SectionTitle icon={ListChecks}>参与任务</SectionTitle>
-      <Field label="任务名称">
+      <SectionTitle icon={ListChecks}>榜单互动</SectionTitle>
+      <Field label="互动名称">
         <input
           type="text"
-          defaultValue="这是一个任务名称"
+          defaultValue="为高燃作品加马"
           className="w-full rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
         />
       </Field>
-      <Slider label="金币奖励" value={coins} min={100} max={5000} step={100} onChange={setCoins} unit="" />
-      <ToggleRow label="完成自动发放" defaultOn />
+      <Slider label="基础马力值" value={coins} min={100} max={5000} step={100} onChange={setCoins} unit="" />
+      <ToggleRow label="每人每日限投一次" defaultOn />
     </div>
   )
 }
 
-/* ─────────── 活动规则 ─────────── */
+/* ─────────── 页面尾部 ─────────── */
 function RulesEditor() {
   return (
     <div className="space-y-5">
-      <SectionTitle icon={ScrollText}>活动规则</SectionTitle>
-      <ToggleRow label="默认折叠规则" />
-      <ToggleRow label="展示客服联系" defaultOn />
-      <Field label="规则说明">
+      <SectionTitle icon={ScrollText}>页面尾部</SectionTitle>
+      <ToggleRow label="展示活动口号" defaultOn />
+      <ToggleRow label="展示抖音游戏品牌" defaultOn />
+      <Field label="尾注文案">
         <textarea
           rows={4}
-          defaultValue={'每人每日抽奖次数有限，请合理参与。\n本活动最终解释权归抖音所有。'}
+          defaultValue={'抖音 ACG 游戏新春会\n好游戏一起过新年'}
           className="thin-scroll w-full resize-none rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] leading-[1.6] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
         />
       </Field>
@@ -579,7 +749,7 @@ function ImageElementEditor({ el }: { el: H5ElementSel }) {
       <div className="grid grid-cols-3 gap-2">
         <ActionPill icon={Upload} label="上传图片" />
         <ActionPill icon={RefreshCw} label="再次生成" />
-        <ActionPill icon={Crop} label="画布编辑" />
+        <ActionPill icon={Crop} label="裁剪图片" />
       </div>
       <Field label="适配方式">
         <Chips

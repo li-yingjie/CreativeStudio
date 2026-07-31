@@ -2,17 +2,17 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import {
-  ArrowUp,
   ChevronDown,
   ChevronRight,
   Code2,
   FolderCode,
   Image as ImageIcon,
   PencilLine,
-  Plus,
   Sparkles,
   Video,
 } from '@/shared/icons'
+import ChatComposer from '@/shared/components/ChatComposer'
+import ComposerLocalFileButton from '@/shared/components/ComposerLocalFileButton'
 
 /* ─── Platform home (new-project landing) — 按 Figma「统一导航」229:15581 实现 ─── */
 
@@ -127,39 +127,29 @@ export default function PlatformHome({
           <span className="text-[43px]">💡</span>
         </div>
 
-        {/* 输入框 */}
+        {/* 输入框 — 统一 ChatComposer（114px） */}
         <div className="mx-auto mt-[50px] max-w-[800px] rounded-[32px] border-[0.5px] border-[rgba(16,17,18,0.05)] shadow-[0_4px_64px_rgba(30,31,35,0.02)]">
-          <div className="flex flex-col gap-6 rounded-[32px] border border-white bg-gradient-to-b from-[rgba(251,251,251,0.6)] to-white p-[13px] backdrop-blur-[12px]">
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  onSubmit(draft)
-                }
-              }}
-              placeholder={ghostText ?? PLACEHOLDER}
-              rows={3}
-              className="platform-home-composer-input block h-[64px] w-full resize-none bg-transparent px-3 pt-2 text-[14px] leading-[24px] text-[#1C1F23] outline-none placeholder:text-[#1C1F23]/35"
-            />
-            <div className="flex items-center justify-between p-1">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  aria-label="添加附件"
-                  className="flex size-9 items-center justify-center rounded-full text-[#1C1F23]/80 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
-                >
-                  <Plus size={16} strokeWidth={1.8} />
-                </button>
+          <ChatComposer
+            value={draft}
+            onChange={setDraft}
+            onSend={() => onSubmit(draft)}
+            placeholder={ghostText ?? PLACEHOLDER}
+            ariaLabel="输入你的创作想法"
+            sendDisabled={false}
+            skinClassName="rounded-[32px] border border-white bg-gradient-to-b from-[rgba(251,251,251,0.6)] to-white backdrop-blur-[12px]"
+            inputClassName="platform-home-composer-input px-1 pt-1 text-[14px] leading-[24px] text-[#1C1F23] placeholder:text-[#1C1F23]/35"
+            sendButtonClassName="size-9 bg-[#1C1F23] text-white transition-all hover:-translate-y-[1px] hover:opacity-90"
+            footerLeft={
+              <>
+                <ToolChip icon={Code2} label="兴趣卡" />
+                <ToolChip icon={ImageIcon} label="图片" />
+                <ToolChip icon={Video} label="视频" />
+                <ToolChip icon={PencilLine} label="调研" />
                 <span aria-hidden className="h-4 w-px bg-black/10" />
-                <div className="flex items-center gap-2">
-                  <ToolChip icon={Code2} label="兴趣卡" />
-                  <ToolChip icon={ImageIcon} label="图片" />
-                  <ToolChip icon={Video} label="视频" />
-                  <ToolChip icon={PencilLine} label="调研" />
-                </div>
-                <span aria-hidden className="h-4 w-px bg-black/10" />
+                <ComposerLocalFileButton
+                  iconSize={16}
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full text-[#1C1F23]/80 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
+                />
                 <button
                   type="button"
                   className="flex h-9 items-center gap-1 rounded-full px-4 text-[14px] font-semibold text-[#1C1F23]/80 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
@@ -167,27 +157,19 @@ export default function PlatformHome({
                   <FolderCode size={16} strokeWidth={1.8} />
                   扩展
                 </button>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="flex h-9 items-center gap-1 rounded-full px-4 text-[14px] font-semibold text-[#1C1F23]/80 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
-                >
-                  <Sparkles size={16} strokeWidth={1.8} />
-                  Auto
-                  <ChevronDown size={16} strokeWidth={1.8} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="发送"
-                  onClick={() => onSubmit(draft)}
-                  className="flex size-9 items-center justify-center rounded-full bg-[#1C1F23] text-white transition-all hover:-translate-y-[1px] hover:opacity-90"
-                >
-                  <ArrowUp size={16} strokeWidth={2} />
-                </button>
-              </div>
-            </div>
-          </div>
+              </>
+            }
+            footerExtra={
+              <button
+                type="button"
+                className="flex h-9 items-center gap-1 rounded-full px-4 text-[14px] font-semibold text-[#1C1F23]/80 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
+              >
+                <Sparkles size={16} strokeWidth={1.8} />
+                Auto
+                <ChevronDown size={16} strokeWidth={1.8} />
+              </button>
+            }
+          />
         </div>
 
         {/* 兴趣卡介绍 banner */}

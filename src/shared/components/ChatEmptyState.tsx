@@ -20,6 +20,7 @@ export function ChatEmptyState({
 }) {
   const themeMode = useThemeStore((s) => s.mode)
   const isLight = forceLight || themeMode === 'light'
+  const visibleSuggestions = suggestions.slice(0, 4)
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -59,8 +60,8 @@ export function ChatEmptyState({
           {subtitle}
         </p>
       </div>
-      <div className="relative z-10 flex flex-wrap items-center justify-center gap-2">
-        {suggestions.map((s, i) => (
+      <div className="relative z-10 flex max-w-full flex-col items-center justify-center gap-2">
+        {visibleSuggestions.map((s, i) => (
           <motion.button
             key={s}
             type="button"
@@ -69,7 +70,7 @@ export function ChatEmptyState({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 + i * 0.06, duration: 0.3 }}
             whileHover={{ y: -1 }}
-            className="rounded-full bg-[var(--fill-subtle)] px-[13px] py-[7px] text-[11px] leading-[16.5px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+            className="max-w-full rounded-full bg-[var(--fill-subtle)] px-[15px] py-2 text-center text-[13px] leading-[18px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
           >
             {s}
           </motion.button>

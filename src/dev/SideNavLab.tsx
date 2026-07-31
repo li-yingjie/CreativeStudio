@@ -8,7 +8,6 @@ import { SuibianSideNav } from '@/modules/creator-center/SuibianPage'
 import { WikiSideNav } from '@/modules/creator-center/WikiEditorPage'
 import { Add01LinearIcon } from 'master-icon/react/Add01LinearIcon'
 import { SlideWideAddLinearIcon } from 'master-icon/react/SlideWideAddLinearIcon'
-import { LayoutLeftLinearIcon } from 'master-icon/react/LayoutLeftLinearIcon'
 import { FolderCodeLinearIcon } from 'master-icon/react/FolderCodeLinearIcon'
 import { InboxLinearIcon } from 'master-icon/react/InboxLinearIcon'
 import { FolderLibraryLinearIcon } from 'master-icon/react/FolderLibraryLinearIcon'
@@ -18,8 +17,6 @@ import { DiamondLinearIcon } from 'master-icon/react/DiamondLinearIcon'
 import { Menu01LinearIcon } from 'master-icon/react/Menu01LinearIcon'
 import { LayoutGrid1LinearIcon } from 'master-icon/react/LayoutGrid1LinearIcon'
 import { Notebook01LinearIcon } from 'master-icon/react/Notebook01LinearIcon'
-import { PanelRightCloseLinearIcon } from 'master-icon/react/PanelRightCloseLinearIcon'
-import { SettingsSliderThreeLinearIcon } from 'master-icon/react/SettingsSliderThreeLinearIcon'
 import { HistoryLinearIcon } from 'master-icon/react/HistoryLinearIcon'
 import { ChangesLinearIcon } from 'master-icon/react/ChangesLinearIcon'
 import { Edit01LinearIcon } from 'master-icon/react/Edit01LinearIcon'
@@ -27,6 +24,7 @@ import TopNav from '@/modules/creator-center/TopNav'
 import type { ProductId } from '@/modules/creator-center/data'
 import { Disclosure, FileTreeView } from '@/modules/vibecoding/components/FileTreeView'
 import SideNavDisclosureIcon from '@/shared/components/SideNavDisclosureIcon'
+import SideNavPanelStateIcon from '@/shared/components/SideNavPanelStateIcon'
 import {
   SIDE_NAV_NUMERIC_CONSTRAINTS,
   useSideNavConfig,
@@ -172,11 +170,11 @@ function CollapseRow({ collapsed }: { collapsed?: boolean }) {
         type="button"
         aria-label={collapsed ? '展开导航' : '收起导航'}
         title={collapsed ? '展开导航' : '收起导航'}
-        className={`flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] text-[#252632]/70 transition-colors hover:bg-black/[0.03] ${
-          collapsed ? 'justify-center px-0' : ''
+        className={`flex h-[var(--sn-rh)] w-full items-center gap-[var(--sn-rgap)] rounded-[var(--sn-rr)] px-[var(--sn-rpx)] text-[length:var(--sn-rfs)] text-[#252632]/70 transition-colors hover:bg-black/[0.03] ${
+          collapsed ? 'justify-center' : ''
         }`}
       >
-        <LayoutLeftLinearIcon size={18} className="shrink-0 text-[#252632]" />
+        <SideNavPanelStateIcon collapsed={collapsed} />
         {!collapsed && '收起导航'}
       </button>
     </div>
@@ -339,7 +337,7 @@ function ConfigPanel({ onCollapse }: { onCollapse: () => void }) {
             onClick={onCollapse}
             className="flex size-8 shrink-0 items-center justify-center rounded-lg text-[#252632]/65 transition-colors hover:bg-black/[0.05] hover:text-[#161823]"
           >
-            <PanelRightCloseLinearIcon size={17} />
+            <SideNavPanelStateIcon side="right" />
           </button>
         </div>
       </div>
@@ -728,14 +726,14 @@ function WorkshopTree({ picked, onPick }: { picked: string; onPick: (n: string) 
         className="mx-[var(--sn-px)] flex items-center rounded-md pr-2 hover:bg-black/[0.03]"
         style={{ minHeight: cfg.treeRowHeight, paddingLeft: cfg.treeBasePl }}
       >
-        <Disclosure expanded={open} visible label="塔罗小程序" onToggle={() => setOpen((v) => !v)} />
+        <Disclosure expanded={open} visible label="塔罗兴趣卡" onToggle={() => setOpen((v) => !v)} />
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="flex min-w-0 flex-1 items-center pl-2.5 text-left font-medium text-[#161823]"
           style={{ fontSize: cfg.treeFontSize }}
         >
-          <span className="min-w-0 truncate">塔罗小程序</span>
+          <span className="min-w-0 truncate">塔罗兴趣卡</span>
         </button>
       </div>
       {open && (
@@ -1364,7 +1362,7 @@ export default function SideNavLab() {
           onClick={() => setConfigPanelOpen(true)}
           className="fixed right-4 top-4 z-50 flex h-10 items-center gap-2 rounded-xl bg-white px-3.5 text-[12px] font-medium text-[#161823] shadow-[0_8px_28px_rgba(0,0,0,0.14)] ring-1 ring-black/10 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_10px_32px_rgba(0,0,0,0.18)]"
         >
-          <SettingsSliderThreeLinearIcon size={16} />
+          <SideNavPanelStateIcon side="right" collapsed />
           组件配置
         </button>
       )}

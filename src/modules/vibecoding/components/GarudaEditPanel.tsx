@@ -12,17 +12,19 @@ import {
   Save,
   Gamepad2,
 } from '@/shared/icons'
+import type { GameEditSelection } from './GarudaGamePreview'
 
 /**
  * Garuda 可视化编辑面板
  *
- * 默认展示「游戏配置」组：难度 / 关卡节奏 / Roguelike 流派 / 美术风格 /
- * 主角皮肤 / 音效 / 调色 — 全部本地状态，不实际写回 garuda.js。给的是
- * 一个「我可以怎么改它」的可视化入口。
+ * 未选对象时展示游戏级配置；快速编辑选中背景、按钮、主角、敌人、HUD
+ * 或结算对象后，只呈现该对象真正相关的字段。全部本地状态，不实际写回
+ * garuda.js。
  */
 
 interface Props {
   onClose: () => void
+  selection?: GameEditSelection | null
 }
 
 type Section = 'config' | 'art' | 'audio'
@@ -50,7 +52,7 @@ const PALETTES = [
   { id: 'midnight', label: 'Midnight', from: '#060709', via: '#1f2937', to: '#94a3b8' },
 ] as const
 
-export default function GarudaEditPanel({ onClose }: Props) {
+export default function GarudaEditPanel({ onClose, selection }: Props) {
   const [section, setSection] = useState<Section>('config')
 
   // ── Game config ──
@@ -88,9 +90,11 @@ export default function GarudaEditPanel({ onClose }: Props) {
       <div className="flex shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-4 py-2.5">
         <Wand2 size={14} strokeWidth={1.8} className="text-[var(--color-ink)]/65" />
         <span className="text-[12.5px] font-semibold text-[var(--color-ink)]">
-          可视化编辑
+          快速编辑
         </span>
-        <span className="text-[11px] text-[var(--color-ink)]/40">射击小游戏</span>
+        <span className="min-w-0 truncate text-[11px] text-[var(--color-ink)]/40">
+          {selection?.label ?? '射击小游戏'}
+        </span>
         <button
           type="button"
           onClick={onClose}
@@ -102,7 +106,8 @@ export default function GarudaEditPanel({ onClose }: Props) {
       </div>
 
       {/* Section tabs */}
-      <div className="flex shrink-0 items-center gap-1 border-b border-[var(--divider-soft)] px-2 py-1.5">
+      {!selection && (
+        <div className="flex shrink-0 items-center gap-1 border-b border-[var(--divider-soft)] px-2 py-1.5">
         {(
           [
             { id: 'config', label: '游戏配置', icon: Gamepad2 },
@@ -128,10 +133,18 @@ export default function GarudaEditPanel({ onClose }: Props) {
             </button>
           )
         })}
-      </div>
+        </div>
+      )}
 
       {/* Body */}
       <div className="thin-scroll flex-1 overflow-y-auto px-4 py-4">
+        {selection ? (
+          <GameObjectEditor
+            key={`${selection.screen}-${selection.target}`}
+            selection={selection}
+          />
+        ) : (
+          <>
         {section === 'config' && (
           <div className="space-y-5">
             <Group title="难度曲线" icon={Gauge}>
@@ -371,12 +384,16 @@ export default function GarudaEditPanel({ onClose }: Props) {
             </Group>
           </div>
         )}
+          </>
+        )}
       </div>
 
       {/* Footer */}
       <div className="flex shrink-0 items-center justify-between border-t border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-4 py-2.5">
         <span className="text-[11px] text-[var(--color-ink)]/45">
-          配置仅本地预览 · 应用到 garuda.js 需重新打包
+          {selection
+            ? `正在编辑「${selection.label}」`
+            : '选择预览对象可查看对应字段'}
         </span>
         <div className="flex items-center gap-1.5">
           <button
@@ -396,6 +413,343 @@ export default function GarudaEditPanel({ onClose }: Props) {
         </div>
       </div>
     </div>
+  )
+}
+
+function GameObjectEditor({ selection }: { selection: GameEditSelection }) {
+  const [label, setLabel] = useState(
+    selection.target === 'primary-action'
+      ? selection.screen === '结算界面'
+        ? '再来一局'
+        : '开始游戏'
+      : selection.screen === '结算界面'
+        ? '返回首页'
+        : '查看排行榜',
+  )
+  const [brightness, setBrightness] = useState(100)
+  const [scale, setScale] = useState(100)
+  const [speed, setSpeed] = useState(70)
+  const [density, setDensity] = useState(60)
+  const [opacity, setOpacity] = useState(88)
+  const [enabled, setEnabled] = useState(true)
+  const [secondaryEnabled, setSecondaryEnabled] = useState(true)
+  const [tertiaryEnabled, setTertiaryEnabled] = useState(true)
+  const [fieldOne, setFieldOne] = useState(
+    selection.target === 'result-panel' ? 'MISSION COMPLETE' : '本局得分',
+  )
+  const [fieldTwo, setFieldTwo] = useState(
+    selection.target === 'result-panel' ? '任务完成' : '到达波次',
+  )
+  const [fieldThree, setFieldThree] = useState(
+    selection.target === 'result-panel' ? '本次行动数据' : '存活时间',
+  )
+
+  if (selection.target === 'background') {
+    return (
+      <div className="space-y-5">
+        <Group title={`${selection.screen} · 场景`} icon={ImageIcon}>
+          <div className="overflow-hidden rounded-xl border border-[var(--divider-soft)] bg-black">
+            <img
+              src={
+                selection.screen === '开始界面'
+                  ? '/garuda/assets/Start.jpg'
+                  : selection.screen === '游戏进行中'
+                    ? '/garuda/docs/garuda-gameplay-showcase.png'
+                    : '/garuda/docs/garuda-key-art.png'
+              }
+              alt={`${selection.screen}背景`}
+              className="h-28 w-full object-cover"
+            />
+          </div>
+          <TextControl label="背景素材" value="来自素材库 / 当前场景" />
+          <SelectControl
+            label="填充方式"
+            options={['覆盖填充', '完整显示', '拉伸铺满']}
+          />
+          <Slider
+            label="亮度"
+            hint={`${brightness}%`}
+            min={40}
+            max={140}
+            value={brightness}
+            onChange={setBrightness}
+          />
+          <Toggle
+            label="场景动效"
+            hint="启用粒子、景深与轻微视差"
+            value={enabled}
+            onChange={setEnabled}
+          />
+        </Group>
+      </div>
+    )
+  }
+
+  if (
+    selection.target === 'primary-action' ||
+    selection.target === 'secondary-action'
+  ) {
+    return (
+      <div className="space-y-5">
+        <Group title={selection.label} icon={Gamepad2}>
+          <EditableTextControl label="按钮文案" value={label} onChange={setLabel} />
+          <SelectControl
+            label="点击动作"
+            options={
+              selection.target === 'primary-action'
+                ? ['进入游戏', '重新开始', '打开下一页']
+                : ['打开排行榜', '返回首页', '关闭弹层']
+            }
+          />
+          <SelectControl
+            label="按钮样式"
+            options={
+              selection.target === 'primary-action'
+                ? ['主按钮 · 橙色', '主按钮 · 金色', '主按钮 · 品牌色']
+                : ['次按钮 · 深色', '描边按钮', '文字按钮']
+            }
+          />
+          <Slider
+            label="圆角"
+            hint={`${Math.round(scale / 2)}px`}
+            min={16}
+            max={100}
+            value={scale}
+            onChange={setScale}
+          />
+          <Toggle
+            label="显示按钮"
+            hint="关闭后从当前界面隐藏"
+            value={enabled}
+            onChange={setEnabled}
+          />
+        </Group>
+      </div>
+    )
+  }
+
+  if (selection.target === 'player') {
+    return (
+      <div className="space-y-5">
+        <Group title="主角战机" icon={ImageIcon}>
+          <div className="flex items-center gap-3 rounded-xl border border-[var(--divider-soft)] p-3">
+            <img
+              src="/garuda/assets/garuda_fly-webp/garuda_fly_00.webp"
+              alt="当前主角"
+              className="size-16 object-contain"
+            />
+            <div>
+              <p className="text-[12.5px] font-medium text-[var(--color-ink)]">
+                Garuda · 经典形态
+              </p>
+              <p className="mt-1 text-[11px] text-[var(--color-ink)]/45">
+                点击可从素材库替换
+              </p>
+            </div>
+          </div>
+          <Slider
+            label="角色尺寸"
+            hint={`${scale}%`}
+            min={60}
+            max={150}
+            value={scale}
+            onChange={setScale}
+          />
+          <Slider
+            label="移动速度"
+            hint={`${speed}%`}
+            min={30}
+            max={120}
+            value={speed}
+            onChange={setSpeed}
+          />
+          <SelectControl
+            label="射击模式"
+            options={['自动射击', '按住射击', '点击射击']}
+          />
+          <Toggle
+            label="出生保护"
+            hint="进入战斗后短暂无敌"
+            value={enabled}
+            onChange={setEnabled}
+          />
+        </Group>
+      </div>
+    )
+  }
+
+  if (selection.target === 'enemies') {
+    return (
+      <div className="space-y-5">
+        <Group title="敌人与弹幕" icon={Gauge}>
+          <Slider
+            label="敌人密度"
+            hint={`${density}%`}
+            min={20}
+            max={100}
+            value={density}
+            onChange={setDensity}
+          />
+          <Slider
+            label="弹幕速度"
+            hint={`${speed}%`}
+            min={40}
+            max={150}
+            value={speed}
+            onChange={setSpeed}
+          />
+          <SelectControl
+            label="生成阵型"
+            options={['混合阵型', '左右夹击', '环形包围', 'Boss 波次']}
+          />
+          <Toggle
+            label="精英敌人"
+            hint="在普通波次中插入强化敌人"
+            value={enabled}
+            onChange={setEnabled}
+          />
+        </Group>
+      </div>
+    )
+  }
+
+  if (selection.target === 'hud') {
+    return (
+      <div className="space-y-5">
+        <Group title="战斗 HUD" icon={Layers}>
+          <Toggle
+            label="生命值"
+            hint="左上角生命条"
+            value={enabled}
+            onChange={setEnabled}
+          />
+          <Toggle
+            label="护盾值"
+            hint="生命条下方护盾槽"
+            value={secondaryEnabled}
+            onChange={setSecondaryEnabled}
+          />
+          <Toggle
+            label="必杀能量"
+            hint="底部技能能量槽"
+            value={tertiaryEnabled}
+            onChange={setTertiaryEnabled}
+          />
+          <Slider
+            label="界面缩放"
+            hint={`${scale}%`}
+            min={70}
+            max={130}
+            value={scale}
+            onChange={setScale}
+          />
+          <Slider
+            label="透明度"
+            hint={`${opacity}%`}
+            min={40}
+            max={100}
+            value={opacity}
+            onChange={setOpacity}
+          />
+        </Group>
+      </div>
+    )
+  }
+
+  if (selection.target === 'score-stats') {
+    return (
+      <div className="space-y-5">
+        <Group title="结算数据" icon={Gauge}>
+          <EditableTextControl label="指标一" value={fieldOne} onChange={setFieldOne} />
+          <EditableTextControl label="指标二" value={fieldTwo} onChange={setFieldTwo} />
+          <EditableTextControl label="指标三" value={fieldThree} onChange={setFieldThree} />
+          <SelectControl
+            label="数字格式"
+            options={['自动格式化', '整数', '时间 mm:ss']}
+          />
+          <Slider
+            label="强调强度"
+            hint={`${opacity}%`}
+            min={40}
+            max={100}
+            value={opacity}
+            onChange={setOpacity}
+          />
+        </Group>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      <Group title="结算面板" icon={Layers}>
+        <EditableTextControl label="状态标题" value={fieldOne} onChange={setFieldOne} />
+        <EditableTextControl label="主标题" value={fieldTwo} onChange={setFieldTwo} />
+        <EditableTextControl label="副标题" value={fieldThree} onChange={setFieldThree} />
+        <Slider
+          label="背景透明度"
+          hint={`${opacity}%`}
+          min={40}
+          max={100}
+          value={opacity}
+          onChange={setOpacity}
+        />
+        <Slider
+          label="面板缩放"
+          hint={`${scale}%`}
+          min={70}
+          max={120}
+          value={scale}
+          onChange={setScale}
+        />
+      </Group>
+    </div>
+  )
+}
+
+function EditableTextControl({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[11.5px] text-[var(--color-ink)]/60">{label}</span>
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-9 w-full rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 text-[12.5px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/35"
+      />
+    </label>
+  )
+}
+
+function TextControl({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="mb-1.5 block text-[11.5px] text-[var(--color-ink)]/60">{label}</span>
+      <div className="flex h-9 items-center rounded-lg border border-[var(--divider)] px-3 text-[12px] text-[var(--color-ink)]/65">
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function SelectControl({ label, options }: { label: string; options: string[] }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[11.5px] text-[var(--color-ink)]/60">{label}</span>
+      <select className="h-9 w-full rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 text-[12.5px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/35">
+        {options.map((option) => (
+          <option key={option}>{option}</option>
+        ))}
+      </select>
+    </label>
   )
 }
 

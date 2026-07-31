@@ -1,13 +1,32 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useRef, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { toast } from 'sonner'
-import { ArrowUp, Plus } from '@/shared/icons'
-import SharedSideNav from '@/shared/components/SideNav'
+import ChatComposer from '@/shared/components/ChatComposer'
+import ComposerLocalFileButton from '@/shared/components/ComposerLocalFileButton'
+import SharedSideNav, {
+  SIDE_NAV_MOTION_DURATION,
+  SIDE_NAV_MOTION_OFFSET,
+} from '@/shared/components/SideNav'
+import SideNavPanelStateIcon from '@/shared/components/SideNavPanelStateIcon'
+import SideNavIconFooterActions, {
+  SideNavCollapseFooterButton,
+} from '@/shared/components/SideNavIconFooterActions'
+import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
+import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
 import {
-  SIDE_NAV_NUMERIC_CONSTRAINTS,
-  useSideNavConfig,
-} from '@/shared/components/side-nav-config'
+  useNavVersion,
+  usesProductHeaderLayout,
+  usesSchemeFourLayout,
+} from '@/shared/storage/nav-version'
+import { useResizableSideNavWidth } from '@/shared/hooks/useResizableSideNavWidth'
 import { Disclosure, DISCLOSURE_INDENT } from '@/modules/vibecoding/components/FileTreeView'
 import FigmaGlyph from './FigmaGlyph'
+import WikiObjectSwitcher from './WikiObjectSwitcher'
+import {
+  DEFAULT_WIKI_OBJECT_ID,
+  getWikiObject,
+} from './wiki-object-data'
+import UnifiedToolbar from './UnifiedToolbar'
 
 /* ─── 世界书编辑页（设计稿 统一导航 259-32672「03-百科-编辑」） ───
  * 三栏：左侧世界书目录树 + 中间文档编辑区 + 右侧世界书智能体对话。
@@ -17,6 +36,12 @@ import FigmaGlyph from './FigmaGlyph'
 const SERIF = { fontFamily: '"FZYanSongS-DB-GB", "Source Han Serif CN", "Songti SC", serif' }
 
 const ICON = '/icons/wiki-editor'
+const WIKI_SCHEME_TWO_TOOLBAR_ACTIONS = [
+  'layout',
+  'products',
+  'search',
+  'tasks',
+] as const
 
 /** 目录树节点：一级分组（可含子节点）。 */
 interface NavGroup {
@@ -68,6 +93,7 @@ function NavRow({
   expanded,
   onToggle,
   onClick,
+  schemeFour = false,
 }: {
   label: string
   icon: string
@@ -79,34 +105,48 @@ function NavRow({
   expanded?: boolean
   onToggle?: () => void
   onClick?: () => void
+  schemeFour?: boolean
 }) {
   return (
     <div
-      className={`group flex min-h-[28px] w-full items-center gap-1 rounded-lg pr-2 transition-colors ${
+      className={`group flex w-full items-center rounded-lg transition-colors ${
+        schemeFour ? 'h-9 gap-1.5 pr-2' : 'min-h-[28px] gap-1 pr-2'
+      } ${
         active
           ? 'bg-[var(--sidenav-active,rgba(83,96,143,0.12))]'
           : 'hover:bg-[var(--sidenav-hover,rgba(0,0,0,0.03))]'
       }`}
-      style={{ paddingLeft: 4 + depth * DISCLOSURE_INDENT }}
+      style={{
+        paddingLeft: schemeFour
+          ? 8 + depth * 22
+          : 4 + depth * DISCLOSURE_INDENT,
+      }}
     >
-      <Disclosure
-        expanded={expanded ?? false}
-        visible={expandable ?? false}
-        label={label}
-        onToggle={onToggle ?? (() => {})}
-      />
+      {!schemeFour && (
+        <Disclosure
+          expanded={expanded ?? false}
+          visible={expandable ?? false}
+          label={label}
+          onToggle={onToggle ?? (() => {})}
+        />
+      )}
       <button
         type="button"
         aria-current={active ? 'page' : undefined}
+        aria-expanded={schemeFour && expandable ? expanded : undefined}
         onClick={onClick}
-        className={`flex min-w-0 flex-1 items-center gap-1 text-left ${
+        className={`flex min-w-0 flex-1 items-center text-left ${
+          schemeFour ? 'h-full gap-1.5' : 'gap-1'
+        } ${
           active
             ? 'text-[var(--sidenav-ink,#1c1f23)]'
             : 'text-[var(--sidenav-ink-dim,rgba(28,31,35,0.8))] group-hover:text-[var(--sidenav-ink-hover,#1c1f23)]'
         }`}
       >
         <FigmaGlyph src={icon} inset={inset} size={size} />
-        <span className="min-w-0 flex-1 truncate text-[13px]">{label}</span>
+        <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px]">
+          {label}
+        </span>
       </button>
     </div>
   )
@@ -139,53 +179,101 @@ function ToolButton({
   )
 }
 
+function WikiSchemeFourHeader({
+  activeObjectId,
+  onSelectObject,
+  onCollapse,
+}: {
+  activeObjectId: string
+  onSelectObject: (id: string) => void
+  onCollapse: () => void
+}) {
+  return (
+    <div className="flex h-10 items-center justify-between px-4">
+      <WikiObjectSwitcher
+        activeId={activeObjectId}
+        onChange={onSelectObject}
+        compact
+      />
+      <button
+        type="button"
+        title="文件"
+        aria-label="文件"
+        onClick={() => toast('文件入口（演示）')}
+        className="flex size-6 items-center justify-center rounded-md hover:bg-black/[0.04]"
+      >
+        <img
+          src={`${ICON}/scheme4-files.svg`}
+          alt=""
+          aria-hidden
+          className="size-4"
+        />
+      </button>
+      <button
+        type="button"
+        title="收起导航"
+        aria-label="收起导航"
+        onClick={onCollapse}
+        className="flex size-6 items-center justify-center rounded-md hover:bg-black/[0.04]"
+      >
+        <SideNavPanelStateIcon />
+      </button>
+    </div>
+  )
+}
+
+function WikiSchemeFourFooter() {
+  return (
+    <div className="pb-3">
+      <button
+        type="button"
+        onClick={() => toast('我的词条（演示）')}
+        className="flex h-8 w-full items-center gap-1.5 rounded-lg pl-[22px] pr-2 text-[12px] font-medium text-[#252632]/80 hover:bg-black/[0.03]"
+      >
+        <img
+          src={`${ICON}/scheme4-inbox.svg`}
+          alt=""
+          aria-hidden
+          className="size-4 shrink-0"
+        />
+        <span>
+          我的词条 <span className="tabular-nums">23</span>
+        </span>
+      </button>
+    </div>
+  )
+}
+
 /** 世界书目录侧栏 —— 外壳复用统一 SideNav（底色 / 分隔线 / 配色变量），
  *  内部保留世界书的多分组目录树与拖拽宽度交互。 */
 export function WikiSideNav({
   activeDoc,
+  activeObjectId,
+  collapsed = false,
+  homeActive = false,
   onPickDoc,
   onBackHome,
   onCollapse,
+  onSelectObject,
 }: {
   activeDoc: string
+  activeObjectId?: string
+  collapsed?: boolean
+  homeActive?: boolean
   onPickDoc: (doc: string) => void
   onBackHome?: () => void
   onCollapse?: () => void
+  onSelectObject?: (id: string) => void
 }) {
   // 目录分组默认全展开（新建的世界书内容少，一眼看全）
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(NAV_GROUPS.map((g) => g.key)))
+  const [localObjectId, setLocalObjectId] = useState(DEFAULT_WIKI_OBJECT_ID)
+  const navVersion = useNavVersion((state) => state.version)
+  const schemeFourLayout = usesSchemeFourLayout(navVersion)
+  const reduceSideNavMotion = useReducedMotion() ?? false
+  const resolvedObjectId = getWikiObject(activeObjectId ?? localObjectId).id
 
-  // 全局配置提供基准宽度；本页拖拽仍只覆盖当前页面。
-  const configuredWidth = useSideNavConfig((s) => s.config.width)
-  const [sidebarWidthState, setSidebarWidthState] = useState(() => ({
-    configuredWidth,
-    width: configuredWidth,
-  }))
-  if (sidebarWidthState.configuredWidth !== configuredWidth) {
-    setSidebarWidthState({ configuredWidth, width: configuredWidth })
-  }
-  const sidebarWidth =
-    sidebarWidthState.configuredWidth === configuredWidth
-      ? sidebarWidthState.width
-      : configuredWidth
-  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null)
-  const onDragStart = (e: ReactPointerEvent<HTMLDivElement>) => {
-    dragRef.current = { startX: e.clientX, startWidth: sidebarWidth }
-    e.currentTarget.setPointerCapture(e.pointerId)
-  }
-  const onDragMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const s = dragRef.current
-    if (!s) return
-    const { min, max } = SIDE_NAV_NUMERIC_CONSTRAINTS.width
-    setSidebarWidthState({
-      configuredWidth,
-      width: Math.min(max, Math.max(min, s.startWidth + (e.clientX - s.startX))),
-    })
-  }
-  const onDragEnd = (e: ReactPointerEvent<HTMLDivElement>) => {
-    dragRef.current = null
-    e.currentTarget.releasePointerCapture(e.pointerId)
-  }
+  const { width: sidebarWidth, setWidth: setSidebarWidth } = useResizableSideNavWidth()
 
   const toggleGroup = (key: string) =>
     setExpanded((prev) => {
@@ -194,69 +282,177 @@ export function WikiSideNav({
       return next
     })
 
-  return (
-    <div style={{ width: sidebarWidth }} className="relative h-full shrink-0">
-      {/* 右边缘拖拽把手 — 与 AI 工坊 / 随变同一套交互 */}
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="拖拽调整目录宽度"
-        aria-valuemin={SIDE_NAV_NUMERIC_CONSTRAINTS.width.min}
-        aria-valuemax={SIDE_NAV_NUMERIC_CONSTRAINTS.width.max}
-        aria-valuenow={Math.round(sidebarWidth)}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
-          e.preventDefault()
-          const { min, max } = SIDE_NAV_NUMERIC_CONSTRAINTS.width
-          setSidebarWidthState({
-            configuredWidth,
-            width: Math.min(
-              max,
-              Math.max(min, sidebarWidth + (e.key === 'ArrowRight' ? 8 : -8)),
-            ),
-          })
-        }}
-        onPointerDown={onDragStart}
-        onPointerMove={onDragMove}
-        onPointerUp={onDragEnd}
-        onPointerCancel={onDragEnd}
-        className="group absolute bottom-0 right-0 top-0 z-10 w-1 translate-x-1/2 cursor-col-resize touch-none select-none"
-      >
-        <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent transition-colors group-hover:bg-black/20 group-active:bg-black/30" />
-      </div>
+  const selectObject = (id: string) => {
+    if (onSelectObject) onSelectObject(id)
+    else {
+      setLocalObjectId(id)
+      onPickDoc(NAV_GROUPS[0].children[0])
+    }
+  }
+
+  if (collapsed && (navVersion === 1 || navVersion === 2)) {
+    return (
       <SharedSideNav
-        ariaLabel="世界书目录"
+        ariaLabel="百科目录"
+        collapsed
+        items={[
+          ...NAV_GROUPS.map((group) => ({
+            key: group.key,
+            label: group.label,
+            icon: group.icon,
+          })),
+          {
+            key: '关系网',
+            label: '关系网',
+            icon: `${ICON}/nav-relation.svg`,
+          },
+        ]}
+        activeKey={null}
+        onSelect={() => onCollapse?.()}
+        header={
+          navVersion === 2 ? (
+            <div className="px-[var(--sn-px)]">
+              <SideNavProductHeader
+                icon="/icons/nav-products/wiki.svg"
+                productLabel="百科"
+                bottomGap={0}
+                collapsed
+                onToggle={() => onCollapse?.()}
+              />
+            </div>
+          ) : undefined
+        }
+        footer={
+          navVersion === 1 ? (
+            <div className="px-[var(--sn-px)] pb-3">
+              <SideNavCollapseFooterButton
+                collapsed
+                onToggle={() => onCollapse?.()}
+              />
+            </div>
+          ) : undefined
+        }
+      />
+    )
+  }
+
+  return (
+    <div
+      data-side-nav-motion
+      data-product="wiki"
+      data-state={collapsed ? 'collapsed' : 'expanded'}
+      style={{ width: collapsed ? 0 : sidebarWidth }}
+      className="relative h-full shrink-0"
+    >
+      <motion.div
+        data-side-nav-motion-layer
+        initial={false}
+        animate={{
+          x: collapsed && !reduceSideNavMotion ? -SIDE_NAV_MOTION_OFFSET : 0,
+          opacity: collapsed ? 0 : 1,
+        }}
+        transition={{
+          duration: reduceSideNavMotion ? 0 : SIDE_NAV_MOTION_DURATION,
+          ease: 'easeOut',
+        }}
+        aria-hidden={collapsed}
+        inert={collapsed}
+        style={{
+          width: sidebarWidth,
+          pointerEvents: collapsed ? 'none' : 'auto',
+        }}
+        className="absolute inset-y-0 left-0"
+      >
+        <SideNavResizeHandle
+          value={sidebarWidth}
+          onChange={setSidebarWidth}
+          ariaLabel="调整百科目录宽度"
+        />
+        <SharedSideNav
+        ariaLabel="百科目录"
         layout="fill"
+        chrome={navVersion === 3 ? 'plain' : 'panel'}
+        showDivider={navVersion !== 3}
+        flushHeader={schemeFourLayout || navVersion === 3}
         items={[]}
         activeKey={null}
         onSelect={() => {}}
         header={
-          <div className="px-[var(--sn-px)] pb-2">
-            <div className="flex h-8 items-center gap-1.5 py-1.5">
-              <button
-                type="button"
-                title="收起目录"
-                aria-label="收起目录"
-                onClick={onCollapse}
-                className="flex items-center text-[var(--sidenav-ink-dim,rgba(28,31,35,0.8))] transition-colors hover:text-[var(--sidenav-ink,#1c1f23)]"
-              >
-                <FigmaGlyph src={`${ICON}/collapse.svg`} inset="10% 10% 10% 11.5%" />
-              </button>
-              <span className="truncate text-[13px] font-medium text-[var(--sidenav-ink-dim,rgba(28,31,35,0.8))]">
-                世界书目录
-              </span>
+          schemeFourLayout ? (
+            <WikiSchemeFourHeader
+              activeObjectId={resolvedObjectId}
+              onSelectObject={selectObject}
+              onCollapse={onCollapse ?? (() => {})}
+            />
+          ) : (
+            <div className="px-[var(--sn-px)] pb-2">
+              {usesProductHeaderLayout(navVersion) && (
+                navVersion === 2 ? (
+                  <UnifiedToolbar
+                    ariaLabel="百科工具条"
+                    actions={WIKI_SCHEME_TWO_TOOLBAR_ACTIONS}
+                    onAction={(action) => {
+                      if (action === 'layout') {
+                        onCollapse?.()
+                        return
+                      }
+                      if (action === 'products' && onBackHome) {
+                        onBackHome()
+                        return
+                      }
+                      if (action === 'products') {
+                        toast('产品入口待配置')
+                        return
+                      }
+                      toast(action === 'search' ? '搜索百科内容（演示）' : '任务入口待配置')
+                    }}
+                  />
+                ) : (
+                  <SideNavProductHeader
+                    icon="/icons/nav-products/wiki.svg"
+                    productLabel="百科"
+                    onLogoClick={onBackHome}
+                    bottomGap={0}
+                    onToggle={onCollapse ?? (() => {})}
+                  />
+                )
+              )}
+              <WikiObjectSwitcher
+                activeId={resolvedObjectId}
+                onChange={selectObject}
+              />
             </div>
-          </div>
+          )
         }
-      >
-        <nav aria-label="世界书目录菜单" className="flex flex-col gap-0.5 px-[var(--sn-px)] pb-3">
-          <NavRow
-            label="主页"
-            icon={`${ICON}/nav-home.svg`}
-            inset="5.5% 16.7% 11.1% 8.3%"
-            onClick={onBackHome}
-          />
+        footer={
+          navVersion === 1 ? (
+            <div className="px-[var(--sn-px)] pb-3">
+              <SideNavCollapseFooterButton onToggle={onCollapse ?? (() => {})} />
+            </div>
+          ) : schemeFourLayout ? (
+            <WikiSchemeFourFooter />
+          ) : navVersion === 5 ? (
+            <div className="px-[var(--sn-px)] pb-3">
+              <SideNavIconFooterActions
+                onToggle={onCollapse ?? (() => {})}
+                onOpenProjectSettings={() => toast('项目设置（演示）')}
+              />
+            </div>
+          ) : undefined
+        }
+        >
+        <nav aria-label="百科目录菜单" className="flex flex-col gap-0.5 px-[var(--sn-px)] pb-3">
+          {/* 方案 4 / 6 固定保留主页入口；其他方案延续原有条件。 */}
+          {(onBackHome || schemeFourLayout) && (
+            <NavRow
+              label="主页"
+              icon={`${ICON}/nav-home.svg`}
+              inset="5.5% 16.7% 11.1% 8.3%"
+              active={homeActive}
+              onClick={onBackHome ?? (() => toast('百科主页（演示）'))}
+              schemeFour={schemeFourLayout}
+            />
+          )}
           {NAV_GROUPS.map((g) => {
             const open = expanded.has(g.key)
             return (
@@ -269,19 +465,27 @@ export function WikiSideNav({
                   expanded={open}
                   onToggle={() => toggleGroup(g.key)}
                   onClick={() => toggleGroup(g.key)}
+                  schemeFour={schemeFourLayout}
                 />
                 {open &&
-                  g.children.map((c) => (
-                    <NavRow
-                      key={c}
-                      label={c}
-                      icon={`${ICON}/doc-leaf.svg`}
-                      inset="6.44% 12.7% 6.5% 12.7%"
-                      depth={1}
-                      active={activeDoc === c}
-                      onClick={() => onPickDoc(c)}
-                    />
-                  ))}
+                  g.children.map((c) => {
+                    const displayLabel =
+                      schemeFourLayout && g.key === '剧情事件'
+                        ? '未命名设定'
+                        : c
+                    return (
+                      <NavRow
+                        key={c}
+                        label={displayLabel}
+                        icon={`${ICON}/doc-leaf.svg`}
+                        inset="6.44% 12.7% 6.5% 12.7%"
+                        depth={1}
+                        active={activeDoc === c}
+                        onClick={() => onPickDoc(c)}
+                        schemeFour={schemeFourLayout}
+                      />
+                    )
+                  })}
               </div>
             )
           })}
@@ -291,18 +495,29 @@ export function WikiSideNav({
             inset="0"
             size={20}
             onClick={() => toast('关系网（演示）')}
+            schemeFour={schemeFourLayout}
           />
         </nav>
-      </SharedSideNav>
+        </SharedSideNav>
+      </motion.div>
     </div>
   )
 }
 
-export default function WikiEditorPage({ onBackHome }: { onBackHome: () => void }) {
-  const [activeDoc, setActiveDoc] = useState('未命名设定')
-  const [collapsed, setCollapsed] = useState(false)
+export default function WikiEditorPage({
+  activeDoc,
+  activeObjectTitle = '灵笼',
+  sidebarCollapsed = false,
+  onExpandSidebar,
+}: {
+  activeDoc: string
+  activeObjectTitle?: string
+  sidebarCollapsed?: boolean
+  onExpandSidebar?: () => void
+}) {
   const [draft, setDraft] = useState('')
   const composerRef = useRef<HTMLTextAreaElement>(null)
+  const navVersion = useNavVersion((state) => state.version)
 
   const send = () => {
     if (!draft.trim()) return
@@ -318,29 +533,22 @@ export default function WikiEditorPage({ onBackHome }: { onBackHome: () => void 
 
   return (
     <div className="flex h-full bg-white">
-      {/* ── 左：世界书目录 ── */}
-      {!collapsed && (
-        <WikiSideNav
-          activeDoc={activeDoc}
-          onPickDoc={setActiveDoc}
-          onBackHome={onBackHome}
-          onCollapse={() => setCollapsed(true)}
-        />
-      )}
-
       {/* ── 中：文档编辑区 ── */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-[60px] shrink-0 items-center justify-between p-3">
+        <div className="flex h-10 shrink-0 items-center justify-between px-3">
           <div className="flex items-center gap-1">
-            {collapsed && (
+            {sidebarCollapsed &&
+              navVersion !== 1 &&
+              navVersion !== 2 &&
+              navVersion !== 3 && (
               <button
                 type="button"
-                title="展开目录"
-                aria-label="展开目录"
-                onClick={() => setCollapsed(false)}
+                title="展开导航"
+                aria-label="展开导航"
+                onClick={onExpandSidebar}
                 className="flex size-8 items-center justify-center rounded text-[rgba(37,38,50,0.6)] transition-colors hover:bg-black/[0.04] hover:text-[#17171f]"
               >
-                <FigmaGlyph src={`${ICON}/collapse.svg`} inset="10% 10% 10% 11.5%" className="rotate-180" />
+                <SideNavPanelStateIcon collapsed />
               </button>
             )}
             {/* 当前文档页签 */}
@@ -359,12 +567,22 @@ export default function WikiEditorPage({ onBackHome }: { onBackHome: () => void 
             </button>
           </div>
 
-          <div className="flex items-center gap-3 opacity-50">
-            <div className="flex items-center overflow-hidden rounded-[15px] bg-black/[0.04]">
-              <ToolButton icon={`${ICON}/undo.svg`} inset="14.53% 10.09% 18.24% 14.98%" label="撤销" />
-              <ToolButton icon={`${ICON}/undo.svg`} inset="14.52% 10.6% 18.24% 14.47%" label="重做" className="[&>span]:-scale-x-100" />
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 opacity-50">
+              <div className="flex items-center overflow-hidden rounded-[15px] bg-black/[0.04]">
+                <ToolButton icon={`${ICON}/undo.svg`} inset="14.53% 10.09% 18.24% 14.98%" label="撤销" />
+                <ToolButton icon={`${ICON}/undo.svg`} inset="14.52% 10.6% 18.24% 14.47%" label="重做" className="[&>span]:-scale-x-100" />
+              </div>
+              <ToolButton icon={`${ICON}/history.svg`} inset="8.33%" label="历史版本" className="rounded-[28px] bg-black/[0.04]" />
             </div>
-            <ToolButton icon={`${ICON}/history.svg`} inset="8.33%" label="历史版本" className="rounded-[28px] bg-black/[0.04]" />
+            <button
+              type="button"
+              onClick={() => toast('发布（演示）')}
+              title="发布"
+              className="flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[8px] bg-[var(--color-ink)] px-2.5 text-[12px] font-medium text-[var(--color-ink-contrast)] transition-opacity hover:opacity-90"
+            >
+              发布
+            </button>
           </div>
         </div>
 
@@ -375,7 +593,7 @@ export default function WikiEditorPage({ onBackHome }: { onBackHome: () => void 
               <div className="flex flex-col gap-3 pt-8">
                 <h1 className="text-[32px] leading-normal text-[#17171f]" style={SERIF}>{activeDoc}</h1>
                 <p className="text-[14px] leading-[1.6] text-[rgba(37,38,50,0.6)]">
-                  具体来源：<span className="text-[rgba(37,38,50,0.35)]">未命名版权方资料</span>
+                  具体来源：<span className="text-[rgba(37,38,50,0.35)]">{activeObjectTitle}设定资料</span>
                 </p>
               </div>
               <div className="flex flex-col">
@@ -425,10 +643,10 @@ export default function WikiEditorPage({ onBackHome }: { onBackHome: () => void 
         </div>
       </div>
 
-      {/* ── 右：世界书智能体 ── */}
-      <div className="flex shrink-0 items-center py-3 pr-3">
-        <div className="flex h-full w-[366px] flex-col overflow-hidden rounded-2xl border border-[#e9e9eb] bg-[#f8f9fa]">
-          <div className="flex shrink-0 items-center justify-between py-[7px] pl-4 pr-2">
+      {/* ── 右：世界书智能体 — 通栏贴边（无外边距），白底 + 左分隔线 ── */}
+      <div className="flex shrink-0">
+        <div className="flex h-full w-[366px] flex-col overflow-hidden border-l border-[#e9e9eb] bg-white">
+          <div className="flex h-10 shrink-0 items-center justify-between pl-4 pr-2">
             <span className="text-[14px] font-semibold text-black">对话</span>
             <div className="flex items-center gap-3">
               {[
@@ -444,31 +662,35 @@ export default function WikiEditorPage({ onBackHome }: { onBackHome: () => void 
                   onClick={() => toast(`${b.label}（演示）`)}
                   className="flex size-8 items-center justify-center rounded-lg text-black transition-colors hover:bg-black/[0.04]"
                 >
-                  <FigmaGlyph src={`${ICON}/${b.icon}.svg`} inset={b.inset} size={20} />
+                  {b.icon === 'chat-panel' ? (
+                    <SideNavPanelStateIcon side="right" />
+                  ) : (
+                    <FigmaGlyph src={`${ICON}/${b.icon}.svg`} inset={b.inset} size={20} />
+                  )}
                 </button>
               ))}
             </div>
           </div>
 
           {/* 空态 + 快捷开始 */}
-          <div className="flex min-h-0 flex-1 flex-col justify-center gap-5 overflow-y-auto px-[39px]">
+          <div className="flex min-h-0 flex-1 flex-col justify-center gap-5 overflow-y-auto px-[39px] text-center">
             <div className="flex flex-col items-center gap-3">
               <h2 className="w-full text-center text-[24px] leading-normal text-black" style={SERIF}>
-                嗨～开始创建世界书吧
+                嗨～开始完善{activeObjectTitle}吧
               </h2>
-              <p className="w-full text-[14px] leading-[1.75] text-[rgba(37,38,50,0.6)]">
+              <p className="w-full text-center text-[14px] leading-[1.75] text-[rgba(37,38,50,0.6)]">
                 手里有完整稿子可以直接丢给我梳理，没成型也能慢慢一起攒设定，看你现在是哪种情况：
               </p>
             </div>
-            <div className="flex flex-col gap-3">
-              <span className="text-[12px] font-medium text-[rgba(37,38,50,0.6)]">快速开始</span>
+            <div className="flex flex-col items-center gap-3">
+              <span className="text-center text-[12px] font-medium text-[rgba(37,38,50,0.6)]">快速开始</span>
               <div className="flex flex-col gap-3">
                 {QUICK_STARTS.map((q) => (
                   <button
                     key={q}
                     type="button"
                     onClick={() => pickQuickStart(q)}
-                    className="flex h-11 items-center rounded-[38px] border border-[#e9e9eb] bg-[#fafafa] px-4 text-left text-[13px] font-medium text-black transition-colors hover:bg-white"
+                    className="flex h-11 items-center justify-center rounded-[38px] border border-[#e9e9eb] bg-[#fafafa] px-4 text-center text-[13px] font-medium text-black transition-colors hover:bg-white"
                   >
                     <span className="min-w-0 flex-1 truncate">{q}</span>
                   </button>
@@ -477,33 +699,20 @@ export default function WikiEditorPage({ onBackHome }: { onBackHome: () => void 
             </div>
           </div>
 
-          {/* 输入框 */}
-          <div className="m-[15px] flex h-[174px] shrink-0 flex-col rounded-3xl border-[0.5px] border-black/[0.12] bg-white shadow-[0_8px_8px_rgba(12,17,31,0.08)]">
-            <textarea
-              ref={composerRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  send()
-                }
-              }}
-              placeholder="请输入你的想法"
-              aria-label="输入你的想法"
-              className="min-h-0 flex-1 resize-none bg-transparent px-4 pt-3.5 text-[14px] leading-[22px] text-[#17171f] outline-none placeholder:text-[rgba(37,38,50,0.35)]"
-            />
-            <div className="flex shrink-0 items-center justify-between px-3 pb-3">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  title="添加素材"
-                  aria-label="添加素材"
-                  onClick={() => toast('添加素材（演示）')}
-                  className="flex items-center rounded-3xl p-[5px] text-[rgba(37,38,50,0.8)] transition-colors hover:bg-black/[0.04]"
-                >
-                  <Plus size={14} strokeWidth={2} />
-                </button>
+          {/* 输入框 — 统一 ChatComposer（114px） */}
+          <ChatComposer
+            textareaRef={composerRef}
+            value={draft}
+            onChange={setDraft}
+            onSend={send}
+            placeholder="请输入你的想法"
+            ariaLabel="输入你的想法"
+            className="m-[15px] shrink-0"
+            skinClassName="rounded-3xl border-[0.5px] border-black/[0.12] bg-white shadow-[0_8px_8px_rgba(12,17,31,0.08)]"
+            inputClassName="px-1 pt-0.5 text-[14px] leading-[22px] text-[#17171f] placeholder:text-[rgba(37,38,50,0.35)]"
+            footerLeft={
+              <>
+                <ComposerLocalFileButton className="flex size-6 shrink-0 items-center justify-center rounded-full text-[rgba(37,38,50,0.8)] transition-colors hover:bg-black/[0.04]" />
                 {[
                   { icon: 'conflict', label: '冲突检测', inset: '4.9% 14.3% 11.8% 7.3%' },
                   { icon: 'extract', label: '素材提炼', inset: '2.4% 14.6% 10% 7.3%' },
@@ -518,19 +727,9 @@ export default function WikiEditorPage({ onBackHome }: { onBackHome: () => void 
                     {b.label}
                   </button>
                 ))}
-              </div>
-              <button
-                type="button"
-                title="发送"
-                aria-label="发送"
-                disabled={!draft.trim()}
-                onClick={send}
-                className="flex size-6 items-center justify-center rounded-full bg-[#1c1f23] text-white transition-opacity disabled:opacity-40"
-              >
-                <ArrowUp size={14} strokeWidth={2.2} />
-              </button>
-            </div>
-          </div>
+              </>
+            }
+          />
         </div>
       </div>
     </div>

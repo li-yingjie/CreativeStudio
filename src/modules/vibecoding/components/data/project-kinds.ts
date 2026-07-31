@@ -4,14 +4,14 @@ export type OutputShape = 'app' | 'artifact' | 'code'
 
 export const PROJECT_KINDS: Record<string, ProjectKind> = {
   '每日打卡小程序': 'mini-program',
-  '塔罗小程序': 'mini-program',
+  '塔罗兴趣卡': 'mini-program',
   '探店视频创作助手': 'mini-program',
   '粉丝互动机器人': 'ai-avatar',
   '陶白白 Sensei 分身': 'ai-avatar',
   '沪上火锅·五一种草提案': 'ops-proposal',
   '抖音 AI 工坊设计探索': 'web-app',
   '射击小游戏': 'web-game',
-  '六一儿童节活动': 'marketing-h5',
+  '抖音 ACG 游戏新春会': 'marketing-h5',
 }
 
 export const SHAPE_BY_KIND: Record<ProjectKind, OutputShape> = {

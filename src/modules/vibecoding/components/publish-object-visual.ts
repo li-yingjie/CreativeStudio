@@ -70,8 +70,8 @@ export function getPublishObjectVisual(
   if (projectKind === 'marketing-h5') {
     return {
       type: 'image',
-      src: '/h5/children-day/hero-gifts.png',
-      alt: '六一儿童节活动头图',
+      src: '/assets/acg-new-year/hero.jpg',
+      alt: '抖音 ACG 游戏新春会主视觉',
       rounded: 'lg',
     }
   }

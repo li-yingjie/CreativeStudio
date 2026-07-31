@@ -1,116 +1,36 @@
 /* eslint-disable react-refresh/only-export-components -- asset schema and selectors are shared with the project toolbar */
 import { useEffect, useRef, useState } from 'react'
-import { Music2, Image as ImageIcon, Film, ArrowLeft } from '@/shared/icons'
+import {
+  ArrowLeft,
+  ArrowUp,
+  ChevronDown,
+  Film,
+  FolderCode,
+  FolderTree,
+  Image as ImageIcon,
+  LayoutGrid,
+  ListCollapse,
+  Music2,
+  Plus,
+  Upload,
+} from '@/shared/icons'
+import ImageCanvasEditor, { ImageQuickTools } from './ImageCanvasEditor'
+import {
+  GARUDA_ASSET_GROUPS,
+  resolveAssetPrompt,
+  type AssetGroup,
+  type AssetItem,
+  type AssetKind,
+} from './ProjectAssetCatalog'
 
 /**
  * Garuda 资产视图
  *
  * 直接从 /public/garuda/assets/ 读图，分组展示主角 / 敌人 / 道具 /
  * UI / 音效。点击缩略图打开放大预览。音效 / 视频 / 长帧序列只显示一个
- * 代表 + 帧数标签，避免一次性渲染数百张 webp。
+ * 代表 + 帧数标签，避免一次性渲染数百张 webp。点击素材后进入
+ * Figma 式 Prompt 详情，H5 与游戏共用同一套下钻逻辑。
  */
-
-type AssetKind = 'image' | 'audio' | 'video'
-
-interface AssetItem {
-  src: string
-  label: string
-  /** Frame count for animation folders — shown as a badge. */
-  frames?: number
-  kind?: AssetKind
-}
-
-interface AssetGroup {
-  title: string
-  desc?: string
-  items: AssetItem[]
-}
-
-const GROUPS: AssetGroup[] = [
-  {
-    title: '主角 · Garuda',
-    desc: 'NanoBanana 单帧 + Seedance 2 帧动画',
-    items: [
-      { src: '/garuda/assets/garuda_fly-webp/garuda_fly_00.webp', label: 'fly', frames: 50 },
-      { src: '/garuda/assets/garuda_shield-webp/garuda_shield_000.webp', label: 'shield', frames: 101 },
-      { src: '/garuda/assets/garuda_bomb-webp/garuda_bomb_000.webp', label: 'bomb', frames: 152 },
-      { src: '/garuda/assets/garuda_special-webp/garuda_special_000.webp', label: 'special', frames: 202 },
-      { src: '/garuda/assets/garuda_killer_video-webp/garuda_special_video_000.webp', label: 'killer', frames: 80 },
-      { src: '/garuda/assets/garuda_killermove.webp', label: 'killermove' },
-      { src: '/garuda/assets/garuda_shell_gif-webp/garuda_shell_gif_00.webp', label: 'shell', frames: 31 },
-      { src: '/garuda/assets/garuda_bullet.png', label: 'bullet' },
-    ],
-  },
-  {
-    title: '敌人 · Enemies',
-    desc: '5 种基础敌型 + boss 帧动画',
-    items: [
-      { src: '/garuda/assets/enemy/enemy_0.png', label: 'enemy_0' },
-      { src: '/garuda/assets/enemy/enemy_1-webp/enemy_1_00.webp', label: 'enemy_1', frames: 24 },
-      { src: '/garuda/assets/enemy/enemy_2.png', label: 'enemy_2' },
-      { src: '/garuda/assets/enemy/enemy_3.webp', label: 'enemy_3' },
-      { src: '/garuda/assets/enemy/enemy_4.webp', label: 'enemy_4' },
-      { src: '/garuda/assets/enemy/enemy_boss-webp/enemy_boss_00.webp', label: 'boss', frames: 60 },
-      { src: '/garuda/assets/enemy_RapidFire.webp', label: 'RapidFire' },
-      { src: '/garuda/assets/enemy_Shield Generator.webp', label: 'Shield Gen' },
-      { src: '/garuda/assets/enemy_Physical Armor.webp', label: 'Phys Armor' },
-      { src: '/garuda/assets/enemy_Energy Resist.webp', label: 'Energy Res' },
-      { src: '/garuda/assets/enemy_Vitality.webp', label: 'Vitality' },
-      { src: '/garuda/assets/enemy/enemy_bullet.png', label: 'bullet' },
-    ],
-  },
-  {
-    title: '道具 · Items',
-    items: [
-      { src: '/garuda/assets/item_blood.png', label: '回血' },
-      { src: '/garuda/assets/item_bomb.png', label: '炸弹' },
-      { src: '/garuda/assets/item_enegy.png', label: '能量' },
-      { src: '/garuda/assets/item_laser.png', label: '激光' },
-      { src: '/garuda/assets/item_shell.png', label: '护盾' },
-      { src: '/garuda/assets/item_speed.png', label: '加速' },
-      { src: '/garuda/assets/item_Self-Destruct.webp', label: '自爆' },
-      { src: '/garuda/assets/coin.png', label: 'coin' },
-    ],
-  },
-  {
-    title: '场景 · UI / FX',
-    items: [
-      { src: '/garuda/assets/background.jpg', label: 'background' },
-      { src: '/garuda/assets/Start.jpg', label: 'Start' },
-      { src: '/garuda/assets/logo.jpg', label: 'logo' },
-      { src: '/garuda/assets/mission_start.webp', label: 'mission_start' },
-      { src: '/garuda/assets/button_start.png', label: 'btn start' },
-      { src: '/garuda/assets/button_rank.png', label: 'btn rank' },
-      { src: '/garuda/assets/killer.png', label: 'killer' },
-      { src: '/garuda/assets/killer_R.png', label: 'killer_R' },
-      { src: '/garuda/assets/explosion_clean_0.png', label: 'explosion' },
-      { src: '/garuda/assets/blood_full.png', label: 'blood' },
-      { src: '/garuda/assets/shield_full.png', label: 'shield' },
-      { src: '/garuda/assets/special_full.png', label: 'special' },
-    ],
-  },
-  {
-    title: '音频 · Audio',
-    items: [
-      { src: '/garuda/assets/bgm.mp3', label: 'bgm.mp3', kind: 'audio' },
-      { src: '/garuda/assets/trans.mp3', label: 'trans.mp3', kind: 'audio' },
-      { src: '/garuda/assets/killer.mp3', label: 'killer.mp3', kind: 'audio' },
-      { src: '/garuda/assets/laser.wav', label: 'laser.wav', kind: 'audio' },
-      { src: '/garuda/assets/explosion_.wav', label: 'explosion_.wav', kind: 'audio' },
-      { src: '/garuda/assets/sfx_bomb_blast.wav', label: 'sfx_bomb_blast.wav', kind: 'audio' },
-      { src: '/garuda/assets/sfx_explosion_big.wav', label: 'sfx_explosion_big.wav', kind: 'audio' },
-      { src: '/garuda/assets/sfx_explosion_small.wav', label: 'sfx_explosion_small.wav', kind: 'audio' },
-      { src: '/garuda/assets/sfx_shield_on.wav', label: 'sfx_shield_on.wav', kind: 'audio' },
-    ],
-  },
-  {
-    title: '视频 · Cinematics',
-    items: [
-      { src: '/garuda/assets/garuda_menu.mp4', label: 'garuda_menu.mp4', kind: 'video' },
-      { src: '/garuda/assets/start_anime_compressed.mp4', label: 'start_anime.mp4', kind: 'video' },
-    ],
-  },
-]
 
 export type { AssetGroup, AssetItem, AssetKind }
 
@@ -176,7 +96,7 @@ function FrameImage({
 /** Which asset kinds the groups actually contain (image/audio/video),
  *  preserving display order. Used by the parent toolbar to build the
  *  kind tabs without re-deriving GROUPS. */
-export function garudaKindTabs(groups: AssetGroup[] = GROUPS): AssetKind[] {
+export function garudaKindTabs(groups: AssetGroup[] = GARUDA_ASSET_GROUPS): AssetKind[] {
   const counts = { image: 0, audio: 0, video: 0 } as Record<AssetKind, number>
   groups.forEach((g) => g.items.forEach((it) => { counts[it.kind ?? 'image'] += 1 }))
   return (['image', 'audio', 'video'] as AssetKind[]).filter((k) => counts[k] > 0)
@@ -184,7 +104,9 @@ export function garudaKindTabs(groups: AssetGroup[] = GROUPS): AssetKind[] {
 
 /** Groups containing only their image-kind items (empty groups dropped) —
  *  used by the canvas editor to lay images out one row per type. */
-export function garudaImageGroups(groups: AssetGroup[] = GROUPS): AssetGroup[] {
+export function garudaImageGroups(
+  groups: AssetGroup[] = GARUDA_ASSET_GROUPS,
+): AssetGroup[] {
   return groups
     .map((g) => ({ ...g, items: g.items.filter((it) => (it.kind ?? 'image') === 'image') }))
     .filter((g) => g.items.length > 0)
@@ -217,8 +139,66 @@ export const KIND_META: Record<AssetKind, { label: string; icon: typeof ImageIco
   video: { label: '视频', icon: Film },
 }
 
+type AssetViewMode = 'grid' | 'list' | 'usage'
+
+const VIEW_MODE_META: Array<{
+  value: AssetViewMode
+  label: string
+  icon: typeof LayoutGrid
+}> = [
+  { value: 'grid', label: 'Grid', icon: LayoutGrid },
+  { value: 'list', label: 'List', icon: ListCollapse },
+  { value: 'usage', label: '页面使用', icon: FolderTree },
+]
+
+const PAGE_USAGE_ORDER = [
+  '开始页',
+  '战斗页',
+  '排行榜页',
+  '活动首页',
+  '焦点视频页',
+  '内容榜单页',
+  '活动入口',
+  'Feed 兴趣卡',
+  '塔罗落地页',
+  '首页',
+  '作品页',
+  '全局资源',
+  '未分配页面',
+]
+
+function usagePagesFor(item: AssetItem, sourceGroup: string): string[] {
+  const id = item.id ?? ''
+
+  if (id === 'ui-button-rank') return ['开始页', '排行榜页']
+  if (
+    ['scene-start', 'scene-logo', 'ui-button-start', 'video-menu'].includes(id)
+  ) {
+    return ['开始页']
+  }
+  if (
+    /^(garuda-|enemy-|item-|scene-|ui-|fx-|hud-|audio-|video-)/.test(id)
+  ) {
+    return ['战斗页']
+  }
+
+  if (/^acg-0[1-6]-/.test(id)) return ['活动首页']
+  if (id === 'acg-07-video-cover') return ['焦点视频页']
+  if (/^acg-(08|09|10|11)-/.test(id)) return ['内容榜单页']
+  if (id === 'acg-12-mascot') return ['活动入口']
+
+  if (/Feed|底纹|天秤座/.test(item.label)) return ['Feed 兴趣卡']
+  if (/落地页|圣杯二/.test(item.label)) return ['塔罗落地页']
+  if (id.startsWith('uploaded-')) return ['未分配页面']
+  if (/asset-\d+$/.test(id)) return ['未分配页面']
+
+  if (/主视觉|Banner/.test(sourceGroup)) return ['首页']
+  if (/卡片配图/.test(sourceGroup)) return ['首页', '作品页']
+  return ['全局资源']
+}
+
 export default function GarudaAssetsView({
-  groups = GROUPS,
+  groups = GARUDA_ASSET_GROUPS,
   activeKind: controlledKind,
   onKindChange,
   selectedAsset: controlledSel,
@@ -226,12 +206,37 @@ export default function GarudaAssetsView({
 }: GarudaAssetsViewProps = {}) {
   const [internalKind, setInternalKind] = useState<AssetKind>('image')
   const [internalSel, setInternalSel] = useState<AssetItem | null>(null)
+  const [canvasOpen, setCanvasOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<AssetViewMode>('grid')
+  const [uploadedAssets, setUploadedAssets] = useState<AssetItem[]>([])
+  const [promptDrafts, setPromptDrafts] = useState<Record<string, string>>({})
+  const gridUploadInputRef = useRef<HTMLInputElement>(null)
   // Controlled when the parent (toolbar) drives the kind selection.
   const controlled = controlledKind !== undefined
   const activeKind = controlled ? controlledKind : internalKind
   const setActiveKind = (k: AssetKind) => {
     onKindChange?.(k)
     if (!controlled) setInternalKind(k)
+  }
+  const addUploadedAssets = (files: FileList | null) => {
+    if (!files?.length) return
+    const batchId = Date.now().toString(36)
+    Array.from(files).forEach((file, index) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        if (typeof reader.result !== 'string') return
+        setUploadedAssets((current) => [
+          ...current,
+          {
+            id: `uploaded-${batchId}-${index}`,
+            src: reader.result,
+            label: file.name,
+          },
+        ])
+      }
+      reader.readAsDataURL(file)
+    })
+    setActiveKind('image')
   }
   // Selection (the asset opened on the canvas) — controlled when the
   // parent passes onSelectAsset so its toolbar / 编辑 panel can bind to it.
@@ -242,8 +247,20 @@ export default function GarudaAssetsView({
     if (!selControlled) setInternalSel(a)
   }
 
+  const sourceGroups: AssetGroup[] =
+    uploadedAssets.length > 0
+      ? [
+          {
+            title: '上传素材',
+            desc: '本次会话中上传的本地图像',
+            items: uploadedAssets,
+          },
+          ...groups,
+        ]
+      : groups
+
   // Which kinds actually have assets — only those get a tab.
-  const kindCounts = groups.reduce(
+  const kindCounts = sourceGroups.reduce(
     (a, g) => {
       g.items.forEach((it) => {
         a[it.kind ?? 'image'] += 1
@@ -258,127 +275,481 @@ export default function GarudaAssetsView({
   const effectiveKind = kindTabs.includes(activeKind) ? activeKind : kindTabs[0]
 
   // Filter by the selected kind tab, dropping groups that end up empty.
-  const visibleGroups = groups
+  const visibleGroups = sourceGroups
     .map((g) => ({
       ...g,
       items: g.items.filter((it) => (it.kind ?? 'image') === effectiveKind),
     }))
     .filter((g) => g.items.length > 0)
+  const visibleAssets = visibleGroups.flatMap((group) => group.items)
+  const visibleEntries = visibleGroups.flatMap((group) =>
+    group.items.map((item) => ({ item, sourceGroup: group.title })),
+  )
+  const usageRows = visibleEntries.reduce<
+    Array<{ page: string; items: AssetItem[] }>
+  >((rows, entry) => {
+    usagePagesFor(entry.item, entry.sourceGroup).forEach((page) => {
+      const row = rows.find((candidate) => candidate.page === page)
+      if (row) row.items.push(entry.item)
+      else rows.push({ page, items: [entry.item] })
+    })
+    return rows
+  }, [])
+  usageRows.sort((a, b) => {
+    const aIndex = PAGE_USAGE_ORDER.indexOf(a.page)
+    const bIndex = PAGE_USAGE_ORDER.indexOf(b.page)
+    const aRank = aIndex < 0 ? Number.MAX_SAFE_INTEGER : aIndex
+    const bRank = bIndex < 0 ? Number.MAX_SAFE_INTEGER : bIndex
+    return aRank - bRank
+  })
 
-  // Asset opened → show the inline canvas (not a fullscreen overlay).
+  if (canvasOpen) {
+    return (
+      <ImageCanvasEditor
+        groups={garudaImageGroups(sourceGroups)}
+        onClose={() => setCanvasOpen(false)}
+      />
+    )
+  }
+
+  // Asset opened → show the inline Prompt detail (not a fullscreen overlay).
   if (selected) {
-    return <AssetCanvas item={selected} onBack={() => setSelected(null)} />
+    const assetKey = selected.id ?? selected.src
+    const resolvedPrompt = resolveAssetPrompt(selected)
+    return (
+      <AssetPromptDetail
+        key={assetKey}
+        item={selected}
+        assets={visibleAssets}
+        prompt={promptDrafts[assetKey] ?? resolvedPrompt.text}
+        promptTag={resolvedPrompt.skillLabel}
+        model={resolvedPrompt.model}
+        onPromptChange={(next) =>
+          setPromptDrafts((current) => ({ ...current, [assetKey]: next }))
+        }
+        onSelect={setSelected}
+        onCanvasEdit={() => setCanvasOpen(true)}
+        onBack={() => setSelected(null)}
+      />
+    )
   }
 
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden bg-[var(--color-surface-0)]">
-      <div className="thin-scroll flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-      {/* Kind tabs — 图像 / 音频 / 视频 (hidden when the parent toolbar
-          owns the switcher) */}
-      {!controlled && kindTabs.length > 1 && (
-        <div className="sticky top-0 z-10 flex shrink-0 items-center gap-1 border-b border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-5 py-2">
-          {kindTabs.map((k) => {
-            const Icon = KIND_META[k].icon
-            const active = k === effectiveKind
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-surface-0)]">
+      <input
+        ref={gridUploadInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(event) => {
+          addUploadedAssets(event.target.files)
+          event.currentTarget.value = ''
+        }}
+      />
+      <div className="flex min-h-11 shrink-0 flex-wrap items-center gap-2 border-b border-[var(--divider-soft)] px-4 py-2">
+        <div className="flex min-w-0 items-center gap-1">
+          {kindTabs.map((kindValue) => {
+            const Icon = KIND_META[kindValue].icon
+            const active = kindValue === effectiveKind
             return (
               <button
-                key={k}
+                key={kindValue}
                 type="button"
-                onClick={() => setActiveKind(k)}
-                className={`flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] transition-colors ${
+                aria-pressed={active}
+                onClick={() => {
+                  setActiveKind(kindValue)
+                  setSelected(null)
+                }}
+                className={`flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[12px] transition-colors ${
                   active
-                    ? 'bg-[var(--color-ink)]/[0.07] text-[var(--color-ink)]/90'
-                    : 'text-[var(--color-ink)]/50 hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/80'
+                    ? 'bg-[var(--color-ink)]/[0.07] font-medium text-[var(--color-ink)]'
+                    : 'text-[var(--color-ink)]/45 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/75'
                 }`}
               >
-                <Icon size={13} strokeWidth={1.8} className="shrink-0 opacity-70" />
-                {KIND_META[k].label}
-                <span className="text-[10.5px] text-[var(--color-ink)]/40">{kindCounts[k]}</span>
+                <Icon className="size-3.5" strokeWidth={1.8} />
+                {KIND_META[kindValue].label}
+                <span className="text-[10px] text-[var(--color-ink)]/35">
+                  {kindCounts[kindValue]}
+                </span>
               </button>
             )
           })}
         </div>
-      )}
-      <div className="space-y-7 px-5 py-5">
-        {visibleGroups.map((g) => (
-          <section key={g.title}>
-            <div className="mb-2.5 flex items-baseline gap-2">
-              <h3 className="text-[13px] font-semibold text-[var(--color-ink)]">{g.title}</h3>
-              {g.desc && (
-                <span className="text-[11px] text-[var(--color-ink)]/45">{g.desc}</span>
-              )}
-              <span className="ml-auto text-[11px] text-[var(--color-ink)]/35">
-                {g.items.length} 项
-              </span>
-            </div>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3">
-              {g.items.map((it) => (
-                <AssetThumb key={it.src} item={it} onOpen={() => setSelected(it)} />
-              ))}
-            </div>
-          </section>
-        ))}
+
+        <div className="ml-auto flex items-center gap-2">
+          <div
+            role="group"
+            aria-label="素材显示模式"
+            className="flex items-center rounded-lg bg-[var(--fill-subtle)] p-0.5"
+          >
+            {VIEW_MODE_META.map((mode) => {
+              const Icon = mode.icon
+              const active = viewMode === mode.value
+              return (
+                <button
+                  key={mode.value}
+                  type="button"
+                  title={mode.label}
+                  aria-label={mode.label}
+                  aria-pressed={active}
+                  onClick={() => setViewMode(mode.value)}
+                  className={`flex h-7 items-center gap-1.5 rounded-md px-2 text-[11.5px] transition-colors ${
+                    active
+                      ? 'bg-[var(--color-surface-0)] text-[var(--color-ink)] shadow-sm'
+                      : 'text-[var(--color-ink)]/45 hover:text-[var(--color-ink)]/75'
+                  }`}
+                >
+                  <Icon className="size-3.5" strokeWidth={1.8} />
+                  <span>{mode.label}</span>
+                </button>
+              )
+            })}
+          </div>
+          {effectiveKind === 'image' && (
+            <button
+              type="button"
+              onClick={() => setCanvasOpen(true)}
+              className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--color-ink)]/8 px-2.5 text-[12px] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+            >
+              <LayoutGrid className="size-3.5" strokeWidth={1.8} />
+              画布编辑
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => gridUploadInputRef.current?.click()}
+            className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--color-ink)]/8 px-2.5 text-[12px] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+          >
+            <Upload className="size-3.5" strokeWidth={1.8} />
+            上传
+          </button>
+        </div>
       </div>
+
+      <div className="thin-scroll flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+        {viewMode === 'grid' && (
+          <div className="space-y-7 px-5 py-5">
+            {visibleGroups.map((group) => (
+              <section key={group.title}>
+                <div className="mb-2.5 flex items-baseline gap-2">
+                  <h3 className="text-[13px] font-semibold text-[var(--color-ink)]">
+                    {group.title}
+                  </h3>
+                  {group.desc && (
+                    <span className="text-[11px] text-[var(--color-ink)]/45">
+                      {group.desc}
+                    </span>
+                  )}
+                  <span className="ml-auto text-[11px] text-[var(--color-ink)]/35">
+                    {group.items.length} 项
+                  </span>
+                </div>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3">
+                  {group.items.map((item, index) => (
+                    <AssetThumb
+                      key={`${group.title}-${item.id ?? item.src}-${index}`}
+                      item={item}
+                      onOpen={() => setSelected(item)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+
+        {viewMode === 'list' && (
+          <div className="px-5 py-4">
+            <div className="overflow-hidden rounded-xl border border-[var(--divider-soft)]">
+              {visibleEntries.map(({ item, sourceGroup }, index) => {
+                const kindValue = item.kind ?? 'image'
+                const promptMeta = resolveAssetPrompt(item)
+                return (
+                  <button
+                    key={`${sourceGroup}-${item.id ?? item.src}-${index}`}
+                    type="button"
+                    onClick={() => setSelected(item)}
+                    className="grid h-14 w-full grid-cols-[40px_minmax(120px,1fr)_120px_84px_120px] items-center gap-3 border-b border-[var(--divider-soft)] px-3 text-left last:border-b-0 hover:bg-[var(--fill-hover)]"
+                  >
+                    <AssetListThumb item={item} />
+                    <span className="truncate text-[12.5px] font-medium text-[var(--color-ink)]">
+                      {item.label}
+                    </span>
+                    <span className="truncate text-[11.5px] text-[var(--color-ink)]/45">
+                      {sourceGroup}
+                    </span>
+                    <span className="text-[11.5px] text-[var(--color-ink)]/45">
+                      {KIND_META[kindValue].label}
+                    </span>
+                    <span className="truncate text-[11.5px] text-[var(--color-ink)]/45">
+                      {promptMeta.model}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {viewMode === 'usage' && (
+          <div className="space-y-6 px-5 py-5">
+            {usageRows.map((row) => (
+              <section key={row.page}>
+                <div className="mb-2.5 flex items-center gap-2">
+                  <h3 className="text-[13px] font-semibold text-[var(--color-ink)]">
+                    {row.page}
+                  </h3>
+                  <span className="text-[11px] text-[var(--color-ink)]/35">
+                    {row.items.length} 项素材
+                  </span>
+                </div>
+                <div className="thin-scroll grid grid-flow-col auto-cols-[120px] justify-start gap-3 overflow-x-auto pb-1">
+                  {row.items.map((item, index) => (
+                    <AssetThumb
+                      key={`${row.page}-${item.id ?? item.src}-${index}`}
+                      item={item}
+                      onOpen={() => setSelected(item)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-/** Checkerboard "canvas" detail — the clicked asset shown large, frame
- *  sequences auto-looping. Replaces the old fullscreen overlay. */
-function AssetCanvas({ item, onBack }: { item: AssetItem; onBack: () => void }) {
+/** Figma 8:11955 — 104px material rail + preview + editable Prompt composer. */
+function AssetPromptDetail({
+  item,
+  assets,
+  prompt,
+  promptTag,
+  model,
+  onPromptChange,
+  onSelect,
+  onCanvasEdit,
+  onBack,
+}: {
+  item: AssetItem
+  assets: AssetItem[]
+  prompt: string
+  promptTag: string
+  model: string
+  onPromptChange: (next: string) => void
+  onSelect: (item: AssetItem) => void
+  onCanvasEdit: () => void
+  onBack: () => void
+}) {
   const kind = item.kind ?? 'image'
+  const [saved, setSaved] = useState(false)
+  const [replacementSrc, setReplacementSrc] = useState<string | null>(null)
+  const uploadInputRef = useRef<HTMLInputElement>(null)
+
+  const openUpload = () => uploadInputRef.current?.click()
+  const replacePreview = (file: File | undefined) => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') setReplacementSrc(reader.result)
+    }
+    reader.readAsDataURL(file)
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-surface-0)]">
-      {/* canvas header — back + asset identity */}
-      <div className="flex shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-4 py-2">
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          replacePreview(event.target.files?.[0])
+          event.currentTarget.value = ''
+        }}
+      />
+      <div className="flex h-10 shrink-0 items-center gap-2 border-b border-black/[0.06] px-3 py-1.5">
         <button
           type="button"
           onClick={onBack}
-          className="flex h-7 items-center gap-1 rounded-md px-2 text-[12px] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+          className="flex h-6 items-center gap-1 rounded-full px-2 text-[12px] font-semibold leading-4 text-[var(--color-ink)]/80 transition-colors duration-150 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
         >
-          <ArrowLeft size={13} strokeWidth={1.8} />
-          返回素材
+          <ArrowLeft className="size-4" strokeWidth={1.8} />
+          返回
         </button>
-        <span className="font-mono text-[12px] text-[var(--color-ink)]/85">{item.label}</span>
+        <span className="truncate text-[12px] text-[var(--color-ink)]/55">
+          {item.label}
+        </span>
         {item.frames && (
-          <span className="rounded-md bg-[var(--fill-subtle)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-ink)]/55">
+          <span className="rounded bg-[var(--fill-subtle)] px-1.5 py-0.5 text-[10px] tabular-nums text-[var(--color-ink)]/55">
             {item.frames} 帧
           </span>
         )}
-      </div>
-      {/* canvas surface */}
-      <div
-        className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-8"
-        style={{
-          backgroundColor: '#ffffff',
-          backgroundImage:
-            'linear-gradient(45deg,#eceef2 25%,transparent 25%),linear-gradient(-45deg,#eceef2 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#eceef2 75%),linear-gradient(-45deg,transparent 75%,#eceef2 75%)',
-          backgroundSize: '22px 22px',
-          backgroundPosition: '0 0,0 11px,11px -11px,-11px 0',
-        }}
-      >
-        {kind === 'video' ? (
-          <video
-            src={item.src}
-            controls
-            autoPlay
-            loop
-            className="max-h-full max-w-full rounded-lg shadow-2xl"
-          />
-        ) : kind === 'audio' ? (
-          <div className="flex flex-col items-center gap-4 rounded-2xl bg-black/40 px-8 py-7">
-            <Music2 size={40} className="text-white/80" strokeWidth={1.4} />
-            <span className="font-mono text-[13px] text-white/85">{item.label}</span>
-            <audio src={item.src} controls autoPlay />
-          </div>
-        ) : (
-          <FrameImage
-            item={item}
-            playing
-            className="max-h-full max-w-full object-contain drop-shadow-2xl"
-          />
+        {kind === 'image' && (
+          <button
+            type="button"
+            onClick={openUpload}
+            className="ml-auto flex h-7 items-center gap-1.5 rounded-lg px-2 text-[12px] text-[var(--color-ink)]/65 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+          >
+            <Upload className="size-3.5" strokeWidth={1.8} />
+            上传
+          </button>
         )}
+      </div>
+
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <aside
+          aria-label="素材列表"
+          className="thin-scroll w-[104px] shrink-0 overflow-y-auto p-3"
+        >
+          <div className="flex flex-col gap-2">
+            {assets.map((asset) => {
+              const assetKind = asset.kind ?? 'image'
+              const selected = (asset.id ?? asset.src) === (item.id ?? item.src)
+              return (
+                <button
+                  key={asset.id ?? asset.src}
+                  type="button"
+                  aria-label={`选择素材：${asset.label}`}
+                  aria-pressed={selected}
+                  title={asset.label}
+                  onClick={() => onSelect(asset)}
+                  className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-transparent bg-[#ebebeb] transition-colors duration-150 hover:border-black/20 aria-pressed:border-2 aria-pressed:border-[#2e90fa]"
+                >
+                  {assetKind === 'audio' ? (
+                    <Music2 className="size-5 text-[var(--color-ink)]/45" strokeWidth={1.6} />
+                  ) : assetKind === 'video' ? (
+                    <video
+                      src={asset.src}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <FrameImage
+                      item={asset}
+                      playing={false}
+                      className="size-full object-contain"
+                    />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </aside>
+
+        <div className="thin-scroll flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-3">
+          <section
+            aria-label={`${item.label} 预览`}
+            className="group relative flex min-h-[280px] flex-1 items-center justify-center overflow-hidden rounded-xl bg-[rgba(83,96,143,0.07)] p-5"
+          >
+            {kind === 'video' ? (
+              <video
+                src={item.src}
+                controls
+                autoPlay
+                loop
+                className="max-h-full max-w-full rounded-lg"
+              />
+            ) : kind === 'audio' ? (
+              <div className="flex flex-col items-center gap-4 rounded-xl bg-white px-8 py-7 shadow-sm">
+                <Music2 className="size-10 text-[var(--color-ink)]/65" strokeWidth={1.4} />
+                <span className="text-[13px] text-[var(--color-ink)]/85">
+                  {item.label}
+                </span>
+                <audio src={item.src} controls autoPlay />
+              </div>
+            ) : replacementSrc ? (
+              <img
+                src={replacementSrc}
+                alt={`${item.label} 上传预览`}
+                className="max-h-full max-w-full object-contain"
+              />
+            ) : (
+              <FrameImage
+                item={item}
+                playing
+                className="max-h-full max-w-full object-contain"
+              />
+            )}
+            {kind === 'image' && (
+              <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-visible rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]">
+                  <ImageQuickTools
+                    onCanvasEdit={onCanvasEdit}
+                    onUpload={openUpload}
+                  />
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section
+            aria-label={`${item.label} Prompt`}
+            className="flex h-[172px] shrink-0 flex-col gap-2 overflow-hidden rounded-xl border border-white bg-white p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]"
+          >
+            <div className="flex min-h-0 flex-1 flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-[21px] items-center gap-1 rounded-lg bg-[rgba(83,96,143,0.12)] px-1 text-[12px] text-[#2e90fa]">
+                  <FolderCode className="size-3.5" strokeWidth={1.7} />
+                  {promptTag}
+                </span>
+                <span className="truncate text-[11px] text-[var(--color-ink)]/40">
+                  {model}
+                </span>
+              </div>
+              <textarea
+                aria-label={`${item.label} 生成 Prompt`}
+                value={prompt}
+                onChange={(event) => {
+                  setSaved(false)
+                  onPromptChange(event.target.value)
+                }}
+                spellCheck={false}
+                className="thin-scroll min-h-0 flex-1 resize-none border-0 bg-transparent text-[14px] leading-5 text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/35"
+                placeholder="输入生成这个素材的 Prompt…"
+              />
+            </div>
+
+            <div className="flex h-6 shrink-0 items-center justify-between">
+              <button
+                type="button"
+                aria-label="添加参考素材"
+                title="添加参考素材"
+                className="flex size-6 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors duration-150 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+              >
+                <Plus className="size-3.5" strokeWidth={1.8} />
+              </button>
+
+              <div className="flex items-center gap-2">
+                <span aria-live="polite" className="text-[11px] text-[var(--color-ink)]/45">
+                  {saved ? 'Prompt 已保存' : ''}
+                </span>
+                <button
+                  type="button"
+                  className="flex h-6 items-center gap-1 rounded-full px-2 text-[12px] font-semibold text-[var(--color-ink)]/80 transition-colors duration-150 hover:bg-[var(--fill-hover)]"
+                >
+                  Auto
+                  <ChevronDown className="size-3.5" strokeWidth={1.8} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="保存当前 Prompt"
+                  title="保存当前 Prompt"
+                  disabled={prompt.trim().length === 0}
+                  onClick={() => setSaved(true)}
+                  className="flex size-6 items-center justify-center rounded-full bg-[var(--color-ink)] text-white transition-opacity duration-150 disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <ArrowUp className="size-3.5" strokeWidth={2} />
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   )
@@ -391,7 +762,7 @@ function AssetCanvas({ item, onBack }: { item: AssetItem; onBack: () => void }) 
  *  applied in the side panel. */
 export function AssetStatsLine({
   activeCategory = null,
-  groups = GROUPS,
+  groups = GARUDA_ASSET_GROUPS,
 }: {
   activeCategory?: string | null
   groups?: AssetGroup[]
@@ -429,6 +800,31 @@ function Stat({
   )
 }
 
+function AssetListThumb({ item }: { item: AssetItem }) {
+  const kind = item.kind ?? 'image'
+  return (
+    <span className="flex size-9 items-center justify-center overflow-hidden rounded-md bg-[var(--fill-subtle)]">
+      {kind === 'audio' ? (
+        <Music2 className="size-4 text-[var(--color-ink)]/45" strokeWidth={1.7} />
+      ) : kind === 'video' ? (
+        <video
+          src={item.src}
+          muted
+          playsInline
+          preload="metadata"
+          className="size-full object-cover"
+        />
+      ) : (
+        <FrameImage
+          item={item}
+          playing={false}
+          className="size-full object-contain"
+        />
+      )}
+    </span>
+  )
+}
+
 function AssetThumb({ item, onOpen }: { item: AssetItem; onOpen: () => void }) {
   const kind = item.kind ?? 'image'
   const [hover, setHover] = useState(false)
@@ -444,7 +840,7 @@ function AssetThumb({ item, onOpen }: { item: AssetItem; onOpen: () => void }) {
         {kind === 'audio' ? (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-[var(--color-ink)]/45">
             <Music2 size={18} strokeWidth={1.6} />
-            <span className="text-[10px] uppercase tracking-wider">audio</span>
+            <span className="text-[10px] uppercase">audio</span>
           </div>
         ) : kind === 'video' ? (
           <video
@@ -465,7 +861,7 @@ function AssetThumb({ item, onOpen }: { item: AssetItem; onOpen: () => void }) {
           <FrameImage
             item={item}
             playing={hover}
-            className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.04]"
+            className="h-full w-full object-contain transition-transform duration-150 group-hover:scale-[1.04]"
           />
         )}
         {item.frames && (

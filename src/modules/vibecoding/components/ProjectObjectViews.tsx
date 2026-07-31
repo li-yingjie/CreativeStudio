@@ -1,7 +1,12 @@
 import type { ReactNode } from 'react'
 import {
   DATA_CONFIG_LABEL,
+  DATABASE_LABEL,
+  GAME_GAMEPLAY_CONFIG_LABEL,
   GAMEPLAY_CONFIG_LABEL,
+  H5_GAMEPLAY_CONFIG_LABEL,
+  INTEREST_CARD_CONFIG_LABEL,
+  PROJECT_MEMORY_LABEL,
   type ProjectKind,
 } from './ProjectProductView'
 
@@ -31,8 +36,8 @@ type ObjectContent = InfoContent | DbContent | CardsContent
 /* ─────────────────────────── 数据 ─────────────────────────── */
 
 const CONTENT: Record<string, Record<string, ObjectContent>> = {
-  /* ── 塔罗小程序（mini-program）。技能为类目，复用 分身 的能力详情视图 ── */
-  '塔罗小程序': {
+  /* ── 塔罗兴趣卡（mini-program）。技能为类目，复用 分身 的能力详情视图 ── */
+  '塔罗兴趣卡': {
     [DATA_CONFIG_LABEL]: {
       type: 'database',
       tables: [
@@ -76,21 +81,31 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
         },
       ],
     },
+    [PROJECT_MEMORY_LABEL]: {
+      type: 'cards',
+      note: '兴趣卡在生成与解读过程中持续使用的项目记忆。',
+      items: [
+        { icon: '♎', title: '星座资料', desc: '十二星座日期区间、性格关键词与今日主题基线。', meta: '12 组' },
+        { icon: '🃏', title: '牌意上下文', desc: '韦特牌意、正逆位解释与适合兴趣卡展示的短文案。', meta: '78 张' },
+        { icon: '✨', title: '生成偏好', desc: '记录卡片语气、关键词长度、视觉风格与常用生成约束。' },
+        { icon: '🕘', title: '历史生成', desc: '保留近期兴趣卡主题，减少连续日期的关键词重复。' },
+      ],
+    },
   },
 
-  /* ── 六一儿童节活动（marketing-h5）── */
-  '六一儿童节活动': {
+  /* ── 抖音 ACG 游戏新春会（marketing-h5）── */
+  '抖音 ACG 游戏新春会': {
     基础信息: {
       type: 'info',
-      summary: '面向亲子人群的六一节日营销 H5，主打抽奖 + 签到 + 亲子合拍。',
-      tags: ['节日营销', 'H5 活动', '亲子'],
+      summary: '聚合热门游戏与高燃创作的抖音 ACG 新春活动 H5，主打视频会场、内容榜单与助力互动。',
+      tags: ['游戏营销', 'ACG', '新春会'],
       groups: [
         {
           title: '活动信息',
           rows: [
-            ['活动名称', '六一儿童节亲子活动'],
-            ['活动类型', '节日营销 H5'],
-            ['关联品牌', '抖音亲子'],
+            ['活动名称', '抖音 ACG 游戏新春会'],
+            ['活动类型', '游戏内容营销 H5'],
+            ['关联品牌', '抖音游戏'],
             ['状态', '待发布'],
           ],
         },
@@ -99,27 +114,56 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
           rows: [
             ['投放端', '抖音'],
             ['场景', '非直播 / 直播'],
-            ['活动时间', '2026-05-25 ~ 2026-06-02'],
+            ['活动时间', '2026-02-01 ~ 2026-02-24'],
           ],
         },
         {
           title: '数据目标',
           rows: [
-            ['目标 UV', '50 万'],
-            ['目标参与率', '18%'],
-            ['分享率', '6%'],
+            ['目标 UV', '300 万'],
+            ['目标互动率', '22%'],
+            ['视频播放量', '1,000 万'],
           ],
         },
       ],
     },
     [GAMEPLAY_CONFIG_LABEL]: {
       type: 'cards',
-      note: '活动内的互动玩法与奖励规则。',
+      note: '新春会主会场的内容分发与互动玩法。',
       items: [
-        { icon: '🎡', title: '抽奖转盘', desc: '完成任务获得抽奖机会，奖品含品牌周边、优惠券、虚拟礼物。', meta: '每日 3 次' },
-        { icon: '📅', title: '每日签到', desc: '连续签到 3 天解锁隐藏奖励，断签重置。', meta: '7 天周期' },
-        { icon: '🤝', title: '邀请助力', desc: '邀请好友助力可提升中奖概率，助力越多概率越高。', meta: '裂变' },
-        { icon: '📸', title: '亲子合拍', desc: '上传亲子合照一键生成节日海报，可保存分享。', meta: 'AI 合成' },
+        { icon: '🎮', title: '游戏会场', desc: '按地下城与勇士、蛋仔派对、王者荣耀等游戏切换专题内容。', meta: '多游戏' },
+        { icon: '▶️', title: '主会场视频', desc: '承载新春特别节目与游戏厂商高燃内容，支持播放和静音控制。', meta: '视频' },
+        { icon: '🔥', title: '开年高燃', desc: '以马力值聚合热门作品，展示创作者、封面和实时互动热度。', meta: '内容榜单' },
+        { icon: '🐴', title: '加马互动', desc: '用户可选择「放你一马」或「好活加马」为喜欢的作品助力。', meta: '轻互动' },
+      ],
+    },
+    [DATA_CONFIG_LABEL]: {
+      type: 'database',
+      tables: [
+        {
+          name: 'event_games',
+          desc: '新春会游戏会场配置',
+          columns: [
+            { name: 'id', type: 'bigint', desc: '主键' },
+            { name: 'game_name', type: 'varchar(64)', desc: '游戏名称' },
+            { name: 'cover_url', type: 'varchar(128)', desc: '会场封面' },
+            { name: 'sort_order', type: 'int', desc: '展示顺序' },
+          ],
+          rows: [
+            ['1', '地下城与勇士', '/assets/dnf.png', '1'],
+            ['2', '蛋仔派对', '/assets/egg-party.png', '2'],
+          ],
+        },
+        {
+          name: 'boost_records',
+          desc: '开年高燃作品助力记录',
+          columns: [
+            { name: 'id', type: 'bigint', desc: '主键' },
+            { name: 'content_id', type: 'bigint', desc: '作品' },
+            { name: 'action', type: "enum('free','boost')", desc: '助力类型' },
+            { name: 'created_at', type: 'datetime', desc: '操作时间' },
+          ],
+        },
       ],
     },
   },
@@ -362,6 +406,13 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
 
 /* ─────────────────────────── 渲染 ─────────────────────────── */
 
+const OBJECT_LABEL_ALIASES: Record<string, string> = {
+  [DATABASE_LABEL]: DATA_CONFIG_LABEL,
+  [H5_GAMEPLAY_CONFIG_LABEL]: GAMEPLAY_CONFIG_LABEL,
+  [GAME_GAMEPLAY_CONFIG_LABEL]: GAMEPLAY_CONFIG_LABEL,
+  [INTEREST_CARD_CONFIG_LABEL]: DATA_CONFIG_LABEL,
+}
+
 function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="thin-scroll flex min-h-0 flex-1 flex-col overflow-y-auto bg-[var(--color-surface-0)]">
@@ -515,7 +566,8 @@ export function ProjectObjectView({
   kind: ProjectKind
   label: string
 }): ReactNode | null {
-  const c = CONTENT[projectTitle]?.[label]
+  const normalizedLabel = OBJECT_LABEL_ALIASES[label] ?? label
+  const c = CONTENT[projectTitle]?.[normalizedLabel]
   if (!c) return null
   switch (c.type) {
     case 'info':

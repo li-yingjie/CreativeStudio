@@ -302,6 +302,15 @@ summary {
   min-height: 100dvh;
 }
 
+/* 方案 3 的侧栏不单独铺实色；所有产品都按全屏坐标复用同一张
+   Figma 根画布渐变，避免产品根层不同导致侧栏换色。 */
+[data-nav-version="3"] [data-side-nav-surface] {
+  background-image: var(--scheme3-background-image) !important;
+  background-position: left calc(0px - var(--cc-top, 48px)) !important;
+  background-repeat: no-repeat !important;
+  background-size: 100vw 100dvh !important;
+}
+
 /* Mono headline accent — a la Overlay */
 .font-mono,
 code,
@@ -483,6 +492,17 @@ samp {
 :focus-visible {
   outline: 2px solid var(--color-brand-400);
   outline-offset: 2px;
+}
+
+/* A resize separator is a full-height hit target, so a box outline would
+ * render as two parallel rails. Reuse its edge track for keyboard focus. */
+.side-nav-resize-handle:focus-visible {
+  outline: none;
+}
+
+.side-nav-resize-handle:focus-visible > .side-nav-resize-handle__line {
+  width: 2px;
+  background: var(--color-brand-400);
 }
 
 /* The platform-home textarea delegates its visible focus state to the

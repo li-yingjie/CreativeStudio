@@ -92,20 +92,20 @@ export default function WikiHomePage({ onCreateWorld }: { onCreateWorld?: () => 
   const shown = category === '全部' ? WORLD_BOOKS : WORLD_BOOKS.filter((w) => w.cats.includes(category))
 
   return (
-    <div className="relative h-full overflow-y-auto bg-[#F5F8FB]">
-      {/* 顶部虹彩渐变底图 — 导出自设计稿，向下融入页面底色 */}
-      <img
-        src="/assets/wiki/hero-bg.webp"
-        alt=""
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[620px] w-full select-none object-cover"
-      />
-      <motion.div
-        initial={reduceMotion ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: reduceMotion ? 0 : 0.24, ease: 'easeOut' }}
-        className="relative mx-auto max-w-[1201px] px-6 pb-20"
-      >
+    <main className="relative h-full min-w-0 overflow-y-auto bg-[#F5F8FB]">
+        {/* 顶部虹彩渐变底图 — 导出自设计稿，向下融入页面底色 */}
+        <img
+          src="/assets/wiki/hero-bg.webp"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[620px] w-full select-none object-cover"
+        />
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: reduceMotion ? 0 : 0.18, ease: 'easeOut' }}
+          className="relative mx-auto max-w-[1201px] px-6 pb-20"
+        >
         {/* ── 标题区 ── */}
         <div className="pt-[64px] text-center">
           <h1
@@ -286,7 +286,7 @@ export default function WikiHomePage({ onCreateWorld }: { onCreateWorld?: () => 
             </div>
           )}
         </section>
-      </motion.div>
-    </div>
+        </motion.div>
+    </main>
   )
 }

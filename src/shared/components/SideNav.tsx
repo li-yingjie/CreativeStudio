@@ -1,17 +1,23 @@
-import { forwardRef, useId, useState, type ComponentProps, type ComponentType, type CSSProperties, type ReactNode } from 'react'
+import { forwardRef, useId, useMemo, useState, type ComponentProps, type ComponentType, type CSSProperties, type ReactNode } from 'react'
 import * as Popover from '@radix-ui/react-popover'
+import { motion, useReducedMotion } from 'framer-motion'
 import SideNavDisclosureIcon from './SideNavDisclosureIcon'
 import {
   SIDE_NAV_DEFAULT_BACKGROUND,
   SIDE_NAV_DEFAULTS,
   useSideNavConfig,
 } from './side-nav-config'
+import SideNavResizeHandle from './SideNavResizeHandle'
+import { useResizableSideNavWidth } from '@/shared/hooks/useResizableSideNavWidth'
 
 export {
   SIDE_NAV_COLLAPSED_WIDTH,
   SIDE_NAV_DEFAULT_BACKGROUND,
   SIDE_NAV_WIDTH,
 } from './side-nav-config'
+
+export const SIDE_NAV_MOTION_DURATION = 0.16
+export const SIDE_NAV_MOTION_OFFSET = 12
 
 /* ─── 统一左侧导航 ───
  *
@@ -110,7 +116,10 @@ export default function SideNav({
   layout = 'fixed',
   responsive = false,
   collapsed = false,
+  resizable = false,
+  flushHeader = false,
   chrome = 'panel',
+  showDivider = true,
   style,
 }: {
   ariaLabel: string
@@ -132,12 +141,20 @@ export default function SideNav({
   responsive?: boolean
   /** 手动收起为 icon rail（由外部状态控制，如底部「收起导航」）。 */
   collapsed?: boolean
-  /** panel = 导航默认底色 + 右分隔线；plain = 透明（浮在产品自己的底色上）。 */
+  /** fixed 布局下允许拖拽右边缘调整当前页面内的展开宽度；收起态自动隐藏手柄。 */
+  resizable?: boolean
+  /** 让自定义 Header 从侧栏顶部开始；用于方案 4 / 6 的 40px Header。 */
+  flushHeader?: boolean
+  /** panel = 导航默认底色；plain = 透明（浮在产品自己的底色上）。 */
   chrome?: 'panel' | 'plain'
+  /** panel 模式是否显示右侧分隔线；plain 模式始终不显示。 */
+  showDivider?: boolean
   /** 覆写背景或 --sidenav-* 配色变量（主题化面板用）。 */
   style?: CSSProperties
 }) {
   const cfg = useSideNavConfig((s) => s.config)
+  const reduceMotion = useReducedMotion() ?? false
+  const { width: resizedWidth, setWidth: setResizedWidth } = useResizableSideNavWidth()
   const subIdPrefix = useId()
   const activeSubKey =
     items.find((item) => item.children?.length && activeKey?.startsWith(`${item.key}:`))?.key ?? null
@@ -177,7 +194,8 @@ export default function SideNav({
           ? 'w-[var(--sn-wc)] lg:w-[var(--sn-w)]'
           : 'w-[var(--sn-w)]'
   const chromeClass =
-    chrome === 'panel' ? 'border-r border-black/5 pt-[var(--sn-top)]' : 'pt-[var(--sn-top)]'
+    chrome === 'panel' && showDivider ? 'border-r border-black/5' : ''
+  const topPaddingClass = flushHeader ? 'pt-0' : 'pt-[var(--sn-top)]'
 
   const rowClass = (active: boolean) =>
     `flex h-[var(--sn-rh)] w-full items-center gap-[var(--sn-rgap)] rounded-[var(--sn-rr)] px-[var(--sn-rpx)] text-[length:var(--sn-rfs)] font-medium transition-colors ${
@@ -202,7 +220,7 @@ export default function SideNav({
 
   // 配置注入为 CSS 变量；挂载处传入的 style 放最后，仍可覆写配色。
   const cfgVars = {
-    '--sn-w': `${cfg.width}px`,
+    '--sn-w': `${resizable ? resizedWidth : cfg.width}px`,
     '--sn-wc': `${cfg.collapsedWidth}px`,
     '--sn-top': `${cfg.topPadding}px`,
     '--sn-px': `${cfg.listPaddingX}px`,
@@ -212,6 +230,7 @@ export default function SideNav({
     '--sn-rgap': `${cfg.rowGap}px`,
     '--sn-rsp': `${cfg.rowSpacing}px`,
     '--sn-rfs': `${cfg.rowFontSize}px`,
+    '--sn-mis': `${cfg.menuIconSize}px`,
     '--sn-srh': `${cfg.subRowHeight}px`,
     '--sidenav-active': cfg.activeBg,
     '--sidenav-hover': cfg.hoverBg,
@@ -226,6 +245,16 @@ export default function SideNav({
     ...style,
   } as CSSProperties
   const resolvedTokens = resolvedStyle as CSSProperties & Record<string, string | number | undefined>
+  const collapseFeedback = useMemo(
+    () =>
+      reduceMotion
+        ? { x: 0, opacity: 1 }
+        : {
+            x: 0,
+            opacity: collapsed ? [0.86, 1] : [0.82, 1],
+          },
+    [collapsed, reduceMotion],
+  )
   // Popover 通过 Portal 挂到 body，需显式携带侧栏主题变量。
   const popoverStyle = {
     '--sidenav-active': resolvedTokens['--sidenav-active'],
@@ -238,10 +267,19 @@ export default function SideNav({
   } as CSSProperties
 
   return (
-    <aside
+    <motion.aside
       aria-label={ariaLabel}
+      data-side-nav-motion
+      data-side-nav-surface
+      data-state={collapsed ? 'collapsed' : 'expanded'}
+      initial={false}
+      animate={collapseFeedback}
+      transition={{
+        duration: reduceMotion ? 0 : SIDE_NAV_MOTION_DURATION,
+        ease: 'easeOut',
+      }}
       style={resolvedStyle}
-      className={`flex h-full min-h-0 shrink-0 flex-col ${widthClass} ${chromeClass}`}
+      className={`relative flex h-full min-h-0 shrink-0 flex-col ${widthClass} ${chromeClass} ${topPaddingClass}`}
     >
       {header && <div className="shrink-0">{header}</div>}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -353,6 +391,13 @@ export default function SideNav({
         {children}
       </div>
       {footer && <div className="mt-auto shrink-0">{footer}</div>}
-    </aside>
+      {resizable && !collapsed && layout === 'fixed' && (
+        <SideNavResizeHandle
+          value={resizedWidth}
+          onChange={setResizedWidth}
+          ariaLabel={`调整${ariaLabel}宽度`}
+        />
+      )}
+    </motion.aside>
   )
 }

@@ -84,8 +84,9 @@ export default defineConfig({
     },
   },
   // 开发端口与 Express 的 PORT 分开，避免读取 .env 后预览从
-  // 5173 意外跳到生产 API 端口。
+  // 5173 意外跳到生产 API 端口。PORT 仅在预览工具按会话分配端口
+  // （shell 注入，autoPort）时生效；.env 里的 PORT 不会进到这里。
   server: {
-    port: Number(process.env.VITE_DEV_PORT) || 5173,
+    port: Number(process.env.VITE_DEV_PORT || process.env.PORT) || 5173,
   },
 })

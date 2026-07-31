@@ -15,8 +15,9 @@ import type { LucideIcon } from '@/shared/icons'
 /* 产物树图标统一走 MasterIcon（与左侧栏菜单同一套字形）。 */
 import { Analytics01LinearIcon } from 'master-icon/react/Analytics01LinearIcon'
 import { BotLinearIcon } from 'master-icon/react/BotLinearIcon'
+import { BulbLinearIcon } from 'master-icon/react/BulbLinearIcon'
 import { Database01LinearIcon } from 'master-icon/react/Database01LinearIcon'
-import { EyeLinearIcon } from 'master-icon/react/EyeLinearIcon'
+import { EyeOpenLinearIcon } from 'master-icon/react/EyeOpenLinearIcon'
 import { InformationCircleLinearIcon } from 'master-icon/react/InformationCircleLinearIcon'
 import { FileCodeLinearIcon } from 'master-icon/react/FileCodeLinearIcon'
 import { FileSearchLinearIcon } from 'master-icon/react/FileSearchLinearIcon'
@@ -62,6 +63,12 @@ export const PAGE_CONFIG_LABEL = '页面配置'
 export const DATA_CONFIG_LABEL = '数据配置'
 export const GAMEPLAY_CONFIG_LABEL = '玩法配置'
 export const TRIGGER_CONFIG_LABEL = '触发器配置'
+export const ASSET_LIBRARY_LABEL = '素材库'
+export const DATABASE_LABEL = '数据库'
+export const H5_GAMEPLAY_CONFIG_LABEL = '活动玩法配置'
+export const GAME_GAMEPLAY_CONFIG_LABEL = '游戏玩法配置'
+export const INTEREST_CARD_CONFIG_LABEL = '兴趣卡配置'
+export const PROJECT_MEMORY_LABEL = '项目记忆'
 /** AI 分身用自己的一套模块名，与左侧栏入口一字不差（技能库 / 触发器）。 */
 export const AVATAR_SKILL_LABEL = '技能库'
 export const AVATAR_TRIGGER_LABEL = '触发器'
@@ -96,7 +103,7 @@ const PAGE_LABELS: Record<string, string> = {
   Works: '作品',
   About: '关于',
   Contact: '联系',
-  // mini-program — 塔罗小程序
+  // mini-program — 塔罗兴趣卡
   index: '首页',
   chat: '聊天',
   profile: '个人',
@@ -113,15 +120,19 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   界面: LayoutGrid1LinearIcon,
   [PAGE_CONFIG_LABEL]: LayoutGrid1LinearIcon,
   // The primary 预览 tab — content varies by kind, one shared icon.
-  预览: EyeLinearIcon,
+  预览: EyeOpenLinearIcon,
   素材: Image01LinearIcon,
+  [ASSET_LIBRARY_LABEL]: Image01LinearIcon,
   代码: FileCodeLinearIcon,
   // 「项目文件」是四级分类里唯一的「文件夹」，不给分类图标 —— 交给
   // FileTreeView 兜底成文件夹图标（展开/收起两态），与内部目录一致。
   数据库: Database01LinearIcon,
+  [INTEREST_CARD_CONFIG_LABEL]: Database01LinearIcon,
   [DATA_CONFIG_LABEL]: Database01LinearIcon,
   玩法: GameController01LinearIcon,
   [GAMEPLAY_CONFIG_LABEL]: GameController01LinearIcon,
+  [H5_GAMEPLAY_CONFIG_LABEL]: Settings01LinearIcon,
+  [GAME_GAMEPLAY_CONFIG_LABEL]: Settings01LinearIcon,
   能力技能: MagicWand01LinearIcon,
   人设: UserSettings01LinearIcon,
   [PERSONA_CONFIG_LABEL]: UserSettings01LinearIcon,
@@ -136,6 +147,7 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   // mini-program sections
   智能体: BotLinearIcon,
   小程序设置: Settings01LinearIcon,
+  [PROJECT_MEMORY_LABEL]: BulbLinearIcon,
   // ops-proposal sections
   诊断分析: FileSearchLinearIcon,
   达人包: UserMultipleLinearIcon,
@@ -162,17 +174,22 @@ export const PRODUCT_CATEGORY_BADGES: Record<string, { bg: string; fg: string }>
   [TRIGGER_CONFIG_LABEL]: { bg: '#feeecf', fg: '#ff8800' },
   [AVATAR_SKILL_LABEL]: { bg: '#fde6f7', fg: '#d939b8' },
   [AVATAR_TRIGGER_LABEL]: { bg: '#feeecf', fg: '#ff8800' },
-  数据库: { bg: '#dcf5e8', fg: '#18a058' },
+  [DATABASE_LABEL]: { bg: '#d9f4f4', fg: '#0e9c9c' },
+  [INTEREST_CARD_CONFIG_LABEL]: { bg: '#d9f4f4', fg: '#0e9c9c' },
   [DATA_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
   文档: { bg: '#e3e6f7', fg: '#4b55bd' },
   项目文档: { bg: '#e3e6f7', fg: '#4b55bd' },
-  素材: { bg: '#eaf6d4', fg: '#62a420' },
+  素材: { bg: '#fde6f7', fg: '#d939b8' },
+  [ASSET_LIBRARY_LABEL]: { bg: '#fde6f7', fg: '#d939b8' },
   代码: { bg: '#d1d6f0', fg: '#4b55bd' },
   // 「项目文件」走文件夹图标，不加彩色底板（见 PRODUCT_CATEGORY_ICONS）
   玩法: { bg: '#fde2e2', fg: '#e5484d' },
   [GAMEPLAY_CONFIG_LABEL]: { bg: '#fde2e2', fg: '#e5484d' },
+  [H5_GAMEPLAY_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
+  [GAME_GAMEPLAY_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
   智能体: { bg: '#d9f4f4', fg: '#0e9c9c' },
   小程序设置: { bg: '#e8eaed', fg: '#5f6673' },
+  [PROJECT_MEMORY_LABEL]: { bg: '#ece4ff', fg: '#7c4dca' },
   诊断分析: { bg: '#d7f2ef', fg: '#0d9e8f' },
   达人包: { bg: '#f1e6fe', fg: '#8f47e6' },
   报告: { bg: '#e0ecff', fg: '#3370ff' },
@@ -225,55 +242,23 @@ export function getProductPages(tree: FileNode[]): ProductPage[] {
 
 /* ─── per-kind bucketing ─── */
 
-/** A page category (页面配置) built from the project's src/pages routes, or
- *  null when the project has no pages. */
-function pageCategory(tree: FileNode[]): FileNode | null {
-  const pages = getProductPages(tree)
-  return pages.length > 0
-    ? {
-        name: PAGE_CONFIG_LABEL,
-        type: 'dir',
-        children: pages.map((p) => ({ name: p.label, type: 'file' as const })),
-      }
-    : null
-}
-
-/** 产品设计 (web-app): 基础信息 / 页面配置 / 数据配置 / 素材 / 项目文件. */
+/** 产品设计 (web-app): 数据配置 / 素材库 / 项目文件. */
 function webAppView(tree: FileNode[]): FileNode[] {
   return [
-    { name: BASIC_INFO_LABEL, type: 'file' as const },
-    pageCategory(tree),
     { name: DATA_CONFIG_LABEL, type: 'file' as const },
-    { name: '素材', type: 'file' as const },
+    { name: ASSET_LIBRARY_LABEL, type: 'file' as const },
     { name: '项目文件', type: 'dir' as const, children: tree },
   ].filter((c): c is FileNode => c != null)
 }
 
-/** Capability items shown under the seeded mini-program's 能力配置. */
-export const MINIPROGRAM_CAPABILITY_ITEMS = [
-  '智能体',
-  '每日塔罗抽牌',
-  '牌意词典查询',
-  '订阅消息提醒',
-  '分享得抽牌次数',
-]
-/** Key in-game screens surfaced as 页面配置 sub-items. The secondary screens
- *  (暂停面板 / 排行榜 / 商店) are intentionally folded away. */
-export const GAME_KEY_PAGES = ['开始界面', '游戏进行中', '结算界面']
-
-function namedCategory(name: string, items: string[]): FileNode {
-  return { name, type: 'dir', children: items.map((n) => ({ name: n, type: 'file' as const })) }
-}
-
-/** 游戏 (web-game): 基础信息 / 玩法配置 / 页面配置 / 数据配置 /
- *  素材 / 项目文件. */
+/** 游戏 (web-game): 素材库 / 基础信息（含文档）/
+ *  游戏玩法配置 / 数据库 / 项目文件. */
 function gameView(tree: FileNode[]): FileNode[] {
   return [
+    { name: ASSET_LIBRARY_LABEL, type: 'file' },
     { name: BASIC_INFO_LABEL, type: 'file' },
-    { name: GAMEPLAY_CONFIG_LABEL, type: 'file' },
-    namedCategory(PAGE_CONFIG_LABEL, GAME_KEY_PAGES),
-    { name: DATA_CONFIG_LABEL, type: 'file' },
-    { name: '素材', type: 'file' },
+    { name: GAME_GAMEPLAY_CONFIG_LABEL, type: 'file' },
+    { name: DATABASE_LABEL, type: 'file' },
     { name: '项目文件', type: 'dir', children: tree },
   ]
 }
@@ -288,7 +273,6 @@ function aiAvatarView(tree: FileNode[]): FileNode[] {
   ]
 
   return [
-    { name: BASIC_INFO_LABEL, type: 'file' },
     { name: PERSONA_CONFIG_LABEL, type: 'file' },
     category(ABILITY_CONFIG_LABEL, skills),
     category('知识库', childrenAt(tree, ['knowledge'])),
@@ -321,12 +305,13 @@ export function buildProductView(
     case 'web-game':
       return gameView(tree)
     case 'marketing-h5':
-      // H5 活动页: 基础信息 / 玩法配置 / 页面配置 / 素材 / 项目文件。
+      // H5 活动页: 素材库 / 基础信息（含文档）/
+      // 活动玩法配置 / 数据库 / 项目文件。
       return [
+        { name: ASSET_LIBRARY_LABEL, type: 'file' },
         { name: BASIC_INFO_LABEL, type: 'file' },
-        { name: GAMEPLAY_CONFIG_LABEL, type: 'file' },
-        { name: PAGE_CONFIG_LABEL, type: 'file' },
-        { name: '素材', type: 'file' },
+        { name: H5_GAMEPLAY_CONFIG_LABEL, type: 'file' },
+        { name: DATABASE_LABEL, type: 'file' },
         { name: '项目文件', type: 'dir', children: tree },
       ]
     case 'ai-avatar':
@@ -338,8 +323,8 @@ export function buildProductView(
   }
 }
 
-/** Build the ai-avatar product view from its app config — 基础信息 /
- *  人设配置 / 能力配置 / 知识库 / 触发器配置 / 项目文件. */
+/** Build the ai-avatar product view from its app config — 人设配置 /
+ *  能力配置 / 知识库 / 触发器配置 / 项目文件. */
 export function buildAvatarProductView(
   tree: FileNode[],
   config: AvatarAppConfig | undefined,
@@ -347,10 +332,7 @@ export function buildAvatarProductView(
   if (!config) return aiAvatarView(tree)
   // 人设配置 edits the prompt; the underlying persona.yaml remains available
   // from 项目文件 for developers.
-  const out: FileNode[] = [
-    { name: BASIC_INFO_LABEL, type: 'file' },
-    { name: PERSONA_CONFIG_LABEL, type: 'file' },
-  ]
+  const out: FileNode[] = [{ name: PERSONA_CONFIG_LABEL, type: 'file' }]
   const skills = [...config.skillInfoList, ...config.toolInfoList].map(
     (s): FileNode => ({ name: s.name, type: 'file' }),
   )
@@ -371,23 +353,18 @@ export function buildAvatarProductView(
   return out
 }
 
-/** Build the mini-program product view — 基础信息 / 能力配置 / 页面配置 /
- *  数据配置 / 项目文件. */
+/** Build the mini-program product view — 素材库 / 基础信息（含文档）/
+ *  兴趣卡配置 / 项目记忆 / 项目文件. */
 export function buildMiniProgramProductView(
   tree: FileNode[],
   config: MiniProgramConfig | undefined,
 ): FileNode[] {
-  const rawCapabilities = childrenAt(tree, ['.agent', 'skills'])
-  const capabilities: FileNode = config
-    ? namedCategory(ABILITY_CONFIG_LABEL, MINIPROGRAM_CAPABILITY_ITEMS)
-    : rawCapabilities.length > 0
-      ? { name: ABILITY_CONFIG_LABEL, type: 'dir', children: rawCapabilities }
-      : { name: ABILITY_CONFIG_LABEL, type: 'file' }
+  void config
   return [
+    { name: ASSET_LIBRARY_LABEL, type: 'file' as const },
     { name: BASIC_INFO_LABEL, type: 'file' as const },
-    capabilities,
-    pageCategory(tree),
-    { name: DATA_CONFIG_LABEL, type: 'file' as const },
+    { name: INTEREST_CARD_CONFIG_LABEL, type: 'file' as const },
+    { name: PROJECT_MEMORY_LABEL, type: 'file' as const },
     { name: '项目文件', type: 'dir' as const, children: tree },
-  ].filter((c): c is FileNode => c != null)
+  ]
 }

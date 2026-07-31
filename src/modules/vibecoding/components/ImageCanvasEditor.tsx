@@ -13,12 +13,13 @@ import {
   Move,
   MoreHorizontal,
   Download,
+  Upload,
 } from '@/shared/icons'
 import type { AssetGroup } from './GarudaAssetsView'
 
 /**
  * 画布式素材编辑器 — 从游戏「素材 · 图片」工具栏点「画布编辑」进入。画布是
- * 透明（棋盘格）背景，图片按类型一排排开（每个分组一行，宽度随原始比例，不
+ * 主题点阵背景，图片按类型一排排开（每个分组一行，宽度随原始比例，不
  * 强行铺成规则矩形）。可拖拽移动 / 拖角缩放 / 选中删除；选中一张图片时顶部
  * 浮出一条编辑工具条。纯前端演示版本。
  */
@@ -273,11 +274,10 @@ export default function ImageCanvasEditor({
           onScroll={(e) => setScroll({ left: e.currentTarget.scrollLeft, top: e.currentTarget.scrollTop })}
           className="absolute inset-0 overflow-auto"
           style={{
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--color-surface-0)',
             backgroundImage:
-              'linear-gradient(45deg,#eceef2 25%,transparent 25%),linear-gradient(-45deg,#eceef2 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#eceef2 75%),linear-gradient(-45deg,transparent 75%,#eceef2 75%)',
-            backgroundSize: '18px 18px',
-            backgroundPosition: '0 0,0 9px,9px -9px,-9px 0',
+              'radial-gradient(circle at 1px 1px, var(--color-ink-10) 1px, transparent 1.5px)',
+            backgroundSize: '16px 16px',
           }}
         >
           {!ready && (
@@ -377,30 +377,89 @@ function SelectionToolbar({
       // Keep clicks inside the bar from clearing the selection.
       onPointerDown={(e) => e.stopPropagation()}
       style={{ left, top, transform: above ? 'translate(-50%, -100%)' : 'translate(-50%, 0)' }}
-      className="absolute z-20 flex max-w-[calc(100%-24px)] items-center gap-1 overflow-x-auto rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]"
+      className="absolute z-20 flex max-w-[calc(100%-24px)] items-center gap-1 overflow-visible rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]"
     >
-      {/* 快捷编辑 — leads with the 抖音AI工坊 brand mark */}
+      <ImageQuickTools />
+    </div>
+  )
+}
+
+/** Shared image actions used by both the multi-image canvas and the
+ *  single-asset Prompt detail. Keep the visual language in one place. */
+export function ImageQuickTools({
+  onCanvasEdit,
+  onUpload,
+}: {
+  onCanvasEdit?: () => void
+  onUpload?: () => void
+}) {
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreTools = [
+    { icon: <Eraser size={15} strokeWidth={1.7} />, label: '橡皮工具' },
+    { icon: <Layers size={15} strokeWidth={1.7} />, label: '编辑元素' },
+    { icon: <Type size={15} strokeWidth={1.7} />, label: '编辑文字' },
+    { icon: <Box size={15} strokeWidth={1.7} />, label: '多角度' },
+    { icon: <Move size={15} strokeWidth={1.7} />, label: '移动对象' },
+  ]
+
+  return (
+    <>
+      {/* 与素材页外部入口共用同一枚画布 icon。 */}
       <button
         type="button"
+        onClick={onCanvasEdit}
         className="flex h-8 shrink-0 items-center gap-1.5 rounded-xl px-2 text-[13px] font-medium text-[var(--color-ink)] transition-colors hover:bg-[var(--fill-hover)]"
       >
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-ink)] text-[var(--color-ink-contrast)]">
-          <BrandMark size={12} />
+        <span className="flex h-5 w-5 items-center justify-center text-[var(--color-ink)]/65">
+          <LayoutGrid size={13} strokeWidth={1.8} />
         </span>
-        快捷编辑
-        <span className="text-[12px] text-[var(--color-ink)]/35">Tab</span>
+        画布编辑
       </button>
 
       <Divider />
 
+      <ToolBtn
+        icon={<Upload size={15} strokeWidth={1.7} />}
+        label="上传"
+        onClick={onUpload}
+      />
       <ToolBtn icon={<HdBadge />} label="放大" />
       <ToolBtn icon={<Scissors size={15} strokeWidth={1.7} />} label="去背景" />
-      <ToolBtn icon={<Eraser size={15} strokeWidth={1.7} />} label="橡皮工具" />
-      <ToolBtn icon={<Layers size={15} strokeWidth={1.7} />} label="编辑元素" />
-      <ToolBtn icon={<Type size={15} strokeWidth={1.7} />} label="编辑文字" />
-      <ToolBtn icon={<Box size={15} strokeWidth={1.7} />} label="多角度" />
-      <ToolBtn icon={<Move size={15} strokeWidth={1.7} />} label="移动对象" dot />
-      <ToolBtn icon={<MoreHorizontal size={16} strokeWidth={1.8} />} dot />
+
+      <div
+        className="relative shrink-0"
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setMoreOpen(false)
+        }}
+      >
+        <button
+          type="button"
+          title="更多图片工具"
+          aria-label="更多图片工具"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen((open) => !open)}
+          className="relative flex h-8 w-8 items-center justify-center rounded-xl text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+        >
+          <MoreHorizontal size={16} strokeWidth={1.8} />
+        </button>
+        {moreOpen && (
+          <div className="absolute right-0 top-full z-50 mt-1 min-w-[132px] overflow-hidden rounded-xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] py-1 shadow-[0_12px_28px_-8px_rgba(16,18,24,0.24)]">
+            {moreTools.map((tool) => (
+              <button
+                key={tool.label}
+                type="button"
+                onClick={() => setMoreOpen(false)}
+                className="flex h-8 w-full items-center gap-2 px-3 text-left text-[12px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+              >
+                <span className="flex size-4 items-center justify-center text-[var(--color-ink)]/55">
+                  {tool.icon}
+                </span>
+                {tool.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <Divider />
 
@@ -411,15 +470,26 @@ function SelectionToolbar({
       >
         <Download size={16} strokeWidth={1.7} />
       </button>
-    </div>
+    </>
   )
 }
 
-function ToolBtn({ icon, label, dot }: { icon: React.ReactNode; label?: string; dot?: boolean }) {
+function ToolBtn({
+  icon,
+  label,
+  dot,
+  onClick,
+}: {
+  icon: React.ReactNode
+  label?: string
+  dot?: boolean
+  onClick?: () => void
+}) {
   return (
     <button
       type="button"
       title={label}
+      onClick={onClick}
       className="relative flex h-8 shrink-0 items-center gap-1.5 rounded-xl px-2 text-[13px] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
     >
       <span className="flex items-center justify-center text-[var(--color-ink)]/65">{icon}</span>
@@ -438,23 +508,5 @@ function HdBadge() {
     <span className="flex h-[15px] items-center rounded-[4px] border border-current px-1 text-[9px] font-bold leading-none">
       HD
     </span>
-  )
-}
-
-/** 抖音AI工坊 圆形点阵 logo（取自品牌字标里的图形部分）。 */
-function BrandMark({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <path d="M4.64629 7.23566C4.64629 8.51889 3.6058 9.55933 2.32369 9.55933C1.04046 9.55933 0 8.51889 0 7.23566C0 5.95243 1.04046 4.91309 2.32369 4.91309C3.6058 4.91309 4.64629 5.95243 4.64629 7.23566Z" fill="currentColor"/>
-      <path d="M4.64629 11.8569C4.64629 13.1401 3.6058 14.1795 2.32369 14.1795C1.04046 14.1795 0 13.1401 0 11.8569C0 10.5737 1.04046 9.5332 2.32369 9.5332C3.6058 9.5332 4.64629 10.5737 4.64629 11.8569Z" fill="currentColor"/>
-      <path d="M6.52691 4.9923C5.61958 5.89963 4.21325 5.96452 3.38648 5.13775C2.55859 4.30986 2.62348 2.90355 3.5308 1.99623C4.43813 1.0889 5.84446 1.02401 6.67123 1.8519C7.49912 2.67867 7.43423 4.08498 6.52691 4.9923Z" fill="currentColor"/>
-      <path d="M6.52691 17.0939C5.61958 18.0012 4.21325 18.0661 3.38648 17.2382C2.55859 16.4114 2.62348 15.0051 3.5308 14.0978C4.43813 13.1905 5.84446 13.1256 6.67123 13.9535C7.49912 14.7802 7.43423 16.1865 6.52691 17.0939Z" fill="currentColor"/>
-      <path d="M16.2489 6.88788C17.1562 5.98055 18.0344 5.38761 18.2112 5.56438C18.388 5.74114 17.795 6.61938 16.8877 7.52671C15.9804 8.43403 15.1021 9.02586 14.9253 8.85021C14.7497 8.67344 15.3415 7.7952 16.2489 6.88788Z" fill="currentColor"/>
-      <path d="M16.3845 11.6724C17.2918 10.7651 18.1096 10.1118 18.2114 10.2136C18.3132 10.3165 17.661 11.1343 16.7536 12.0416C15.8463 12.949 15.0285 13.6012 14.9256 13.4994C14.8238 13.3976 15.4771 12.5798 16.3845 11.6724Z" fill="currentColor"/>
-      <path d="M13.0553 2.66021C13.9626 1.75288 15.0602 1.3792 15.5065 1.82447C15.9518 2.27086 15.5782 3.36838 14.6709 4.27571C13.7635 5.18303 12.6671 5.55671 12.2207 5.11032C11.7743 4.66393 12.148 3.56753 13.0553 2.66021Z" fill="currentColor"/>
-      <path d="M13.1782 14.8979C14.0855 13.9906 15.1271 13.5621 15.5064 13.9402C15.8845 14.3184 15.456 15.3611 14.5487 16.2684C13.6414 17.1757 12.5987 17.6042 12.2205 17.2261C11.8424 16.8468 12.2709 15.8052 13.1782 14.8979Z" fill="currentColor"/>
-      <path d="M8.33898 15.9313C9.2463 15.0239 10.4714 14.7789 11.0755 15.3831C11.6807 15.9872 11.4358 17.2134 10.5285 18.1207C9.62113 19.028 8.39493 19.273 7.79079 18.6689C7.18554 18.0636 7.43166 16.8386 8.33898 15.9313Z" fill="currentColor"/>
-      <path d="M8.25097 0.831134C9.15829 -0.0761893 10.4348 -0.270856 11.1027 0.39705C11.7707 1.06496 11.576 2.34147 10.6687 3.2488C9.76135 4.15612 8.48481 4.34967 7.8169 3.68288C7.14899 3.01498 7.34365 1.73846 8.25097 0.831134Z" fill="currentColor"/>
-    </svg>
   )
 }

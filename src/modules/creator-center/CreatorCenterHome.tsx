@@ -30,10 +30,19 @@ import SharedSideNav, { SideNavActionButton, type SideNavItem } from '@/shared/c
 import AccountSwitcherPanel from './AccountSwitcher'
 import FigmaGlyph from './FigmaGlyph'
 import { SlideWideAddLinearIcon } from 'master-icon/react/SlideWideAddLinearIcon'
-import { LayoutLeftLinearIcon } from 'master-icon/react/LayoutLeftLinearIcon'
 import { LiveStreaming01LinearIcon } from 'master-icon/react/LiveStreaming01LinearIcon'
 import SideNavDisclosureIcon from '@/shared/components/SideNavDisclosureIcon'
+import SideNavIconFooterActions, {
+  SideNavCollapseFooterButton,
+} from '@/shared/components/SideNavIconFooterActions'
 import { ActivityCenterCard, HomeFooter, InteractionSection, MonetizationSection, QuickNavCard } from './HomeSections'
+import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
+import {
+  useNavVersion,
+  usesProductHeaderLayout,
+  usesSchemeFourLayout,
+} from '@/shared/storage/nav-version'
+import { useProductSideNav } from '@/shared/storage/product-side-nav'
 import AiAssistantPanel from '@/shared/components/AiAssistantPanel'
 import { assistantContextFor } from './assistant-contexts'
 
@@ -146,9 +155,15 @@ function publishKindFromPage(page: string): PublishEntryId {
 
 function SideNav({ active, onSelect }: { active: string; onSelect: (key: string) => void }) {
   const liveEnabled = useLiveMgmt((s) => s.enabled)
+  const version = useNavVersion((state) => state.version)
+  const schemeFourLayout = usesSchemeFourLayout(version)
   // 与 AI 工坊同一轮廓框架：透明侧栏（设计稿 统一导航 250-37291），
-  // 顶部「发布作品」下拉，底部「收起导航」手动收起为 icon rail。
-  const [collapsed, setCollapsed] = useState(false)
+  // 方案 2 不提供产品头与手动收起，方案 4 / 6 把入口放在产品头，
+  // 方案 3 放在外壳品牌头；
+  // 方案 1 / 5 分别在底部保留文字版 / icon-only 入口。
+  const storedCollapsed = useProductSideNav((state) => state.collapsed.home)
+  const collapsed = version === 2 ? false : storedCollapsed
+  const toggleCollapsed = useProductSideNav((state) => state.toggleCollapsed)
   // 直播管理是权限菜单，开启时插在「内容」上方
   const menu: SideMenuItem[] = []
   for (const m of SIDE_MENU as SideMenuItem[]) {
@@ -158,13 +173,31 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
   return (
     <SharedSideNav
       ariaLabel="创作者中心侧栏"
-      chrome="panel"
+      chrome={version === 3 ? 'plain' : 'panel'}
+      showDivider={version !== 3}
       collapsed={collapsed}
+      resizable
+      flushHeader={schemeFourLayout || version === 3}
       items={menu}
       activeKey={active}
       onSelect={onSelect}
       header={
         <div className="px-[var(--sn-px)] pb-3">
+          {version !== 2 && usesProductHeaderLayout(version) && (
+            <SideNavProductHeader
+              {...(
+                schemeFourLayout
+                  ? { leadingText: '开启创作' }
+                  : {
+                      icon: '/icons/nav-products/creator-center.svg',
+                      productLabel: '创作者中心',
+                      onLogoClick: () => onSelect('data'),
+                    }
+              )}
+              collapsed={collapsed}
+              onToggle={() => toggleCollapsed('home')}
+            />
+          )}
           <Popover.Root>
             <Popover.Trigger asChild>
               <SideNavActionButton
@@ -204,23 +237,22 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
         </div>
       }
       footer={
-        <div className="px-[var(--sn-px)] pb-3">
-          <button
-            type="button"
-            onClick={() => setCollapsed((v) => !v)}
-            aria-label={collapsed ? '展开导航' : '收起导航'}
-            title={collapsed ? '展开导航' : '收起导航'}
-            className={`flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] text-[#252632]/70 transition-colors hover:bg-black/[0.03] hover:text-[#252632]/85 ${
-              collapsed ? 'justify-center' : ''
-            }`}
-          >
-            <LayoutLeftLinearIcon
-              size={18}
-              className={`shrink-0 text-[#252632] transition-transform ${collapsed ? 'rotate-180' : ''}`}
+        version === 1 ? (
+          <div className="px-[var(--sn-px)] pb-3">
+            <SideNavCollapseFooterButton
+              collapsed={collapsed}
+              onToggle={() => toggleCollapsed('home')}
             />
-            {!collapsed && '收起导航'}
-          </button>
-        </div>
+          </div>
+        ) : version === 5 ? (
+          <div className="px-[var(--sn-px)] pb-3">
+            <SideNavIconFooterActions
+              collapsed={collapsed}
+              onToggle={() => toggleCollapsed('home')}
+              onOpenProjectSettings={() => toast('项目设置（演示）')}
+            />
+          </div>
+        ) : undefined
       }
     />
   )
@@ -799,6 +831,7 @@ export default function CreatorCenterHome({
 }) {
   // 左侧栏当前页：data=数据看板 content=内容管理 其余为建设中占位
   const [page, setPage] = useState('data')
+  const navVersion = useNavVersion((state) => state.version)
   const liveEnabled = useLiveMgmt((s) => s.enabled)
   // 关闭直播管理开关后若正停在该页，回落到数据看板（渲染期派生）
   if (page === 'live' && !liveEnabled) setPage('data')
@@ -809,7 +842,7 @@ export default function CreatorCenterHome({
   const reduceMotion = useReducedMotion()
 
   return (
-    <div className="flex h-full min-h-0 bg-[#F5F6F8]">
+    <div className={`flex h-full min-h-0 ${navVersion === 3 ? 'bg-transparent' : 'bg-[#F5F6F8]'}`}>
       <SideNav active={page} onSelect={setPage} />
       {/* 只有内容区做载入动画；侧栏等框架保持静止 */}
       <motion.div

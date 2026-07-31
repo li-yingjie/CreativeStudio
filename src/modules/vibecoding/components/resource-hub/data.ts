@@ -189,5 +189,5 @@ export const SKILLS: SkillItem[] = [
   { id: 's-auto-reply', name: '评论自动回复', desc: '按人设语气自动回复评论区高频问题。', origin: '空间 Skills', source: '粉丝互动机器人', usage: '880' },
   { id: 's-poster', name: '运营海报助手', desc: '3D / 插画 / 平面多风格运营海报生成。', origin: '三方 Skills', source: '卢艳华', usage: '402' },
   { id: 's-report', name: '舆情研报生成', desc: '事件脉络梳理 + 飞书文档沉淀一条龙。', origin: '三方 Skills', source: '黄红钰', usage: '802' },
-  { id: 's-tarot', name: '每日塔罗抽牌', desc: '塔罗抽牌 + 牌意解读的趣味互动技能。', origin: '空间 Skills', source: '塔罗小程序', usage: '1.4K' },
+  { id: 's-tarot', name: '每日塔罗抽牌', desc: '塔罗抽牌 + 牌意解读的趣味互动技能。', origin: '空间 Skills', source: '塔罗兴趣卡', usage: '1.4K' },
 ]

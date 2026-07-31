@@ -195,26 +195,25 @@ function assets(names: string[]): MiniProgramAsset[] {
 }
 
 export const MINIPROGRAM_CONFIGS: Record<string, MiniProgramConfig> = {
-  '塔罗小程序': {
-    name: '塔罗',
+  '塔罗兴趣卡': {
+    name: '塔罗兴趣卡',
     appID: 'wx_tarot_5f6e2a',
-    description: '第五人格主题的塔罗运势小程序，每日抽卡解读运势。',
+    description: '在抖音 Feed 中生成今日关键词，并承接塔罗抽牌解读的兴趣卡。',
     agent: {
       modelKey: 'doubao-pro-32k',
       modelName: 'Doubao-pro-32k',
       systemPrompt: TAROT_PROMPT,
     },
-    assets: assets([
-      '小程序 logo',
-      '首页 banner',
-      '塔罗牌·牌背',
-      '塔罗牌·过去',
-      '塔罗牌·当下',
-      '塔罗牌·未来',
-      '加载占位图',
-      '结果页背景',
-      '分享卡片底图',
-    ]),
+    assets: [
+      { name: 'Feed 星空背景', url: '/assets/tarot-interest-card/feed-bg.png' },
+      {
+        name: '兴趣卡金色底纹',
+        url: '/assets/tarot-interest-card/feed-card-shell.png',
+      },
+      { name: '天秤座主卡面', url: '/assets/tarot-interest-card/libra-card.png' },
+      { name: '塔罗落地页背景', url: '/assets/tarot-interest-card/landing-bg.png' },
+      { name: '圣杯二牌面', url: '/assets/tarot-interest-card/two-of-cups.png' },
+    ],
     preview: DEFAULT_MINIPROGRAM_PREVIEW,
   },
   '每日打卡小程序': {

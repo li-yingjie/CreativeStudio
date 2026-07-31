@@ -1073,7 +1073,7 @@ export const PROJECT_USAGE: ProjectUsage[] = [
     ],
   },
   {
-    project: '塔罗小程序',
+    project: '塔罗兴趣卡',
     uses: [
       { platformId: 'aime', name: '图片 / Banner 生成', category: '创作' },
       { platformId: 'mira', name: 'svg-chart-gen', category: '设计' },
