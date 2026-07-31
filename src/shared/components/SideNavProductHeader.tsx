@@ -1,7 +1,7 @@
 import SideNavPanelStateIcon from './SideNavPanelStateIcon'
 
 type SideNavProductHeaderProps = {
-  /** 收起态：方案 2 显示产品 logo，方案 4 / 6 的文字头显示展开 icon。 */
+  /** 收起态：方案 2 显示产品 logo，方案 4 的文字头显示展开 icon。 */
   collapsed?: boolean
   /** 与下方首项的间距；分身、百科需要紧贴时传 0。 */
   bottomGap?: 0 | 12
@@ -16,7 +16,7 @@ type SideNavProductHeaderProps = {
       onLogoClick?: () => void
     }
   | {
-      /** 方案 4 / 6：用 13px 文本替代左侧产品 icon/logo。 */
+      /** 方案 4：用 13px 文本替代左侧产品 icon/logo。 */
       leadingText: string
       icon?: never
       productLabel?: never
@@ -25,7 +25,7 @@ type SideNavProductHeaderProps = {
 )
 
 /** 方案 2 的侧栏顶部行：产品自有 logo（左）+ 收起/展开 icon（右）。
- *  logo 来自 Figma「统一导航」380-27227；方案 4 / 6 用产品对应的
+ *  logo 来自 Figma「统一导航」380-27227；方案 4 用产品对应的
  *  文本标题替代左侧标识。 */
 export default function SideNavProductHeader(props: SideNavProductHeaderProps) {
   const { bottomGap = 12, collapsed = false, onToggle } = props

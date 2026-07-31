@@ -302,10 +302,10 @@ summary {
   min-height: 100dvh;
 }
 
-/* 方案 3 的侧栏不单独铺实色；所有产品都按全屏坐标复用同一张
+/* 方案 1（L 型）的侧栏不单独铺实色；所有产品都按全屏坐标复用同一张
    Figma 根画布渐变，避免产品根层不同导致侧栏换色。 */
-[data-nav-version="3"] [data-side-nav-surface] {
-  background-image: var(--scheme3-background-image) !important;
+[data-nav-version="1"] [data-side-nav-surface] {
+  background-image: var(--l-shaped-background-image) !important;
   background-position: left calc(0px - var(--cc-top, 48px)) !important;
   background-repeat: no-repeat !important;
   background-size: 100vw 100dvh !important;

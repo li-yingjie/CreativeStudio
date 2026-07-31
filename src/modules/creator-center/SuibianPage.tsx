@@ -12,6 +12,7 @@ import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
 import { useResizableSideNavWidth } from '@/shared/hooks/useResizableSideNavWidth'
 import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
 import SideNavPanelStateIcon from '@/shared/components/SideNavPanelStateIcon'
+import SideNavSearchToolbar from '@/shared/components/SideNavSearchToolbar'
 import SideNavIconFooterActions, {
   SideNavCollapseFooterButton,
 } from '@/shared/components/SideNavIconFooterActions'
@@ -19,6 +20,7 @@ import {
   useNavVersion,
   usesProductHeaderLayout,
   usesSchemeFourLayout,
+  usesSearchToolbarLayout,
 } from '@/shared/storage/nav-version'
 import { useProductSideNav } from '@/shared/storage/product-side-nav'
 import UnifiedToolbar from './UnifiedToolbar'
@@ -347,10 +349,10 @@ function RoleSegmentedControl({
   )
 }
 
-function MyRoleGrid() {
+function MyRoleGrid({ roles = MY_ROLES }: { roles?: NavCell[] }) {
   return (
     <div className="grid w-full grid-cols-3 gap-1">
-      {MY_ROLES.map((role) => (
+      {roles.map((role) => (
         <button
           key={role.id}
           type="button"
@@ -427,8 +429,10 @@ export function SuibianSideNav() {
   const [worldsOpen, setWorldsOpen] = useState(true)
   const [activeTask, setActiveTask] = useState('working-cat')
   const [roleSegment, setRoleSegment] = useState<RoleSegment>('ai')
+  const [navSearch, setNavSearch] = useState('')
   const navVersion = useNavVersion((state) => state.version)
   const schemeFourLayout = usesSchemeFourLayout(navVersion)
+  const searchToolbarLayout = usesSearchToolbarLayout(navVersion)
   const sidebarCollapsed = useProductSideNav(
     (state) => state.collapsed.suibian,
   )
@@ -436,12 +440,35 @@ export function SuibianSideNav() {
   const reduceSideNavMotion = useReducedMotion() ?? false
 
   const { width: sidebarWidth, setWidth: setSidebarWidth } = useResizableSideNavWidth()
+  const normalizedNavSearch = searchToolbarLayout
+    ? navSearch.trim().toLocaleLowerCase('zh-CN')
+    : ''
+  const filterCells = (label: string, cells: NavCell[]) =>
+    !normalizedNavSearch ||
+    label.toLocaleLowerCase('zh-CN').includes(normalizedNavSearch)
+      ? cells
+      : cells.filter((cell) =>
+          cell.title.toLocaleLowerCase('zh-CN').includes(normalizedNavSearch),
+        )
+  const visibleTasks = filterCells('任务', TASKS)
+  const visibleMyRoles = filterCells('我的角色', MY_ROLES)
+  const visibleRoleLibrary = filterCells('角色库', ROLE_LIBRARY)
+  const visibleWorldBooks = filterCells('世界书', WORLD_BOOKS)
+  const hasSearchResults =
+    visibleTasks.length > 0 ||
+    visibleMyRoles.length > 0 ||
+    visibleRoleLibrary.length > 0 ||
+    visibleWorldBooks.length > 0
 
-  if (sidebarCollapsed && (navVersion === 1 || navVersion === 2)) {
+  if (
+    sidebarCollapsed &&
+    (navVersion === 2 || navVersion === 3 || searchToolbarLayout)
+  ) {
     return (
       <SharedSideNav
         ariaLabel="随变侧栏"
         collapsed
+        flushHeader={searchToolbarLayout}
         items={SUIBIAN_NAV_GROUPS.map((group) => ({ ...group }))}
         activeKey={null}
         onSelect={(key) => {
@@ -452,7 +479,17 @@ export function SuibianSideNav() {
           setSidebarCollapsed('suibian', false)
         }}
         header={
-          navVersion === 2 ? (
+          searchToolbarLayout ? (
+            <div className="px-[var(--sn-px)]">
+              <SideNavSearchToolbar
+                value={navSearch}
+                onChange={setNavSearch}
+                onToggle={() => setSidebarCollapsed('suibian', false)}
+                placeholder="搜索随变内容"
+                collapsed
+              />
+            </div>
+          ) : navVersion === 2 ? (
             <div className="px-[var(--sn-px)]">
               <SideNavProductHeader
                 icon="/icons/nav-products/suibian.svg"
@@ -464,7 +501,7 @@ export function SuibianSideNav() {
           ) : undefined
         }
         footer={
-          navVersion === 1 ? (
+          navVersion === 3 ? (
             <div className="px-[var(--sn-px)] pb-3">
               <SideNavCollapseFooterButton
                 collapsed
@@ -512,13 +549,13 @@ export function SuibianSideNav() {
           data-side-nav-surface
           style={{
             background:
-              navVersion === 3
+              navVersion === 1
                 ? 'transparent'
                 : '#fbfbfc',
             borderRightStyle: 'solid',
-            borderRightWidth: navVersion === 3 ? 0 : 0.5,
+            borderRightWidth: navVersion === 1 ? 0 : 0.5,
             borderRightColor:
-              navVersion === 3
+              navVersion === 1
                 ? 'rgba(0, 0, 0, 0.05)'
                 : 'rgba(0, 0, 0, 0.04)',
             fontFamily: '"PingFang SC", system-ui, sans-serif',
@@ -526,8 +563,19 @@ export function SuibianSideNav() {
           className="flex h-full w-full flex-col overflow-hidden"
         >
           {usesProductHeaderLayout(navVersion) && (
-            <div className={`shrink-0 px-3 ${schemeFourLayout ? '' : 'pt-3'}`}>
-              {navVersion === 2 ? (
+            <div
+              className={`shrink-0 px-3 ${
+                schemeFourLayout || searchToolbarLayout ? '' : 'pt-3'
+              }`}
+            >
+              {searchToolbarLayout ? (
+                <SideNavSearchToolbar
+                  value={navSearch}
+                  onChange={setNavSearch}
+                  onToggle={() => setSidebarCollapsed('suibian', true)}
+                  placeholder="搜索随变内容"
+                />
+              ) : navVersion === 2 ? (
                 <UnifiedToolbar
                   ariaLabel="随变工具条"
                   actions={SUIBIAN_SCHEME_TWO_TOOLBAR_ACTIONS}
@@ -556,93 +604,119 @@ export function SuibianSideNav() {
           )}
           <div
             className={`thin-scroll-light flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 pb-3 ${
-              navVersion === 3 ? 'pt-0' : 'pt-3'
+              navVersion === 1 ? 'pt-0' : 'pt-3'
             }`}
           >
-            <div className="flex flex-col gap-1.5">
-              <GroupHeader
-                icon={`${ICON}/nav-task.svg`}
-                label="任务"
-                searchable
-                creatable
-                collapsed={!tasksOpen}
-                onToggle={() => setTasksOpen((v) => !v)}
-              />
-              {tasksOpen &&
-                TASKS.map((task) => (
-                  <TaskCell
-                    key={task.id}
-                    cell={task}
-                    active={activeTask === task.id}
-                    onClick={() => setActiveTask(task.id)}
-                  />
-                ))}
-            </div>
-
-            <div className="h-px shrink-0 bg-black/[0.06]" />
-
-            <div className="flex flex-col gap-3">
-              <GroupHeader
-                icon={`${ICON}/nav-my-role.svg`}
-                label="我的角色"
-                searchable
-                collapsed={!rolesOpen}
-                onToggle={() => setRolesOpen((v) => !v)}
-              />
-              {rolesOpen && (
-                <>
-                  <RoleSegmentedControl value={roleSegment} onChange={setRoleSegment} />
-                  <MyRoleGrid />
-                </>
-              )}
-            </div>
-
-            <div className="h-px shrink-0 bg-black/[0.06]" />
-
-            <div className="flex flex-col gap-3">
-              <GroupHeader
-                icon={`${ICON}/nav-role-library.svg`}
-                label="角色库"
-                tag="平台资产"
-                searchable
-                collapsed={!libraryOpen}
-                onToggle={() => setLibraryOpen((v) => !v)}
-              />
-              {libraryOpen && (
-                <div className="flex flex-col gap-1.5">
-                  {ROLE_LIBRARY.map((role) => (
-                    <LibraryCell key={role.id} cell={role} />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="h-px shrink-0 bg-black/[0.06]" />
-
-            <div className="flex flex-col gap-1">
-              <GroupHeader
-                icon={`${ICON}/nav-world.svg`}
-                label="世界书"
-                tag="平台资产"
-                collapsed={!worldsOpen}
-                onToggle={() => setWorldsOpen((v) => !v)}
-              />
-              {worldsOpen && (
-                <div className="flex flex-col">
-                  {WORLD_BOOKS.map((world, index) => (
-                    <WorldCell
-                      key={world.id}
-                      cell={world}
-                      showMore={index === 0}
+            {!hasSearchResults && normalizedNavSearch && (
+              <div className="px-2 py-6 text-center">
+                <p className="text-pretty text-[12px] text-[#252632]/45">未找到相关随变内容</p>
+                <button
+                  type="button"
+                  onClick={() => setNavSearch('')}
+                  className="mt-2 text-[12px] font-medium text-[#252632]/75 hover:text-[#252632]"
+                >
+                  清除搜索
+                </button>
+              </div>
+            )}
+            {visibleTasks.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <GroupHeader
+                  icon={`${ICON}/nav-task.svg`}
+                  label="任务"
+                  searchable
+                  creatable
+                  collapsed={!tasksOpen}
+                  onToggle={() => setTasksOpen((v) => !v)}
+                />
+                {tasksOpen &&
+                  visibleTasks.map((task) => (
+                    <TaskCell
+                      key={task.id}
+                      cell={task}
+                      active={activeTask === task.id}
+                      onClick={() => setActiveTask(task.id)}
                     />
                   ))}
-                </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {visibleTasks.length > 0 && visibleMyRoles.length > 0 && (
+              <div className="h-px shrink-0 bg-black/[0.06]" />
+            )}
+
+            {visibleMyRoles.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <GroupHeader
+                  icon={`${ICON}/nav-my-role.svg`}
+                  label="我的角色"
+                  searchable
+                  collapsed={!rolesOpen}
+                  onToggle={() => setRolesOpen((v) => !v)}
+                />
+                {rolesOpen && (
+                  <>
+                    <RoleSegmentedControl value={roleSegment} onChange={setRoleSegment} />
+                    <MyRoleGrid roles={visibleMyRoles} />
+                  </>
+                )}
+              </div>
+            )}
+
+            {visibleMyRoles.length > 0 && visibleRoleLibrary.length > 0 && (
+              <div className="h-px shrink-0 bg-black/[0.06]" />
+            )}
+
+            {visibleRoleLibrary.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <GroupHeader
+                  icon={`${ICON}/nav-role-library.svg`}
+                  label="角色库"
+                  tag="平台资产"
+                  searchable
+                  collapsed={!libraryOpen}
+                  onToggle={() => setLibraryOpen((v) => !v)}
+                />
+                {libraryOpen && (
+                  <div className="flex flex-col gap-1.5">
+                    {visibleRoleLibrary.map((role) => (
+                      <LibraryCell key={role.id} cell={role} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {visibleRoleLibrary.length > 0 && visibleWorldBooks.length > 0 && (
+              <div className="h-px shrink-0 bg-black/[0.06]" />
+            )}
+
+            {visibleWorldBooks.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <GroupHeader
+                  icon={`${ICON}/nav-world.svg`}
+                  label="世界书"
+                  tag="平台资产"
+                  collapsed={!worldsOpen}
+                  onToggle={() => setWorldsOpen((v) => !v)}
+                />
+                {worldsOpen && (
+                  <div className="flex flex-col">
+                    {visibleWorldBooks.map((world, index) => (
+                      <WorldCell
+                        key={world.id}
+                        cell={world}
+                        showMore={index === 0}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* 方案 2 / 4 / 6 的入口在产品头；方案 1 / 5 使用底部文字版 / icon-only 入口。 */}
-          {navVersion === 1 && (
+          {/* 方案 2 / 4 / 6 的操作在顶部；方案 3 / 5 使用底部文字版 / icon-only 入口。 */}
+          {navVersion === 3 && (
             <div className="shrink-0 px-3 pb-3">
               <SideNavCollapseFooterButton
                 onToggle={() => setSidebarCollapsed('suibian', true)}
@@ -698,7 +772,8 @@ export default function SuibianPage() {
             {sidebarCollapsed &&
               navVersion !== 1 &&
               navVersion !== 2 &&
-              navVersion !== 3 && (
+              navVersion !== 3 &&
+              navVersion !== 6 && (
               <button
                 type="button"
                 title="展开导航"

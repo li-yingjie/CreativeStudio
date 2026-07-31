@@ -57,6 +57,7 @@ export type ProjectKind =
 /** Shared product-tree labels. They are also consumed by tab routing so
  *  directory copy and interaction logic cannot drift apart. */
 export const BASIC_INFO_LABEL = '基础信息'
+export const PROJECT_DOCUMENT_LABEL = '项目文档'
 export const PERSONA_CONFIG_LABEL = '人设配置'
 export const ABILITY_CONFIG_LABEL = '能力配置'
 export const PAGE_CONFIG_LABEL = '页面配置'
@@ -251,12 +252,12 @@ function webAppView(tree: FileNode[]): FileNode[] {
   ]
 }
 
-/** 游戏 (web-game): 素材库 / 基础信息（含文档）/
+/** 游戏 (web-game): 项目文档（含基础信息）/ 素材库 /
  *  游戏玩法配置 / 数据库 / 项目文件. */
 function gameView(tree: FileNode[]): FileNode[] {
   return [
+    { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
     { name: ASSET_LIBRARY_LABEL, type: 'file' },
-    { name: BASIC_INFO_LABEL, type: 'file' },
     { name: GAME_GAMEPLAY_CONFIG_LABEL, type: 'file' },
     { name: DATABASE_LABEL, type: 'file' },
     { name: '项目文件', type: 'dir', children: tree },
@@ -305,11 +306,11 @@ export function buildProductView(
     case 'web-game':
       return gameView(tree)
     case 'marketing-h5':
-      // H5 活动页: 素材库 / 基础信息（含文档）/
+      // H5 活动页: 项目文档（含基础信息）/ 素材库 /
       // 活动玩法配置 / 数据库 / 项目文件。
       return [
+        { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
         { name: ASSET_LIBRARY_LABEL, type: 'file' },
-        { name: BASIC_INFO_LABEL, type: 'file' },
         { name: H5_GAMEPLAY_CONFIG_LABEL, type: 'file' },
         { name: DATABASE_LABEL, type: 'file' },
         { name: '项目文件', type: 'dir', children: tree },
@@ -353,7 +354,7 @@ export function buildAvatarProductView(
   return out
 }
 
-/** Build the mini-program product view — 素材库 / 基础信息（含文档）/
+/** Build the mini-program product view — 项目文档（含基础信息）/ 素材库 /
  *  兴趣卡配置 / 项目记忆 / 项目文件. */
 export function buildMiniProgramProductView(
   tree: FileNode[],
@@ -361,8 +362,8 @@ export function buildMiniProgramProductView(
 ): FileNode[] {
   void config
   return [
+    { name: PROJECT_DOCUMENT_LABEL, type: 'file' as const },
     { name: ASSET_LIBRARY_LABEL, type: 'file' as const },
-    { name: BASIC_INFO_LABEL, type: 'file' as const },
     { name: INTEREST_CARD_CONFIG_LABEL, type: 'file' as const },
     { name: PROJECT_MEMORY_LABEL, type: 'file' as const },
     { name: '项目文件', type: 'dir' as const, children: tree },

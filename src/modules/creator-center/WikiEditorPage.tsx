@@ -13,10 +13,12 @@ import SideNavIconFooterActions, {
 } from '@/shared/components/SideNavIconFooterActions'
 import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
 import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
+import SideNavSearchToolbar from '@/shared/components/SideNavSearchToolbar'
 import {
   useNavVersion,
   usesProductHeaderLayout,
   usesSchemeFourLayout,
+  usesSearchToolbarLayout,
 } from '@/shared/storage/nav-version'
 import { useResizableSideNavWidth } from '@/shared/hooks/useResizableSideNavWidth'
 import { Disclosure, DISCLOSURE_INDENT } from '@/modules/vibecoding/components/FileTreeView'
@@ -222,7 +224,8 @@ function WikiSchemeFourHeader({
   )
 }
 
-function WikiSchemeFourFooter() {
+/** 方案 1 / 4 / 6 的百科底部上下文操作。 */
+function WikiContextFooter() {
   return (
     <div className="pb-3">
       <button
@@ -268,10 +271,34 @@ export function WikiSideNav({
   // 目录分组默认全展开（新建的世界书内容少，一眼看全）
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(NAV_GROUPS.map((g) => g.key)))
   const [localObjectId, setLocalObjectId] = useState(DEFAULT_WIKI_OBJECT_ID)
+  const [navSearch, setNavSearch] = useState('')
   const navVersion = useNavVersion((state) => state.version)
   const schemeFourLayout = usesSchemeFourLayout(navVersion)
+  const searchToolbarLayout = usesSearchToolbarLayout(navVersion)
   const reduceSideNavMotion = useReducedMotion() ?? false
   const resolvedObjectId = getWikiObject(activeObjectId ?? localObjectId).id
+  const normalizedNavSearch = searchToolbarLayout
+    ? navSearch.trim().toLocaleLowerCase('zh-CN')
+    : ''
+  const visibleNavGroups = normalizedNavSearch
+    ? NAV_GROUPS
+        .map((group) => ({
+          ...group,
+          children: group.label.toLocaleLowerCase('zh-CN').includes(normalizedNavSearch)
+            ? group.children
+            : group.children.filter((child) =>
+                child.toLocaleLowerCase('zh-CN').includes(normalizedNavSearch),
+              ),
+        }))
+        .filter(
+          (group) =>
+            group.label.toLocaleLowerCase('zh-CN').includes(normalizedNavSearch) ||
+            group.children.length > 0,
+        )
+    : NAV_GROUPS
+  const relationVisible =
+    !normalizedNavSearch ||
+    '关系网'.toLocaleLowerCase('zh-CN').includes(normalizedNavSearch)
 
   const { width: sidebarWidth, setWidth: setSidebarWidth } = useResizableSideNavWidth()
 
@@ -290,11 +317,15 @@ export function WikiSideNav({
     }
   }
 
-  if (collapsed && (navVersion === 1 || navVersion === 2)) {
+  if (
+    collapsed &&
+    (navVersion === 2 || navVersion === 3 || searchToolbarLayout)
+  ) {
     return (
       <SharedSideNav
         ariaLabel="百科目录"
         collapsed
+        flushHeader={searchToolbarLayout}
         items={[
           ...NAV_GROUPS.map((group) => ({
             key: group.key,
@@ -310,7 +341,17 @@ export function WikiSideNav({
         activeKey={null}
         onSelect={() => onCollapse?.()}
         header={
-          navVersion === 2 ? (
+          searchToolbarLayout ? (
+            <div className="px-[var(--sn-px)]">
+              <SideNavSearchToolbar
+                value={navSearch}
+                onChange={setNavSearch}
+                onToggle={onCollapse ?? (() => {})}
+                placeholder="搜索百科内容"
+                collapsed
+              />
+            </div>
+          ) : navVersion === 2 ? (
             <div className="px-[var(--sn-px)]">
               <SideNavProductHeader
                 icon="/icons/nav-products/wiki.svg"
@@ -323,7 +364,7 @@ export function WikiSideNav({
           ) : undefined
         }
         footer={
-          navVersion === 1 ? (
+          navVersion === 3 ? (
             <div className="px-[var(--sn-px)] pb-3">
               <SideNavCollapseFooterButton
                 collapsed
@@ -371,9 +412,9 @@ export function WikiSideNav({
         <SharedSideNav
         ariaLabel="百科目录"
         layout="fill"
-        chrome={navVersion === 3 ? 'plain' : 'panel'}
-        showDivider={navVersion !== 3}
-        flushHeader={schemeFourLayout || navVersion === 3}
+        chrome={navVersion === 1 ? 'plain' : 'panel'}
+        showDivider={navVersion !== 1}
+        flushHeader={schemeFourLayout || searchToolbarLayout || navVersion === 1}
         items={[]}
         activeKey={null}
         onSelect={() => {}}
@@ -387,7 +428,14 @@ export function WikiSideNav({
           ) : (
             <div className="px-[var(--sn-px)] pb-2">
               {usesProductHeaderLayout(navVersion) && (
-                navVersion === 2 ? (
+                searchToolbarLayout ? (
+                  <SideNavSearchToolbar
+                    value={navSearch}
+                    onChange={setNavSearch}
+                    onToggle={onCollapse ?? (() => {})}
+                    placeholder="搜索百科内容"
+                  />
+                ) : navVersion === 2 ? (
                   <UnifiedToolbar
                     ariaLabel="百科工具条"
                     actions={WIKI_SCHEME_TWO_TOOLBAR_ACTIONS}
@@ -425,16 +473,17 @@ export function WikiSideNav({
           )
         }
         footer={
-          navVersion === 1 ? (
+          navVersion === 3 ? (
             <div className="px-[var(--sn-px)] pb-3">
               <SideNavCollapseFooterButton onToggle={onCollapse ?? (() => {})} />
             </div>
-          ) : schemeFourLayout ? (
-            <WikiSchemeFourFooter />
+          ) : navVersion === 1 || searchToolbarLayout || schemeFourLayout ? (
+            <WikiContextFooter />
           ) : navVersion === 5 ? (
             <div className="px-[var(--sn-px)] pb-3">
               <SideNavIconFooterActions
                 onToggle={onCollapse ?? (() => {})}
+                onOpenMyEntries={() => toast('我的词条 23（演示）')}
                 onOpenProjectSettings={() => toast('项目设置（演示）')}
               />
             </div>
@@ -442,7 +491,7 @@ export function WikiSideNav({
         }
         >
         <nav aria-label="百科目录菜单" className="flex flex-col gap-0.5 px-[var(--sn-px)] pb-3">
-          {/* 方案 4 / 6 固定保留主页入口；其他方案延续原有条件。 */}
+          {/* 方案 4 固定保留主页入口；其他方案延续原有条件。 */}
           {(onBackHome || schemeFourLayout) && (
             <NavRow
               label="主页"
@@ -453,7 +502,7 @@ export function WikiSideNav({
               schemeFour={schemeFourLayout}
             />
           )}
-          {NAV_GROUPS.map((g) => {
+          {visibleNavGroups.map((g) => {
             const open = expanded.has(g.key)
             return (
               <div key={g.key} className="flex flex-col gap-0.5">
@@ -489,14 +538,28 @@ export function WikiSideNav({
               </div>
             )
           })}
-          <NavRow
-            label="关系网"
-            icon={`${ICON}/nav-relation.svg`}
-            inset="0"
-            size={20}
-            onClick={() => toast('关系网（演示）')}
-            schemeFour={schemeFourLayout}
-          />
+          {relationVisible && (
+            <NavRow
+              label="关系网"
+              icon={`${ICON}/nav-relation.svg`}
+              inset="0"
+              size={20}
+              onClick={() => toast('关系网（演示）')}
+              schemeFour={schemeFourLayout}
+            />
+          )}
+          {visibleNavGroups.length === 0 && !relationVisible && (
+            <div className="px-2 py-6 text-center">
+              <p className="text-pretty text-[12px] text-[#252632]/45">未找到相关百科内容</p>
+              <button
+                type="button"
+                onClick={() => setNavSearch('')}
+                className="mt-2 text-[12px] font-medium text-[#252632]/75 hover:text-[#252632]"
+              >
+                清除搜索
+              </button>
+            </div>
+          )}
         </nav>
         </SharedSideNav>
       </motion.div>
@@ -540,7 +603,8 @@ export default function WikiEditorPage({
             {sidebarCollapsed &&
               navVersion !== 1 &&
               navVersion !== 2 &&
-              navVersion !== 3 && (
+              navVersion !== 3 &&
+              navVersion !== 6 && (
               <button
                 type="button"
                 title="展开导航"

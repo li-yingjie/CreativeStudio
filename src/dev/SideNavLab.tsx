@@ -152,7 +152,7 @@ function ActionButton({
         collapsed={collapsed}
         className={collapsed || !withChevron ? '' : 'justify-between'}
       >
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-[var(--sn-rgap)]">
           <Icon size={16} />
           {!collapsed && label}
         </span>
@@ -187,7 +187,7 @@ function CollapseRow({ collapsed }: { collapsed?: boolean }) {
 
 const NUM_FIELDS: Array<{ group: string; items: Array<[SideNavNumericKey, string]> }> = [
   { group: '布局', items: [['width', '宽度'], ['collapsedWidth', '收起宽度'], ['topPadding', '上内边距'], ['listPaddingX', '左右内边距']] },
-  { group: '主按钮', items: [['buttonHeight', '高度'], ['buttonRadius', '圆角'], ['buttonFontSize', '字号']] },
+  { group: '主按钮', items: [['buttonHeight', '高度'], ['buttonRadius', '圆角']] },
   { group: '菜单行', items: [['rowHeight', '行高'], ['rowRadius', '圆角'], ['rowPaddingX', '左右内边距'], ['rowGap', '图标→文字'], ['rowSpacing', '行间距'], ['rowFontSize', '字号'], ['menuIconSize', '图标'], ['subRowHeight', '子菜单行高']] },
   { group: '树', items: [['treeRowHeight', '行高'], ['treeIndent', '每级缩进'], ['treeSlot', '箭头槽'], ['treeGap', '元素间距'], ['treeIconSize', '图标'], ['treeFontSize', '字号'], ['treeBasePl', '基础左边距']] },
 ]

@@ -32,9 +32,7 @@ import FigmaGlyph from './FigmaGlyph'
 import { SlideWideAddLinearIcon } from 'master-icon/react/SlideWideAddLinearIcon'
 import { LiveStreaming01LinearIcon } from 'master-icon/react/LiveStreaming01LinearIcon'
 import SideNavDisclosureIcon from '@/shared/components/SideNavDisclosureIcon'
-import SideNavIconFooterActions, {
-  SideNavCollapseFooterButton,
-} from '@/shared/components/SideNavIconFooterActions'
+import { SideNavCollapseFooterButton } from '@/shared/components/SideNavIconFooterActions'
 import { ActivityCenterCard, HomeFooter, InteractionSection, MonetizationSection, QuickNavCard } from './HomeSections'
 import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
 import {
@@ -158,11 +156,12 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
   const version = useNavVersion((state) => state.version)
   const schemeFourLayout = usesSchemeFourLayout(version)
   // 与 AI 工坊同一轮廓框架：透明侧栏（设计稿 统一导航 250-37291），
-  // 方案 2 不提供产品头与手动收起，方案 4 / 6 把入口放在产品头，
-  // 方案 3 放在外壳品牌头；
-  // 方案 1 / 5 分别在底部保留文字版 / icon-only 入口。
+  // 方案 2 不提供产品头与手动收起，方案 4 把入口放在产品头，
+  // 方案 6 按约定首页不显示搜索工具栏，
+  // 方案 1 放在外壳品牌头；
+  // 方案 3 / 5 分别在底部保留文字版 / icon-only 入口。
   const storedCollapsed = useProductSideNav((state) => state.collapsed.home)
-  const collapsed = version === 2 ? false : storedCollapsed
+  const collapsed = version === 2 || version === 6 ? false : storedCollapsed
   const toggleCollapsed = useProductSideNav((state) => state.toggleCollapsed)
   // 直播管理是权限菜单，开启时插在「内容」上方
   const menu: SideMenuItem[] = []
@@ -173,17 +172,17 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
   return (
     <SharedSideNav
       ariaLabel="创作者中心侧栏"
-      chrome={version === 3 ? 'plain' : 'panel'}
-      showDivider={version !== 3}
+      chrome={version === 1 ? 'plain' : 'panel'}
+      showDivider={version !== 1}
       collapsed={collapsed}
       resizable
-      flushHeader={schemeFourLayout || version === 3}
+      flushHeader={schemeFourLayout || version === 1}
       items={menu}
       activeKey={active}
       onSelect={onSelect}
       header={
         <div className="px-[var(--sn-px)] pb-3">
-          {version !== 2 && usesProductHeaderLayout(version) && (
+          {version !== 2 && version !== 6 && usesProductHeaderLayout(version) && (
             <SideNavProductHeader
               {...(
                 schemeFourLayout
@@ -202,11 +201,16 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
             <Popover.Trigger asChild>
               <SideNavActionButton
                 aria-label="发布作品"
-                variant="dark"
+                variant={version === 1 ? 'light' : 'dark'}
                 collapsed={collapsed}
                 className={collapsed ? '' : 'justify-between'}
+                style={
+                  version === 1
+                    ? { boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.10)' }
+                    : undefined
+                }
               >
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-[var(--sn-rgap)]">
                   <SlideWideAddLinearIcon size={16} />
                   {!collapsed && '发布作品'}
                 </span>
@@ -237,19 +241,11 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
         </div>
       }
       footer={
-        version === 1 ? (
+        version === 3 ? (
           <div className="px-[var(--sn-px)] pb-3">
             <SideNavCollapseFooterButton
               collapsed={collapsed}
               onToggle={() => toggleCollapsed('home')}
-            />
-          </div>
-        ) : version === 5 ? (
-          <div className="px-[var(--sn-px)] pb-3">
-            <SideNavIconFooterActions
-              collapsed={collapsed}
-              onToggle={() => toggleCollapsed('home')}
-              onOpenProjectSettings={() => toast('项目设置（演示）')}
             />
           </div>
         ) : undefined
@@ -762,8 +758,15 @@ function DataCenter() {
 }
 
 /** 装饰背景仅在当前产品可见且用户未请求减少动态效果时播放。 */
-function AmbientBackgroundVideo({ active }: { active: boolean }) {
+function AmbientBackgroundVideo({
+  active,
+  fadeToWhite = false,
+}: {
+  active: boolean
+  fadeToWhite?: boolean
+}) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const fadeRgb = fadeToWhite ? '255,255,255' : '245,246,248'
 
   useEffect(() => {
     const video = videoRef.current
@@ -813,9 +816,19 @@ function AmbientBackgroundVideo({ active }: { active: boolean }) {
       />
       {/* 遮罩：顶部一层轻遮让视频与顶栏过渡（更明显），中段全透明露出
           视频主体，底部提前完全落到页面底色盖住视频底边。 */}
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(245,246,248,0.5)_0%,rgba(245,246,248,0.28)_16%,rgba(245,246,248,0.08)_30%,rgba(245,246,248,0)_42%,rgba(245,246,248,0.28)_58%,rgba(245,246,248,0.62)_74%,rgba(245,246,248,0.9)_86%,#F5F6F8_95%)]" />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `linear-gradient(180deg, rgba(${fadeRgb},0.5) 0%, rgba(${fadeRgb},0.28) 16%, rgba(${fadeRgb},0.08) 30%, rgba(${fadeRgb},0) 42%, rgba(${fadeRgb},0.28) 58%, rgba(${fadeRgb},0.62) 74%, rgba(${fadeRgb},0.9) 86%, rgb(${fadeRgb}) 95%)`,
+        }}
+      />
       {/* 横向遮罩：左缘落到页面底色再渐显，与透明侧栏一侧融合无硬切 */}
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,#F5F6F8_0%,rgba(245,246,248,0.72)_12%,rgba(245,246,248,0.32)_26%,rgba(245,246,248,0)_42%)]" />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `linear-gradient(90deg, rgb(${fadeRgb}) 0%, rgba(${fadeRgb},0.72) 12%, rgba(${fadeRgb},0.32) 26%, rgba(${fadeRgb},0) 42%)`,
+        }}
+      />
     </div>
   )
 }
@@ -842,7 +855,7 @@ export default function CreatorCenterHome({
   const reduceMotion = useReducedMotion()
 
   return (
-    <div className={`flex h-full min-h-0 ${navVersion === 3 ? 'bg-transparent' : 'bg-[#F5F6F8]'}`}>
+    <div className={`flex h-full min-h-0 ${navVersion === 1 ? 'bg-transparent' : 'bg-[#F5F6F8]'}`}>
       <SideNav active={page} onSelect={setPage} />
       {/* 只有内容区做载入动画；侧栏等框架保持静止 */}
       <motion.div
@@ -881,11 +894,19 @@ export default function CreatorCenterHome({
           </div>
         </main>
       ) : (
-      <main className="min-w-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <main
+        className={`min-w-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          navVersion === 1 ? 'bg-white' : ''
+        }`}
+      >
         {/* 完整 ASCII 动画靠底取景；遮罩不跟随视频放大，确保在内容区
             底边完全落到页面底色，避免残留画面形成一条硬接缝。 */}
-        <div className="relative overflow-hidden bg-[#F5F6F8]">
-          <AmbientBackgroundVideo active={active} />
+        <div
+          className={`relative overflow-hidden ${
+            navVersion === 1 ? 'bg-white' : 'bg-[#F5F6F8]'
+          }`}
+        >
+          <AmbientBackgroundVideo active={active} fadeToWhite={navVersion === 1} />
           <div className="relative px-4 pb-4 pt-6">
             <ProfileHeader stats={profileData} />
 

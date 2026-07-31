@@ -4,7 +4,11 @@ import type {
   ReactNode,
 } from 'react'
 import { Copy, Lock } from '@/shared/icons'
-import type { H5LayerId, H5Selection } from './H5LayerEditPanel'
+import type {
+  H5ElementSel,
+  H5LayerId,
+  H5Selection,
+} from './H5LayerEditPanel'
 import type { H5CanvasNode } from './H5CanvasModel'
 import type { MarketingH5PreviewConfig } from './MarketingH5ConfigData'
 
@@ -24,6 +28,100 @@ const ASSETS = {
 } as const
 
 const CARD_TOPS = [162, 498, 834, 1170, 1506] as const
+
+const ELEMENTS = {
+  heroVisual: {
+    layer: 'hero',
+    id: 'hero.visual',
+    kind: 'image',
+    label: '头图.png',
+    value: ASSETS.heroBase,
+    prompt: '春节游戏主题活动头图，红色新春舞台、灯笼、中国结与烟花，多款热门游戏角色组成热闹群像，中心突出“抖音 ACG 游戏新春会”标题，红金高亮，竖版 H5 顶部主视觉，高细节商业活动 KV。',
+  },
+  statusBar: {
+    layer: 'hero',
+    id: 'hero.statusbar',
+    kind: 'image',
+    label: '状态栏.png',
+    value: ASSETS.statusBar,
+    prompt: '透明背景的移动端系统状态栏，白色时间、网络与电量图标，适配红色新春活动背景，界面干净清晰，750px 宽 UI 切图。',
+  },
+  titleBar: {
+    layer: 'hero',
+    id: 'hero.titlebar',
+    kind: 'image',
+    label: '标题栏.png',
+    value: ASSETS.titleBar,
+    prompt: '抖音活动 H5 顶部标题栏，包含返回、活动标题与分享入口，白色图标和文字，透明背景，适配红金新春游戏主题，750px 宽 UI 切图。',
+  },
+  back: { layer: 'hero', id: 'hero.back', kind: 'button', label: '返回按钮', value: '返回' },
+  share: { layer: 'hero', id: 'hero.share', kind: 'button', label: '分享按钮', value: '分享' },
+  transition: {
+    layer: 'hero',
+    id: 'hero.transition',
+    kind: 'image',
+    label: '头图过渡.svg',
+    value: ASSETS.heroTransition,
+    prompt: '红金新春活动页面的头图过渡装饰，柔和弧形与云纹衔接主视觉和内容区，透明背景，矢量风格。',
+  },
+  wave: {
+    layer: 'hero',
+    id: 'hero.wave',
+    kind: 'image',
+    label: '波浪底纹.svg',
+    value: ASSETS.wavePattern,
+    prompt: '浅金色新春波浪连续底纹，细线矢量图案，低对比、可平铺、透明背景，用于游戏活动 H5 内容区装饰。',
+  },
+  switcher: {
+    layer: 'countdown',
+    id: 'countdown.switcher',
+    kind: 'image',
+    label: '游戏会场.png',
+    value: ASSETS.gameSwitcher,
+    prompt: '横向游戏会场切换组件，地下城与勇士、蛋仔派对、王者荣耀三张入口卡片，红金新春节庆边框，包含角色缩略图与全部游戏入口，透明背景，高细节 UI 切图。',
+  },
+  dnf: { layer: 'countdown', id: 'countdown.dnf', kind: 'card', label: '地下城与勇士卡片', value: '地下城与勇士' },
+  eggParty: { layer: 'countdown', id: 'countdown.egg-party', kind: 'card', label: '蛋仔派对卡片', value: '蛋仔派对' },
+  honorOfKings: { layer: 'countdown', id: 'countdown.honor-of-kings', kind: 'card', label: '王者荣耀卡片', value: '王者荣耀' },
+  allGames: { layer: 'countdown', id: 'countdown.all', kind: 'button', label: '全部游戏按钮', value: '全部游戏' },
+  video: {
+    layer: 'intro',
+    id: 'intro.video',
+    kind: 'image',
+    label: '主会场视频.png',
+    value: ASSETS.mainVideo,
+    prompt: '抖音 ACG 新春会主会场视频组件，梦幻游戏画面作为横版封面，叠加红金标题、播放按钮、推荐文案与静音入口，圆角卡片，明亮高饱和游戏宣传视觉。',
+  },
+  play: { layer: 'intro', id: 'intro.play', kind: 'button', label: '播放按钮', value: '播放主会场视频' },
+  mute: { layer: 'intro', id: 'intro.mute', kind: 'button', label: '静音按钮', value: '切换静音' },
+  venue: { layer: 'intro', id: 'intro.venue', kind: 'card', label: '主会场入口卡片', value: '去主会场' },
+  lowerTop: {
+    layer: 'lottery',
+    id: 'lottery.upper-image',
+    kind: 'image',
+    label: '榜单上半区.png',
+    value: ASSETS.lowerTop,
+    prompt: '开年高燃作品榜单上半区，红金新春标题、游戏内容卡片、作者头像、作品封面与马力值，卡片排列整齐，暖黄色活动背景，竖版 H5 高细节 UI。',
+  },
+  lowerBottom: {
+    layer: 'lottery',
+    id: 'lottery.lower-image',
+    kind: 'image',
+    label: '榜单下半区.png',
+    value: ASSETS.lowerBottom,
+    prompt: '开年高燃作品榜单下半区，多张游戏内容作品卡连续排列，包含封面、创作者、马力值及“放你一马”“好活加马”双按钮，红金新春节庆 UI，高细节。',
+  },
+  lotteryTitle: { layer: 'lottery', id: 'lottery.title', kind: 'text', label: '开年高燃标题', value: '开年高燃' },
+  viewAll: { layer: 'rules', id: 'rules.all', kind: 'button', label: '查看全部按钮', value: '查看全部作品' },
+} satisfies Record<string, H5ElementSel>
+
+const WORK_CARD_TITLES = [
+  '地下城与勇士高燃作品',
+  '蛋仔派对新春作品',
+  '王者荣耀创意作品',
+  '热门游戏高光作品',
+  '新春会精选作品',
+] as const
 
 interface PreviewProps {
   preview?: MarketingH5PreviewConfig
@@ -98,12 +196,45 @@ export default function MarketingH5Preview({
               alt=""
               className="absolute inset-x-0 top-[18%]"
             />
+            <SelectableElement
+              element={ELEMENTS.heroVisual}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="inset-0 z-[10] size-full"
+            />
+            <SelectableElement
+              element={ELEMENTS.statusBar}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="inset-x-0 top-0 z-[20]"
+              style={{ height: '18%' }}
+            />
+            <SelectableElement
+              element={ELEMENTS.titleBar}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="inset-x-0 top-[18%] z-[20]"
+              style={{ height: '14.6667%' }}
+            />
             <Hotspot
               label="返回"
+              element={ELEMENTS.back}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="z-[30]"
               style={{ left: '3.2%', top: '20%', width: '8.5334%', height: '10.6667%' }}
             />
             <Hotspot
               label="分享"
+              element={ELEMENTS.share}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="z-[30]"
               style={{ left: '88.2667%', top: '20%', width: '8.5334%', height: '10.6667%' }}
             />
           </SelectableLayer>
@@ -120,6 +251,22 @@ export default function MarketingH5Preview({
             className="absolute z-[2]"
             style={{ left: '0.2008%', top: '19.9871%', width: '99.598%' }}
           />
+          <SelectableElement
+            element={ELEMENTS.transition}
+            editing={editing}
+            selected={selected}
+            onSelect={onSelect}
+            className="inset-x-0 z-[4]"
+            style={{ top: '26.3701%', height: '5%' }}
+          />
+          <SelectableElement
+            element={ELEMENTS.wave}
+            editing={editing}
+            selected={selected}
+            onSelect={onSelect}
+            className="z-[4]"
+            style={{ left: '0.2008%', top: '19.9871%', width: '99.598%', height: '8%' }}
+          />
 
           <SelectableLayer
             id="countdown"
@@ -134,10 +281,49 @@ export default function MarketingH5Preview({
               src={ASSETS.gameSwitcher}
               alt="地下城与勇士、蛋仔派对、王者荣耀游戏会场切换"
             />
-            <Hotspot label="地下城与勇士" style={{ left: 0, top: 0, width: '31.6076%', height: '88.3978%' }} />
-            <Hotspot label="蛋仔派对" style={{ left: '33.2425%', top: '4.4199%', width: '29.4278%', height: '79.558%' }} />
-            <Hotspot label="王者荣耀" style={{ left: '65.3951%', top: '4.4199%', width: '27.1117%', height: '79.558%' }} />
-            <Hotspot label="全部游戏" style={{ right: 0, top: 0, width: '8.7193%', height: '88.3978%' }} />
+            <SelectableElement
+              element={ELEMENTS.switcher}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="inset-0 z-[10] size-full"
+            />
+            <Hotspot
+              label="地下城与勇士"
+              element={ELEMENTS.dnf}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="z-[20]"
+              style={{ left: 0, top: 0, width: '31.6076%', height: '88.3978%' }}
+            />
+            <Hotspot
+              label="蛋仔派对"
+              element={ELEMENTS.eggParty}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="z-[20]"
+              style={{ left: '33.2425%', top: '4.4199%', width: '29.4278%', height: '79.558%' }}
+            />
+            <Hotspot
+              label="王者荣耀"
+              element={ELEMENTS.honorOfKings}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="z-[20]"
+              style={{ left: '65.3951%', top: '4.4199%', width: '27.1117%', height: '79.558%' }}
+            />
+            <Hotspot
+              label="全部游戏"
+              element={ELEMENTS.allGames}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="z-[20]"
+              style={{ right: 0, top: 0, width: '8.7193%', height: '88.3978%' }}
+            />
           </SelectableLayer>
 
           <SelectableLayer
@@ -151,28 +337,99 @@ export default function MarketingH5Preview({
           >
             <ExactImage src={ASSETS.lowerTop} alt="开年高燃作品榜单" />
             <ExactImage src={ASSETS.lowerBottom} alt="" />
-            {CARD_TOPS.flatMap((cardTop, index) => [
-              <Hotspot
-                key={`minus-${cardTop}`}
-                label={`第 ${index + 1} 个作品：放你一马`}
-                style={{
-                  left: '37.0667%',
-                  top: `${((cardTop + 216) / 1970) * 100}%`,
-                  width: '28.2667%',
-                  height: `${(72 / 1970) * 100}%`,
-                }}
-              />,
-              <Hotspot
-                key={`plus-${cardTop}`}
-                label={`第 ${index + 1} 个作品：好活加马`}
-                style={{
-                  left: '64.2667%',
-                  top: `${((cardTop + 216) / 1970) * 100}%`,
-                  width: '28.2667%',
-                  height: `${(72 / 1970) * 100}%`,
-                }}
-              />,
-            ])}
+            <SelectableElement
+              element={ELEMENTS.lowerTop}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="inset-x-0 top-0 z-[5]"
+              style={{ height: '50%' }}
+            />
+            <SelectableElement
+              element={ELEMENTS.lowerBottom}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="inset-x-0 bottom-0 z-[5]"
+              style={{ height: '50%' }}
+            />
+            <SelectableElement
+              element={ELEMENTS.lotteryTitle}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="z-[15]"
+              style={{ left: '22%', top: '1.5%', width: '56%', height: '6%' }}
+            />
+            {CARD_TOPS.flatMap((cardTop, index) => {
+              const card: H5ElementSel = {
+                layer: 'lottery',
+                id: `lottery.card-${index + 1}`,
+                kind: 'card',
+                label: `作品卡片 ${index + 1}`,
+                value: WORK_CARD_TITLES[index],
+              }
+              const minus: H5ElementSel = {
+                layer: 'lottery',
+                id: `lottery.card-${index + 1}.minus`,
+                kind: 'button',
+                label: `卡片 ${index + 1}·放你一马`,
+                value: '放你一马',
+              }
+              const plus: H5ElementSel = {
+                layer: 'lottery',
+                id: `lottery.card-${index + 1}.plus`,
+                kind: 'button',
+                label: `卡片 ${index + 1}·好活加马`,
+                value: '好活加马',
+              }
+              return [
+                <SelectableElement
+                  key={`card-${cardTop}`}
+                  element={card}
+                  editing={editing}
+                  selected={selected}
+                  onSelect={onSelect}
+                  className="z-[10]"
+                  style={{
+                    left: '3.7333%',
+                    top: `${(cardTop / 1970) * 100}%`,
+                    width: '92.5334%',
+                    height: `${(304 / 1970) * 100}%`,
+                  }}
+                />,
+                <Hotspot
+                  key={`minus-${cardTop}`}
+                  label={`第 ${index + 1} 个作品：放你一马`}
+                  element={minus}
+                  editing={editing}
+                  selected={selected}
+                  onSelect={onSelect}
+                  className="z-[20]"
+                  style={{
+                    left: '37.0667%',
+                    top: `${((cardTop + 216) / 1970) * 100}%`,
+                    width: '28.2667%',
+                    height: `${(72 / 1970) * 100}%`,
+                  }}
+                />,
+                <Hotspot
+                  key={`plus-${cardTop}`}
+                  label={`第 ${index + 1} 个作品：好活加马`}
+                  element={plus}
+                  editing={editing}
+                  selected={selected}
+                  onSelect={onSelect}
+                  className="z-[20]"
+                  style={{
+                    left: '64.2667%',
+                    top: `${((cardTop + 216) / 1970) * 100}%`,
+                    width: '28.2667%',
+                    height: `${(72 / 1970) * 100}%`,
+                  }}
+                />,
+              ]
+            })}
           </SelectableLayer>
 
           <SelectableLayer
@@ -188,20 +445,44 @@ export default function MarketingH5Preview({
               src={ASSETS.mainVideo}
               alt="新春会主会场视频与高燃视觉文案"
             />
+            <SelectableElement
+              element={ELEMENTS.video}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="inset-0 z-[10] size-full"
+            />
             <Hotspot
               label="播放主会场视频"
+              element={ELEMENTS.play}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="z-[20]"
               style={{ left: '44.3182%', top: '32.9854%', width: '11.3637%', height: '16.7015%' }}
             />
             <Hotspot
               label="切换静音"
+              element={ELEMENTS.mute}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="z-[20]"
               style={{ left: '89.4887%', top: '67.2234%', width: '7.9546%', height: '11.6911%' }}
             />
             <div
-              className="absolute z-[2]"
+              className="absolute z-[20]"
               style={{ left: '78.6932%', top: '91.858%', width: '24.4319%' }}
             >
               <ExactImage src={ASSETS.venueEntry} alt="新春会主会场入口" />
-              <Hotspot label="去主会场" className="inset-0 size-full" />
+              <Hotspot
+                label="去主会场"
+                element={ELEMENTS.venue}
+                editing={editing}
+                selected={selected}
+                onSelect={onSelect}
+                className="inset-0 z-[1] size-full"
+              />
             </div>
           </SelectableLayer>
 
@@ -219,7 +500,14 @@ export default function MarketingH5Preview({
               height: '2.579%',
             }}
           >
-            <Hotspot label="查看全部作品" className="inset-0 size-full" />
+            <Hotspot
+              label="查看全部作品"
+              element={ELEMENTS.viewAll}
+              editing={editing}
+              selected={selected}
+              onSelect={onSelect}
+              className="inset-0 z-[20] size-full"
+            />
           </SelectableLayer>
             </>
           )}
@@ -454,11 +742,19 @@ function ExactImage({
 
 function Hotspot({
   label,
+  element,
+  editing = false,
+  selected = null,
+  onSelect,
   className = '',
   style,
   interactive = true,
 }: {
   label: string
+  element?: H5ElementSel
+  editing?: boolean
+  selected?: H5Selection | null
+  onSelect?: (selection: H5Selection | null) => void
   className?: string
   style?: CSSProperties
   interactive?: boolean
@@ -473,13 +769,86 @@ function Hotspot({
     )
   }
 
+  const active =
+    editing &&
+    element !== undefined &&
+    selected?.type === 'element' &&
+    selected.el.id === element.id
+
   return (
     <button
       type="button"
       aria-label={label}
-      className={`absolute cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white ${className}`}
+      aria-pressed={active || undefined}
+      onClick={
+        editing && element
+          ? (event) => {
+              event.stopPropagation()
+              onSelect?.({ type: 'element', el: element })
+            }
+          : undefined
+      }
+      className={`absolute cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white ${
+        active ? 'ring-2 ring-inset ring-[#7c5cff]' : editing && element ? 'hover:ring-1 hover:ring-inset hover:ring-[#7c5cff]/70' : ''
+      } ${className}`}
       style={style}
-    />
+    >
+      {active && (
+        <span className="pointer-events-none absolute left-0 top-0 z-40 max-w-full truncate rounded-br bg-[#7c5cff] px-1.5 py-0.5 text-[9px] font-medium leading-none text-white">
+          {element.label}
+        </span>
+      )}
+    </button>
+  )
+}
+
+function SelectableElement({
+  element,
+  editing,
+  selected,
+  onSelect,
+  className = '',
+  style,
+}: {
+  element: H5ElementSel
+  editing: boolean
+  selected: H5Selection | null
+  onSelect?: (selection: H5Selection | null) => void
+  className?: string
+  style?: CSSProperties
+}) {
+  const active =
+    editing &&
+    selected?.type === 'element' &&
+    selected.el.id === element.id
+
+  return (
+    <button
+      type="button"
+      aria-label={`选择${element.label}`}
+      aria-pressed={active || undefined}
+      tabIndex={editing ? 0 : -1}
+      onClick={
+        editing
+          ? (event) => {
+              event.stopPropagation()
+              onSelect?.({ type: 'element', el: element })
+            }
+          : undefined
+      }
+      className={`absolute border-0 bg-transparent p-0 ${
+        editing
+          ? 'pointer-events-auto cursor-pointer hover:ring-1 hover:ring-inset hover:ring-[#7c5cff]/70'
+          : 'pointer-events-none'
+      } ${active ? 'ring-2 ring-inset ring-[#7c5cff]' : ''} ${className}`}
+      style={style}
+    >
+      {active && (
+        <span className="pointer-events-none absolute left-0 top-0 z-40 max-w-full truncate rounded-br bg-[#7c5cff] px-1.5 py-0.5 text-[9px] font-medium leading-none text-white">
+          {element.label}
+        </span>
+      )}
+    </button>
   )
 }
 
@@ -503,12 +872,20 @@ function SelectableLayer({
   children: ReactNode
 }) {
   const active = editing && selected?.type === 'layer' && selected.layer === id
+  const containsActiveElement =
+    editing && selected?.type === 'element' && selected.el.layer === id
 
   return (
     <div
       data-h5-active={active || undefined}
       className={`absolute ${editing ? 'cursor-pointer' : ''} ${
-        active ? 'ring-2 ring-inset ring-[#7c5cff]' : ''
+        active
+          ? 'ring-2 ring-inset ring-[#7c5cff]'
+          : containsActiveElement
+            ? 'ring-1 ring-inset ring-[#7c5cff]/45'
+            : editing
+              ? 'hover:ring-1 hover:ring-inset hover:ring-[#7c5cff]/45'
+              : ''
       } ${className}`}
       style={style}
       onClick={
@@ -521,10 +898,23 @@ function SelectableLayer({
       }
     >
       {children}
-      {active && (
-        <span className="pointer-events-none absolute left-2 top-1 z-40 rounded bg-[#7c5cff] px-1.5 py-0.5 text-[9px] font-medium leading-none text-white">
-          {label}
-        </span>
+      {editing && (
+        <button
+          type="button"
+          aria-label={`选择${label}组件`}
+          aria-pressed={active}
+          onClick={(event) => {
+            event.stopPropagation()
+            onSelect?.({ type: 'layer', layer: id })
+          }}
+          className={`absolute left-1 top-1 z-[60] rounded px-1.5 py-0.5 text-[9px] font-medium leading-none text-white transition-opacity ${
+            active
+              ? 'bg-[#7c5cff]'
+              : 'bg-[#272b36]/75 opacity-65 hover:bg-[#7c5cff] hover:opacity-100'
+          }`}
+        >
+          组件 · {label}
+        </button>
       )}
     </div>
   )

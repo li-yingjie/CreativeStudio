@@ -14,22 +14,24 @@ import type { H5CanvasLayerKind, H5CanvasNode } from './H5CanvasModel'
 
 const CHILDREN_BY_KIND: Record<H5CanvasLayerKind, H5ElementSel[]> = {
   hero: [
-    { layer: 'hero', id: 'hero.visual', kind: 'image', label: '主视觉图', value: '/assets/acg-new-year/exact-hero-base.png' },
-    { layer: 'hero', id: 'hero.titlebar', kind: 'image', label: '标题栏', value: '/assets/acg-new-year/exact-title-bar.png' },
+    { layer: 'hero', id: 'hero.visual', kind: 'image', label: '头图.png', value: '/assets/acg-new-year/exact-hero-base.png' },
+    { layer: 'hero', id: 'hero.statusbar', kind: 'image', label: '状态栏.png', value: '/assets/acg-new-year/exact-status-bar.png' },
+    { layer: 'hero', id: 'hero.titlebar', kind: 'image', label: '标题栏.png', value: '/assets/acg-new-year/exact-title-bar.png' },
     { layer: 'hero', id: 'hero.back', kind: 'button', label: '返回热区', value: '返回' },
     { layer: 'hero', id: 'hero.share', kind: 'button', label: '分享热区', value: '分享' },
   ],
   countdown: [
-    { layer: 'countdown', id: 'countdown.switcher', kind: 'image', label: '会场切换图', value: '/assets/acg-new-year/exact-game-switcher.png' },
+    { layer: 'countdown', id: 'countdown.switcher', kind: 'image', label: '游戏会场.png', value: '/assets/acg-new-year/exact-game-switcher.png' },
     { layer: 'countdown', id: 'countdown.all', kind: 'button', label: '全部游戏', value: '全部游戏' },
   ],
   intro: [
-    { layer: 'intro', id: 'intro.video', kind: 'image', label: '主会场视频', value: '/assets/acg-new-year/exact-main-video.png' },
+    { layer: 'intro', id: 'intro.video', kind: 'image', label: '主会场视频.png', value: '/assets/acg-new-year/exact-main-video.png' },
     { layer: 'intro', id: 'intro.play', kind: 'button', label: '播放热区', value: '播放视频' },
     { layer: 'intro', id: 'intro.venue', kind: 'button', label: '会场入口', value: '去主会场' },
   ],
   lottery: [
-    { layer: 'lottery', id: 'lottery.list', kind: 'image', label: '作品榜单', value: '/assets/acg-new-year/exact-lower-top.png' },
+    { layer: 'lottery', id: 'lottery.upper-image', kind: 'image', label: '榜单上半区.png', value: '/assets/acg-new-year/exact-lower-top.png' },
+    { layer: 'lottery', id: 'lottery.lower-image', kind: 'image', label: '榜单下半区.png', value: '/assets/acg-new-year/exact-lower-bottom.png' },
     { layer: 'lottery', id: 'lottery.vote', kind: 'button', label: '好活加马', value: '好活加马' },
   ],
   rules: [

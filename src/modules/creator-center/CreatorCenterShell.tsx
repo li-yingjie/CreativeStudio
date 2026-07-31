@@ -12,7 +12,7 @@ import type { ProductId } from './data'
 /** 顶栏高度：AI 工坊里的 fixed 元素通过 --cc-top 让位给顶栏。 */
 const NAV_H = '48px'
 /** Figma 425:30414 的根画布底板；顶栏和侧栏本身均为透明。 */
-const SCHEME_THREE_BACKGROUND =
+const L_SHAPED_BACKGROUND =
   'linear-gradient(170deg, #F8F8F9 4.37%, #F1F3F8 100%)'
 /** 取当前产品实际可见的侧栏宽度，让顶部品牌段跟随拖拽与收起。 */
 function useActiveSideNavWidth(enabled: boolean, activeProduct: ProductId, fallback: number) {
@@ -85,7 +85,7 @@ function useActiveSideNavWidth(enabled: boolean, activeProduct: ProductId, fallb
   return width
 }
 
-/** 方案 3 把品牌区放进全宽顶栏的左段，收起入口紧邻 logo。 */
+/** 方案 1 把品牌区放进全宽顶栏的左段，收起入口紧邻 logo。 */
 function SideNavBrandHeader({
   width,
   collapsed,
@@ -161,8 +161,8 @@ function ProductSurface({
   )
 }
 
-/** 方案 3 的导航内角：遮住内容左上角，让顶部与侧栏包住 20px 圆角内容面。 */
-function SchemeThreeContentCorner({ left }: { left: number }) {
+/** L 型导航内角：遮住内容左上角，让顶部与侧栏包住 20px 圆角内容面。 */
+function LShapedContentCorner({ left }: { left: number }) {
   const offset = Math.max(0, left - 1)
   return (
     <div
@@ -170,7 +170,7 @@ function SchemeThreeContentCorner({ left }: { left: number }) {
       className="pointer-events-none absolute top-0 z-20 h-5 w-[21px]"
       style={{
         left: offset,
-        backgroundImage: 'var(--scheme3-background-image)',
+        backgroundImage: 'var(--l-shaped-background-image)',
         backgroundPosition: `-${offset}px calc(0px - var(--cc-top, 48px))`,
         backgroundRepeat: 'no-repeat',
         backgroundSize: '100vw 100dvh',
@@ -193,7 +193,7 @@ export default function CreatorCenterShell() {
   const activeSideNavCollapsed = useProductSideNav((state) => state.collapsed[active])
   const setProductSideNavCollapsed = useProductSideNav((state) => state.setCollapsed)
   const activeSideNavWidth = useActiveSideNavWidth(
-    navVersion === 3,
+    navVersion === 1,
     active,
     configuredSideNavWidth,
   )
@@ -220,12 +220,12 @@ export default function CreatorCenterShell() {
       className="flex h-dvh flex-col"
       style={{
         '--cc-top': workshopImmersive ? '0px' : NAV_H,
-        '--scheme3-background-image': SCHEME_THREE_BACKGROUND,
-        backgroundImage: navVersion === 3 ? SCHEME_THREE_BACKGROUND : undefined,
+        '--l-shaped-background-image': L_SHAPED_BACKGROUND,
+        backgroundImage: navVersion === 1 ? L_SHAPED_BACKGROUND : undefined,
       } as React.CSSProperties}
     >
       {!workshopImmersive && (
-        navVersion === 3 ? (
+        navVersion === 1 ? (
           <TopNav
             active={active}
             onSelect={selectProduct}
@@ -302,8 +302,8 @@ export default function CreatorCenterShell() {
             </ErrorBoundary>
           </ProductSurface>
         )}
-        {navVersion === 3 && !workshopImmersive && (
-          <SchemeThreeContentCorner left={activeSideNavWidth} />
+        {navVersion === 1 && !workshopImmersive && (
+          <LShapedContentCorner left={activeSideNavWidth} />
         )}
       </div>
     </div>

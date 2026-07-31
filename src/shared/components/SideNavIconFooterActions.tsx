@@ -28,11 +28,13 @@ export function SideNavCollapseFooterButton({
 export default function SideNavIconFooterActions({
   collapsed = false,
   onToggle,
+  onOpenMyEntries,
   onOpenProjectSettings,
   className = '',
 }: {
   collapsed?: boolean
   onToggle: () => void
+  onOpenMyEntries?: () => void
   onOpenProjectSettings: () => void
   className?: string
 }) {
@@ -55,6 +57,22 @@ export default function SideNavIconFooterActions({
           <ArrowLeftDoubleLinearIcon className="size-[var(--sn-mis,16px)] shrink-0" />
         )}
       </button>
+      {!collapsed && onOpenMyEntries && (
+        <button
+          type="button"
+          onClick={onOpenMyEntries}
+          aria-label="我的词条 23"
+          title="我的词条 23"
+          className={expandedButtonClass}
+        >
+          <img
+            src="/icons/wiki-editor/scheme4-inbox.svg"
+            alt=""
+            aria-hidden
+            className="size-[var(--sn-mis,16px)] shrink-0"
+          />
+        </button>
+      )}
       {!collapsed && (
         <button
           type="button"

@@ -87,15 +87,16 @@ export const SideNavActionButton = forwardRef<
       type="button"
       {...rest}
       // 收起态与菜单行一样收成正方形（外层 px 提供左右内边距）
-      className={`relative flex w-full items-center gap-2 font-semibold ${tone} ${
+      className={`relative flex w-full items-center gap-[var(--sn-rgap,8px)] font-semibold ${tone} ${
         collapsed ? 'justify-center' : ''
       } ${className}`}
       style={{
         height: collapsed ? cfg.rowHeight : cfg.buttonHeight,
         borderRadius: cfg.buttonRadius,
-        fontSize: cfg.buttonFontSize,
-        paddingLeft: collapsed ? 0 : 16,
-        paddingRight: collapsed ? 0 : 16,
+        // 顶部操作与下方菜单共享 13px 字号和横向对齐基线。
+        fontSize: 13,
+        paddingLeft: collapsed ? 0 : cfg.rowPaddingX,
+        paddingRight: collapsed ? 0 : cfg.rowPaddingX,
         ...style,
       }}
     >
@@ -143,7 +144,7 @@ export default function SideNav({
   collapsed?: boolean
   /** fixed 布局下允许拖拽右边缘调整当前页面内的展开宽度；收起态自动隐藏手柄。 */
   resizable?: boolean
-  /** 让自定义 Header 从侧栏顶部开始；用于方案 4 / 6 的 40px Header。 */
+  /** 让自定义 Header 从侧栏顶部开始；用于方案 4 Header 与搜索工具栏。 */
   flushHeader?: boolean
   /** panel = 导航默认底色；plain = 透明（浮在产品自己的底色上）。 */
   chrome?: 'panel' | 'plain'

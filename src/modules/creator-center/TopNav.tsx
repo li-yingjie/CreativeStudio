@@ -2,17 +2,15 @@ import { motion, useReducedMotion } from 'framer-motion'
 import type { ReactNode } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { toast } from 'sonner'
-import { Video } from '@/shared/icons'
 import { useNavVersion, type NavVersion } from '@/shared/storage/nav-version'
 import AccountSwitcherPanel from './AccountSwitcher'
 import FigmaGlyph from './FigmaGlyph'
 import MaskIcon from './MaskIcon'
-import { useLiveMgmt } from './live-store'
 import { CREATOR_PROFILE, PRODUCTS, STARLIGHT, type ProductId } from './data'
 
 /** 创作者中心顶栏 — 左 logo、中间产品切换、右侧星光余额 + 头像。
  *  常驻所有产品页之上（包括 AI 工坊），产品入口统一使用 icon + 文字。
- *  方案 3 由外壳把品牌 logo 放进贯通左栏。 */
+ *  方案 1 由外壳把品牌 logo 放进贯通左栏。 */
 
 export default function TopNav({
   active,
@@ -24,9 +22,9 @@ export default function TopNav({
   active: ProductId
   onSelect: (id: ProductId) => void
   showLogo?: boolean
-  /** 方案 3：与左上品牌区、产品侧栏共用同一导航底板。 */
+  /** 方案 1：与左上品牌区、产品侧栏共用同一导航底板。 */
   fused?: boolean
-  /** 方案 3 全宽三段顶栏的左侧品牌区。 */
+  /** 方案 1 全宽三段顶栏的左侧品牌区。 */
   leftSlot?: ReactNode
 }) {
   const reduceMotion = useReducedMotion()
@@ -132,12 +130,18 @@ export default function TopNav({
 const menuRow =
   'flex w-full items-center gap-2 rounded-md px-2 py-2 text-[14px] leading-5 text-[#1c1f23] transition-colors hover:bg-[rgba(83,96,143,0.07)]'
 
-const AVATAR_NAV_VERSIONS = [1, 2, 3, 4, 5] as const satisfies readonly NavVersion[]
+const AVATAR_NAV_VERSIONS = [1, 2, 3, 4, 5, 6] as const satisfies readonly NavVersion[]
+const NAV_VERSION_NAMES: Record<NavVersion, string> = {
+  1: 'L 型',
+  2: '顶部工具栏',
+  3: '底部收起',
+  4: '增加 Header',
+  5: '底部工具栏',
+  6: '搜索工具栏',
+}
 
-/** 头像下拉：账号菜单 + 导航方案 + 权限开关（直播管理）。 */
+/** 头像下拉：账号菜单 + 导航方案。 */
 function AvatarMenu({ compact = false }: { compact?: boolean }) {
-  const liveEnabled = useLiveMgmt((s) => s.enabled)
-  const toggleLive = useLiveMgmt((s) => s.toggle)
   const navVersion = useNavVersion((s) => s.version)
   const selectNavVersion = useNavVersion((s) => s.setVersion)
   return (
@@ -152,14 +156,14 @@ function AvatarMenu({ compact = false }: { compact?: boolean }) {
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        {/* 设计稿 创作者中心26.7 788-20791:身份认证/通知中心/切换账号/退出登录;
-            权限管理(直播管理开关)保留在菜单底部。切换账号 hover 出二级账号面板。 */}
+        {/* 设计稿 创作者中心26.7 788-20791：身份认证 / 通知中心 /
+            切换账号 / 退出登录；切换账号 hover 出二级账号面板。 */}
         <Popover.Content
           side="bottom"
           align="end"
           sideOffset={8}
           aria-label="账号菜单"
-          className="z-[90] w-[200px] rounded-lg bg-white p-2 shadow-[0_4px_7px_rgba(0,0,0,0.1),0_0_0.5px_rgba(0,0,0,0.3)]"
+          className="z-[90] w-[232px] rounded-lg bg-white p-2 shadow-[0_4px_7px_rgba(0,0,0,0.1),0_0_0.5px_rgba(0,0,0,0.3)]"
         >
           <button type="button" onClick={() => toast('身份认证（演示）')} className={menuRow}>
             <FigmaGlyph src="/icons/account-menu/certificate.svg" inset="3.57%" />
@@ -194,57 +198,38 @@ function AvatarMenu({ compact = false }: { compact?: boolean }) {
           <div className="mx-2 my-1.5 h-px bg-black/5" />
           <div className="flex items-center justify-between px-2 pb-1">
             <span className="text-[11px] font-medium text-[#252632]/40">导航方案</span>
-            <span className="text-[10px] text-[#252632]/35">当前：方案 {navVersion}</span>
+            <span className="text-[10px] text-[#252632]/35">
+              当前：{NAV_VERSION_NAMES[navVersion]}
+            </span>
           </div>
           <div
             role="radiogroup"
             aria-label="导航方案切换"
-            className="grid grid-cols-5 gap-1 px-2 pb-1"
+            className="grid grid-cols-2 gap-1 px-2 pb-1"
           >
             {AVATAR_NAV_VERSIONS.map((version) => (
               <Popover.Close asChild key={version}>
                 <button
                   type="button"
                   role="radio"
-                  aria-label={`方案 ${version}`}
+                  aria-label={`方案 ${version}，${NAV_VERSION_NAMES[version]}`}
                   aria-checked={navVersion === version}
-                  title={`方案 ${version}`}
+                  title={`方案 ${version} · ${NAV_VERSION_NAMES[version]}`}
                   onClick={() => selectNavVersion(version)}
-                  className={`flex h-7 items-center justify-center rounded-md text-[12px] font-medium transition-colors ${
+                  className={`flex h-8 items-center gap-1.5 rounded-md px-2 text-left text-[11px] font-medium transition-colors ${
                     navVersion === version
                       ? 'bg-[#161823] text-white shadow-sm'
                       : 'bg-[#f4f5f7] text-[#252632]/60 hover:bg-[#eceef2] hover:text-[#252632]'
                   }`}
                 >
-                  {version}
+                  <span className="shrink-0 text-[9px] opacity-55">方案 {version}</span>
+                  <span className="truncate">{NAV_VERSION_NAMES[version]}</span>
                 </button>
               </Popover.Close>
             ))}
           </div>
-          <div className="mx-2 my-1.5 h-px bg-black/5" />
-          <div className="px-2 pb-1 text-[11px] font-medium text-[#252632]/40">权限管理</div>
-          <button
-            type="button"
-            onClick={toggleLive}
-            role="switch"
-            aria-checked={liveEnabled}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-[rgba(83,96,143,0.07)]"
-          >
-            <Video size={15} className="text-[#252632]/60" />
-            <span className="flex-1 text-[13px] text-[#252632]">直播管理</span>
-            <Switch on={liveEnabled} />
-          </button>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
-  )
-}
-
-/** iOS 风格开关（受控展示，点击由父按钮处理）。 */
-function Switch({ on }: { on: boolean }) {
-  return (
-    <span aria-hidden="true" className={`relative inline-flex h-[18px] w-[30px] shrink-0 items-center rounded-full transition-colors duration-200 ${on ? 'bg-[#161823]' : 'bg-black/20'}`}>
-      <span className={`absolute size-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${on ? 'translate-x-[13px]' : 'translate-x-0.5'}`} />
-    </span>
   )
 }

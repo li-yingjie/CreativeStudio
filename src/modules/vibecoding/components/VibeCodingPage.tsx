@@ -59,6 +59,7 @@ import SideNav, {
 import { CHAT_COMPOSER_HEIGHT } from '@/shared/components/ChatComposer'
 import ComposerLocalFileButton from '@/shared/components/ComposerLocalFileButton'
 import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
+import SideNavSearchToolbar from '@/shared/components/SideNavSearchToolbar'
 import UnifiedToolbar from '@/modules/creator-center/UnifiedToolbar'
 import SideNavPanelStateIcon from '@/shared/components/SideNavPanelStateIcon'
 import SideNavIconFooterActions, {
@@ -69,6 +70,7 @@ import {
   useNavVersion,
   usesProductHeaderLayout,
   usesSchemeFourLayout,
+  usesSearchToolbarLayout,
 } from '@/shared/storage/nav-version'
 import { useProductSideNav, type ProductSideNavId } from '@/shared/storage/product-side-nav'
 import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
@@ -156,6 +158,7 @@ import {
   getProductPages,
   PAGE_CONFIG_LABEL,
   PERSONA_CONFIG_LABEL,
+  PROJECT_DOCUMENT_LABEL,
   PROJECT_MEMORY_LABEL,
   PRODUCT_CATEGORY_ICONS,
   PRODUCT_CATEGORY_BADGES,
@@ -1159,7 +1162,7 @@ function PlatformSidebar({
    *  按钮，导航为 技能库/资源库/评测库，项目分组标题为
    *  可折叠的「我的AI分身」，分身项目行用圆形头像。 */
   variant?: 'workshop' | 'avatar'
-  /** 方案 1 使用统一 SideNav 的 icon rail 收起形态。 */
+  /** 方案 3 使用统一 SideNav 的 icon rail 收起形态。 */
   collapsed?: boolean
   /** 打开建设中的评测库占位页。 */
   onOpenPlaceholder?: (label: string) => void
@@ -1169,9 +1172,10 @@ function PlatformSidebar({
   /* Inline-rename state for the 项目列表 rows. */
   const [renamingProject, setRenamingProject] = useState<string | null>(null)
   const navVersion = useNavVersion((state) => state.version)
+  const searchToolbarLayout = usesSearchToolbarLayout(navVersion)
   /* 分身变体「我的AI分身」分组的折叠态。 */
   const [avatarSectionCollapsed, setAvatarSectionCollapsed] = useState(false)
-  const [avatarSearch, setAvatarSearch] = useState('')
+  const [sidebarSearch, setSidebarSearch] = useState('')
   /* Which project row's 更多 (重命名 / 删除) menu is open. */
   const [moreMenuProject, setMoreMenuProject] = useState<string | null>(null)
   const moreMenuRef = useRef<HTMLDivElement>(null)
@@ -1191,6 +1195,9 @@ function PlatformSidebar({
   // swaps the panel for that one project's full file-view directory,
   // with a 返回 back to the list.
   const [drilledProject, setDrilledProject] = useState<string | null>(null)
+  const normalizedSidebarSearch = searchToolbarLayout
+    ? sidebarSearch.trim().toLocaleLowerCase('zh-CN')
+    : ''
   const toggleProject = (name: string) =>
     setOpenProjects((prev) => {
       const next = new Set(prev)
@@ -1220,6 +1227,12 @@ function PlatformSidebar({
   ]
     .filter(projectFilter ?? (() => true))
     .filter((p) => !deletedProjects.has(p))
+    .filter(
+      (project) =>
+        !searchToolbarLayout ||
+        !normalizedSidebarSearch ||
+        projName(project).toLocaleLowerCase('zh-CN').includes(normalizedSidebarSearch),
+    )
     // Pinned projects float to the top (in pin order); the rest keep their
     // natural order below.
     .sort((a, b) => {
@@ -1232,10 +1245,9 @@ function PlatformSidebar({
     })
   const avatarDisplayName =
     getAvatarConfig(AVATAR_PROJECT)?.name ?? DEFAULT_AVATAR_PREVIEW.displayName
-  const normalizedAvatarSearch = avatarSearch.trim().toLocaleLowerCase('zh-CN')
   const avatarMatchesSearch =
-    normalizedAvatarSearch.length === 0 ||
-    avatarDisplayName.toLocaleLowerCase('zh-CN').includes(normalizedAvatarSearch)
+    normalizedSidebarSearch.length === 0 ||
+    avatarDisplayName.toLocaleLowerCase('zh-CN').includes(normalizedSidebarSearch)
 
   /* 顶部导航项 — 走统一 SideNav 菜单；分身变体为 技能库/资源库。 */
   const navItems: SideNavItem[] = variant === 'avatar'
@@ -1249,6 +1261,12 @@ function PlatformSidebar({
         // 运营数据已并入创作者中心（顶栏「首页」的数据看板），侧栏不再入口
         { key: '项目库', label: '项目库', Icon: FolderLibraryLinearIcon },
       ]
+  const visibleNavItems =
+    searchToolbarLayout && normalizedSidebarSearch
+      ? navItems.filter((item) =>
+          item.label.toLocaleLowerCase('zh-CN').includes(normalizedSidebarSearch),
+        )
+      : navItems
 
   return (
     <SideNav
@@ -1257,11 +1275,15 @@ function PlatformSidebar({
       // 与创作者中心首页完全一致：panel 灰底 + 组件默认配色。
       // 不再覆写 --sidenav-* —— 之前覆写成主题变量，导致未选中项比首页
       // 淡一档（60% vs 80%），是「同一个组件却看着不一样」的根源。
-      chrome={navVersion === 3 ? 'plain' : 'panel'}
-      showDivider={navVersion !== 3}
-      flushHeader={usesSchemeFourLayout(navVersion) || navVersion === 3}
+      chrome={navVersion === 1 ? 'plain' : 'panel'}
+      showDivider={navVersion !== 1}
+      flushHeader={
+        usesSchemeFourLayout(navVersion) ||
+        searchToolbarLayout ||
+        navVersion === 1
+      }
       collapsed={collapsed}
-      items={navItems}
+      items={visibleNavItems}
       activeKey={activeNav}
       onSelect={(key) => {
         if (key === '资源库') onOpenResourceLibrary()
@@ -1271,7 +1293,7 @@ function PlatformSidebar({
       }}
       header={
         /* + 新建项目 — 白底按钮（与首页「发布作品」的黑底区分开）。
-           分身变体没有 AI 创作入口；方案 2 / 4 / 6 仍显示产品侧栏头。 */
+           分身变体没有 AI 创作入口；方案 2 / 4 / 6 显示各自顶部工具栏。 */
         usesProductHeaderLayout(navVersion) || variant !== 'avatar' ? (
           <div
             className={`px-[var(--sn-px)] ${
@@ -1279,7 +1301,18 @@ function PlatformSidebar({
             }`}
           >
             {usesProductHeaderLayout(navVersion) && (
-              navVersion === 2 && !collapsed ? (
+              searchToolbarLayout ? (
+                <div className={variant === 'workshop' && !collapsed ? 'mb-3' : undefined}>
+                  <SideNavSearchToolbar
+                    value={sidebarSearch}
+                    onChange={setSidebarSearch}
+                    onToggle={() => onCollapseSidebar?.()}
+                    collapsed={collapsed}
+                    placeholder={variant === 'avatar' ? '搜索分身' : '搜索项目'}
+                    ariaLabel={variant === 'avatar' ? '搜索分身' : '搜索项目'}
+                  />
+                </div>
+              ) : navVersion === 2 && !collapsed ? (
                 <div className={variant === 'workshop' ? 'mb-3' : undefined}>
                   <UnifiedToolbar
                     ariaLabel={variant === 'avatar' ? 'AI 分身工具条' : 'AI 工坊工具条'}
@@ -1300,34 +1333,6 @@ function PlatformSidebar({
                       toast(action === 'settings' ? '项目设置（演示）' : '搜索项目（演示）')
                     }}
                   />
-                </div>
-              ) : navVersion === 6 && variant === 'avatar' ? (
-                <div className={`flex h-10 items-center ${collapsed ? 'justify-center' : 'gap-1 pl-1'}`}>
-                  {!collapsed && (
-                    <label className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-lg bg-white px-2 text-[#252632]/45 ring-1 ring-black/[0.08] transition-shadow focus-within:ring-black/20">
-                      <span aria-hidden="true" className="flex shrink-0 items-center">
-                        <Search01LinearIcon size={14} />
-                      </span>
-                      <input
-                        type="search"
-                        aria-label="搜索分身"
-                        aria-controls="avatar-project-list"
-                        placeholder="搜索分身"
-                        value={avatarSearch}
-                        onChange={(event) => setAvatarSearch(event.target.value)}
-                        className="min-w-0 flex-1 bg-transparent text-[12px] leading-5 text-[#161823] outline-none placeholder:text-[#252632]/40"
-                      />
-                    </label>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => onCollapseSidebar?.()}
-                    aria-label={collapsed ? '展开导航' : '收起导航'}
-                    title={collapsed ? '展开导航' : '收起导航'}
-                    className="flex size-8 shrink-0 items-center justify-center rounded-lg text-[#252632]/45 transition-colors hover:bg-black/[0.03] hover:text-[#252632]/70"
-                  >
-                    <SideNavPanelStateIcon collapsed={collapsed} />
-                  </button>
                 </div>
               ) : (
                 <SideNavProductHeader
@@ -1353,7 +1358,7 @@ function PlatformSidebar({
                 aria-label="AI 创作"
                 collapsed={collapsed}
                 onClick={onNewProject}
-                className={navVersion === 3 ? 'ring-inset' : undefined}
+                className={navVersion === 1 ? 'ring-inset' : undefined}
               >
                 <Plus size={16} strokeWidth={2} className="shrink-0" />
                 {!collapsed && 'AI 创作'}
@@ -1363,15 +1368,16 @@ function PlatformSidebar({
         ) : undefined
       }
       footer={
-        /* 方案 4 / 6 工坊底部与百科「我的词条」保持同一位置和行样式。 */
-        navVersion === 1 ? (
+        /* 方案 1 / 4 工坊底部与百科「我的词条」保持同一位置和行样式。 */
+        navVersion === 3 ? (
           <div className="px-[var(--sn-px)] pb-3">
             <SideNavCollapseFooterButton
               collapsed={collapsed}
               onToggle={() => onCollapseSidebar?.()}
             />
           </div>
-        ) : usesSchemeFourLayout(navVersion) && variant === 'workshop' ? (
+        ) : (navVersion === 1 || usesSchemeFourLayout(navVersion)) &&
+          variant === 'workshop' ? (
           <div className="pb-3">
             <button
               type="button"
@@ -1474,18 +1480,20 @@ function PlatformSidebar({
           ) : (
           <div className="mt-0 flex shrink-0 items-center justify-between px-5 py-1.5">
             <span className="text-[12px] text-[var(--color-ink)]/55">项目列表</span>
-            <div className="flex items-center gap-1 text-[var(--color-ink)]/40">
-              <Tooltip label="搜索全部项目文件">
-                <button
-                  type="button"
-                  aria-label="搜索全部项目文件"
-                  onClick={() => toast('搜索项目（演示）')}
-                  className="flex h-6 w-6 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
-                >
-                  <Search01LinearIcon size={16} />
-                </button>
-              </Tooltip>
-            </div>
+            {!searchToolbarLayout && (
+              <div className="flex items-center gap-1 text-[var(--color-ink)]/40">
+                <Tooltip label="搜索全部项目文件">
+                  <button
+                    type="button"
+                    aria-label="搜索全部项目文件"
+                    onClick={() => toast('搜索项目（演示）')}
+                    className="flex size-6 items-center justify-center rounded hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
+                  >
+                    <Search01LinearIcon size={16} />
+                  </button>
+                </Tooltip>
+              </div>
+            )}
           </div>
           )}
 
@@ -1517,9 +1525,16 @@ function PlatformSidebar({
                 <div
                   role="status"
                   aria-live="polite"
-                  className="px-7 py-2 text-[12px] text-[var(--color-ink)]/45"
+                  className="px-7 py-3 text-[12px] text-[var(--color-ink)]/45"
                 >
-                  未找到相关分身
+                  <p className="text-pretty">未找到相关分身</p>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarSearch('')}
+                    className="mt-2 font-medium text-[var(--color-ink)]/70 hover:text-[var(--color-ink)]"
+                  >
+                    清除搜索
+                  </button>
                 </div>
               )}
               {[
@@ -1548,6 +1563,18 @@ function PlatformSidebar({
             </div>
           ) : (
           <div className="thin-scroll flex-1 overflow-y-auto pb-2">
+            {ALL_PROJECTS.length === 0 && normalizedSidebarSearch && (
+              <div className="px-7 py-4 text-[12px] text-[var(--color-ink)]/45">
+                <p className="text-pretty">未找到相关项目</p>
+                <button
+                  type="button"
+                  onClick={() => setSidebarSearch('')}
+                  className="mt-2 font-medium text-[var(--color-ink)]/70 hover:text-[var(--color-ink)]"
+                >
+                  清除搜索
+                </button>
+              </div>
+            )}
             {ALL_PROJECTS.map((name) => {
               const open = openProjects.has(name)
               const tree = projectTrees[name]
@@ -2176,7 +2203,7 @@ export default function VibeCodingPage({
   const chatOnLeft = layout === 'code' || isPlatform
   const reduceSideNavMotion = useReducedMotion() ?? false
   /* Platform-only: sidebar + chat widths are both user-draggable. Schemes
-   * 1 / 2 retain the shared icon rail when collapsed; the other schemes
+   * 2 / 3 / 6 retain the shared icon rail when collapsed; the other schemes
    * keep the legacy fully-hidden layout. */
   const navVersion = useNavVersion((state) => state.version)
   const sideNavProductId: ProductSideNavId =
@@ -2201,9 +2228,10 @@ export default function VibeCodingPage({
     setWidth: setPlatformSidebarWidth,
   } = useResizableSideNavWidth()
   const sidebarRailCollapsed =
-    sidebarCollapsed && (navVersion === 1 || navVersion === 2)
+    sidebarCollapsed &&
+    (navVersion === 2 || navVersion === 3 || navVersion === 6)
   const sidebarFullyHidden = sidebarCollapsed && !sidebarRailCollapsed
-  const fullyHiddenSidebarWidth = navVersion === 3 ? 0 : 12
+  const fullyHiddenSidebarWidth = navVersion === 1 ? 0 : 12
   const baseEffectiveSidebarWidth = sidebarCollapsed
     ? sidebarRailCollapsed
       ? configuredCollapsedSidebarWidth
@@ -3705,7 +3733,12 @@ export default function VibeCodingPage({
     }
     // 项目文档 — every project surfaces one; open it in the doc editor.
     // marketing-h5 keeps its own (proposalDocs-backed) flow below.
-    if (filename === '项目文档' && activeProjectKind !== 'marketing-h5') {
+    if (
+      filename === PROJECT_DOCUMENT_LABEL &&
+      activeProjectKind !== 'marketing-h5' &&
+      activeProjectKind !== 'web-game' &&
+      activeProjectKind !== 'mini-program'
+    ) {
       openNamedTab('项目文档')
       return
     }
@@ -3778,6 +3811,7 @@ export default function VibeCodingPage({
       miniProgramConfig &&
       (
         filename === BASIC_INFO_LABEL ||
+        filename === PROJECT_DOCUMENT_LABEL ||
         filename === INTEREST_CARD_CONFIG_LABEL ||
         filename === ASSET_LIBRARY_LABEL ||
         filename === PROJECT_MEMORY_LABEL
@@ -3814,6 +3848,7 @@ export default function VibeCodingPage({
       activeProjectKind === 'marketing-h5' &&
       (
         filename === BASIC_INFO_LABEL ||
+        filename === PROJECT_DOCUMENT_LABEL ||
         filename === '文档' ||
         filename === DATABASE_LABEL ||
         filename === H5_GAMEPLAY_CONFIG_LABEL ||
@@ -5325,7 +5360,7 @@ export default function VibeCodingPage({
           style={{
             width: immersiveCanvasModeOpen
               ? 0
-              : sidebarFullyHidden && navVersion === 3
+              : sidebarFullyHidden && navVersion === 1
                 ? 0
                 : sidebarRailCollapsed
                   ? configuredCollapsedSidebarWidth
@@ -5431,13 +5466,13 @@ export default function VibeCodingPage({
         <div
           aria-hidden
           className={`pointer-events-none absolute z-[5] top-0 bottom-0 right-0 ${
-            navVersion === 3 ? 'bg-white' : 'bg-[var(--color-surface-0)]'
+            navVersion === 1 ? 'bg-white' : 'bg-[var(--color-surface-0)]'
           }`}
           style={{ left: effectiveSidebarWidth }}
         />
       )}
 
-      {isPlatform && !immersiveCanvasModeOpen && sidebarFullyHidden && navVersion !== 3 && (platformHomeOpen || platformSecondaryPageOpen) && (
+      {isPlatform && !immersiveCanvasModeOpen && sidebarFullyHidden && navVersion !== 1 && (platformHomeOpen || platformSecondaryPageOpen) && (
         <button
           ref={sidebarExpandButtonRef}
           type="button"
@@ -5504,7 +5539,7 @@ export default function VibeCodingPage({
           )}
           {/* Platform + sidebar collapsed: relocate the brand SVG and an
                expand button into the card's top-left header. */}
-          {isPlatform && sidebarFullyHidden && navVersion !== 3 && (
+          {isPlatform && sidebarFullyHidden && navVersion !== 1 && (
             <>
               <svg
                 width="108"
@@ -5703,7 +5738,7 @@ export default function VibeCodingPage({
               Right: 分享 + 展开/收起 X. ══════ */}
           <div className="flex h-10 w-full shrink-0 items-center justify-between gap-2 px-3">
             <div className="flex min-w-0 flex-1 items-center gap-1.5">
-              {isPlatform && !immersiveCanvasModeOpen && sidebarFullyHidden && navVersion !== 3 && (
+              {isPlatform && !immersiveCanvasModeOpen && sidebarFullyHidden && navVersion !== 1 && (
                 <button
                   ref={sidebarExpandButtonRef}
                   type="button"
@@ -8938,7 +8973,10 @@ export default function VibeCodingPage({
               ) {
                 return productView
               }
-              if (label === BASIC_INFO_LABEL && activeProjectKind !== 'ai-avatar') {
+              if (
+                (label === BASIC_INFO_LABEL || label === PROJECT_DOCUMENT_LABEL) &&
+                activeProjectKind !== 'ai-avatar'
+              ) {
                 const miniProgramConfig = getMiniProgramConfig(projectTitle)
                 const tailoredBasicInfo = ProjectObjectView({
                   projectTitle,

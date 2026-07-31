@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import {
   X,
   Image as ImageIcon,
@@ -17,11 +17,11 @@ import {
   ArrowDown,
   ChevronDown,
   Clock,
+  History,
   FileText,
   Gift,
   ListChecks,
   ScrollText,
-  Sparkles,
   type LucideIcon,
 } from '@/shared/icons'
 import type { H5CanvasNode } from './H5CanvasModel'
@@ -42,7 +42,7 @@ export type H5LayerId =
   | 'rules'
 
 /** 楼层内可单独选中的元素类型。 */
-export type H5ElementKind = 'text' | 'button' | 'image'
+export type H5ElementKind = 'text' | 'button' | 'image' | 'card'
 
 /** 一个被选中的楼层内元素。`value` 携带当前文案 / 图片地址，便于编辑器预填。 */
 export interface H5ElementSel {
@@ -54,6 +54,8 @@ export interface H5ElementSel {
   label: string
   /** 当前内容：文本（text/button）或图片地址（image）。 */
   value?: string
+  /** 图片生成提示词；图片对象会直接在预览图下方展示。 */
+  prompt?: string
 }
 
 /** 当前选择：楼层级 / 元素级；null ⇒ 整体活动配置。 */
@@ -76,10 +78,33 @@ export const H5_LAYER_META: Record<H5LayerId, { label: string; icon: LucideIcon 
   rules: { label: '页面尾部', icon: ScrollText },
 }
 
+type H5ObjectDisplayKind = 'page' | 'component' | H5ElementKind
+
+const COMPONENT_CHILD_COUNTS: Record<H5LayerId, number> = {
+  hero: 7,
+  countdown: 5,
+  intro: 4,
+  lottery: 18,
+  task: 3,
+  rules: 1,
+}
+
+const IMAGE_DIMENSIONS: Record<string, string> = {
+  'hero.visual': '750 × 600',
+  'hero.statusbar': '750 × 108',
+  'hero.titlebar': '750 × 88',
+  'hero.transition': '750 × 120',
+  'hero.wave': '750 × 180',
+  'countdown.switcher': '734 × 181',
+  'intro.video': '705 × 480',
+  'lottery.upper-image': '750 × 985',
+  'lottery.lower-image': '750 × 985',
+}
+
 export default function H5LayerEditPanel({
   selection,
   onClose,
-  title = '快速编辑',
+  title,
   floating = false,
   onHeaderPointerDown,
   canvasNode,
@@ -92,7 +117,7 @@ export default function H5LayerEditPanel({
   /** 当前选择：楼层 / 元素；null ⇒ 整体活动配置。 */
   selection: H5Selection | null
   onClose: () => void
-  /** 面板标题：普通预览为快速编辑，沉浸式画布中作为属性检查器。 */
+  /** 可选面板标题；普通快速编辑不显示，沉浸式画布保留「属性」。 */
   title?: string
   /** 浮层模式：header 变成可拖拽手柄（带 grip 图标 + move 光标）。 */
   floating?: boolean
@@ -115,6 +140,7 @@ export default function H5LayerEditPanel({
         : null
   const layerMeta = layerId ? H5_LAYER_META[layerId] : null
   const el = selection?.type === 'element' ? selection.el : null
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   // Breadcrumb: 楼层 / 元素 — falls back to 活动配置 when nothing is picked.
   const crumb = el
@@ -124,51 +150,74 @@ export default function H5LayerEditPanel({
       : '活动配置'
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--color-surface-0)]">
+    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--color-surface-0)]">
       {/* Header — drag handle when floating */}
       <div
         onPointerDown={floating ? onHeaderPointerDown : undefined}
-        className={`flex shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-4 py-2.5 ${
+        className={`flex h-10 shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-3 ${
           floating ? 'cursor-move touch-none select-none' : ''
         }`}
       >
         {floating && (
           <Move size={13} strokeWidth={1.8} className="-ml-1 shrink-0 text-[var(--color-ink)]/35" />
         )}
-        <span className="text-[12.5px] font-semibold text-[var(--color-ink)]">{title}</span>
-        <span className="min-w-0 truncate text-[11px] text-[var(--color-ink)]/40">{crumb}</span>
+        {title && (
+          <span className="text-[12px] font-semibold text-[var(--color-ink)]">{title}</span>
+        )}
+        <ObjectTypeBadge kind={selectionObjectKind(selection)} />
+        <span className={`min-w-0 truncate ${
+          title
+            ? 'text-[11px] text-[var(--color-ink)]/40'
+            : 'text-[12px] font-medium text-[var(--color-ink)]/75'
+        }`}>
+          {crumb}
+        </span>
+        <button
+          type="button"
+          aria-pressed={historyOpen}
+          onClick={() => setHistoryOpen((open) => !open)}
+          onPointerDown={(event) => event.stopPropagation()}
+          className="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-[11px] text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/80 aria-pressed:bg-[var(--fill-subtle)] aria-pressed:text-[var(--color-ink)]"
+        >
+          <History size={12} strokeWidth={1.8} />
+          历史记录
+        </button>
         <button
           type="button"
           onClick={onClose}
           onPointerDown={(e) => e.stopPropagation()}
           aria-label="关闭编辑栏"
           title="关闭"
-          className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink)]/45 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--color-ink)]/45 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/85"
         >
           <X size={14} strokeWidth={1.8} />
         </button>
       </div>
 
-      <EditAiPrompt
-        key={el?.id ?? layerId ?? 'overall'}
-        selection={selection}
-        layerLabel={layerMeta?.label}
-        autoFocus={selection?.type === 'element'}
-      />
+      {historyOpen && (
+        <ObjectHistoryPopover
+          selection={selection}
+          layerLabel={layerMeta?.label}
+          onClose={() => setHistoryOpen(false)}
+        />
+      )}
 
       {/* Body — element editor when an element is picked; else per-layer; else overall */}
       <div className="thin-scroll flex-1 overflow-y-auto px-4 py-4">
+        <ObjectInfoCard selection={selection} layerLabel={layerMeta?.label} />
         {canvasNode && onCanvasNodeChange && (
-          <CanvasTransformEditor
-            node={canvasNode}
-            onChange={onCanvasNodeChange}
-            onDuplicate={onDuplicate}
-            onMoveLayer={onMoveLayer}
-            onToggleVisible={onToggleVisible}
-            onToggleLocked={onToggleLocked}
-          />
+          <div className="mt-5 border-t border-[var(--divider-soft)] pt-5">
+            <CanvasTransformEditor
+              node={canvasNode}
+              onChange={onCanvasNodeChange}
+              onDuplicate={onDuplicate}
+              onMoveLayer={onMoveLayer}
+              onToggleVisible={onToggleVisible}
+              onToggleLocked={onToggleLocked}
+            />
+          </div>
         )}
-        <div className={canvasNode ? 'mt-6 border-t border-[var(--divider-soft)] pt-5' : ''}>
+        <div className="mt-5 border-t border-[var(--divider-soft)] pt-5">
           {el ? (
             <ElementEditor key={el.id} el={el} />
           ) : layerId === null ? (
@@ -207,6 +256,312 @@ export default function H5LayerEditPanel({
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function selectionObjectKind(selection: H5Selection | null): H5ObjectDisplayKind {
+  if (!selection) return 'page'
+  if (selection.type === 'layer') return 'component'
+  return selection.el.kind
+}
+
+function ObjectTypeBadge({ kind }: { kind: H5ObjectDisplayKind }) {
+  const meta: Record<H5ObjectDisplayKind, { label: string; className: string }> = {
+    page: {
+      label: '页面',
+      className: 'bg-slate-100 text-slate-600',
+    },
+    component: {
+      label: '组件',
+      className: 'bg-violet-50 text-violet-700',
+    },
+    image: {
+      label: '图片',
+      className: 'bg-fuchsia-50 text-fuchsia-700',
+    },
+    card: {
+      label: '卡片',
+      className: 'bg-amber-50 text-amber-700',
+    },
+    button: {
+      label: '按钮',
+      className: 'bg-sky-50 text-sky-700',
+    },
+    text: {
+      label: '文本',
+      className: 'bg-emerald-50 text-emerald-700',
+    },
+  }
+  const current = meta[kind]
+
+  return (
+    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9.5px] font-semibold leading-none ${current.className}`}>
+      {current.label}
+    </span>
+  )
+}
+
+function ObjectInfoCard({
+  selection,
+  layerLabel,
+}: {
+  selection: H5Selection | null
+  layerLabel?: string
+}) {
+  const kind = selectionObjectKind(selection)
+  const element = selection?.type === 'element' ? selection.el : null
+  const layer = selection?.type === 'layer' ? selection.layer : element?.layer
+  const name =
+    element?.label ??
+    (selection?.type === 'layer' ? layerLabel ?? '当前组件' : '活动首页')
+  const objectId =
+    element?.id ??
+    (selection?.type === 'layer' ? `${selection.layer}.component` : 'page-1')
+  const extension = element?.value?.match(/\.([a-z0-9]+)(?:\?.*)?$/i)?.[1]?.toUpperCase()
+  const rows: Array<[string, string]> = [
+    ['对象名称', name],
+    ['对象 ID', objectId],
+  ]
+
+  if (kind === 'page') {
+    rows.push(['画布尺寸', '375 × 1551'], ['页面层级', '活动首页'])
+  } else if (kind === 'component' && layer) {
+    rows.push(
+      ['所属页面', '活动首页'],
+      ['子对象', `${COMPONENT_CHILD_COUNTS[layer]} 个`],
+    )
+  } else if (element) {
+    rows.push(['所属组件', H5_LAYER_META[element.layer].label])
+    if (kind === 'image') {
+      rows.push(
+        ['文件格式', extension ?? 'IMAGE'],
+        ['图片尺寸', IMAGE_DIMENSIONS[element.id] ?? '自适应'],
+        ['资源路径', element.value ?? '未绑定'],
+      )
+    } else if (kind === 'card') {
+      rows.push(['对象结构', '复合卡片'], ['交互状态', '可点击'])
+    } else if (kind === 'button') {
+      rows.push(['对象结构', '交互按钮'], ['点击埋点', '已启用'])
+    } else {
+      rows.push(['内容类型', '可编辑文本'], ['排版方式', '跟随组件'])
+    }
+  }
+
+  return (
+    <section aria-label="对象信息">
+      <div className="mb-3 flex items-center gap-2">
+        <SectionTitle icon={kind === 'image' ? ImageIcon : Box}>对象信息</SectionTitle>
+        <ObjectTypeBadge kind={kind} />
+      </div>
+      <dl className="overflow-hidden rounded-lg border border-[var(--divider-soft)]">
+        {rows.map(([label, value], index) => (
+          <div
+            key={label}
+            className={`grid grid-cols-[68px_minmax(0,1fr)] gap-2 px-3 py-2 ${
+              index > 0 ? 'border-t border-[var(--divider-soft)]' : ''
+            }`}
+          >
+            <dt className="text-[10.5px] text-[var(--color-ink)]/40">{label}</dt>
+            <dd
+              className={`min-w-0 text-[11px] text-[var(--color-ink)]/72 ${
+                label === '资源路径' ? 'break-all font-mono text-[9.5px] leading-4' : 'truncate'
+              }`}
+              title={value}
+            >
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
+}
+
+const IMAGE_HISTORY_SOURCES: Record<string, string[]> = {
+  'hero.visual': [
+    '/assets/acg-new-year/exact-hero-base.png',
+    '/assets/acg-new-year/materials/01-activity-hero.png',
+    '/assets/acg-new-year/hero.jpg',
+  ],
+  'hero.transition': [
+    '/assets/acg-new-year/exact-hero-transition.svg',
+    '/assets/acg-new-year/exact-wave-pattern.svg',
+  ],
+  'hero.wave': [
+    '/assets/acg-new-year/exact-wave-pattern.svg',
+    '/assets/acg-new-year/exact-hero-transition.svg',
+  ],
+  'countdown.switcher': [
+    '/assets/acg-new-year/exact-game-switcher.png',
+    '/assets/acg-new-year/materials/03-dungeon-character.png',
+    '/assets/acg-new-year/materials/05-egg-party-keyboard.png',
+  ],
+  'intro.video': [
+    '/assets/acg-new-year/exact-main-video.png',
+    '/assets/acg-new-year/materials/07-focus-video-cover.png',
+    '/assets/acg-new-year/main-video.jpg',
+  ],
+  'lottery.upper-image': [
+    '/assets/acg-new-year/exact-lower-top.png',
+    '/assets/acg-new-year/materials/08-content-cover-party.png',
+    '/assets/acg-new-year/materials/09-content-cover-action.png',
+  ],
+  'lottery.lower-image': [
+    '/assets/acg-new-year/exact-lower-bottom.png',
+    '/assets/acg-new-year/materials/10-content-cover-sunset.png',
+    '/assets/acg-new-year/materials/11-content-cover-field.png',
+  ],
+}
+
+function ObjectHistoryPopover({
+  selection,
+  layerLabel,
+  onClose,
+}: {
+  selection: H5Selection | null
+  layerLabel?: string
+  onClose: () => void
+}) {
+  const el = selection?.type === 'element' ? selection.el : null
+  const objectLabel =
+    el?.label ??
+    (selection?.type === 'layer' ? layerLabel ?? '当前组件' : '活动配置')
+
+  return (
+    <div className="absolute left-3 right-3 top-11 z-[80] overflow-hidden rounded-xl border border-[var(--divider)] bg-[var(--color-surface-0)] shadow-[0_16px_40px_-12px_rgba(16,18,24,0.28)]">
+      <div className="flex h-10 items-center border-b border-[var(--divider-soft)] px-3">
+        <History size={13} strokeWidth={1.8} className="mr-1.5 text-[var(--color-ink)]/55" />
+        <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[var(--color-ink)]">
+          {objectLabel} · 历史记录
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="关闭历史记录"
+          className="flex size-6 items-center justify-center rounded-md text-[var(--color-ink)]/40 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/75"
+        >
+          <X size={12} strokeWidth={1.8} />
+        </button>
+      </div>
+      <div className="thin-scroll max-h-[420px] overflow-y-auto p-2.5">
+        {el?.kind === 'image' ? (
+          <ImageGenerationHistory element={el} />
+        ) : (
+          <ObjectEditHistory objectLabel={objectLabel} kind={el?.kind} />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ImageGenerationHistory({ element }: { element: H5ElementSel }) {
+  const sources = IMAGE_HISTORY_SOURCES[element.id] ?? [element.value ?? '']
+  const basePrompt =
+    element.prompt ??
+    `保持抖音 ACG 游戏新春会的红金新春视觉语言，重新生成「${element.label.replace(/\.(png|jpe?g|webp|svg)$/i, '')}」，保持当前构图、尺寸比例与透明关系。`
+  const images = [element.value ?? sources[0], ...sources]
+    .filter(Boolean)
+    .filter((source, index, all) => all.indexOf(source) === index)
+  while (images.length < 3 && images[0]) images.push(images[0])
+
+  const records = images.slice(0, 3).map((src, index) => ({
+    src,
+    version: index === 0 ? '当前版本' : `生成版本 ${3 - index}`,
+    time: index === 0 ? '刚刚' : index === 1 ? '今天 14:32' : '昨天 18:06',
+    model: index === 2 ? 'NanoBanana' : 'NanoBanana Pro',
+    prompt:
+      index === 0
+        ? basePrompt
+        : `${basePrompt} ${index === 1 ? '强化主体层次与节庆光效，保持现有构图。' : '探索更轻盈的色彩与装饰细节，保持原始尺寸。'}`,
+  }))
+
+  return (
+    <div className="space-y-2">
+      {records.map((record, index) => (
+        <div
+          key={`${record.src}-${index}`}
+          className="group flex gap-2.5 rounded-lg border border-[var(--divider-soft)] p-2 transition-colors hover:border-[var(--color-ink)]/15 hover:bg-[var(--fill-subtle)]"
+        >
+          <div className="h-[58px] w-[72px] shrink-0 overflow-hidden rounded-md bg-[var(--fill-subtle)] ring-1 ring-[var(--divider-soft)]">
+            <img src={record.src} alt="" className="h-full w-full object-cover" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11.5px] font-medium text-[var(--color-ink)]/85">
+                {record.version}
+              </span>
+              {index === 0 && (
+                <span className="rounded bg-emerald-50 px-1 py-0.5 text-[9px] font-medium text-emerald-700">
+                  已应用
+                </span>
+              )}
+              <span className="ml-auto text-[9.5px] text-[var(--color-ink)]/35">
+                {record.time}
+              </span>
+            </div>
+            <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-[var(--color-ink)]/45">
+              {record.prompt}
+            </p>
+            <div className="mt-1 flex items-center text-[9.5px] text-[var(--color-ink)]/35">
+              {record.model}
+              {index > 0 && (
+                <button
+                  type="button"
+                  className="ml-auto rounded px-1.5 py-0.5 text-[10px] text-[#5f4bd8] opacity-0 transition-opacity hover:bg-[#7c5cff]/10 group-hover:opacity-100"
+                >
+                  恢复此版本
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ObjectEditHistory({
+  objectLabel,
+  kind,
+}: {
+  objectLabel: string
+  kind?: H5ElementKind
+}) {
+  const kindLabel =
+    kind === 'card'
+      ? '卡片'
+      : kind === 'button'
+        ? '按钮'
+        : kind === 'text'
+          ? '文案'
+          : '组件'
+  const entries = [
+    { action: `更新${kindLabel}内容`, detail: `调整「${objectLabel}」的字段与展示样式`, time: '刚刚' },
+    { action: `优化${kindLabel}样式`, detail: '统一圆角、间距与活动主题色', time: '今天 13:48' },
+    { action: '创建对象', detail: `加入「${objectLabel}」并完成初始配置`, time: '昨天 17:26' },
+  ]
+
+  return (
+    <div className="space-y-1">
+      {entries.map((entry, index) => (
+        <div key={entry.action} className="relative flex gap-2.5 rounded-lg px-2 py-2 hover:bg-[var(--fill-subtle)]">
+          <span className={`mt-1.5 size-2 shrink-0 rounded-full ${index === 0 ? 'bg-[#7c5cff]' : 'bg-[var(--color-ink)]/15'}`} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="truncate text-[11.5px] font-medium text-[var(--color-ink)]/80">
+                {entry.action}
+              </span>
+              <span className="ml-auto shrink-0 text-[9.5px] text-[var(--color-ink)]/35">
+                {entry.time}
+              </span>
+            </div>
+            <p className="mt-0.5 text-[10px] leading-4 text-[var(--color-ink)]/45">
+              {entry.detail}
+            </p>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -342,91 +697,6 @@ function GeometryField({
       />
     </label>
   )
-}
-
-function EditAiPrompt({
-  selection,
-  layerLabel,
-  autoFocus = false,
-}: {
-  selection: H5Selection | null
-  layerLabel?: string
-  autoFocus?: boolean
-}) {
-  const [prompt, setPrompt] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
-  const meta = getAiPromptMeta(selection, layerLabel)
-
-  useEffect(() => {
-    if (!autoFocus) return
-    const id = window.requestAnimationFrame(() => inputRef.current?.focus())
-    return () => window.cancelAnimationFrame(id)
-  }, [autoFocus, meta.key])
-
-  return (
-    <form
-      onSubmit={(e) => e.preventDefault()}
-      className="shrink-0 border-b border-[var(--divider-soft)] px-3 py-2.5"
-    >
-      <div className="flex h-9 items-center gap-2 rounded-lg border border-[var(--divider)] bg-[var(--fill-subtle)] px-2.5 focus-within:border-[var(--color-ink)]/35 focus-within:bg-[var(--color-surface-0)]">
-        <Sparkles size={14} strokeWidth={1.8} className="shrink-0 text-[var(--color-ink)]/55" />
-        <input
-          ref={inputRef}
-          type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          aria-label={meta.ariaLabel}
-          placeholder={meta.placeholder}
-          className="min-w-0 flex-1 bg-transparent text-[12.5px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/35"
-        />
-        <button
-          type="submit"
-          className="shrink-0 rounded-md bg-[var(--color-ink)] px-2 py-1 text-[11px] font-medium text-[var(--color-ink-contrast)] transition-opacity hover:opacity-90"
-        >
-          生成
-        </button>
-      </div>
-    </form>
-  )
-}
-
-function getAiPromptMeta(selection: H5Selection | null, layerLabel?: string) {
-  if (!selection) {
-    return {
-      key: 'overall',
-      ariaLabel: 'AI 调整整体活动配置',
-      placeholder: '发送信息给到 AI，调整整体活动配置...',
-    }
-  }
-  if (selection.type === 'layer') {
-    const label = layerLabel ?? '当前图层'
-    return {
-      key: selection.layer,
-      ariaLabel: `AI 调整${label}图层`,
-      placeholder: `发送信息给到 AI，调整「${label}」图层...`,
-    }
-  }
-
-  const { el } = selection
-  if (el.kind === 'image') {
-    return {
-      key: el.id,
-      ariaLabel: `AI 修改${el.label}图片`,
-      placeholder: `发送信息给到 AI，重绘或替换「${el.label}」...`,
-    }
-  }
-  if (el.kind === 'button') {
-    return {
-      key: el.id,
-      ariaLabel: `AI 修改${el.label}按钮`,
-      placeholder: `发送信息给到 AI，调整「${el.label}」按钮...`,
-    }
-  }
-  return {
-    key: el.id,
-    ariaLabel: `AI 修改${el.label}文案`,
-    placeholder: `发送信息给到 AI，改写「${el.label}」文案...`,
-  }
 }
 
 /* ─────────── 整体活动配置（默认，无选中元素时） ─────────── */
@@ -653,9 +923,58 @@ function RulesEditor() {
 
 /* ═════════════ 元素级编辑（楼层内单个元素） ═════════════ */
 function ElementEditor({ el }: { el: H5ElementSel }) {
+  if (el.kind === 'card') return <CardElementEditor el={el} />
   if (el.kind === 'button') return <ButtonElementEditor el={el} />
   if (el.kind === 'image') return <ImageElementEditor el={el} />
   return <TextElementEditor el={el} />
+}
+
+/* ─────────── 卡片元素（游戏入口 / 作品卡片） ─────────── */
+function CardElementEditor({ el }: { el: H5ElementSel }) {
+  const isWorkCard = el.id.startsWith('lottery.card-')
+  const [title, setTitle] = useState(el.value ?? el.label)
+  const [subtitle, setSubtitle] = useState(
+    isWorkCard ? '高燃游戏内容 · 新春特别作品' : '进入专属游戏会场',
+  )
+  const [color, setColor] = useState('rose')
+  const [radius, setRadius] = useState(12)
+  return (
+    <div className="space-y-5">
+      <SectionTitle icon={Box}>{el.label}</SectionTitle>
+      <Field label={isWorkCard ? '作品标题' : '游戏名称'}>
+        <input
+          type="text"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          className="w-full rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
+        />
+      </Field>
+      <Field label={isWorkCard ? '作品描述' : '入口说明'}>
+        <textarea
+          rows={3}
+          value={subtitle}
+          onChange={(event) => setSubtitle(event.target.value)}
+          className="thin-scroll w-full resize-none rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] leading-[1.6] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
+        />
+      </Field>
+      <div className="grid grid-cols-3 gap-2">
+        <ActionPill icon={Upload} label="上传封面" />
+        <ActionPill icon={RefreshCw} label="重新生成" />
+        <ActionPill icon={Crop} label="裁剪封面" />
+      </div>
+      <Field label="卡片底色">
+        <Swatches value={color} onChange={setColor} />
+      </Field>
+      <Slider label="卡片圆角" value={radius} min={0} max={28} onChange={setRadius} unit="px" />
+      {isWorkCard && (
+        <>
+          <ToggleRow label="展示创作者信息" defaultOn />
+          <ToggleRow label="展示马力值" defaultOn />
+          <ToggleRow label="展示互动按钮" defaultOn />
+        </>
+      )}
+    </div>
+  )
 }
 
 /* ─────────── 文本元素（主标题 / 正文 / 名单 …） ─────────── */
@@ -738,13 +1057,27 @@ function ButtonElementEditor({ el }: { el: H5ElementSel }) {
 /* ─────────── 图片元素（头图 / 抽奖机 …） ─────────── */
 function ImageElementEditor({ el }: { el: H5ElementSel }) {
   const [fit, setFit] = useState('cover')
+  const [prompt, setPrompt] = useState(
+    el.prompt ??
+      `保持抖音 ACG 游戏新春会的红金新春视觉语言，重新生成「${el.label.replace(/\.(png|jpe?g|webp|svg)$/i, '')}」，保持当前构图、尺寸比例与透明关系，高细节商业活动素材。`,
+  )
   return (
     <div className="space-y-5">
       <SectionTitle icon={ImageIcon}>{el.label}</SectionTitle>
       {el.value && (
-        <div className="overflow-hidden rounded-xl ring-1 ring-[var(--divider)]">
-          <img src={el.value} alt="" className="max-h-40 w-full object-cover" />
-        </div>
+        <>
+          <div className="overflow-hidden rounded-xl ring-1 ring-[var(--divider)]">
+            <img src={el.value} alt="" className="max-h-40 w-full object-cover" />
+          </div>
+          <Field label="Prompt">
+            <textarea
+              rows={6}
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              className="thin-scroll w-full resize-none rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[12.5px] leading-[1.65] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
+            />
+          </Field>
+        </>
       )}
       <div className="grid grid-cols-3 gap-2">
         <ActionPill icon={Upload} label="上传图片" />
