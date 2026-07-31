@@ -1,8 +1,5 @@
 import { useState } from 'react'
-import {
-  useEffectiveProductSideNavCollapsed,
-  useProductSideNav,
-} from '@/shared/storage/product-side-nav'
+import { useProductSideNav } from '@/shared/storage/product-side-nav'
 import WikiEditorPage, { WikiSideNav } from './WikiEditorPage'
 import {
   DEFAULT_WIKI_OBJECT_ID,
@@ -13,7 +10,7 @@ import {
 export default function WikiWorkspacePage() {
   const [activeDoc, setActiveDoc] = useState('未命名设定')
   const [activeObjectId, setActiveObjectId] = useState(DEFAULT_WIKI_OBJECT_ID)
-  const sidebarCollapsed = useEffectiveProductSideNavCollapsed('wiki')
+  const sidebarCollapsed = useProductSideNav((state) => state.collapsed.wiki)
   const setSidebarCollapsed = useProductSideNav((state) => state.setCollapsed)
   const activeObject = getWikiObject(activeObjectId)
 

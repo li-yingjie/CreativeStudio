@@ -82,11 +82,7 @@ import {
   usesSearchToolbarLayout,
   usesStandaloneWorkshopLayout,
 } from '@/shared/storage/nav-version'
-import {
-  useEffectiveProductSideNavCollapsed,
-  useProductSideNav,
-  type ProductSideNavId,
-} from '@/shared/storage/product-side-nav'
+import { useProductSideNav, type ProductSideNavId } from '@/shared/storage/product-side-nav'
 import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
 import { useResizableSideNavWidth } from '@/shared/hooks/useResizableSideNavWidth'
 import { AppWindowLinearIcon } from 'master-icon/react/AppWindowLinearIcon'
@@ -1499,14 +1495,24 @@ function PlatformSidebar({
           </div>
         ) : (navVersion === 1 || usesSchemeFourLayout(navVersion)) &&
           variant === 'workshop' ? (
-          <div className="pb-3">
+          <div
+            className={
+              collapsed ? 'px-[var(--sn-px)] pb-3' : 'pb-3'
+            }
+          >
             <button
               type="button"
               onClick={() => toast('偏好设置（演示）')}
-              className="flex h-8 w-full items-center gap-1.5 rounded-lg pl-[22px] pr-2 text-[12px] font-medium text-[#252632]/80 transition-colors hover:bg-black/[0.03]"
+              aria-label="偏好设置"
+              title={collapsed ? '偏好设置' : undefined}
+              className={`flex h-8 w-full items-center gap-1.5 rounded-lg text-[12px] font-medium text-[#252632]/80 transition-colors hover:bg-black/[0.03] ${
+                collapsed
+                  ? 'justify-center'
+                  : 'pl-[22px] pr-2'
+              }`}
             >
               <Settings01LinearIcon className="size-4 shrink-0" />
-              <span>偏好设置</span>
+              {!collapsed && <span>偏好设置</span>}
             </button>
           </div>
         ) : navVersion === 5 ? (
@@ -2384,12 +2390,13 @@ export default function VibeCodingPage({
   const chatOnLeft = layout === 'code' || isPlatform
   const reduceSideNavMotion = useReducedMotion() ?? false
   /* Platform-only: sidebar + chat widths are both user-draggable. Schemes
-   * 2 / 3 / 6 retain the shared icon rail when collapsed; the other schemes
-   * keep the legacy fully-hidden layout. */
+   * 1 / 2 / 3 / 6 retain the shared icon rail when collapsed; the remaining
+   * schemes keep the legacy fully-hidden layout. */
   const sideNavProductId: ProductSideNavId =
     variant === 'avatar' ? 'ai-avatar' : 'workshop'
-  const sidebarCollapsed =
-    useEffectiveProductSideNavCollapsed(sideNavProductId)
+  const sidebarCollapsed = useProductSideNav(
+    (state) => state.collapsed[sideNavProductId],
+  )
   const setProductSideNavCollapsed = useProductSideNav(
     (state) => state.setCollapsed,
   )
@@ -2411,7 +2418,10 @@ export default function VibeCodingPage({
     : platformSidebarWidth
   const sidebarRailCollapsed =
     sidebarCollapsed &&
-    (navVersion === 2 || navVersion === 3 || navVersion === 6)
+    (navVersion === 1 ||
+      navVersion === 2 ||
+      navVersion === 3 ||
+      navVersion === 6)
   const sidebarFullyHidden = sidebarCollapsed && !sidebarRailCollapsed
   const fullyHiddenSidebarWidth = navVersion === 1 ? 0 : 12
   const baseEffectiveSidebarWidth = sidebarCollapsed

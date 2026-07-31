@@ -319,12 +319,17 @@ export function WikiSideNav({
 
   if (
     collapsed &&
-    (navVersion === 2 || navVersion === 3 || searchToolbarLayout)
+    (navVersion === 1 ||
+      navVersion === 2 ||
+      navVersion === 3 ||
+      searchToolbarLayout)
   ) {
     return (
       <SharedSideNav
         ariaLabel="百科目录"
         collapsed
+        chrome={navVersion === 1 ? 'plain' : 'panel'}
+        showDivider={navVersion !== 1}
         flushHeader={searchToolbarLayout}
         items={[
           ...NAV_GROUPS.map((group) => ({

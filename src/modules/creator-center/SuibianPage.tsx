@@ -22,10 +22,7 @@ import {
   usesSchemeFourLayout,
   usesSearchToolbarLayout,
 } from '@/shared/storage/nav-version'
-import {
-  useEffectiveProductSideNavCollapsed,
-  useProductSideNav,
-} from '@/shared/storage/product-side-nav'
+import { useProductSideNav } from '@/shared/storage/product-side-nav'
 import UnifiedToolbar from './UnifiedToolbar'
 
 /* ─── 随变（AI 短片创作工作台） — 设计稿 统一导航 244-19030「04-随变-编辑」 ───
@@ -436,7 +433,9 @@ export function SuibianSideNav() {
   const navVersion = useNavVersion((state) => state.version)
   const schemeFourLayout = usesSchemeFourLayout(navVersion)
   const searchToolbarLayout = usesSearchToolbarLayout(navVersion)
-  const sidebarCollapsed = useEffectiveProductSideNavCollapsed('suibian')
+  const sidebarCollapsed = useProductSideNav(
+    (state) => state.collapsed.suibian,
+  )
   const setSidebarCollapsed = useProductSideNav((state) => state.setCollapsed)
   const reduceSideNavMotion = useReducedMotion() ?? false
 
@@ -463,12 +462,17 @@ export function SuibianSideNav() {
 
   if (
     sidebarCollapsed &&
-    (navVersion === 2 || navVersion === 3 || searchToolbarLayout)
+    (navVersion === 1 ||
+      navVersion === 2 ||
+      navVersion === 3 ||
+      searchToolbarLayout)
   ) {
     return (
       <SharedSideNav
         ariaLabel="随变侧栏"
         collapsed
+        chrome={navVersion === 1 ? 'plain' : 'panel'}
+        showDivider={navVersion !== 1}
         flushHeader={searchToolbarLayout}
         items={SUIBIAN_NAV_GROUPS.map((group) => ({ ...group }))}
         activeKey={null}
@@ -751,7 +755,9 @@ export default function SuibianPage() {
   const [zoom, setZoom] = useState(16)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const navVersion = useNavVersion((state) => state.version)
-  const sidebarCollapsed = useEffectiveProductSideNavCollapsed('suibian')
+  const sidebarCollapsed = useProductSideNav(
+    (state) => state.collapsed.suibian,
+  )
   const setSidebarCollapsed = useProductSideNav((state) => state.setCollapsed)
 
   const send = () => {
