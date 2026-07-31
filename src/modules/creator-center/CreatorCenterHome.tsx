@@ -40,7 +40,10 @@ import {
   usesProductHeaderLayout,
   usesSchemeFourLayout,
 } from '@/shared/storage/nav-version'
-import { useProductSideNav } from '@/shared/storage/product-side-nav'
+import {
+  useEffectiveProductSideNavCollapsed,
+  useProductSideNav,
+} from '@/shared/storage/product-side-nav'
 import AiAssistantPanel from '@/shared/components/AiAssistantPanel'
 import { assistantContextFor } from './assistant-contexts'
 
@@ -160,7 +163,7 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
   // 方案 6 按约定首页不显示搜索工具栏，
   // 方案 1 放在外壳品牌头；
   // 方案 3 / 5 分别在底部保留文字版 / icon-only 入口。
-  const storedCollapsed = useProductSideNav((state) => state.collapsed.home)
+  const storedCollapsed = useEffectiveProductSideNavCollapsed('home')
   const collapsed = version === 2 || version === 6 ? false : storedCollapsed
   const toggleCollapsed = useProductSideNav((state) => state.toggleCollapsed)
   // 直播管理是权限菜单，开启时插在「内容」上方

@@ -7,7 +7,10 @@ import {
   useNavVersion,
   usesStandaloneWorkshopLayout,
 } from '@/shared/storage/nav-version'
-import { useProductSideNav } from '@/shared/storage/product-side-nav'
+import {
+  useEffectiveProductSideNavCollapsed,
+  useProductSideNav,
+} from '@/shared/storage/product-side-nav'
 import CreatorCenterHome from './CreatorCenterHome'
 import TopNav from './TopNav'
 import type { ProductId } from './data'
@@ -88,17 +91,20 @@ function useActiveSideNavWidth(enabled: boolean, activeProduct: ProductId, fallb
   return width
 }
 
-/** 方案 1 把品牌区放进全宽顶栏的左段，收起入口紧邻 logo。 */
+/** 方案 1 把品牌区放进全宽顶栏的左段；收起后保留品牌图形，
+ *  hover 临时展开整列，键盘 focus 时原位提供固定展开入口。 */
 function SideNavBrandHeader({
   width,
   collapsed,
   onHome,
   onToggle,
+  onHoverExpand,
 }: {
   width: number
   collapsed: boolean
   onHome: () => void
   onToggle: () => void
+  onHoverExpand: () => void
 }) {
   return (
     <div
@@ -109,7 +115,29 @@ function SideNavBrandHeader({
     >
       {width > 0 && (
         <>
-          {!collapsed && (
+          {collapsed ? (
+            <button
+              type="button"
+              aria-label="展开导航"
+              title="展开导航"
+              onClick={onToggle}
+              onPointerEnter={onHoverExpand}
+              className="group relative flex size-8 shrink-0 items-center justify-center rounded-md text-[#252632]/45 transition-colors duration-150 hover:bg-black/[0.03] hover:text-[#252632]/70 focus-visible:bg-black/[0.03] motion-reduce:transition-none"
+            >
+              <span className="flex h-6 w-5 items-center overflow-hidden transition-opacity duration-150 group-focus-visible:opacity-0 motion-reduce:transition-none">
+                <img
+                  src="/logo.png"
+                  alt=""
+                  aria-hidden
+                  className="h-[22px] w-auto max-w-none shrink-0 object-contain object-left"
+                />
+              </span>
+              <SideNavPanelStateIcon
+                collapsed
+                className="absolute size-4 opacity-0 transition-opacity duration-150 group-focus-visible:opacity-100 motion-reduce:transition-none"
+              />
+            </button>
+          ) : (
             <button
               type="button"
               aria-label="返回创作者中心首页"
@@ -119,15 +147,17 @@ function SideNavBrandHeader({
               <img src="/logo.png" alt="" className="h-[22px] max-w-full w-auto object-contain object-left" />
             </button>
           )}
-          <button
-            type="button"
-            aria-label={collapsed ? '展开导航' : '收起导航'}
-            title={collapsed ? '展开导航' : '收起导航'}
-            onClick={onToggle}
-            className="relative flex size-6 shrink-0 items-center justify-center rounded-md text-[#252632]/45 transition-colors before:absolute before:-inset-1 before:content-[''] hover:bg-black/[0.03] hover:text-[#252632]/70"
-          >
-            <SideNavPanelStateIcon collapsed={collapsed} />
-          </button>
+          {!collapsed && (
+            <button
+              type="button"
+              aria-label="收起导航"
+              title="收起导航"
+              onClick={onToggle}
+              className="relative flex size-6 shrink-0 items-center justify-center rounded-md text-[#252632]/45 transition-colors before:absolute before:-inset-1 before:content-[''] hover:bg-black/[0.03] hover:text-[#252632]/70"
+            >
+              <SideNavPanelStateIcon />
+            </button>
+          )}
         </>
       )}
     </div>
@@ -196,8 +226,17 @@ export default function CreatorCenterShell() {
   const [workshopCanvasMode, setWorkshopCanvasMode] = useState(false)
   const configuredSideNavWidth = useSideNavConfig((state) => state.config.width)
   const configuredCollapsedWidth = useSideNavConfig((state) => state.config.collapsedWidth)
-  const activeSideNavCollapsed = useProductSideNav((state) => state.collapsed[active])
+  const storedActiveSideNavCollapsed = useProductSideNav(
+    (state) => state.collapsed[active],
+  )
+  const activeSideNavCollapsed = useEffectiveProductSideNavCollapsed(active)
+  const hoverExpandedProduct = useProductSideNav(
+    (state) => state.hoverExpandedProduct,
+  )
   const setProductSideNavCollapsed = useProductSideNav((state) => state.setCollapsed)
+  const setHoverExpandedProduct = useProductSideNav(
+    (state) => state.setHoverExpandedProduct,
+  )
   const activeSideNavWidth = useActiveSideNavWidth(
     navVersion === 1,
     active,
@@ -220,6 +259,12 @@ export default function CreatorCenterShell() {
   const workshopImmersive =
     active === 'workshop' && workshopCanvasMode
   const topNavHidden = workshopImmersive || standaloneWorkshop
+  const lNavHoverPreviewActive =
+    navVersion === 1 && hoverExpandedProduct === active
+  const lNavHoverBoundary =
+    activeSideNavWidth > configuredCollapsedWidth
+      ? activeSideNavWidth
+      : configuredSideNavWidth
 
   useEffect(() => {
     if (!standaloneWorkshop) return
@@ -227,10 +272,31 @@ export default function CreatorCenterShell() {
     setActive('workshop')
   }, [standaloneWorkshop])
 
+  useEffect(() => {
+    if (navVersion === 1 && hoverExpandedProduct === active) return
+    if (hoverExpandedProduct !== null) setHoverExpandedProduct(null)
+  }, [
+    active,
+    hoverExpandedProduct,
+    navVersion,
+    setHoverExpandedProduct,
+  ])
+
   return (
     <div
       data-nav-version={navVersion}
       className="flex h-dvh flex-col"
+      onPointerMove={(event) => {
+        if (
+          lNavHoverPreviewActive &&
+          event.clientX > lNavHoverBoundary + 8
+        ) {
+          setHoverExpandedProduct(null)
+        }
+      }}
+      onPointerLeave={() => {
+        if (lNavHoverPreviewActive) setHoverExpandedProduct(null)
+      }}
       style={{
         '--cc-top': topNavHidden ? '0px' : NAV_H,
         '--l-shaped-background-image': L_SHAPED_BACKGROUND,
@@ -250,6 +316,11 @@ export default function CreatorCenterShell() {
                 collapsed={activeSideNavCollapsed}
                 onHome={() => selectProduct('home')}
                 onToggle={() => setProductSideNavCollapsed(active, !activeSideNavCollapsed)}
+                onHoverExpand={() => {
+                  if (storedActiveSideNavCollapsed) {
+                    setHoverExpandedProduct(active)
+                  }
+                }}
               />
             )}
           />

@@ -82,7 +82,11 @@ import {
   usesSearchToolbarLayout,
   usesStandaloneWorkshopLayout,
 } from '@/shared/storage/nav-version'
-import { useProductSideNav, type ProductSideNavId } from '@/shared/storage/product-side-nav'
+import {
+  useEffectiveProductSideNavCollapsed,
+  useProductSideNav,
+  type ProductSideNavId,
+} from '@/shared/storage/product-side-nav'
 import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
 import { useResizableSideNavWidth } from '@/shared/hooks/useResizableSideNavWidth'
 import { AppWindowLinearIcon } from 'master-icon/react/AppWindowLinearIcon'
@@ -2384,9 +2388,8 @@ export default function VibeCodingPage({
    * keep the legacy fully-hidden layout. */
   const sideNavProductId: ProductSideNavId =
     variant === 'avatar' ? 'ai-avatar' : 'workshop'
-  const sidebarCollapsed = useProductSideNav(
-    (state) => state.collapsed[sideNavProductId],
-  )
+  const sidebarCollapsed =
+    useEffectiveProductSideNavCollapsed(sideNavProductId)
   const setProductSideNavCollapsed = useProductSideNav(
     (state) => state.setCollapsed,
   )

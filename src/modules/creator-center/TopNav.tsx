@@ -179,7 +179,7 @@ export function AvatarMenu({
           align="end"
           sideOffset={8}
           aria-label="账号菜单"
-          className="z-[90] w-[232px] rounded-lg bg-white p-2 shadow-[0_4px_7px_rgba(0,0,0,0.1),0_0_0.5px_rgba(0,0,0,0.3)]"
+          className="z-[90] max-h-[var(--radix-popover-content-available-height)] w-[232px] overflow-y-auto rounded-lg bg-white p-2 shadow-[0_4px_7px_rgba(0,0,0,0.1),0_0_0.5px_rgba(0,0,0,0.3)]"
         >
           <button type="button" onClick={() => toast('身份认证（演示）')} className={menuRow}>
             <FigmaGlyph src="/icons/account-menu/certificate.svg" inset="3.57%" />
@@ -233,6 +233,8 @@ export function AvatarMenu({
                   title={`方案 ${version} · ${NAV_VERSION_NAMES[version]}`}
                   onClick={() => selectNavVersion(version)}
                   className={`flex h-8 items-center gap-1.5 rounded-md px-2 text-left text-[11px] font-medium transition-colors ${
+                    version === 7 ? 'col-span-2' : ''
+                  } ${
                     navVersion === version
                       ? 'bg-[#161823] text-white shadow-sm'
                       : 'bg-[#f4f5f7] text-[#252632]/60 hover:bg-[#eceef2] hover:text-[#252632]'

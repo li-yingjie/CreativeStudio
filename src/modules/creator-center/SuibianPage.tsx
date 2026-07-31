@@ -22,7 +22,10 @@ import {
   usesSchemeFourLayout,
   usesSearchToolbarLayout,
 } from '@/shared/storage/nav-version'
-import { useProductSideNav } from '@/shared/storage/product-side-nav'
+import {
+  useEffectiveProductSideNavCollapsed,
+  useProductSideNav,
+} from '@/shared/storage/product-side-nav'
 import UnifiedToolbar from './UnifiedToolbar'
 
 /* ─── 随变（AI 短片创作工作台） — 设计稿 统一导航 244-19030「04-随变-编辑」 ───
@@ -433,9 +436,7 @@ export function SuibianSideNav() {
   const navVersion = useNavVersion((state) => state.version)
   const schemeFourLayout = usesSchemeFourLayout(navVersion)
   const searchToolbarLayout = usesSearchToolbarLayout(navVersion)
-  const sidebarCollapsed = useProductSideNav(
-    (state) => state.collapsed.suibian,
-  )
+  const sidebarCollapsed = useEffectiveProductSideNavCollapsed('suibian')
   const setSidebarCollapsed = useProductSideNav((state) => state.setCollapsed)
   const reduceSideNavMotion = useReducedMotion() ?? false
 
@@ -750,9 +751,7 @@ export default function SuibianPage() {
   const [zoom, setZoom] = useState(16)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const navVersion = useNavVersion((state) => state.version)
-  const sidebarCollapsed = useProductSideNav(
-    (state) => state.collapsed.suibian,
-  )
+  const sidebarCollapsed = useEffectiveProductSideNavCollapsed('suibian')
   const setSidebarCollapsed = useProductSideNav((state) => state.setCollapsed)
 
   const send = () => {
