@@ -14,7 +14,6 @@ import {
 } from '@/shared/icons'
 import { XIAHUA_ASSET_GROUPS } from './ProjectAssetCatalog'
 import XiahuaGameplayEditor from './XiahuaGameplayEditor'
-import XiahuaMascot3DStudio from './XiahuaMascot3DStudio'
 import {
   GAMEPLAY_BINDING,
   GAMEPLAY_LABEL,
@@ -205,7 +204,6 @@ export default function XiahuaEditPanel({
   onClose: () => void
 }) {
   const [toast, setToast] = useState<string | null>(null)
-  const [mascotStudioOpen, setMascotStudioOpen] = useState(false)
   useEffect(() => {
     if (!toast) return
     const t = window.setTimeout(() => setToast(null), 1800)
@@ -214,7 +212,7 @@ export default function XiahuaEditPanel({
   const demo = (msg: string) => setToast(msg)
 
   const meta = selection ? TYPE_META[selection.objectType] : null
-  const Icon = mascotStudioOpen ? Box : meta?.icon ?? Sparkles
+  const Icon = meta?.icon ?? Sparkles
   // 记住最后一次选中的元素，插入时以它为落位锚点。
   const [lastAnchor, setLastAnchor] = useState<XiahuaSel | null>(null)
   if (selection && selection.id !== lastAnchor?.id) setLastAnchor(selection)
@@ -235,9 +233,9 @@ export default function XiahuaEditPanel({
       <div className="flex h-10 shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-4">
         <Icon className="size-4 text-[var(--color-ink)]/60" />
         <span className="flex-1 truncate text-[13px] font-semibold text-[var(--color-ink)]">
-          {mascotStudioOpen ? '小马 IP 3D 工作台' : selection ? selection.label : '编辑活动页'}
+          {selection ? selection.label : '编辑活动页'}
         </span>
-        {selection && !mascotStudioOpen && (
+        {selection && (
           <span className="rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 text-[11px] text-[var(--color-ink)]/55">
             {selection.objectType}
           </span>
@@ -245,30 +243,25 @@ export default function XiahuaEditPanel({
         <button
           aria-label="关闭编辑"
           className="cursor-pointer rounded-md p-1 text-[var(--color-ink)]/50 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-          onClick={() => (mascotStudioOpen ? setMascotStudioOpen(false) : onClose())}
+          onClick={onClose}
         >
           <X className="size-4" />
         </button>
       </div>
 
       <div className="thin-scroll min-h-0 flex-1 overflow-y-auto pb-6">
-        {mascotStudioOpen ? (
-          <XiahuaMascot3DStudio />
-        ) : (
-          <>
-            {!selection && (
-              <EmptyState
-                onSelect={onSelect}
-                onHover={(id) => onHover?.(id)}
-                overrides={overrides}
-                onOverrides={onOverrides}
-                lastAnchor={lastAnchor}
-                screen={screen}
-                onOpenMascotStudio={() => setMascotStudioOpen(true)}
-              />
-            )}
+        {!selection && (
+          <EmptyState
+            onSelect={onSelect}
+            onHover={(id) => onHover?.(id)}
+            overrides={overrides}
+            onOverrides={onOverrides}
+            lastAnchor={lastAnchor}
+            screen={screen}
+          />
+        )}
 
-            {selection && (
+        {selection && (
               <>
                 <div className="flex items-center gap-2 border-b border-[var(--divider-soft)] px-4 py-2.5 text-[12px] text-[var(--color-ink)]/50">
                   {selection.rect && (
@@ -384,7 +377,6 @@ export default function XiahuaEditPanel({
                       overrides={overrides}
                       onOverrides={onOverrides}
                       demo={demo}
-                      onOpenMascotStudio={() => setMascotStudioOpen(true)}
                     />
                     {/* AI 修改入口 — 与聊天链路同款语义 */}
                     <Section title="AI 修改">
@@ -393,8 +385,6 @@ export default function XiahuaEditPanel({
                   </>
                 )}
               </>
-            )}
-          </>
         )}
       </div>
 
@@ -439,7 +429,6 @@ function EmptyState({
   onOverrides,
   lastAnchor,
   screen,
-  onOpenMascotStudio,
 }: {
   onSelect: (sel: XiahuaSel) => void
   onHover: (id: string | null) => void
@@ -447,7 +436,6 @@ function EmptyState({
   onOverrides: (next: XiahuaOverrides) => void
   lastAnchor: XiahuaSel | null
   screen: string
-  onOpenMascotStudio: () => void
 }) {
   const hidden = overrides.hidden ?? []
   const inserted = overrides.inserted ?? []
@@ -496,27 +484,6 @@ function EmptyState({
 
   return (
     <div className="px-4 py-4">
-      <div className="mb-4 rounded-[10px] border border-orange-200 bg-gradient-to-br from-[#fff7ef] to-[#fff0e7] p-3">
-        <div className="flex items-start gap-2.5">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-[#f15b35] text-white shadow-sm">
-            <Box className="size-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold text-[#8f3f27]">小马 IP · 3D 对象工作台</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-[#a34c2e]/75">
-              拖拽调整视角，改变灯光与背景，直接导出运营截图。
-            </p>
-          </div>
-          <button
-            type="button"
-            className="shrink-0 cursor-pointer rounded-[7px] bg-[#f15b35] px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#d94c29]"
-            onClick={onOpenMascotStudio}
-          >
-            打开
-          </button>
-        </div>
-      </div>
-
       {/* 玩法总览 — 进入编辑就能看到这个活动有哪些玩法、分别挂在哪个元素上 */}
       <div className="mb-4 rounded-[10px] border border-[var(--divider-soft)] p-3">
         <p className="mb-1 text-[12px] font-semibold text-[var(--color-ink)]/70">
@@ -703,13 +670,11 @@ function PanelBody({
   overrides,
   onOverrides,
   demo,
-  onOpenMascotStudio,
 }: {
   sel: XiahuaSel
   overrides: XiahuaOverrides
   onOverrides: (next: XiahuaOverrides) => void
   demo: (m: string) => void
-  onOpenMascotStudio: () => void
 }) {
   switch (sel.id) {
     /* ── 主会场 · 头部 ── */
@@ -726,18 +691,6 @@ function PanelBody({
               <Behavior value="顶部 130px 留给标题" options={['顶部 130px 留给标题', '不留安全区']} demo={demo} />
             </Field>
             <Note>主视觉是整页的底，改它会影响标题和阶段 Tab 的可读性。</Note>
-          </Section>
-          <Section title="小马 IP">
-            <p className="mb-2 text-[11px] leading-relaxed text-[var(--color-ink)]/45">
-              这张主视觉里的小马可以单独进入 3D 工作台，调好角度后导出截图再回填活动素材。
-            </p>
-            <button
-              type="button"
-              className="flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[8px] bg-[#f15b35] text-[12px] font-semibold text-white hover:bg-[#d94c29]"
-              onClick={onOpenMascotStudio}
-            >
-              <Box className="size-3.5" /> 打开小马 3D 工作台
-            </button>
           </Section>
           <Section title="素材">
             <ImageBlock src={sel.src} onDemo={demo} />

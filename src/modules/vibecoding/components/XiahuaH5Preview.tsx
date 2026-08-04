@@ -34,6 +34,7 @@ import {
 
 /** 档位图标按序取；超出的档位复用最后一枚。 */
 const TIER_ART = ['tier1', 'tier2', 'tier3', 'tier4'] as const
+const MORE_ACTIVITIES_CARD_SRC = '/assets/xiahua/more-activities-card.png'
 
 type Food = { id: string; name: string; motto: string; img?: string; imgGrey?: string }
 
@@ -753,7 +754,19 @@ function XiahuaH5PreviewBase({
               if (slot.id === 'sec-topics')
                 return <ImgOrPlaceholder key={slot.id} src={pickedAsset('secTopics')} label="话题区" className="block h-[317px] w-full" style={{ ...mt, ...mvFlow('sec-topics') }} />
               if (slot.id === 'sec-banner')
-                return <ImgOrPlaceholder key={slot.id} src={pickedAsset('secBanner')} label="底部 banner" className="block h-[158px] w-full" style={{ ...mt, ...mvFlow('sec-banner') }} />
+                return (
+                  <div key={slot.id} className="relative h-[158px] w-full" style={{ ...mt, ...mvFlow('sec-banner') }}>
+                    <ImgOrPlaceholder src={pickedAsset('secBanner')} label="底部 banner" className="block h-full w-full" />
+                    {ps.id === 'xiahua' && !wireframe && (
+                      <img
+                        src={MORE_ACTIVITIES_CARD_SRC}
+                        alt="更多精彩活动卡片"
+                        className="pointer-events-none absolute left-[12px] top-[68px] h-[90px] w-[351px] rounded-[12px] object-cover"
+                        draggable={false}
+                      />
+                    )}
+                  </div>
+                )
               return (
                 <div key={slot.id} className="flex w-full justify-center" style={mt}>
                   <ImgOrPlaceholder src={A.footerLogo} label="页脚 logo" className="h-[32px] w-[121px]" style={mvFlow('footer')} />
@@ -975,7 +988,13 @@ function XiahuaH5PreviewBase({
         {shownOverlay.kind === 'redeem' && (
           <RedeemOverlay key="redeem" tier={shownOverlay.tier} giftSrc={A.envelope} onAccept={() => claimTier(shownOverlay.tier)} onClose={() => setOverlay({ kind: 'none' })} />
         )}
-        {shownOverlay.kind === 'rules' && <RulesOverlay key="rules" onClose={() => setOverlay({ kind: 'none' })} />}
+        {shownOverlay.kind === 'rules' && (
+          <RulesOverlay
+            key="rules"
+            gameplay={gp}
+            onClose={() => setOverlay({ kind: 'none' })}
+          />
+        )}
       </AnimatePresence>
 
       {/* 非主会场画板的热区层 —— 盖在弹层之上，只可选中（弹层内容位置由布局决定） */}
@@ -1474,7 +1493,21 @@ function PrizesOverlay({
 
 /* ─── 活动规则 ─── */
 
-function RulesOverlay({ onClose }: { onClose: () => void }) {
+function RulesOverlay({
+  gameplay,
+  onClose,
+}: {
+  gameplay: XiahuaGameplay
+  onClose: () => void
+}) {
+  const cardNames = gameplay.cards.map((card) => `「${card.name}」`).join('、')
+  const tierNeeds = gameplay.tiers.map((tier) => tier.need).join(' / ')
+  const tierRewards = gameplay.tiers.map((tier) => tier.reward).join('、')
+  const taskRules = gameplay.tasks
+    .map((task) => `${task.label}（每日上限 ${task.dailyLimit} 次，完成一次 +${task.reward} 次）`)
+    .join('；')
+  const hasGoods = gameplay.tiers.some((tier) => tier.kind === 'goods')
+
   return (
     <motion.div
       className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-6 backdrop-blur-[4px]"
@@ -1494,11 +1527,11 @@ function RulesOverlay({ onClose }: { onClose: () => void }) {
         {/* 正文滚动，按钮固定在弹窗底部 —— 否则按钮会被卷进滚动区裁掉 */}
         <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto text-[13px] leading-relaxed text-[#6b4a2b] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <p><b>活动时间：</b>6月30日 10:00 — 8月31日 23:59（北京时间）</p>
-          <p><b>集美食卡 领奖励：</b>活动设有「沸腾火锅」「红火小龙虾」「滋滋烤肉」「鲜烧黄鱼」「浓香披萨」「香脆炸鸡」「冰爽柠檬茶」「解馋卤味」「上头螺蛳粉」9 种虚拟夜食卡。</p>
-          <p>集齐 <b>2 / 4 / 7 / 9</b> 种，可分别解锁 <b>2元夜食券、5元夜食券、43元夜食券包</b> 及实物奖励 <b>小马黄金转运珠</b>。奖励可叠加领取。</p>
-          <p><b>获得抽卡机会：</b>带定位&话题投稿（每日上限 5 次）、给朋友赠送美食卡（每日上限 3 次）、每日首次浏览活动页等任务均可获得抽卡机会。</p>
-          <p><b>赠送规则：</b>同一种卡持有 2 张及以上时可赠送好友，好友领取后生效。</p>
-          <p>优惠券每日限量发放，先到先得；实物奖励需在活动页填写收货信息，活动结束后 90 天内寄出。</p>
+          <p><b>集美食卡 领奖励：</b>活动设有 {cardNames} 共 {gameplay.cards.length} 种虚拟夜食卡。</p>
+          <p>集齐 <b>{tierNeeds}</b> 种，可分别解锁 <b>{tierRewards}</b>。奖励可叠加领取。</p>
+          <p><b>获得抽卡机会：</b>{taskRules}。</p>
+          <p><b>赠送规则：</b>同一种卡持有 {gameplay.gift.minHold} 张及以上时可赠送好友，好友领取后生效。</p>
+          <p>优惠券每日限量发放，先到先得。{hasGoods ? '实物奖励需按页面提示完成领取信息登记。' : ''}</p>
           <p className="text-[#9a7b58]">本活动与 Apple Inc. 无关。最终解释权归平台所有。</p>
         </div>
         <button

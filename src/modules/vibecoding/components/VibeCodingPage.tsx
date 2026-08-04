@@ -55,6 +55,7 @@ import XiahuaEditPanel, { type XiahuaOverrides, type XiahuaSel } from './XiahuaE
 import XiahuaGameplayEditor from './XiahuaGameplayEditor'
 import XiahuaEditCanvas from './XiahuaEditCanvas'
 import XiahuaBuildFlow from './XiahuaBuildFlow'
+import SummerSurfConversationMock from './SummerSurfConversationMock'
 import {
   LEGACY_XIAHUA_TEMPLATE_TOKEN,
   TEMPLATE_CLONE_PROJECT,
@@ -72,7 +73,11 @@ import XiahuaAssetBoard from './XiahuaAssetBoard'
 import XiahuaCloneDiff from './XiahuaCloneDiff'
 import XiahuaFramePanel from './XiahuaFramePanel'
 import XiahuaTemplateDoc from './XiahuaTemplateDoc'
-import { DEFAULT_XIAHUA_GAMEPLAY, type XiahuaGameplay } from './XiahuaGameplay'
+import {
+  DEFAULT_XIAHUA_GAMEPLAY,
+  XIAHUA_BUILD_BASELINE_GAMEPLAY,
+  type XiahuaGameplay,
+} from './XiahuaGameplay'
 import { ACTIVITY_PRESETS, XIAHUA_PRESET, type ActivityPreset } from './ActivityPreset'
 import H5CanvasEditor from './H5CanvasEditor'
 import H5CanvasLayerTree from './H5CanvasLayerTree'
@@ -1417,8 +1422,7 @@ function PlatformSidebar({
     // config exists but there's no scripted demo flow for them yet.
     '陶白白 Sensei 分身',
     XIAHUA_PROJECT,
-    // 夏日冲浪不预置在侧栏 —— 它是「引用集卡活动模板生成」出来的那个活动，
-    // 生成之后才会作为新项目出现（createdProjects 里）。
+    SUMMER_SURF_PROJECT,
     ACG_NEW_YEAR_PROJECT,
     '射击小游戏',
     TAROT_INTEREST_CARD_PROJECT,
@@ -2200,21 +2204,78 @@ const isXiahuaFamily = (t: string) =>
   t === XIAHUA_PROJECT || t === XIAHUA_BUILD_PROJECT
 const XIAHUA_EDIT_STORAGE_KEY = 'xiahua-edit-state-v1'
 type XiahuaEditStorage = {
+  version?: 2
   overrides: XiahuaOverrides
   gameplay: XiahuaGameplay
 }
+
+const createFinalXiahuaOverrides = (): XiahuaOverrides => ({
+  offsets: { title: { x: 0, y: -22, s: 0.9 } },
+  inserted: [
+    {
+      id: 'ins-guide',
+      kind: 'button',
+      label: '投稿引导入口',
+      placement: 'flow',
+      after: 'sec-tasks',
+      w: 375,
+      h: 64,
+      text: '发夏日投稿 · 大概率得稀有夜食',
+    },
+  ],
+})
+
+const mergeFinalXiahuaOverrides = (saved?: XiahuaOverrides): XiahuaOverrides => {
+  const generated = createFinalXiahuaOverrides()
+  if (!saved) return generated
+  return {
+    ...generated,
+    ...saved,
+    offsets: { ...generated.offsets, ...saved.offsets },
+    inserted: [
+      ...(generated.inserted ?? []),
+      ...(saved.inserted ?? []).filter((item) => item.id !== 'ins-guide'),
+    ],
+  }
+}
+
+const isLegacyXiahuaBaseline = (gameplay?: XiahuaGameplay) =>
+  gameplay?.tiers.length === 4 &&
+  gameplay.draw.initialChances === 9 &&
+  gameplay.draw.newCardBias === 0.72 &&
+  gameplay.copy.progress === '再抽 {n} 种'
+
 const readXiahuaEditStorage = (): XiahuaEditStorage => {
   if (typeof window === 'undefined') {
-    return { overrides: {}, gameplay: DEFAULT_XIAHUA_GAMEPLAY }
+    return {
+      version: 2,
+      overrides: createFinalXiahuaOverrides(),
+      gameplay: DEFAULT_XIAHUA_GAMEPLAY,
+    }
   }
   try {
     const saved = JSON.parse(window.localStorage.getItem(XIAHUA_EDIT_STORAGE_KEY) ?? 'null') as Partial<XiahuaEditStorage> | null
+    const hasSavedOverrides = Boolean(
+      saved?.overrides && Object.keys(saved.overrides).length > 0,
+    )
     return {
-      overrides: saved?.overrides ?? {},
-      gameplay: saved?.gameplay ?? DEFAULT_XIAHUA_GAMEPLAY,
+      version: 2,
+      overrides: hasSavedOverrides
+        ? saved?.version === 2
+          ? saved.overrides ?? createFinalXiahuaOverrides()
+          : mergeFinalXiahuaOverrides(saved?.overrides)
+        : createFinalXiahuaOverrides(),
+      gameplay:
+        saved?.gameplay && !isLegacyXiahuaBaseline(saved.gameplay)
+          ? saved.gameplay
+          : DEFAULT_XIAHUA_GAMEPLAY,
     }
   } catch {
-    return { overrides: {}, gameplay: DEFAULT_XIAHUA_GAMEPLAY }
+    return {
+      version: 2,
+      overrides: createFinalXiahuaOverrides(),
+      gameplay: DEFAULT_XIAHUA_GAMEPLAY,
+    }
   }
 }
 type HomeAttachment = { name: string; size: number; type: string }
@@ -2871,7 +2932,7 @@ export default function VibeCodingPage({
     initProjectDefaults(XIAHUA_BUILD_PROJECT, false, 'marketing-h5', false)
     // 从头搭：预设、玩法、选版全部回到出厂态，不继承已上线那版的成品状态
     setXiahuaPreset(XIAHUA_PRESET)
-    setXiahuaGameplay(XIAHUA_PRESET.gameplay)
+    setXiahuaGameplay(XIAHUA_BUILD_BASELINE_GAMEPLAY)
     setXiahuaOverrides({})
     setXiahuaScriptKind('build')
   }
@@ -3293,7 +3354,7 @@ export default function VibeCodingPage({
       setXiahuaScriptKind('build')
       setXiahuaPreset(XIAHUA_PRESET)
       setXiahuaGameplay(XIAHUA_PRESET.gameplay)
-      setXiahuaOverrides({})
+      setXiahuaOverrides(createFinalXiahuaOverrides())
       setXiahuaBuildStep(-1)
       setXiahuaBuildPlaying(false)
       setXiahuaBuildOwner(null)
@@ -3560,7 +3621,7 @@ export default function VibeCodingPage({
     try {
       window.localStorage.setItem(
         XIAHUA_EDIT_STORAGE_KEY,
-        JSON.stringify({ overrides: xiahuaOverrides, gameplay: xiahuaGameplay }),
+        JSON.stringify({ version: 2, overrides: xiahuaOverrides, gameplay: xiahuaGameplay }),
       )
     } catch {
       // localStorage unavailable: keep the live editor state in memory.
@@ -3765,13 +3826,15 @@ export default function VibeCodingPage({
     opts?: { instant?: boolean },
   ) => {
     const p = xiahuaPresetRef.current
+    const buildGameplay =
+      p.id === XIAHUA_PRESET.id ? XIAHUA_BUILD_BASELINE_GAMEPLAY : p.gameplay
     if (docName) setXiahuaUploadedDocName(docName)
     setXiahuaBuildOwner(projectTitleRef.current)
     setXiahuaScriptKind('build')
-    setXiahuaGameplay(p.gameplay)
+    setXiahuaGameplay(buildGameplay)
     setXiahuaOverrides({})
     setXiahuaSelected(null)
-    setXiahuaPlan(defaultPlan(p))
+    setXiahuaPlan(defaultPlan({ ...p, gameplay: buildGameplay }))
     setXiahuaPicks({})
     setXiahuaVersions({})
     setComposerText('')
@@ -4459,7 +4522,7 @@ export default function VibeCodingPage({
       {
         name: 'docs',
         type: 'dir',
-        children: [{ name: '这夏夯爆了项目策划-内部沟通版.md', type: 'file' }],
+        children: [{ name: '夯爆了生成交付文档.md', type: 'file' }],
       },
       {
         name: 'src',
@@ -5118,12 +5181,15 @@ export default function VibeCodingPage({
   const [platformPlaceholderPage, setPlatformPlaceholderPage] = useState<string | null>(null)
   useEffect(() => {
     if (!standaloneWorkshopLayout) return
-    setPlatformResourceLibraryOpen(false)
-    setPlatformSkillsOpen(false)
-    setPlatformCreativeSquareOpen(false)
-    setPlatformDataOpsOpen(false)
-    setPlatformPlaceholderPage(null)
-    setPlatformHomeOpen(true)
+    const frame = requestAnimationFrame(() => {
+      setPlatformResourceLibraryOpen(false)
+      setPlatformSkillsOpen(false)
+      setPlatformCreativeSquareOpen(false)
+      setPlatformDataOpsOpen(false)
+      setPlatformPlaceholderPage(null)
+      setPlatformHomeOpen(true)
+    })
+    return () => cancelAnimationFrame(frame)
   }, [standaloneWorkshopLayout])
   /** Any non-workspace platform-level overlay is open. Used to hide the
    *  chat aside, header, and adjust body margins / padding. */
@@ -6035,7 +6101,8 @@ export default function VibeCodingPage({
       !platformResourceLibraryOpen &&
       !platformSkillsOpen &&
       !platformCreativeSquareOpen &&
-      !platformDataOpsOpen
+      !platformDataOpsOpen &&
+      platformPlaceholderPage === null
     if (onThisProject) {
       openFileInTab(filename, path)
       return
@@ -6043,18 +6110,53 @@ export default function VibeCodingPage({
     pendingProductOpenRef.current = { filename, path }
     openProject(projectName)
   }
+
+  // Opening a product from a platform surface can keep the same project id,
+  // so `projectTitle` alone is not a sufficient signal to consume the pending
+  // target. Wait for the platform surface to close, then open it in the newly
+  // restored project snapshot on the same click.
   useEffect(() => {
+    if (
+      platformHomeOpen ||
+      platformResourceLibraryOpen ||
+      platformSkillsOpen ||
+      platformCreativeSquareOpen ||
+      platformDataOpsOpen ||
+      platformPlaceholderPage !== null ||
+      !pendingProductOpenRef.current
+    ) return
+
+    const frame = requestAnimationFrame(() => {
+      const pending = pendingProductOpenRef.current
+      if (!pending) return
+      pendingProductOpenRef.current = null
+      setEditPanelOpen(false)
+      setCanvasEditOpen(false)
+      setAvatarPromptEditing(false)
+      openFileInTab(pending.filename, pending.path)
+    })
+    return () => cancelAnimationFrame(frame)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    projectTitle,
+    platformHomeOpen,
+    platformResourceLibraryOpen,
+    platformSkillsOpen,
+    platformCreativeSquareOpen,
+    platformDataOpsOpen,
+    platformPlaceholderPage,
+  ])
+
+  useEffect(() => {
+    const hasPendingProduct = pendingProductOpenRef.current !== null
     const frame = requestAnimationFrame(() => {
       // Project-bound panels close after the target snapshot is committed.
       setEditPanelOpen(false)
       setCanvasEditOpen(false)
       setAvatarPromptEditing(false)
-      if (pendingProductOpenRef.current) {
-        const pending = pendingProductOpenRef.current
-        pendingProductOpenRef.current = null
-        openFileInTab(pending.filename, pending.path)
-        return
-      }
+      // The pending-product effect owns the destination tab. Avoid briefly
+      // focusing 预览 while that same click is still opening 素材库/配置页。
+      if (hasPendingProduct) return
       setActivePreviewTab((current) => {
         const index = openTabs.findIndex((tab) => tab.label === '预览')
         return index >= 0 ? index : current
@@ -7295,7 +7397,7 @@ export default function VibeCodingPage({
             {(chatCleared || (!needsFlowActive && !showChatPublish && sentMessages.length === 0)) && proposalStep === 'idle' ? (
               // 这夏夯爆了：空会话固定回放「生成过程」记录（模拟平台从策划
               // 文档到可玩活动的对话链路）——它就是这个项目的历史。
-              isXiahuaFamily(projectTitle) || buildFlowHere ? (
+              isXiahuaFamily(projectTitle) || buildFlowHere || projectTitle === SUMMER_SURF_PROJECT ? (
                 <div className="space-y-6">
                   {buildFlowHere ? (
                     <XiahuaBuildFlow
@@ -7344,6 +7446,8 @@ export default function VibeCodingPage({
                     />
                   ) : projectTitle === XIAHUA_PROJECT ? (
                     <XiahuaGenerationLog />
+                  ) : projectTitle === SUMMER_SURF_PROJECT ? (
+                    <SummerSurfConversationMock onReplay={() => startTemplateClone()} />
                   ) : (
                     <ChatEmptyState
                       suggestions={
@@ -7367,6 +7471,9 @@ export default function VibeCodingPage({
 
             {/* 这夏夯爆了：生成过程记录常驻在新消息上方，后续调整接着记。 */}
             {projectTitle === XIAHUA_PROJECT && <XiahuaGenerationLog />}
+            {projectTitle === SUMMER_SURF_PROJECT && (
+              <SummerSurfConversationMock onReplay={() => startTemplateClone()} />
+            )}
 
             {/* ── User-sent messages — always rendered first. Plain
                  messages get a generic AI ack below; trigger-matched
@@ -10546,12 +10653,12 @@ export default function VibeCodingPage({
               ) {
                 return productView
               }
-              // 模板复刻第一步的「项目文档」= 用户需求 + 已生成模板的本期项目方案
+              // 模板复刻全程保持同一份「项目文档」，阶段切换后不能跳回静态旧稿。
               if (
                 label === PROJECT_DOCUMENT_LABEL &&
+                projectTitle === XIAHUA_CLONE_PROJECT &&
                 xiahuaScriptKind === 'clone' &&
-                xiahuaBuildStep >= 0 &&
-                xiahuaBuildPhase === 'doc'
+                xiahuaBuildStep >= 0
               ) {
                 return (
                   <XiahuaTemplateDoc

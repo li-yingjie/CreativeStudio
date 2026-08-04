@@ -51,7 +51,7 @@ const TEMPLATE_OPTION = '夯爆了 · 集卡 H5 模板'
 const TOOLS = [
   {
     key: 'card',
-    label: '兴趣卡',
+    label: '兴趣卡模板',
     Icon: ImageIcon,
     placeholder: '说说你的兴趣卡，例如：第五人格主题的塔罗运势兴趣卡',
     params: [
@@ -71,7 +71,6 @@ const TOOLS = [
       { label: '活动形态', options: ['H5 活动页', '原生活动页', '小程序'] },
       // 存过的活动模板挂在这里：选中之后按模板换素材换玩法生成新活动
       { label: '模板', options: ['不使用模板', TEMPLATE_OPTION] },
-      { label: '活动周期', options: ['3 天', '7 天', '14 天'] },
     ],
   },
   {
@@ -589,12 +588,7 @@ export default function PlatformHome({
                         <ParamSelect
                           key={p.label}
                           label={p.label}
-                          // 没存过模板就没这个选项，不给空的模板槽位
-                          options={
-                            templateRegistered
-                              ? p.options
-                              : p.options.filter((o) => o !== TEMPLATE_OPTION)
-                          }
+                          options={p.options}
                           value={params[`${tool.key}.${p.label}`]}
                           onChange={(v) =>
                             setParams((cur) => ({ ...cur, [`${tool.key}.${p.label}`]: v }))

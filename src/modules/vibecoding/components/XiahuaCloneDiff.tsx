@@ -255,8 +255,8 @@ export default function XiahuaCloneDiff({
       </div>
 
       <p className="mt-3 rounded-[8px] bg-[var(--color-ink)]/[0.03] px-2.5 py-2 text-[11px] leading-[17px] text-[var(--color-ink)]/50">
-        没列出来的都原样继承：5 个页面的版式与热区、抽卡 → 集卡 → 解锁档位 → 领奖的主链路、
-        赠送与卡册规则。这些是模板抽象掉的结构，换活动不用重做。
+        没列出来的都原样继承：活动长页与交互浮层的版式和热区、抽卡 → 集卡 → 解锁档位 →
+        领奖的主链路、赠送与卡册规则。这些是模板抽象掉的结构，换活动不用重做。
       </p>
     </div>
   )

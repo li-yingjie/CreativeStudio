@@ -3,7 +3,6 @@ import {
   Suspense,
   useCallback,
   useEffect,
-  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -266,18 +265,24 @@ export default function CreatorCenterShell() {
     active,
     configuredSideNavWidth,
   )
-  const expandedSideNavWidthsRef = useRef<Partial<Record<ProductId, number>>>({})
-  if (
-    !activeSideNavCollapsed &&
-    activeSideNavWidth > configuredCollapsedWidth
-  ) {
-    expandedSideNavWidthsRef.current[active] = activeSideNavWidth
-  }
+  const [expandedSideNavWidths, setExpandedSideNavWidths] =
+    useState<Partial<Record<ProductId, number>>>({})
+  useEffect(() => {
+    if (activeSideNavCollapsed || activeSideNavWidth <= configuredCollapsedWidth) return
+    const frame = requestAnimationFrame(() => {
+      setExpandedSideNavWidths((current) =>
+        current[active] === activeSideNavWidth
+          ? current
+          : { ...current, [active]: activeSideNavWidth },
+      )
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [active, activeSideNavCollapsed, activeSideNavWidth, configuredCollapsedWidth])
   const visualSideNavWidth = activeSideNavCollapsed
     ? configuredCollapsedWidth
     : activeSideNavWidth > configuredCollapsedWidth
       ? activeSideNavWidth
-      : expandedSideNavWidthsRef.current[active] ?? configuredSideNavWidth
+      : expandedSideNavWidths[active] ?? configuredSideNavWidth
   // AI 分身默认视为已开通（开通落地页暂时隐藏），进入即分身版工坊界面；
   // 与工坊同样首次进入后保持挂载，切走再切回不丢状态。
   const [avatarMounted, setAvatarMounted] = useState(false)
@@ -296,8 +301,11 @@ export default function CreatorCenterShell() {
 
   useEffect(() => {
     if (!standaloneWorkshop) return
-    setWorkshopMounted(true)
-    setActive('workshop')
+    const frame = requestAnimationFrame(() => {
+      setWorkshopMounted(true)
+      setActive('workshop')
+    })
+    return () => cancelAnimationFrame(frame)
   }, [standaloneWorkshop])
 
   return (

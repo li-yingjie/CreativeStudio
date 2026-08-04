@@ -51,7 +51,8 @@ export interface XiahuaGameplay {
   }
 }
 
-export const DEFAULT_XIAHUA_GAMEPLAY: XiahuaGameplay = {
+/** 0→1 回放的输入基线：保留策划初稿，后续脚本会逐步调成上线版本。 */
+export const XIAHUA_BUILD_BASELINE_GAMEPLAY: XiahuaGameplay = {
   cards: [
     { id: 'huoguo', name: '沸腾火锅', motto: '热辣下肚 烦恼止步' },
     { id: 'longxia', name: '红火小龙虾', motto: '虾壳通红 焦虑清空' },
@@ -79,6 +80,18 @@ export const DEFAULT_XIAHUA_GAMEPLAY: XiahuaGameplay = {
   copy: {
     progress: '再抽 {n} 种',
     progressSub: '兑{reward}',
+    allDone: '集齐{total}种!',
+  },
+}
+
+/** 「夯爆了 已上线」与活动模板读取的生成终态。 */
+export const DEFAULT_XIAHUA_GAMEPLAY: XiahuaGameplay = {
+  ...XIAHUA_BUILD_BASELINE_GAMEPLAY,
+  tiers: XIAHUA_BUILD_BASELINE_GAMEPLAY.tiers.slice(0, 3),
+  draw: { initialChances: 12, newCardBias: 0.88 },
+  copy: {
+    progress: '还差 {n} 种就能兑',
+    progressSub: '{reward} 等你拿',
     allDone: '集齐{total}种!',
   },
 }

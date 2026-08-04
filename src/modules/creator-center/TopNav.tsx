@@ -130,12 +130,12 @@ export default function TopNav({
 const menuRow =
   'flex w-full items-center gap-2 rounded-md px-2 py-2 text-[14px] leading-5 text-[#1c1f23] transition-colors hover:bg-[rgba(83,96,143,0.07)]'
 
-const AVATAR_NAV_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const satisfies readonly NavVersion[]
+const AVATAR_NAV_VERSIONS = [1, 4, 7] as const satisfies readonly NavVersion[]
 const NAV_VERSION_NAMES: Record<NavVersion, string> = {
   1: 'L 型',
   2: '内容区收起',
   3: '底部收起',
-  4: '增加 Header',
+  4: '文案 Header',
   5: '底部工具栏',
   6: '搜索工具栏',
   7: '内部抖音 AI 工作台',
@@ -229,9 +229,9 @@ export function AvatarMenu({
                 <button
                   type="button"
                   role="radio"
-                  aria-label={`方案 ${version}，${NAV_VERSION_NAMES[version]}`}
+                  aria-label={NAV_VERSION_NAMES[version]}
                   aria-checked={navVersion === version}
-                  title={`方案 ${version} · ${NAV_VERSION_NAMES[version]}`}
+                  title={NAV_VERSION_NAMES[version]}
                   onClick={() => selectNavVersion(version)}
                   className={`flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium transition-colors ${
                     navVersion === version
@@ -239,7 +239,6 @@ export function AvatarMenu({
                       : 'bg-[#f4f5f7] text-[#252632]/60 hover:bg-[#eceef2] hover:text-[#252632]'
                   }`}
                 >
-                  <span className="shrink-0 text-[9px] opacity-55">方案 {version}</span>
                   <span className="whitespace-nowrap">{NAV_VERSION_NAMES[version]}</span>
                 </button>
               </Popover.Close>

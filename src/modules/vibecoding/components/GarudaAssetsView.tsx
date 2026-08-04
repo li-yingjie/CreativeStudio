@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   ArrowUp,
+  Box,
   Check,
   ChevronDown,
   Film,
@@ -24,6 +25,7 @@ import {
   type AssetKind,
 } from './ProjectAssetCatalog'
 import { resolveMarketingKingAssetUrl } from './marketingKingAssetCache'
+import XiahuaMascot3DStudio from './XiahuaMascot3DStudio'
 
 /**
  * Garuda 资产视图
@@ -380,6 +382,15 @@ export default function GarudaAssetsView({
 
   // Asset opened → show the inline Prompt detail (not a fullscreen overlay).
   if (selected) {
+    if (selected.modelSrc) {
+      return (
+        <AssetModelDetail
+          label={selected.label}
+          modelSrc={selected.modelSrc}
+          onBack={() => setSelected(null)}
+        />
+      )
+    }
     const assetKey = selected.id ?? selected.src
     const resolvedPrompt = resolveAssetPrompt(selected)
     return (
@@ -419,6 +430,7 @@ export default function GarudaAssetsView({
           {kindTabs.map((kindValue) => {
             const Icon = KIND_META[kindValue].icon
             const active = kindValue === effectiveKind
+            const label = kindTabs.length === 1 ? '所有素材' : KIND_META[kindValue].label
             return (
               <button
                 key={kindValue}
@@ -435,7 +447,7 @@ export default function GarudaAssetsView({
                 }`}
               >
                 <Icon className="size-3.5" strokeWidth={1.8} />
-                {KIND_META[kindValue].label}
+                {label}
                 <span className="text-[10px] text-[var(--color-ink)]/35">
                   {kindCounts[kindValue]}
                 </span>
@@ -548,7 +560,7 @@ export default function GarudaAssetsView({
                       {sourceGroup}
                     </span>
                     <span className="text-[11.5px] text-[var(--color-ink)]/45">
-                      {KIND_META[kindValue].label}
+                      {item.modelSrc ? '3D 模型' : KIND_META[kindValue].label}
                     </span>
                     <span className="truncate text-[11.5px] text-[var(--color-ink)]/45">
                       {promptMeta.model}
@@ -586,6 +598,39 @@ export default function GarudaAssetsView({
             ))}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+function AssetModelDetail({
+  label,
+  modelSrc,
+  onBack,
+}: {
+  label: string
+  modelSrc: string
+  onBack: () => void
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-surface-0)]">
+      <div className="flex h-10 shrink-0 items-center gap-2 border-b border-black/[0.06] px-3 py-1.5">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex h-6 items-center gap-1 rounded-full px-2 text-[12px] font-semibold leading-4 text-[var(--color-ink)]/80 transition-colors duration-150 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+        >
+          <ArrowLeft className="size-4" strokeWidth={1.8} />
+          返回
+        </button>
+        <Box className="size-3.5 text-[var(--color-ink)]/45" strokeWidth={1.8} />
+        <span className="truncate text-[12px] text-[var(--color-ink)]/55">{label}</span>
+        <span className="shrink-0 rounded bg-[var(--fill-subtle)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-ink)]/55">
+          3D 模型
+        </span>
+      </div>
+      <div className="min-h-0 flex-1">
+        <XiahuaMascot3DStudio modelSrc={modelSrc} />
       </div>
     </div>
   )
@@ -1039,6 +1084,11 @@ function AssetThumb({
           {item.frames && (
             <span className="absolute right-1 top-1 rounded-md bg-black/65 px-1.5 py-0.5 font-mono text-[9.5px] text-white/80">
               {item.frames}f
+            </span>
+          )}
+          {item.modelSrc && (
+            <span className="absolute right-1 top-1 flex items-center gap-0.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[9.5px] font-medium text-white/90">
+              <Box className="size-2.5" strokeWidth={1.8} /> 3D
             </span>
           )}
         </button>

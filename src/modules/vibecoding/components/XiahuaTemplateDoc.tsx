@@ -61,48 +61,83 @@ export default function XiahuaTemplateDoc({
 
         <TemplateSection
           title={isProject ? '本期页面与玩法' : '模板页面框架'}
-          hint={isProject ? '继承模板结构 · 配置本期内容' : '5 个页面 · 编号对应替换位'}
+          hint={isProject ? '1 个活动长页 · 4 个交互浮层' : '5 个页面 · 编号对应替换位'}
         >
-          <p className="mb-3 text-[11.5px] leading-[18px] text-[var(--color-ink)]/55">
-            {isProject
-              ? '页面结构和交互沿用已生成的活动模板，灰阶图只用于确认页面关系；本期主题素材和玩法参数按项目文档配置。'
-              : '这里先用灰阶占位图展示模板的页面结构和素材槽位，不是最终视觉。使用新活动时按编号替换素材，版式、热区和交互保持不变。'}
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {screens.map((screen, index) => (
-              <div
-                key={screen.id}
-                className="rounded-[10px] border border-[var(--divider-soft)] bg-[var(--color-surface-1)] p-3"
-              >
-                <div className="flex items-start gap-2">
-                  <span className="flex size-[20px] shrink-0 items-center justify-center rounded-full bg-[var(--color-ink)]/[0.08] text-[10px] font-medium text-[var(--color-ink)]/65">
-                    {index + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[12px] font-medium text-[var(--color-ink)]/75">{screen.label}</p>
-                    <p className="mt-0.5 text-[10.5px] leading-[16px] text-[var(--color-ink)]/45">{screen.desc}</p>
-                  </div>
-                </div>
-                <div className="mt-3 flex h-[292px] items-start justify-center overflow-hidden rounded-[8px] bg-[#e9e9e9] pt-2">
-                  <div className="h-[282px] w-[130px] overflow-hidden rounded-[15px] border-[4px] border-[#1c1f23] bg-[#f2f2f2] shadow-[0_7px_14px_rgba(16,18,24,0.14)]">
-                    <div className="h-[812px] w-[375px] origin-top-left scale-[0.347]">
-                      <XiahuaH5Preview
-                        preset={XIAHUA_PRESET}
-                        gameplay={XIAHUA_PRESET.gameplay}
-                        screen={screen.id}
-                        build="playable"
-                        wireframe
-                        readOnly
-                      />
+          {isProject && document.surfaces ? (
+            <>
+              <p className="mb-3 text-[11.5px] leading-[18px] text-[var(--color-ink)]/55">
+                以下结构直接对应最终可玩预览；Loading 与角色选择仍是工程草稿路由，不计入本期交付界面。
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {document.surfaces.map((surface, index) => (
+                  <div
+                    key={surface.name}
+                    className={`rounded-[10px] border border-[var(--divider-soft)] bg-[var(--color-surface-1)] p-3 ${
+                      surface.kind === '长页面' ? 'sm:col-span-2' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-sky-500/10 text-[10px] font-semibold text-sky-600">
+                        {index + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <p className="text-[12.5px] font-medium text-[var(--color-ink)]/80">{surface.name}</p>
+                          <span className="rounded-full bg-[var(--color-ink)]/[0.06] px-1.5 py-0.5 text-[9.5px] text-[var(--color-ink)]/45">
+                            {surface.kind}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[11px] leading-[17px] text-[var(--color-ink)]/50">
+                          {surface.description}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <>
+              <p className="mb-3 text-[11.5px] leading-[18px] text-[var(--color-ink)]/55">
+                这里先用灰阶占位图展示模板的页面结构和素材槽位，不是最终视觉。使用新活动时按编号替换素材，版式、热区和交互保持不变。
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {screens.map((screen, index) => (
+                  <div
+                    key={screen.id}
+                    className="rounded-[10px] border border-[var(--divider-soft)] bg-[var(--color-surface-1)] p-3"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="flex size-[20px] shrink-0 items-center justify-center rounded-full bg-[var(--color-ink)]/[0.08] text-[10px] font-medium text-[var(--color-ink)]/65">
+                        {index + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[12px] font-medium text-[var(--color-ink)]/75">{screen.label}</p>
+                        <p className="mt-0.5 text-[10.5px] leading-[16px] text-[var(--color-ink)]/45">{screen.desc}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex h-[292px] items-start justify-center overflow-hidden rounded-[8px] bg-[#e9e9e9] pt-2">
+                      <div className="h-[282px] w-[130px] overflow-hidden rounded-[15px] border-[4px] border-[#1c1f23] bg-[#f2f2f2] shadow-[0_7px_14px_rgba(16,18,24,0.14)]">
+                        <div className="h-[812px] w-[375px] origin-top-left scale-[0.347]">
+                          <XiahuaH5Preview
+                            preset={XIAHUA_PRESET}
+                            gameplay={XIAHUA_PRESET.gameplay}
+                            screen={screen.id}
+                            build="playable"
+                            wireframe
+                            readOnly
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
           <div className="mt-3 rounded-[10px] border border-[var(--divider-soft)] bg-[var(--color-surface-1)] p-3">
             <p className="mb-2 text-[11px] font-medium text-[var(--color-ink)]/55">
-              {isProject ? '本期素材配置（对应 1–8 号）' : '素材替换位（对应 1–8 号）'}
+              {isProject ? '本期素材结果（模板 → 生成）' : '素材替换位（对应 1–8 号）'}
             </p>
             <div className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
               {CLONE_ASSET_DIFF.map((item, index) => (

@@ -9,6 +9,8 @@ export interface AssetPrompt {
 export interface AssetItem {
   id?: string
   src: string
+  /** Optional interactive 3D source; src remains the grid thumbnail/fallback. */
+  modelSrc?: string
   /** Browser-cached source key used by imported project assets. */
   assetId?: string
   /** Poster shown while an imported video source is not available locally. */
@@ -426,6 +428,8 @@ export const SUMMER_SURF_ASSET_GROUPS: AssetGroup[] = [
 const XIAHUA_ART_DIRECTION =
   '抖音生活服务「这夏夯爆了」夏日夜食活动素材，深夜食堂夜市氛围，暖棕木质 + 霓虹夜景底色，红橙主色配荧光绿点缀，3D 软胶玩具质感，圆润造型，柔和高光'
 
+export const XIAHUA_MASCOT_MODEL_SRC = '/cartoon pony 3d model.glb'
+
 function xiahuaAsset(
   id: string,
   file: string,
@@ -499,12 +503,15 @@ export const XIAHUA_ASSET_GROUPS: AssetGroup[] = [
         '开卡标题 / 恭喜你获得',
         '中文涂鸦字「恭喜你获得」，「恭喜」为荧光绿手写笔刷、「你获得」为白色粗黑体，上方点缀橙色小字 wow 与下划线，周围散落荧光绿菱形与橙色小圆点。透明背景，横版，适配深色开卡弹层。',
       ),
-      xiahuaAsset(
-        'xh-mascot',
-        'mascot-horse-v3.png',
-        'IP 形象 / 小马 3D 对象',
-        '参考新版 IP 的 3D 卡通红色小马，深棕色蓬松鬃毛与尾巴，米色大口鼻、手脚，半睁眼和简单弧线笑脸，圆润软胶玩具质感，透明背景，三分之四视角，全身产品级渲染。可进入小马 3D 工作台调整视角、灯光与截图背景。',
-      ),
+      {
+        ...xiahuaAsset(
+          'xh-mascot',
+          'mascot-horse-v3.png',
+          'IP 形象 / 小马 3D 对象',
+          '参考新版 IP 的 3D 卡通红色小马，深棕色蓬松鬃毛与尾巴，米色大口鼻、手脚，半睁眼和简单弧线笑脸，圆润软胶玩具质感，透明背景，三分之四视角，全身产品级渲染。可进入小马 3D 工作台调整视角、灯光与截图背景。',
+        ),
+        modelSrc: XIAHUA_MASCOT_MODEL_SRC,
+      },
       xiahuaAsset(
         'xh-footer-logo',
         'footer-logo.png',
@@ -537,12 +544,12 @@ export const XIAHUA_ASSET_GROUPS: AssetGroup[] = [
   },
   {
     title: '奖励与档位',
-    desc: '集齐 2 / 4 / 7 / 9 种解锁的券与实物奖励',
+    desc: '上线使用 2 / 4 / 7 三档券奖励；实物奖素材保留为未启用候选',
     items: [
       xiahuaAsset('xh-tier-2', 'tier-2.png', '档位 01 / 2 元夜食券', `${XIAHUA_ART_DIRECTION}。3D 立体优惠券图标，红色券身带齿孔边，正面居中白色粗体「¥2」，微微倾斜带投影。透明背景，产品级渲染。`),
       xiahuaAsset('xh-tier-5', 'tier-5.png', '档位 02 / 5 元夜食券', `${XIAHUA_ART_DIRECTION}。3D 立体优惠券图标，红色券身带齿孔边，正面居中白色粗体「¥5」，比 2 元券更大更亮。透明背景，产品级渲染。`),
       xiahuaAsset('xh-tier-43', 'tier-43.png', '档位 03 / 43 元券包', `${XIAHUA_ART_DIRECTION}。3D 立体优惠券包图标，多张红色券叠放，最上层白色粗体「¥43」，右上角露出叠层厚度。透明背景，产品级渲染。`),
-      xiahuaAsset('xh-tier-gold', 'tier-gold.png', '档位 04 / 黄金转运珠', `${XIAHUA_ART_DIRECTION}。3D 黄金小马转运珠实物奖品图标，足金材质高反光，圆润小马造型，底部标注「足金」小牌。透明背景，珠宝级渲染。`),
+      xiahuaAsset('xh-tier-gold', 'tier-gold.png', '未启用候选 / 黄金转运珠', `${XIAHUA_ART_DIRECTION}。3D 黄金小马转运珠实物奖品图标，足金材质高反光，圆润小马造型，底部标注「足金」小牌。透明背景，珠宝级渲染。`),
       xiahuaAsset('xh-envelope', 'envelope.png', '兑换红包', `${XIAHUA_ART_DIRECTION}。3D 立体红包图标，粉红色软胶质感封套，中间一枚米金色圆形封印，边缘圆润带柔和高光。透明背景，正面居中。`),
     ],
   },
