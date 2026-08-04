@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   FileText,
+  FolderCode,
   Gamepad2,
   Image as ImageIcon,
   LayoutTemplate,
@@ -42,6 +43,7 @@ const PLACEHOLDER = '说说你想做什么，例如：生成一套炉石风格�
 
 /** 选中态主色（抖音蓝）。 */
 const BLUE = '#1664FF'
+const INTEREST_CARD_ICON = '/assets/workshop/xinquka.svg'
 
 /** 快捷入口。选中后工具条只留这枚蓝色入口，后面跟该类型的下拉槽位
  *  （豆包那套交互）：第一个槽是做什么，后面是参数。 */
@@ -53,13 +55,9 @@ const TOOLS = [
     key: 'card',
     label: '兴趣卡模板',
     Icon: ImageIcon,
+    iconSrc: INTEREST_CARD_ICON,
     placeholder: '说说你的兴趣卡，例如：第五人格主题的塔罗运势兴趣卡',
-    params: [
-      { label: '玩法', options: ['塔罗运势', '心理测验', '榜单盘点', '点单卡'] },
-      { label: '卡片比例', options: ['9:16', '3:4', '1:1'] },
-      { label: '模板', options: ['默认', '简约', '潮玩', '国风'] },
-      { label: '互动', options: ['点击翻牌', '滑动切换', '无'] },
-    ],
+    params: [],
   },
   {
     key: 'marketing',
@@ -67,10 +65,9 @@ const TOOLS = [
     Icon: LayoutTemplate,
     placeholder: '说说你的活动，例如：做一个新春抽奖 H5，红金国风主视觉',
     params: [
-      { label: '玩法', options: ['集卡兑奖', '抽奖玩法', '报名表单', '榜单排名', '分享裂变'] },
-      { label: '活动形态', options: ['H5 活动页', '原生活动页', '小程序'] },
+      { label: '活动形态', options: ['H5 活动页', '原生化活动页'] },
       // 存过的活动模板挂在这里：选中之后按模板换素材换玩法生成新活动
-      { label: '模板', options: ['不使用模板', TEMPLATE_OPTION] },
+      { label: '模板', options: ['选择模板', TEMPLATE_OPTION] },
     ],
   },
   {
@@ -208,14 +205,29 @@ const WORKS: Work[] = [
 
 const AUTHOR_AVATAR = `${INSPIRE}/author.webp`
 
+function ToolIcon({ tool }: { tool: Tool }) {
+  if ('iconSrc' in tool) {
+    return (
+      <span
+        aria-hidden
+        className="size-4 shrink-0 bg-current"
+        style={{
+          WebkitMask: `url("${tool.iconSrc}") center / contain no-repeat`,
+          mask: `url("${tool.iconSrc}") center / contain no-repeat`,
+        }}
+      />
+    )
+  }
+
+  return <tool.Icon size={16} strokeWidth={1.8} />
+}
+
 /** 工具行按钮（icon + 文字）。 */
 function ToolChip({
-  icon: Icon,
-  label,
+  tool,
   onClick,
 }: {
-  icon: typeof Palette
-  label: string
+  tool: Tool
   onClick: () => void
 }) {
   return (
@@ -224,8 +236,8 @@ function ToolChip({
       onClick={onClick}
       className="flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2 text-[14px] text-[#1C1F23]/80 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
     >
-      <Icon size={16} strokeWidth={1.8} />
-      {label}
+      <ToolIcon tool={tool} />
+      {tool.label}
     </button>
   )
 }
@@ -346,6 +358,7 @@ export default function PlatformHome({
   draft,
   setDraft,
   onSubmit,
+  onOpenResourceLibrary,
 }: {
   draft: string
   setDraft: (s: string) => void
@@ -353,6 +366,7 @@ export default function PlatformHome({
     text: string,
     attachment?: { name: string; size: number; type: string },
   ) => void
+  onOpenResourceLibrary: () => void
 }) {
   const [activeTab, setActiveTab] = useState('游戏卡牌')
   /* 快捷入口：选中一个类型后，右侧换成它自己的下拉槽位。 */
@@ -413,9 +427,10 @@ export default function PlatformHome({
     // 选了活动模板 = 引用它复刻：把 token 带进 prompt，工坊按模板拆替换清单
     const usesTemplate =
       tool.key === 'marketing' && params['marketing.模板'] === TEMPLATE_OPTION
-    const ps = picked.filter((v) => v !== '不使用模板').join(' / ')
+    const ps = picked.filter((v) => v !== '选择模板').join(' / ')
     const body = usesTemplate ? `${XIAHUA_TEMPLATE_TOKEN} ${request}` : request
-    onSubmit(`【${tool.label}｜${ps}】${body}`, attachment)
+    const scope = ps ? `【${tool.label}｜${ps}】` : `【${tool.label}】`
+    onSubmit(`${scope}${body}`, attachment)
   }
 
   return (
@@ -572,7 +587,7 @@ export default function PlatformHome({
                         className="flex h-8 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-1.5 text-[14px]"
                         style={{ color: BLUE, backgroundColor: 'rgba(22,100,255,0.08)' }}
                       >
-                        <tool.Icon size={16} strokeWidth={1.8} />
+                        <ToolIcon tool={tool} />
                         {tool.label}
                         <button
                           type="button"
@@ -584,25 +599,35 @@ export default function PlatformHome({
                         </button>
                       </span>
                       {/* 下拉槽位紧跟在入口后面左对齐，别甩到右边留一大段空 */}
-                      {tool.params.map((p) => (
-                        <ParamSelect
-                          key={p.label}
-                          label={p.label}
-                          options={p.options}
-                          value={params[`${tool.key}.${p.label}`]}
-                          onChange={(v) =>
-                            setParams((cur) => ({ ...cur, [`${tool.key}.${p.label}`]: v }))
-                          }
-                        />
-                      ))}
+                      {tool.key === 'card' ? (
+                        <button
+                          type="button"
+                          onClick={onOpenResourceLibrary}
+                          className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-black/10 px-3 text-[13px] font-medium text-[#1C1F23]/70 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
+                        >
+                          <FolderCode size={14} strokeWidth={1.8} />
+                          扩展
+                        </button>
+                      ) : (
+                        tool.params.map((p) => (
+                          <ParamSelect
+                            key={p.label}
+                            label={p.label}
+                            options={p.options}
+                            value={params[`${tool.key}.${p.label}`]}
+                            onChange={(v) =>
+                              setParams((cur) => ({ ...cur, [`${tool.key}.${p.label}`]: v }))
+                            }
+                          />
+                        ))
+                      )}
                     </>
                   ) : (
                     <>
                       {PRIMARY_TOOLS.map((t) => (
                         <ToolChip
                           key={t.key}
-                          icon={t.Icon}
-                          label={t.label}
+                          tool={t}
                           onClick={() => setTool(t)}
                         />
                       ))}

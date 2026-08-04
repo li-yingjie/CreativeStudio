@@ -9614,6 +9614,7 @@ export default function VibeCodingPage({
             draft={homeDraft}
             setDraft={setHomeDraft}
             onSubmit={submitFromHome}
+            onOpenResourceLibrary={openResourceLibraryPage}
           />
         )}
 
