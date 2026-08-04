@@ -121,8 +121,8 @@ export interface BuildStep {
   gameplayPick?: string
   /** 停下来等人确认 */
   gate?: BuildGate
-  /** 真实状态改动 */
-  mutate?: BuildMutation
+  /** 真实状态改动；一步动到几份状态（如玩法 + 项目文档）就给数组 */
+  mutate?: BuildMutation | BuildMutation[]
   /** 这一步显示多久后自动进入下一步（ms） */
   hold: number
 }
@@ -607,8 +607,8 @@ export const XIAHUA_BUILD_SCRIPT: BuildStep[] = [
       group: 'list-adjust',
       title: '补清单',
       lines: [
-        '红包封面确实漏了——它在兑奖弹窗里，不在主会场的框架上，按槽位倒推就扫不到。',
-        '页脚字标在清单里，归在「品牌与标题」那批，一起确认一下位置。',
+        '红包封面在兑奖弹窗里，不在主会场的框架上——按槽位倒推最容易漏的就是这类，回头查了一遍，它归在「奖励档位」那批。',
+        '页脚字标也在，归在「品牌与标题」那批，一起确认一下位置。',
       ],
     },
     hold: 1700,
@@ -617,7 +617,7 @@ export const XIAHUA_BUILD_SCRIPT: BuildStep[] = [
     id: 'list-adjust-do',
     view: {
       kind: 'ai',
-      text: '红包封面加进「奖励档位」那批了，页脚字标本来就在「品牌与标题」里。清单现在是 26 项。\n\n弹窗里的素材容易漏，我把 5 个页面又过了一遍，其余的都在。',
+      text: '这两项都在清单里：红包封面归「奖励档位」，页脚字标归「品牌与标题」，所以还是 26 项。\n\n弹窗里的素材确实最容易漏，我把 5 个页面又过了一遍，其余的也都在。真要加新的现在说。',
     },
     phase: 'assetList',
     gate: { confirm: '生成风格参考', confirmTo: 'ok-list' },
@@ -768,12 +768,13 @@ export const XIAHUA_BUILD_SCRIPT: BuildStep[] = [
     gate: {
       confirm: '生成 UI 界面',
       confirmTo: 'ok-asset',
+      alt: '换素材',
     },
     hold: 0,
   },
   {
     id: 'asset-adjust-ask',
-    view: { kind: 'user', text: '奖品那张我直接传设计给的图；任务区再出一版素一点的' },
+    view: { kind: 'user', text: '奖品那张我直接传设计给的图；集卡面板底再出一版，现在太平了' },
     hold: 1200,
   },
   {
@@ -784,7 +785,7 @@ export const XIAHUA_BUILD_SCRIPT: BuildStep[] = [
       title: '换素材',
       lines: [
         '实物奖是要真发出去的东西，设计手上有定稿图，直接传上来比生成准——每一项都能用本地文件顶掉。',
-        '任务区再出一版：这块只是承载文字，太花会跟集卡面板抢注意力，往素里调。',
+        '集卡面板底现在是一整块纯色，压在头图下面确实平；加一圈金属描边和材质，跟上面的卡面拉开层次。',
         '原来那版都留着，右侧点版本号能随时切回去比。',
       ],
     },
@@ -794,13 +795,15 @@ export const XIAHUA_BUILD_SCRIPT: BuildStep[] = [
     id: 'asset-adjust-do',
     view: {
       kind: 'ai',
-      text: '实物奖那项等你在右侧点「本地上传」把图丢进来就替换掉，上传的会作为新一版排在最后。任务区出了第二版，已经切过去。\n\n这两处都不影响别的素材，改完直接生成界面就行。',
+      text: '实物奖那项等你在右侧点「本地上传」把图丢进来就替换掉，上传的会作为新一版排在最后。集卡面板底出了第二版，描边和材质都加上了，已经切过去。\n\n这两处都不影响别的素材，改完直接生成界面就行。',
     },
     phase: 'assets',
+    // 只能挑真有第二版素材的键 —— preset.assetVariants 里没有的话，素材板会把
+    // 版本数夹回 1，界面上根本切不过去，这条回复就成了空话。
     mutate: {
       type: 'picks',
-      patch: (p) => ({ ...p, secTasks: 1 }),
-      versions: (v) => ({ ...v, secTasks: 2 }),
+      patch: (p) => ({ ...p, panelBg: 1 }),
+      versions: (v) => ({ ...v, panelBg: 2 }),
     },
     gate: { confirm: '生成 UI 界面', confirmTo: 'ok-asset' },
     hold: 0,
@@ -886,7 +889,11 @@ export const XIAHUA_BUILD_SCRIPT: BuildStep[] = [
       kind: 'ai',
       text: '收成三档了：集齐 2 / 4 / 7 种。最高档从 9 种降到 7 种，能领到最后一档的人会多不少。\n\n实物奖那档我先摘了，后面想加回来随时说。',
     },
-    mutate: { type: 'gameplay', patch: (g) => ({ ...g, tiers: g.tiers.slice(0, 3) }) },
+    // 档位收进玩法的同时也收进项目文档 —— 文档和玩法配置不能各说各话
+    mutate: [
+      { type: 'gameplay', patch: (g) => ({ ...g, tiers: g.tiers.slice(0, 3) }) },
+      { type: 'plan', patch: (p) => ({ ...p, tiers: p.tiers.slice(0, 3) }) },
+    ],
     hold: 2100,
   },
 
@@ -1003,8 +1010,6 @@ export const XIAHUA_BUILD_SCRIPT: BuildStep[] = [
   },
 ]
 
-export const BUILD_TOTAL = XIAHUA_BUILD_SCRIPT.length
-
 /** step id → 下标，供卡点跳转用。 */
 export function stepIndex(id: string): number {
   return XIAHUA_BUILD_SCRIPT.findIndex((s) => s.id === id)
@@ -1048,7 +1053,7 @@ export const XIAHUA_TEMPLATE_DOCUMENT: XiahuaTemplateDocument = {
     '5 个页面：活动主会场、开卡结算、我的卡册、兑奖弹窗、活动规则',
     '1 条主链路：抽卡 → 集卡 → 解锁奖励档位 → 领奖',
     '卡槽点亮、重复卡赠送、抽卡次数、奖励弹窗与状态反馈',
-    '30 个素材项的命名与图层关系，主视觉支持背景 / 贴片 / 主角分层',
+    '26 个素材项的命名与图层关系，主视觉支持背景 / 贴片 / 主角分层',
   ],
   replaceable: [
     { slot: '活动主题与文案', current: '夏日夜宵 / 这夏夯爆了', usage: '替换活动名称、标题字、按钮文案与页脚字标' },
@@ -1346,3 +1351,53 @@ export const TEMPLATE_CLONE_SCRIPT: BuildStep[] = [
     hold: 0,
   },
 ]
+
+/* ─── 脚本自检 ───
+ * 脚本是「扁平数组 + 字符串跳转」拼出来的分支图，写错一个 id 或漏给一个卡点
+ * 配 alt，那条支路就再也播不到，而且界面上一点异常都看不出来。开发期跑一遍，
+ * 把断链和播不到的步骤直接喊出来。 */
+function auditScript(name: string, script: BuildStep[]): string[] {
+  const problems: string[] = []
+  const byId = new Map(script.map((s, i) => [s.id, i]))
+  script.forEach((s, i) => {
+    if (byId.get(s.id) !== i) problems.push(`${name}: 重复的 step id「${s.id}」`)
+  })
+  /** 一步能去到的所有下一步。没配 gate 就是自动播到下一条。 */
+  const nextOf = (i: number): number[] => {
+    const g = script[i].gate
+    if (!g) return i + 1 < script.length ? [i + 1] : []
+    const targets: (string | undefined)[] = []
+    if (g.choices?.length) g.choices.forEach((c) => targets.push(c.to))
+    else {
+      // confirm / alt 不配 To 就落到物理上的下一条 —— 支路紧跟卡点是脚本的约定
+      targets.push(g.confirmTo)
+      if (g.alt) targets.push(g.altTo)
+    }
+    return targets.map((to) => {
+      if (!to) return i + 1
+      const at = byId.get(to)
+      if (at === undefined) problems.push(`${name}:「${script[i].id}」跳转到不存在的「${to}」`)
+      return at ?? -1
+    }).filter((at) => at >= 0 && at < script.length)
+  }
+  const seen = new Set<number>()
+  const queue = [0]
+  while (queue.length) {
+    const i = queue.pop() as number
+    if (seen.has(i)) continue
+    seen.add(i)
+    nextOf(i).forEach((n) => queue.push(n))
+  }
+  script.forEach((s, i) => {
+    if (!seen.has(i)) problems.push(`${name}: 步骤「${s.id}」从入口走不到，是死分支`)
+  })
+  return problems
+}
+
+if (import.meta.env?.DEV) {
+  const problems = [
+    ...auditScript('0→1 搭建脚本', XIAHUA_BUILD_SCRIPT),
+    ...auditScript('模板复刻脚本', TEMPLATE_CLONE_SCRIPT),
+  ]
+  if (problems.length) console.warn(['[XiahuaBuildScript]', ...problems].join('\n  '))
+}

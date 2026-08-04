@@ -167,60 +167,52 @@ export default function XiahuaAssetBoard({
   }
 
   return (
-    <div className="thin-scroll h-full w-full overflow-y-auto bg-[var(--color-surface-2)] px-6 py-5">
-      <div className="mx-auto max-w-[760px]">
-        <div className="mb-4 flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-[8px] bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]/70">
-            <ImageIcon className="size-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[15px] font-semibold text-[var(--color-ink)]">素材生成</h2>
-            <p className="text-[12px] text-[var(--color-ink)]/50">
-              按清单一项项产出 · 生成完成后同步到素材库，点击任意素材查看详情
-            </p>
-          </div>
-          <span className="shrink-0 text-[12px] tabular-nums text-[var(--color-ink)]/55">
-            {madeCount} / {total}
+    // 版式与素材库（GarudaAssetsView）保持一致 —— 生成态和生成完的素材库是同一个
+    // 东西的两个阶段，栅格、间距、缩略图卡片都用同一套，只多出批次状态和占位。
+    <div className="thin-scroll flex h-full w-full min-w-0 flex-col overflow-y-auto bg-[var(--color-surface-0)]">
+      <div className="flex min-h-11 shrink-0 flex-wrap items-center gap-2 border-b border-[var(--divider-soft)] px-4 py-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <ImageIcon className="size-4 shrink-0 text-[var(--color-ink)]/55" />
+          <span className="text-[12px] font-medium text-[var(--color-ink)]">素材生成</span>
+          <span className="truncate text-[11px] text-[var(--color-ink)]/45">
+            按清单一项项产出 · 完成后同步到素材库
           </span>
         </div>
+        <span className="ml-auto shrink-0 rounded bg-[var(--fill-subtle)] px-1.5 py-0.5 text-[11px] tabular-nums text-[var(--color-ink)]/55">
+          {madeCount} / {total}
+        </span>
+      </div>
 
-        <div className="space-y-4">
-          {batches.map((b, bi) => {
-            const state = bi < done ? 'done' : bi === done ? 'running' : 'idle'
-            return (
-              <section
-                key={b.id}
-                className={`overflow-hidden rounded-[10px] border bg-[var(--color-surface-0)] transition-opacity ${
-                  state === 'idle'
-                    ? 'border-[var(--divider-soft)] opacity-45'
-                    : 'border-[var(--divider-soft)]'
-                }`}
-              >
-                <div className="flex items-center gap-2 border-b border-[var(--divider-soft)] px-3.5 py-2">
-                  <span className="text-[13px] font-medium text-[var(--color-ink)]">{b.title}</span>
-                  {b.note && (
-                    <span className="truncate text-[11px] text-[var(--color-ink)]/45">{b.note}</span>
+      <div className="space-y-7 px-5 py-5">
+        {batches.map((b, bi) => {
+          const state = bi < done ? 'done' : bi === done ? 'running' : 'idle'
+          return (
+            <section key={b.id} className={state === 'idle' ? 'opacity-45' : undefined}>
+              <div className="mb-2.5 flex items-baseline gap-2">
+                <h3 className="text-[13px] font-semibold text-[var(--color-ink)]">{b.title}</h3>
+                {b.note && (
+                  <span className="truncate text-[11px] text-[var(--color-ink)]/45">{b.note}</span>
+                )}
+                <span className="ml-auto shrink-0 self-center">
+                  {state === 'done' ? (
+                    <Check className="size-3.5 text-emerald-500" />
+                  ) : state === 'running' ? (
+                    <span className="flex items-center gap-1 text-[11px] text-[var(--color-ink)]/55">
+                      <motion.span
+                        className="size-1.5 rounded-full bg-[var(--color-ink)]/45"
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                      />
+                      生成中
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-[var(--color-ink)]/35">排队中</span>
                   )}
-                  <span className="ml-auto shrink-0">
-                    {state === 'done' ? (
-                      <Check className="size-3.5 text-emerald-500" />
-                    ) : state === 'running' ? (
-                      <span className="flex items-center gap-1 text-[11px] text-[var(--color-ink)]/55">
-                        <motion.span
-                          className="size-1.5 rounded-full bg-[var(--color-ink)]/45"
-                          animate={{ opacity: [0.3, 1, 0.3] }}
-                          transition={{ duration: 1, repeat: Infinity }}
-                        />
-                        生成中
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-[var(--color-ink)]/35">排队中</span>
-                    )}
-                  </span>
-                </div>
+                </span>
+              </div>
 
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(148px,1fr))] gap-3 p-3.5">
-                  {b.items.map((it) => {
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3">
+                {b.items.map((it) => {
                     const gen = it.key.startsWith('card-')
                       ? cardArtVariants(preset, it.key.slice(5)).img
                       : assetVariants(preset, it.key)
@@ -230,19 +222,21 @@ export default function XiahuaAssetBoard({
                     const nVer = sources.length
                     const pick = Math.min(picks[it.key] ?? 0, nVer - 1)
                     return (
-                      <div key={it.key} className="flex min-w-0 flex-col">
-                        {/* 缩略图定高 —— 素材宽高比差很多，不定高的话下面的名称和
-                            版本条会各在各的高度上，一排看过去很乱 */}
-                        <div className={`flex min-w-0 items-stretch gap-1.5 ${nVer > 1 ? '' : 'w-full'}`}>
+                      // 卡片规格对齐素材库的 AssetThumb：外框 + 方形缩略图 + 名称行
+                      <div
+                        key={it.key}
+                        className={`group flex min-w-0 flex-col gap-1.5 overflow-hidden rounded-lg border border-[var(--divider-soft)] bg-[var(--fill-subtle)] p-1.5 text-left transition-colors ${
+                          state === 'done' ? 'hover:border-[var(--color-ink)]/25 hover:bg-[var(--fill-hover)]' : ''
+                        }`}
+                      >
+                        <div className="flex min-w-0 items-stretch gap-1">
                           <button
                             type="button"
                             disabled={state !== 'done'}
                             aria-label={state === 'done' ? `打开${it.name}素材详情` : `${it.name}待生成`}
                             onClick={() => openAsset(it.key)}
-                            className={`relative flex h-[96px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-[8px] border border-[var(--divider-soft)] ${
-                              state === 'done'
-                                ? 'cursor-pointer transition-shadow hover:border-[#357ef8]/55 hover:shadow-[0_4px_14px_-6px_rgba(53,126,248,0.45)]'
-                                : 'cursor-default'
+                            className={`relative flex aspect-square min-w-0 flex-1 items-center justify-center overflow-hidden rounded ${
+                              state === 'done' ? 'cursor-pointer' : 'cursor-default'
                             }`}
                             style={{ background: preset.theme.bg }}
                           >
@@ -255,7 +249,7 @@ export default function XiahuaAssetBoard({
                                 src={sources[pick]}
                                 alt={it.name}
                                 draggable={false}
-                                className="max-h-full max-w-full object-contain"
+                                className="h-full w-full object-contain transition-transform duration-150 group-hover:scale-[1.04]"
                               />
                             ) : (
                               <span className="text-[11px] text-white/40">
@@ -271,7 +265,7 @@ export default function XiahuaAssetBoard({
                             )}
                           </button>
                           {state === 'done' && nVer > 1 && (
-                            <div className="flex w-[48px] shrink-0 flex-col gap-1" aria-label={`${it.name} 的版本`}>
+                            <div className="flex w-[34px] shrink-0 flex-col gap-1" aria-label={`${it.name} 的版本`}>
                               {Array.from({ length: nVer }, (_, i) => (
                                 <button
                                   key={i}
@@ -309,20 +303,23 @@ export default function XiahuaAssetBoard({
                             </div>
                           )}
                         </div>
-                        <p className="mt-1.5 truncate text-[12px] text-[var(--color-ink)]">{it.name}</p>
-                        {state === 'done' && nVer > 1 && (
-                          <span className="mt-1 truncate text-[10px] text-[var(--color-ink)]/55">
-                            已选 v{pick + 1}
+                        <div className="flex min-w-0 items-center gap-1 px-1">
+                          <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--color-ink)]/70">
+                            {it.name}
                           </span>
-                        )}
+                          {state === 'done' && nVer > 1 && (
+                            <span className="shrink-0 text-[10px] tabular-nums text-[var(--color-ink)]/45">
+                              v{pick + 1}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
-                </div>
-              </section>
-            )
-          })}
-        </div>
+              </div>
+            </section>
+          )
+        })}
       </div>
     </div>
   )

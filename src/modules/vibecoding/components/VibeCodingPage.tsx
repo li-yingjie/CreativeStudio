@@ -78,7 +78,7 @@ import {
   XIAHUA_BUILD_BASELINE_GAMEPLAY,
   type XiahuaGameplay,
 } from './XiahuaGameplay'
-import { ACTIVITY_PRESETS, XIAHUA_PRESET, type ActivityPreset } from './ActivityPreset'
+import { ACTIVITY_PRESETS, XIAHUA_PRESET, cardArt, type ActivityPreset } from './ActivityPreset'
 import H5CanvasEditor from './H5CanvasEditor'
 import H5CanvasLayerTree from './H5CanvasLayerTree'
 import GameCanvasEditor from './GameCanvasEditor'
@@ -149,7 +149,7 @@ import ProductEditPanel from './ProductEditPanel'
 import GameGenerationFlow, { GameBuildProgress } from './GameGenerationFlow'
 import type { GameSpecDraft } from './GameConfirmCard'
 import AiPersonaChatPreview, { type TriggerSimulation } from './AiPersonaChatPreview'
-import { ProjectObjectView } from './ProjectObjectViews'
+import { ProjectObjectView, DatabaseView, type DbContent } from './ProjectObjectViews'
 import { PROJECT_DOCS, ACG_NEW_YEAR_PLAN_MD, XIAHUA_PLAN_MD } from './data/project-docs'
 import { GENERIC_AI_REPLIES, CHAT_EMPTY_SUGGESTIONS, CHAT_SUGGESTIONS_BY_KIND, CHAT_SUGGESTIONS_BY_PROJECT } from './data/chat-suggestions'
 import { PROJECT_KINDS, SHAPE_BY_KIND, PROJECT_KIND_LABELS, type OutputShape } from './data/project-kinds'
@@ -1412,11 +1412,10 @@ function PlatformSidebar({
    * `createdProjects` are appended at the top so freshly-generated
    * projects (e.g. Garuda after the home flow finishes) read as new. */
   const ALL_PROJECTS = [
-    // De-dup: createdProjects may include Garuda once the user has run
-    // the home-flow this session — but we always want Garuda pinned in
-    // the fixed list below, so filter it out of createdProjects to
-    // avoid double-listing.
-    ...createdProjects.filter((p) => p !== '射击小游戏'),
+    // De-dup: 跑过对应 home flow 之后，射击小游戏（游戏生成）和夏日冲浪
+    // （@模板 复刻）会进 createdProjects，但它们都固定钉在下面的列表里 ——
+    // 过滤掉，避免侧栏重复列出（重复还会撞 React key）。
+    ...createdProjects.filter((p) => p !== '射击小游戏' && p !== SUMMER_SURF_PROJECT),
     // Workshop order: H5 → 游戏 → 兴趣卡；分身变体仍只显示分身。
     // 粉丝互动机器人 / 探店视频创作助手 / 每日打卡小程序 are hidden —
     // config exists but there's no scripted demo flow for them yet.
@@ -2202,6 +2201,80 @@ const XIAHUA_CLONE_PROJECT = TEMPLATE_CLONE_PROJECT
 /** 这两个项目共用「这夏夯爆了」这套活动预览/搭建机制（成品、新建）。 */
 const isXiahuaFamily = (t: string) =>
   t === XIAHUA_PROJECT || t === XIAHUA_BUILD_PROJECT
+/** 「数据库」节点的表结构 —— 全部从当前玩法配置推导：卡池、档位、任务、
+ *  抽卡参数改了行就跟着变，不存在一份写死的终态副本。 */
+const xiahuaDatabaseContent = (g: XiahuaGameplay, preset: ActivityPreset): DbContent => ({
+  type: 'database',
+  tables: [
+    {
+      name: 'food_cards',
+      desc: `${g.cards.length} 种夜食卡定义（与卡池配置同源）`,
+      columns: [
+        { name: 'id', type: 'varchar(32)', desc: '卡片标识' },
+        { name: 'name', type: 'varchar(32)', desc: '夜食名称' },
+        { name: 'motto', type: 'varchar(64)', desc: '卡面风味短句' },
+        { name: 'asset_lit', type: 'varchar(128)', desc: '已获得卡面' },
+        { name: 'asset_grey', type: 'varchar(128)', desc: '未获得石膏卡面' },
+      ],
+      rows: g.cards.map((c) => {
+        const art = cardArt(preset, c.id)
+        return [c.id, c.name, c.motto, art.img, art.grey]
+      }),
+    },
+    {
+      name: 'reward_tiers',
+      desc: `集卡档位与奖励（当前 ${g.tiers.length} 档）`,
+      columns: [
+        { name: 'need_kinds', type: 'tinyint', desc: '需集齐种类数' },
+        { name: 'reward_name', type: 'varchar(64)', desc: '奖励名称' },
+        { name: 'reward_type', type: "enum('coupon','goods')", desc: '奖励类型' },
+        { name: 'daily_stock', type: 'int', desc: '每日库存' },
+      ],
+      rows: g.tiers.map((t) => [
+        String(t.need),
+        t.reward,
+        t.kind,
+        t.stock != null ? String(t.stock) : '—',
+      ]),
+    },
+    {
+      name: 'draw_tasks',
+      desc: `抽卡机会来源（${g.tasks.length} 类任务）`,
+      columns: [
+        { name: 'task_code', type: 'varchar(32)', desc: '任务标识' },
+        { name: 'task_name', type: 'varchar(64)', desc: '任务名称' },
+        { name: 'reward_chances', type: 'int', desc: '完成一次得几次' },
+        { name: 'daily_limit', type: 'int', desc: '每日上限' },
+      ],
+      rows: g.tasks.map((t) => [t.id, t.label, String(t.reward), String(t.dailyLimit)]),
+    },
+    {
+      name: 'draw_rules',
+      desc: '抽卡规则参数（与玩法配置同步）',
+      columns: [
+        { name: 'param', type: 'varchar(32)', desc: '参数' },
+        { name: 'value', type: 'varchar(16)', desc: '当前值' },
+        { name: 'note', type: 'varchar(64)', desc: '说明' },
+      ],
+      rows: [
+        ['initial_chances', String(g.draw.initialChances), '初始抽卡次数'],
+        ['new_card_bias', String(g.draw.newCardBias), '未获得品类的权重倾斜'],
+        ['gift_min_hold', String(g.gift.minHold), '同种卡持有几张以上可赠送'],
+      ],
+    },
+    {
+      name: 'user_cards',
+      desc: '用户持卡与赠送记录',
+      columns: [
+        { name: 'id', type: 'bigint', desc: '主键' },
+        { name: 'user_id', type: 'bigint', desc: '用户' },
+        { name: 'card_id', type: 'varchar(32)', desc: '夜食卡' },
+        { name: 'count', type: 'int', desc: '持有张数' },
+        { name: 'source', type: "enum('draw','gift')", desc: '来源' },
+      ],
+    },
+  ],
+})
 const XIAHUA_EDIT_STORAGE_KEY = 'xiahua-edit-state-v1'
 type XiahuaEditStorage = {
   version?: 2
@@ -2970,7 +3043,9 @@ export default function VibeCodingPage({
       startTemplateClone(trimmed, { instant: true })
       return
     }
-    const attachmentContext = `${attachment?.name ?? ''} ${request}`
+    // 只认用户自己给的信息（文件名 + 原话）—— request 的兜底文案里就带「活动」，
+    // 拿它做判断会让任何空文案上传都落进活动脚本。
+    const attachmentContext = `${attachment?.name ?? ''} ${trimmed}`
     // 首页上传活动策划文档后进入同一条真实的 0→1 搭建链路：文档名会在
     // 对话附件里保留，右侧依次经历方案、框架、素材与成品。
     if (attachment && /活动|策划|夜宵|这夏|h5|营销/i.test(attachmentContext)) {
@@ -3351,6 +3426,28 @@ export default function VibeCodingPage({
     // 活动预览/搭建状态是这一族项目共用的：切回「已上线」那版时归位，免得它
     // 顶着复刻换过的皮，或者停在新建活动搭到一半的状态。
     if (name === XIAHUA_PROJECT && (xiahuaScriptKind === 'clone' || xiahuaBuildStep >= 0)) {
+      // 别的项目正搭到一半 —— 归位前把整场回放按 owner 暂存，切回去还能接着搭；
+      // 不存的话，半成品项目回来就顶着已上线的终态，方案/玩法/素材全对不上过程。
+      if (xiahuaBuildOwner && xiahuaBuildOwner !== XIAHUA_PROJECT && xiahuaBuildStep >= 0) {
+        xiahuaReplayStashRef.current = {
+          owner: xiahuaBuildOwner,
+          scriptKind: xiahuaScriptKind,
+          buildStep: xiahuaBuildStep,
+          path: xiahuaPath,
+          playing: xiahuaBuildPlaying,
+          preset: xiahuaPreset,
+          gameplay: xiahuaGameplay,
+          overrides: xiahuaOverrides,
+          plan: xiahuaPlan,
+          picks: xiahuaPicks,
+          versions: xiahuaVersions,
+          pickTexts: xiahuaPickTexts,
+          clonePicks: xiahuaClonePicks,
+          uploadedDocName: xiahuaUploadedDocName,
+          docText: xiahuaDocText,
+          cloneUserText: xiahuaCloneUserText,
+        }
+      }
       setXiahuaScriptKind('build')
       setXiahuaPreset(XIAHUA_PRESET)
       setXiahuaGameplay(XIAHUA_PRESET.gameplay)
@@ -3359,6 +3456,27 @@ export default function VibeCodingPage({
       setXiahuaBuildPlaying(false)
       setXiahuaBuildOwner(null)
       setXiahuaPath([])
+    }
+    // 回到暂存那场回放的项目：原样恢复，接着搭（playing 原值恢复，播放中的会继续播）。
+    const replayStash = xiahuaReplayStashRef.current
+    if (replayStash && replayStash.owner === name) {
+      xiahuaReplayStashRef.current = null
+      setXiahuaScriptKind(replayStash.scriptKind)
+      setXiahuaPreset(replayStash.preset)
+      setXiahuaGameplay(replayStash.gameplay)
+      setXiahuaOverrides(replayStash.overrides)
+      setXiahuaPlan(replayStash.plan)
+      setXiahuaPicks(replayStash.picks)
+      setXiahuaVersions(replayStash.versions)
+      setXiahuaPickTexts(replayStash.pickTexts)
+      setXiahuaClonePicks(replayStash.clonePicks)
+      setXiahuaUploadedDocName(replayStash.uploadedDocName)
+      setXiahuaDocText(replayStash.docText)
+      setXiahuaCloneUserText(replayStash.cloneUserText)
+      setXiahuaBuildOwner(replayStash.owner)
+      setXiahuaPath(replayStash.path)
+      setXiahuaBuildStep(replayStash.buildStep)
+      setXiahuaBuildPlaying(replayStash.playing)
     }
     const focusAcgPreview = name === ACG_NEW_YEAR_PROJECT
     const focusPreview = (tabs: { label: string; closable: boolean }[]) => {
@@ -3637,18 +3755,48 @@ export default function VibeCodingPage({
   useEffect(() => {
     xiahuaPresetRef.current = xiahuaPreset
   }, [xiahuaPreset])
+  /* 打开「已上线」归位时暂存的那场回放（按 owner 记）—— 切回该项目原样恢复。 */
+  const xiahuaReplayStashRef = useRef<{
+    owner: string
+    scriptKind: 'build' | 'clone'
+    buildStep: number
+    path: number[]
+    playing: boolean
+    preset: ActivityPreset
+    gameplay: XiahuaGameplay
+    overrides: XiahuaOverrides
+    plan: PlanDoc
+    picks: Record<string, number>
+    versions: Record<string, number>
+    pickTexts: Record<string, string>
+    clonePicks: Record<string, boolean>
+    uploadedDocName?: string
+    docText?: string
+    cloneUserText?: string
+  } | null>(null)
+  /** 回放自身的状态全部归零 —— 三个入口（0→1 / 模板复刻 / 换模板）都从这里走，
+   *  漏掉任何一项都会把上一次回放的分支文案或勾选带进新的一次。 */
+  const resetXiahuaReplay = useCallback(() => {
+    // 重新开一场就作废暂存的旧场次，避免日后错误恢复
+    xiahuaReplayStashRef.current = null
+    setXiahuaBuildStep(-1)
+    setXiahuaBuildPlaying(false)
+    setXiahuaPath([])
+    setXiahuaBuildOwner(null)
+    setXiahuaPickTexts({})
+    setXiahuaClonePicks({})
+  }, [])
   /** 切换活动模板：同步换掉玩法与画布改动。 */
   const switchXiahuaPreset = useCallback((p: ActivityPreset) => {
     setXiahuaPreset(p)
     setXiahuaGameplay(p.gameplay)
     setXiahuaOverrides({})
     setXiahuaSelected(null)
-    setXiahuaBuildStep(-1)
-    setXiahuaBuildPlaying(false)
+    resetXiahuaReplay()
     setXiahuaPlan(defaultPlan(p))
     setXiahuaPicks({})
     setXiahuaVersions({})
-  }, [])
+  }, [resetXiahuaReplay])
   /** 编辑画布上正在编辑的画板 —— 右侧图层清单跟着它换。 */
   const [xiahuaScreen, setXiahuaScreen] = useState<XiahuaScreen>('main')
   const [xiahuaBuildStep, setXiahuaBuildStep] = useState(-1)
@@ -3674,7 +3822,7 @@ export default function VibeCodingPage({
   const [xiahuaUploadedDocName, setXiahuaUploadedDocName] = useState<string | undefined>()
   // 首页上传文档时用户附带的原话 —— 覆盖脚本里 doc 步的默认文案。
   const [xiahuaDocText, setXiahuaDocText] = useState<string | undefined>()
-  /* 当前走哪套脚本：0→1 搭建 or @模板 复刻（这春嗨翻了）。 */
+  /* 当前走哪套脚本：0→1 搭建 or @模板 复刻（夏日冲浪）。 */
   const [xiahuaScriptKind, setXiahuaScriptKind] = useState<'build' | 'clone'>('build')
   const xiahuaScript = xiahuaScriptKind === 'clone' ? TEMPLATE_CLONE_SCRIPT : XIAHUA_BUILD_SCRIPT
   /* @模板 时用户的原话，覆盖复刻脚本第一条用户消息。 */
@@ -3829,6 +3977,7 @@ export default function VibeCodingPage({
     const buildGameplay =
       p.id === XIAHUA_PRESET.id ? XIAHUA_BUILD_BASELINE_GAMEPLAY : p.gameplay
     if (docName) setXiahuaUploadedDocName(docName)
+    resetXiahuaReplay()
     setXiahuaBuildOwner(projectTitleRef.current)
     setXiahuaScriptKind('build')
     setXiahuaGameplay(buildGameplay)
@@ -3838,7 +3987,6 @@ export default function VibeCodingPage({
     setXiahuaPicks({})
     setXiahuaVersions({})
     setComposerText('')
-    setXiahuaPath([])
     if (docName) {
       const docIdx = stepIndex('doc')
       const text = userText?.trim() || '这是活动的策划文档，帮我把这个活动完整搭出来'
@@ -3866,14 +4014,13 @@ export default function VibeCodingPage({
       setXiahuaBuildStep(0)
       typeIntoComposer(first.view.text, go)
     } else go()
-  }, [typeIntoComposer])
+  }, [typeIntoComposer, resetXiahuaReplay])
   /** @模板 复刻：结构/玩法全继承，从模板起步只换背景、形象、素材。 */
   const startTemplateClone = useCallback(
     (userText?: string, opts?: { instant?: boolean }) => {
       // 起点就是完整模板：预置这夏夯爆了的成品状态，换皮过程逐步改 preset
+      resetXiahuaReplay()
       setXiahuaBuildOwner(projectTitleRef.current)
-      setXiahuaPickTexts({})
-      setXiahuaClonePicks({})
       setXiahuaScriptKind('clone')
       setXiahuaPreset(XIAHUA_PRESET)
       setXiahuaGameplay(XIAHUA_PRESET.gameplay)
@@ -3884,7 +4031,6 @@ export default function VibeCodingPage({
       setXiahuaUploadedDocName(undefined)
       setXiahuaDocText(undefined)
       setComposerText('')
-      setXiahuaPath([])
       const text = userText?.trim() || (TEMPLATE_CLONE_SCRIPT[0].view as { text: string }).text
       setXiahuaCloneUserText(text)
       setXiahuaBuildStep(0)
@@ -3895,19 +4041,20 @@ export default function VibeCodingPage({
       if (opts?.instant) enter()
       else typeIntoComposer(text, enter)
     },
-    [typeIntoComposer],
+    [typeIntoComposer, resetXiahuaReplay],
   )
   /** 应用某一步的真实改动（含模板复刻的 preset 换皮）。 */
   const applyXiahuaMutation = useCallback((s: BuildStep | undefined) => {
-    const m = s?.mutate
-    if (!m) return
-    if (m.type === 'gameplay') setXiahuaGameplay(m.patch)
-    if (m.type === 'overrides') setXiahuaOverrides(m.patch)
-    if (m.type === 'plan') setXiahuaPlan(m.patch)
-    if (m.type === 'preset') setXiahuaPreset(m.patch)
-    if (m.type === 'picks') {
-      setXiahuaPicks(m.patch)
-      setXiahuaVersions(m.versions ?? ((v) => v))
+    const mutations = Array.isArray(s?.mutate) ? s.mutate : s?.mutate ? [s.mutate] : []
+    for (const m of mutations) {
+      if (m.type === 'gameplay') setXiahuaGameplay(m.patch)
+      if (m.type === 'overrides') setXiahuaOverrides(m.patch)
+      if (m.type === 'plan') setXiahuaPlan(m.patch)
+      if (m.type === 'preset') setXiahuaPreset(m.patch)
+      if (m.type === 'picks') {
+        setXiahuaPicks(m.patch)
+        setXiahuaVersions(m.versions ?? ((v) => v))
+      }
     }
   }, [])
   /** 跳到某一步并应用它的改动。 */
@@ -3939,6 +4086,9 @@ export default function VibeCodingPage({
         setXiahuaPickTexts((prev) => ({ ...prev, [to]: choice.text as string }))
       }
       const idx = to ? xiahuaScript.findIndex((s) => s.id === to) : xiahuaBuildStep + 1
+      // 往后线性扫第一个声明 phase 的步骤 —— 隐含约束：跳转目标之后、下一个
+      // phase 之前不能夹着别的分支的步骤，否则这里会预判到那条分支的产物。
+      // 新增分支请整段追加在所属主路径之后，别插进两步中间。
       const upcomingStep = xiahuaScript
         .slice(Math.max(0, idx))
         .find((s) => s.phase)
@@ -6303,8 +6453,10 @@ export default function VibeCodingPage({
       ? -1
       : xiahuaAssetBatch
   /* 预览旁边那条栏放什么 —— 只放跟画面绑在一起的东西（页面框架的分解、
-     模板复刻的替换清单）；方案和素材都各自有 tab。 */
-  const xiahuaPanel = !buildFlowHere
+     模板复刻的替换清单）；方案和素材都各自有 tab。
+     编辑态不给：画布已经把几个页面铺开了，这条栏说的是同一件事，还要跟
+     编辑面板抢宽度。 */
+  const xiahuaPanel = !buildFlowHere || editPanelOpen
     ? null
     : xiahuaArtifactPhase === 'wireframe'
         ? <XiahuaFramePanel preset={xiahuaPreset} />
@@ -10977,6 +11129,13 @@ export default function VibeCodingPage({
                         />
                       </div>
                     </div>
+                  )
+                }
+                // 「数据库」= 从当前玩法配置推导的表结构：回放中收档位、加任务，
+                // 表里的行会同步变，而不是另一份提前写死的终态。
+                if (isXiahuaFamily(projectTitle) && label === DATABASE_LABEL) {
+                  return (
+                    <DatabaseView c={xiahuaDatabaseContent(xiahuaGameplay, xiahuaPreset)} />
                   )
                 }
                 // 文档 — rich markdown editor (edit / preview / split).

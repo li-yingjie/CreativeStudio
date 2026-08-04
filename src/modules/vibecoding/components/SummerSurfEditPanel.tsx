@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { toast } from 'sonner'
 import {
   Check,
   ChevronDown,
@@ -265,7 +266,6 @@ function readSavedDrafts(): DraftEntry[] | null {
 
 export default function SummerSurfEditPanel({ selection, onSelect, config, onConfigChange, onClose }: { selection: SummerSurfSelection | null; onSelect: (selection: SummerSurfSelection | null) => void; config: SummerSurfEditConfig; onConfigChange: (config: SummerSurfEditConfig) => void; onClose: () => void }) {
   const [previewMode, setPreviewMode] = useState(false)
-  const [notice, setNotice] = useState('')
   const [importError, setImportError] = useState('')
   const [selectedPageId, setSelectedPageId] = useState('campaign-main')
   const [selectedHeroLayerId, setSelectedHeroLayerId] = useState<string | null>(() => config.heroComposition.layers[0]?.id ?? null)
@@ -422,12 +422,12 @@ export default function SummerSurfEditPanel({ selection, onSelect, config, onCon
       <div className="studio-inspector-workbar">
         <button type="button" aria-label="帮助与支持" title="帮助与支持"><CircleHelp size={14} strokeWidth={1.7} /></button>
         <button type="button" className={previewMode ? 'active' : ''} onClick={() => setPreviewMode((value) => !value)}>{previewMode ? '退出预览' : '预览'}</button>
-        <button type="button" className="publish" onClick={() => setNotice('已应用到活动页')}>发布</button>
+        <button type="button" className="publish" onClick={() => toast('已应用到活动页')}>发布</button>
         <button type="button" aria-label="关闭编辑面板" title="关闭编辑面板" onClick={onClose}><X size={14} strokeWidth={1.7} /></button>
       </div>
       <header className="studio-inspector-header">
         <div><small>正在编辑</small><strong>{config.campaignName}</strong></div>
-        <span>{notice || '配置完整'}</span>
+        <span>配置完整</span>
       </header>
       <div className="studio-inspector-group studio-project-group" data-testid="inspector-group-project">
         <div className="studio-inspector-group-title"><span>Project</span><strong>页面与方案</strong></div>
@@ -502,7 +502,7 @@ export default function SummerSurfEditPanel({ selection, onSelect, config, onCon
         <details data-module-id="discovery"><SectionSummary index="M6">内容发现</SectionSummary><div className="studio-section-body"><Field label="模块眉题"><input value={config.discoveryEyebrow} onChange={(event) => updateConfig('discoveryEyebrow', event.target.value)} /></Field><Field label="内容发现标题"><input value={config.discoveryTitle} onChange={(event) => updateConfig('discoveryTitle', event.target.value)} /></Field><div className="studio-item-list">{config.venues.map((venue, index) => <details className="studio-item" key={`${index}-${venue.title}`}><summary><i className="studio-item-thumb compact"><img src={venue.image} alt="" /></i><span className="studio-item-name">内容卡 {index + 1} · {venue.title}</span></summary><div className="studio-item-body"><Field label="封面图片地址" hint="双列卡片按 cover 展示"><input value={venue.image} onChange={(event) => updateVenue(index, { image: event.target.value })} /></Field><Field label="地点"><input value={venue.location} onChange={(event) => updateVenue(index, { location: event.target.value })} /></Field><Field label="标题"><input value={venue.title} onChange={(event) => updateVenue(index, { title: event.target.value })} /></Field></div></details>)}</div></div></details>
         <details data-module-id="activities"><SectionSummary index="M7">更多精彩活动</SectionSummary><div className="studio-section-body"><p className="studio-section-note">当前模板固定两个 Banner 位；文案与跳转能力沿用 Marketing King 活动草稿。</p>{config.activityBanners.map((banner, index) => <div className="studio-inline-card" key={`${index}-${banner.title}`}><b>活动 Banner {index + 1}</b><input aria-label={`Banner ${index + 1} 眉题`} value={banner.eyebrow} onChange={(event) => updateConfig('activityBanners', config.activityBanners.map((item, itemIndex) => itemIndex === index ? { ...item, eyebrow: event.target.value } : item))} /><input aria-label={`Banner ${index + 1} 标题`} value={banner.title} onChange={(event) => updateConfig('activityBanners', config.activityBanners.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} /></div>)}</div></details>
       </div>
-      <button type="button" className="studio-reset-button" onClick={() => { onConfigChange(cloneConfig(DEFAULT_SUMMER_SURF_EDIT_CONFIG)); setNotice('已恢复默认活动配置') }}><Check size={13} strokeWidth={1.8} />恢复默认活动配置</button>
+      <button type="button" className="studio-reset-button" onClick={() => { onConfigChange(cloneConfig(DEFAULT_SUMMER_SURF_EDIT_CONFIG)); toast('已恢复默认活动配置') }}><Check size={13} strokeWidth={1.8} />恢复默认活动配置</button>
     </aside>
   )
 }

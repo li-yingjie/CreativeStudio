@@ -46,9 +46,10 @@ function Options({
         transition={{ duration: 0.25, delay: 0.15 }}
         className="mt-2 flex flex-wrap gap-1.5"
       >
-        {g.choices.map((c) => (
+        {/* 多个选项可以指向同一步（选完再分流），to 不能当 key */}
+        {g.choices.map((c, i) => (
           <button
-            key={c.to}
+            key={`${c.to}-${i}`}
             type="button"
             title={c.desc}
             onClick={() => onPick(c.to, c.title)}
@@ -102,7 +103,7 @@ function ChoiceCard({
     >
       {options.map((c, i) => (
         <button
-          key={c.to}
+          key={`${c.to}-${i}`}
           type="button"
           onClick={() => onPick(c.to, c.title)}
           className={`flex w-full cursor-pointer items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[#357ef8]/[0.05] ${

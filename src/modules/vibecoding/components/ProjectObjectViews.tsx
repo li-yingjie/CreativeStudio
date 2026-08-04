@@ -27,7 +27,7 @@ type InfoContent = {
 }
 type DbColumn = { name: string; type: string; desc: string }
 type DbTable = { name: string; desc: string; columns: DbColumn[]; rows?: string[][] }
-type DbContent = { type: 'database'; tables: DbTable[] }
+export type DbContent = { type: 'database'; tables: DbTable[] }
 type CardItem = { icon: string; title: string; desc: string; meta?: string }
 type CardsContent = { type: 'cards'; columns?: number; note?: string; items: CardItem[] }
 
@@ -143,64 +143,8 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
         { icon: '🫘', title: '金豆入口', desc: '当前仅展示活动视觉入口，小游戏链路、次数补充与奖励兑换尚未接入。', meta: '视觉占位' },
       ],
     },
-    [DATA_CONFIG_LABEL]: {
-      type: 'database',
-      tables: [
-        {
-          name: 'food_cards',
-          desc: '9 种夜食卡定义',
-          columns: [
-            { name: 'id', type: 'varchar(32)', desc: '卡片标识' },
-            { name: 'name', type: 'varchar(32)', desc: '夜食名称' },
-            { name: 'motto', type: 'varchar(64)', desc: '卡面风味短句' },
-            { name: 'asset_lit', type: 'varchar(128)', desc: '已获得卡面' },
-            { name: 'asset_grey', type: 'varchar(128)', desc: '未获得石膏卡面' },
-          ],
-          rows: [
-            ['huoguo', '沸腾火锅', '热辣下肚 烦恼止步', 'cards/food-huoguo.png', 'cards/food-huoguo-grey.png'],
-            ['longxia', '红火小龙虾', '虾壳通红 焦虑清空', 'cards/food-longxia.png', '—'],
-            ['luwei', '解馋卤味', '越嚼越香 越吃越爽', '—', 'cards/food-luwei-grey.png'],
-          ],
-        },
-        {
-          name: 'reward_tiers',
-          desc: '集卡档位与奖励',
-          columns: [
-            { name: 'need_kinds', type: 'tinyint', desc: '需集齐种类数' },
-            { name: 'reward_name', type: 'varchar(64)', desc: '奖励名称' },
-            { name: 'reward_type', type: "enum('coupon','goods')", desc: '奖励类型' },
-            { name: 'daily_stock', type: 'int', desc: '每日库存' },
-          ],
-          rows: [
-            ['2', '2元夜食券', 'coupon', '7587'],
-            ['4', '5元夜食券', 'coupon', '2023'],
-            ['7', '43元夜食券包', 'coupon', '196'],
-          ],
-        },
-        {
-          name: 'user_cards',
-          desc: '用户持卡与赠送记录',
-          columns: [
-            { name: 'id', type: 'bigint', desc: '主键' },
-            { name: 'user_id', type: 'bigint', desc: '用户' },
-            { name: 'card_id', type: 'varchar(32)', desc: '夜食卡' },
-            { name: 'count', type: 'int', desc: '持有张数' },
-            { name: 'source', type: "enum('draw','gift')", desc: '来源' },
-          ],
-        },
-        {
-          name: 'draw_chances',
-          desc: '抽卡机会流水（任务发放 / 抽卡消耗）',
-          columns: [
-            { name: 'id', type: 'bigint', desc: '主键' },
-            { name: 'user_id', type: 'bigint', desc: '用户' },
-            { name: 'task_code', type: 'varchar(32)', desc: '任务标识' },
-            { name: 'delta', type: 'int', desc: '增减次数' },
-            { name: 'created_at', type: 'datetime', desc: '时间' },
-          ],
-        },
-      ],
-    },
+    // 「数据库」不再写死在这里 —— 夯爆了一族的表结构在 VibeCodingPage 里
+    // 从当前玩法配置（卡池 / 档位 / 任务）实时推导，回放中改玩法表跟着变。
   },
 
   /* ── 夏日冲浪 · 顺风顺水（Marketing King / marketing-h5）── */
@@ -674,7 +618,7 @@ function InfoView({ c }: { c: InfoContent }) {
   )
 }
 
-function DatabaseView({ c }: { c: DbContent }) {
+export function DatabaseView({ c }: { c: DbContent }) {
   return (
     <Shell>
       <div className="flex flex-col gap-7">

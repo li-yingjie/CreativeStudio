@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- 选择模型与打点清单需与预览组件共享 */
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import {
   X,
   Image as ImageIcon,
@@ -203,13 +204,7 @@ export default function XiahuaEditPanel({
   screen?: string
   onClose: () => void
 }) {
-  const [toast, setToast] = useState<string | null>(null)
-  useEffect(() => {
-    if (!toast) return
-    const t = window.setTimeout(() => setToast(null), 1800)
-    return () => window.clearTimeout(t)
-  }, [toast])
-  const demo = (msg: string) => setToast(msg)
+  const demo = (msg: string) => toast(msg)
 
   const meta = selection ? TYPE_META[selection.objectType] : null
   const Icon = meta?.icon ?? Sparkles
@@ -388,11 +383,6 @@ export default function XiahuaEditPanel({
         )}
       </div>
 
-      {toast && (
-        <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/75 px-3 py-1.5 text-[12px] text-white">
-          {toast}
-        </div>
-      )}
     </div>
   )
 }
