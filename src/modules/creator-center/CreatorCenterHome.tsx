@@ -34,11 +34,11 @@ import { LiveStreaming01LinearIcon } from 'master-icon/react/LiveStreaming01Line
 import SideNavDisclosureIcon from '@/shared/components/SideNavDisclosureIcon'
 import { SideNavCollapseFooterButton } from '@/shared/components/SideNavIconFooterActions'
 import { ActivityCenterCard, HomeFooter, InteractionSection, MonetizationSection, QuickNavCard } from './HomeSections'
-import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
 import {
   useNavVersion,
-  usesProductHeaderLayout,
   usesSchemeFourLayout,
+  usesContentToggleLayout,
+  usesToolbarHeaderLayout,
 } from '@/shared/storage/nav-version'
 import { useProductSideNav } from '@/shared/storage/product-side-nav'
 import AiAssistantPanel from '@/shared/components/AiAssistantPanel'
@@ -161,7 +161,15 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
   // 方案 1 放在外壳品牌头；
   // 方案 3 / 5 分别在底部保留文字版 / icon-only 入口。
   const storedCollapsed = useProductSideNav((state) => state.collapsed.home)
-  const collapsed = version === 2 || version === 6 ? false : storedCollapsed
+  // 方案 2 / 6 没有收起入口；方案 4 首页明确不提供收起（入口只在各产品自己的头里）。
+  const contentToggleLayout = usesContentToggleLayout(version)
+  const collapsed =
+    usesToolbarHeaderLayout(version) ||
+    version === 6 ||
+    schemeFourLayout ||
+    contentToggleLayout
+      ? false
+      : storedCollapsed
   const toggleCollapsed = useProductSideNav((state) => state.toggleCollapsed)
   // 直播管理是权限菜单，开启时插在「内容」上方
   const menu: SideMenuItem[] = []
@@ -176,27 +184,14 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
       showDivider={version !== 1}
       collapsed={collapsed}
       resizable
-      flushHeader={schemeFourLayout || version === 1}
+      flushHeader={version === 1}
       items={menu}
       activeKey={active}
       onSelect={onSelect}
       header={
+        /* 首页不放产品头 —— 它既不提供收起，也没有可写的业务文案，
+           顶部直接就是「发布作品」。 */
         <div className="px-[var(--sn-px)] pb-3">
-          {version !== 2 && version !== 6 && usesProductHeaderLayout(version) && (
-            <SideNavProductHeader
-              {...(
-                schemeFourLayout
-                  ? { leadingText: '开启创作' }
-                  : {
-                      icon: '/icons/nav-products/creator-center.svg',
-                      productLabel: '创作者中心',
-                      onLogoClick: () => onSelect('data'),
-                    }
-              )}
-              collapsed={collapsed}
-              onToggle={() => toggleCollapsed('home')}
-            />
-          )}
           <Popover.Root>
             <Popover.Trigger asChild>
               <SideNavActionButton
@@ -327,7 +322,7 @@ function ProfileHeader({ stats }: { stats: CreatorStats | null }) {
 
 /** 入口卡（设计稿 1-24030）：图标容器 77×84；前卡 60×75，视觉上与入口卡等高。
  *  容器上移 5px 抵消前卡内部偏移，文字从 86px 起排。
- *  whileHover 变体向下传播，驱动 CardImageIcon 的后卡扇开。 */
+ *  hover / focus 变体向下传播，驱动 CardImageIcon 的卡面扇开。 */
 function EntryCard({
   icon,
   label,
@@ -339,6 +334,8 @@ function EntryCard({
   desc: string
   onClick?: () => void
 }) {
+  const reduceMotion = useReducedMotion()
+
   return (
     <motion.button
       type="button"
@@ -346,7 +343,23 @@ function EntryCard({
       initial="rest"
       animate="rest"
       whileHover="spread"
-      className="relative h-[75px] rounded-2xl border-[0.5px] border-black/5 bg-white py-[16px] pl-[86px] pr-3 text-left shadow-[0_7px_8px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_10px_16px_rgba(0,0,0,0.08)]"
+      whileFocus="spread"
+      whileTap={
+        reduceMotion
+          ? undefined
+          : { y: 0, scale: 0.99, transition: { type: 'tween', duration: 0.07, ease: 'easeOut' } }
+      }
+      variants={{
+        rest: {
+          y: 0,
+          transition: { type: 'tween', duration: reduceMotion ? 0 : 0.08, ease: 'easeOut' },
+        },
+        spread: {
+          y: reduceMotion ? 0 : -1,
+          transition: { type: 'tween', duration: reduceMotion ? 0 : 0.11, ease: 'easeOut' },
+        },
+      }}
+      className="relative h-[75px] rounded-2xl border-[0.5px] border-black/5 bg-white py-[16px] pl-[86px] pr-3 text-left shadow-[0_7px_8px_rgba(0,0,0,0.05)]"
     >
       <span className="pointer-events-none absolute -left-px top-[-5.1px] z-[1] h-[84px] w-[77px]">{icon}</span>
       <div className="min-w-0">
@@ -359,9 +372,11 @@ function EntryCard({
 
 /** 入口卡图标：正卡（front，设计稿导出的 4x 贴纸）在左，后卡与正卡等大、在右后方
  *  斜置探出（有 back 图则铺图，否则用中性浅色底板——对应设计里作品发布/工坊的白底后卡）。
- *  默认几何与 hover 增量分层：内层固定设计稿 10°，外层绕左下角向右再扇 4°。 */
+ *  默认几何与 hover 增量分层：后卡绕左下角右扇，正卡同时向左展开。 */
 function CardImageIcon({ front, back }: { front: string; back?: string }) {
   const reduceMotion = useReducedMotion()
+  const fanInTransition = { type: 'tween' as const, duration: reduceMotion ? 0 : 0.11, ease: 'easeOut' as const }
+  const fanOutTransition = { type: 'tween' as const, duration: reduceMotion ? 0 : 0.08, ease: 'easeOut' as const }
 
   return (
     <span className="relative block h-full w-full">
@@ -369,8 +384,14 @@ function CardImageIcon({ front, back }: { front: string; back?: string }) {
       <motion.span
         className="pointer-events-none absolute left-[17.94px] top-0 h-[75px] w-[60px]"
         style={{ transformOrigin: '0% 100%' }}
-        variants={{ rest: { rotate: 0 }, spread: { rotate: reduceMotion ? 0 : 4 } }}
-        transition={{ duration: reduceMotion ? 0 : 0.18, ease: 'easeOut' }}
+        variants={{
+          rest: { x: 0, rotate: 0, transition: fanOutTransition },
+          spread: {
+            x: reduceMotion ? 0 : 2,
+            rotate: reduceMotion ? 0 : 4,
+            transition: fanInTransition,
+          },
+        }}
       >
         <span
           className="absolute inset-0 overflow-hidden rounded-xl border border-white/80 bg-gradient-to-b from-[#f2f3f5] to-[#e0e3e9] shadow-[0_5px_10px_rgba(0,0,0,0.12)]"
@@ -380,7 +401,20 @@ function CardImageIcon({ front, back }: { front: string; back?: string }) {
         </span>
       </motion.span>
       {/* 正卡在左，压住后卡 */}
-      <img src={front} alt="" className="pointer-events-none absolute left-0 top-[5.1px] h-[75px] w-[60px] object-cover" />
+      <motion.img
+        src={front}
+        alt=""
+        className="pointer-events-none absolute left-0 top-[5.1px] h-[75px] w-[60px] object-cover"
+        style={{ transformOrigin: '100% 100%' }}
+        variants={{
+          rest: { x: 0, rotate: 0, transition: fanOutTransition },
+          spread: {
+            x: reduceMotion ? 0 : -5,
+            rotate: reduceMotion ? 0 : -3,
+            transition: fanInTransition,
+          },
+        }}
+      />
     </span>
   )
 }

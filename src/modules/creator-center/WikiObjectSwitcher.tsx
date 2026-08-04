@@ -10,56 +10,76 @@ export default function WikiObjectSwitcher({
   activeId,
   onChange,
   compact = false,
+  collapsed = false,
 }: {
   activeId: string
   onChange: (id: string) => void
   /** 方案 4 顶部工具栏使用设计稿中的 128px 紧凑宽度。 */
   compact?: boolean
+  /** 侧栏收起态：仅封面图标触发，弹层固定宽度。 */
+  collapsed?: boolean
 }) {
   const activeObject = getWikiObject(activeId)
 
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <button
-          type="button"
-          aria-label={`切换百科对象，当前为${activeObject.title}`}
-          className={`flex h-8 items-center justify-between rounded-lg border border-[#e9e9eb] bg-white py-1 pl-1 pr-1.5 text-left transition-colors hover:bg-black/[0.015] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15 ${
-            compact ? 'w-32' : 'w-full'
-          }`}
-        >
-          <span className="flex min-w-0 items-center gap-1">
+        {collapsed ? (
+          <button
+            type="button"
+            aria-label={`切换百科对象，当前为${activeObject.title}`}
+            title={activeObject.title}
+            className="flex size-9 items-center justify-center rounded-lg border border-[#e9e9eb] bg-white transition-colors hover:bg-black/[0.015] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
+          >
             <img
               src={activeObject.cover}
               alt=""
-              className="h-6 w-[18px] shrink-0 rounded object-cover"
+              className="h-7 w-[21px] shrink-0 rounded object-cover"
             />
-            <span
-              className="truncate text-[13px] leading-normal text-black"
-              style={OBJECT_NAME_FONT}
-            >
-              {activeObject.title}
+          </button>
+        ) : (
+          <button
+            type="button"
+            aria-label={`切换百科对象，当前为${activeObject.title}`}
+            className={`flex h-8 items-center justify-between rounded-lg border border-[#e9e9eb] bg-white py-1 pl-1 pr-1.5 text-left transition-colors hover:bg-black/[0.015] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15 ${
+              compact ? 'w-32' : 'w-full'
+            }`}
+          >
+            <span className="flex min-w-0 items-center gap-1">
+              <img
+                src={activeObject.cover}
+                alt=""
+                className="h-6 w-[18px] shrink-0 rounded object-cover"
+              />
+              <span
+                className="truncate text-[13px] leading-normal text-black"
+                style={OBJECT_NAME_FONT}
+              >
+                {activeObject.title}
+              </span>
             </span>
-          </span>
-          <span className="flex size-4 shrink-0 items-center justify-center rounded-[11px]">
-            <img
-              src="/icons/wiki-editor/object-switch.svg"
-              alt=""
-              aria-hidden
-              className="h-[7.5px] w-[8.5px]"
-            />
-          </span>
-        </button>
+            <span className="flex size-4 shrink-0 items-center justify-center rounded-[11px]">
+              <img
+                src="/icons/wiki-editor/object-switch.svg"
+                alt=""
+                aria-hidden
+                className="h-[7.5px] w-[8.5px]"
+              />
+            </span>
+          </button>
+        )}
       </Popover.Trigger>
 
       <Popover.Portal>
         <Popover.Content
           side="bottom"
-          align="start"
+          align={collapsed ? 'center' : 'start'}
           sideOffset={4}
           collisionPadding={8}
           aria-label="切换百科对象"
-          className="z-[80] w-[var(--radix-popover-trigger-width)] rounded-xl border border-black/5 bg-white p-1.5 shadow-lg"
+          className={`z-[80] rounded-xl border border-black/5 bg-white p-1.5 shadow-lg ${
+            collapsed ? 'w-44' : 'w-[var(--radix-popover-trigger-width)]'
+          }`}
         >
           {WIKI_OBJECTS.map((object) => {
             const selected = object.id === activeObject.id

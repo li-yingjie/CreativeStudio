@@ -6,7 +6,6 @@ import ChatComposer from '@/shared/components/ChatComposer'
 import ComposerLocalFileButton from '@/shared/components/ComposerLocalFileButton'
 import SharedSideNav, {
   SIDE_NAV_MOTION_DURATION,
-  SIDE_NAV_MOTION_OFFSET,
 } from '@/shared/components/SideNav'
 import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
 import { useResizableSideNavWidth } from '@/shared/hooks/useResizableSideNavWidth'
@@ -21,6 +20,8 @@ import {
   usesProductHeaderLayout,
   usesSchemeFourLayout,
   usesSearchToolbarLayout,
+  usesContentToggleLayout,
+  usesToolbarHeaderLayout,
 } from '@/shared/storage/nav-version'
 import { useProductSideNav } from '@/shared/storage/product-side-nav'
 import UnifiedToolbar from './UnifiedToolbar'
@@ -192,7 +193,7 @@ function GroupHeader({
   onToggle: () => void
 }) {
   return (
-    <div className="flex items-center gap-1 px-1">
+    <div className="flex items-center gap-1 pl-[10px] pr-1">
       <span aria-hidden className="flex size-4 shrink-0 items-center justify-center">
         <img src={icon} alt="" className="max-h-full max-w-full object-contain" />
       </span>
@@ -463,65 +464,93 @@ export function SuibianSideNav() {
   if (
     sidebarCollapsed &&
     (navVersion === 1 ||
-      navVersion === 2 ||
+      usesToolbarHeaderLayout(navVersion) ||
       navVersion === 3 ||
-      searchToolbarLayout)
+      searchToolbarLayout ||
+      usesContentToggleLayout(navVersion))
   ) {
     return (
-      <SharedSideNav
-        ariaLabel="随变侧栏"
-        collapsed
-        chrome={navVersion === 1 ? 'plain' : 'panel'}
-        showDivider={navVersion !== 1}
-        flushHeader={searchToolbarLayout}
-        items={SUIBIAN_NAV_GROUPS.map((group) => ({ ...group }))}
-        activeKey={null}
-        onSelect={(key) => {
-          if (key === 'tasks') setTasksOpen(true)
-          if (key === 'roles') setRolesOpen(true)
-          if (key === 'library') setLibraryOpen(true)
-          if (key === 'worlds') setWorldsOpen(true)
-          setSidebarCollapsed('suibian', false)
+      <motion.div
+        key="suibian-collapsed"
+        initial={
+          reduceSideNavMotion
+            ? false
+            : { opacity: 0.88 }
+        }
+        animate={{ opacity: 1 }}
+        transition={{
+          duration: reduceSideNavMotion ? 0 : SIDE_NAV_MOTION_DURATION,
+          ease: 'easeOut',
         }}
-        header={
-          searchToolbarLayout ? (
-            <div className="px-[var(--sn-px)]">
-              <SideNavSearchToolbar
-                value={navSearch}
-                onChange={setNavSearch}
-                onToggle={() => setSidebarCollapsed('suibian', false)}
-                placeholder="搜索"
-                ariaLabel="搜索随变内容"
-                collapsed
-              />
-            </div>
-          ) : navVersion === 2 ? (
-            <div className="px-[var(--sn-px)]">
-              <SideNavProductHeader
-                icon="/icons/nav-products/suibian.svg"
-                productLabel="随变"
-                collapsed
-                onToggle={() => setSidebarCollapsed('suibian', false)}
-              />
-            </div>
-          ) : undefined
-        }
-        footer={
-          navVersion === 3 ? (
-            <div className="px-[var(--sn-px)] pb-3">
-              <SideNavCollapseFooterButton
-                collapsed
-                onToggle={() => setSidebarCollapsed('suibian', false)}
-              />
-            </div>
-          ) : undefined
-        }
-      />
+        className="h-full shrink-0"
+      >
+        <SharedSideNav
+          ariaLabel="随变侧栏"
+          collapsed
+          chrome={navVersion === 1 ? 'plain' : 'panel'}
+          showDivider={navVersion !== 1}
+          flushHeader={searchToolbarLayout}
+          items={SUIBIAN_NAV_GROUPS.map((group) => ({ ...group }))}
+          activeKey={null}
+          onSelect={(key) => {
+            if (key === 'tasks') setTasksOpen(true)
+            if (key === 'roles') setRolesOpen(true)
+            if (key === 'library') setLibraryOpen(true)
+            if (key === 'worlds') setWorldsOpen(true)
+            setSidebarCollapsed('suibian', false)
+          }}
+          header={
+            searchToolbarLayout ? (
+              <div className="px-[var(--sn-px)]">
+                <SideNavSearchToolbar
+                  value={navSearch}
+                  onChange={setNavSearch}
+                  onToggle={() => setSidebarCollapsed('suibian', false)}
+                  placeholder="搜索"
+                  ariaLabel="搜索随变内容"
+                  collapsed
+                />
+              </div>
+            ) : usesToolbarHeaderLayout(navVersion) ? (
+              /* 收起态沿用同一条工具条（只留收起入口），位置与展开态一致 */
+              <div className="px-[var(--sn-px)]">
+                <UnifiedToolbar
+                  collapsed
+                  ariaLabel="随变工具条"
+                  actions={SUIBIAN_SCHEME_TWO_TOOLBAR_ACTIONS}
+                  onAction={() => setSidebarCollapsed('suibian', false)}
+                />
+              </div>
+            ) : undefined
+          }
+          footer={
+            navVersion === 3 ? (
+              <div className="px-[var(--sn-px)] pb-3">
+                <SideNavCollapseFooterButton
+                  collapsed
+                  onToggle={() => setSidebarCollapsed('suibian', false)}
+                />
+              </div>
+            ) : undefined
+          }
+        />
+      </motion.div>
     )
   }
 
   return (
-    <div
+    <motion.div
+      key="suibian-expanded"
+      initial={
+        reduceSideNavMotion
+          ? false
+          : { opacity: 0.88 }
+      }
+      animate={{ opacity: 1 }}
+      transition={{
+        duration: reduceSideNavMotion ? 0 : SIDE_NAV_MOTION_DURATION,
+        ease: 'easeOut',
+      }}
       data-side-nav-motion
       data-product="suibian"
       data-state={sidebarCollapsed ? 'collapsed' : 'expanded'}
@@ -532,10 +561,6 @@ export function SuibianSideNav() {
         data-side-nav-motion-layer
         initial={false}
         animate={{
-          x:
-            sidebarCollapsed && !reduceSideNavMotion
-              ? -SIDE_NAV_MOTION_OFFSET
-              : 0,
           opacity: sidebarCollapsed ? 0 : 1,
         }}
         transition={{
@@ -582,7 +607,7 @@ export function SuibianSideNav() {
                   placeholder="搜索"
                   ariaLabel="搜索随变内容"
                 />
-              ) : navVersion === 2 ? (
+              ) : usesToolbarHeaderLayout(navVersion) ? (
                 <UnifiedToolbar
                   ariaLabel="随变工具条"
                   actions={SUIBIAN_SCHEME_TWO_TOOLBAR_ACTIONS}
@@ -604,7 +629,12 @@ export function SuibianSideNav() {
                           productLabel: '随变',
                         }
                   )}
-                  onToggle={() => setSidebarCollapsed('suibian', true)}
+                  /* 方案 8 收起入口统一在内容区左上角 */
+                  onToggle={
+                    usesContentToggleLayout(navVersion)
+                      ? undefined
+                      : () => setSidebarCollapsed('suibian', true)
+                  }
                 />
               )}
             </div>
@@ -746,7 +776,7 @@ export function SuibianSideNav() {
           ariaLabel="调整随变侧栏宽度"
         />
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -774,13 +804,21 @@ export default function SuibianPage() {
       {/* ── 中：创作对话 ── */}
       {/* 底色取自设计稿像素：对话栏 #f0f0f1（白气泡/白输入框靠它拉开层次） */}
       <section className="flex w-[440px] shrink-0 flex-col overflow-hidden bg-[#f0f0f1]">
-        <div className="flex h-14 shrink-0 items-center justify-between px-4">
+        {/* 内容区收起方案：入口钉在内容区左上角，正压在这一行上。
+            该方案下各产品 Header 统一 40 高、左内距 48，入口和标题
+            在所有产品里都落在同一条水平线上。 */}
+        <div
+          className={`flex shrink-0 items-center justify-between pr-4 ${
+            usesContentToggleLayout(navVersion) ? 'h-10 pl-12' : 'h-14 pl-4'
+          }`}
+        >
           <div className="flex min-w-0 items-center gap-1.5">
             {sidebarCollapsed &&
               navVersion !== 1 &&
-              navVersion !== 2 &&
+              !usesToolbarHeaderLayout(navVersion) &&
               navVersion !== 3 &&
-              navVersion !== 6 && (
+              navVersion !== 6 &&
+              !usesContentToggleLayout(navVersion) && (
               <button
                 type="button"
                 title="展开导航"

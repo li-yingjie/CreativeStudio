@@ -5,8 +5,9 @@ import { ArrowUp } from '@/shared/icons'
 export const CHAT_COMPOSER_HEIGHT = 114
 
 /** 统一对话输入框：卡片壳 + textarea + 底部工具条（左自定义、右发送）。
- *  高度固定 CHAT_COMPOSER_HEIGHT；皮肤（圆角/描边/底色/阴影）与文字样式
- *  由挂载处覆写，结构与交互（Enter 发送、Shift+Enter 换行）保持一致。 */
+ *  高度默认 CHAT_COMPOSER_HEIGHT（可由挂载处覆写）；皮肤（圆角/描边/底色/
+ *  阴影）与文字样式由挂载处覆写，结构与交互（Enter 发送、Shift+Enter 换行）
+ *  保持一致。 */
 export default function ChatComposer({
   value,
   onChange,
@@ -14,6 +15,7 @@ export default function ChatComposer({
   placeholder,
   ariaLabel,
   textareaRef,
+  attachments,
   footerLeft,
   footerExtra,
   className = '',
@@ -21,6 +23,7 @@ export default function ChatComposer({
   inputClassName = '',
   sendButtonClassName,
   sendDisabled,
+  height = CHAT_COMPOSER_HEIGHT,
 }: {
   value: string
   onChange: (v: string) => void
@@ -28,6 +31,8 @@ export default function ChatComposer({
   placeholder: string
   ariaLabel?: string
   textareaRef?: Ref<HTMLTextAreaElement>
+  /** 输入区顶部的附件回显（上传的文档卡等），渲染在 textarea 之上。 */
+  attachments?: ReactNode
   /** 底部工具条左侧（添加素材 / 功能 chips …）。 */
   footerLeft?: ReactNode
   /** 底部工具条右侧、发送按钮之前（如 Auto 选择器）。 */
@@ -42,14 +47,17 @@ export default function ChatComposer({
   sendButtonClassName?: string
   /** 发送按钮禁用条件，默认输入为空时禁用。 */
   sendDisabled?: boolean
+  /** 卡片总高度，默认 CHAT_COMPOSER_HEIGHT。 */
+  height?: number
 }) {
   return (
     <div
-      style={{ height: CHAT_COMPOSER_HEIGHT }}
+      style={{ height }}
       className={`flex flex-col p-3 ${
         skinClassName ?? 'rounded-2xl border-[0.5px] border-black/10 bg-white'
       } ${className}`}
     >
+      {attachments && <div className="shrink-0 pb-2">{attachments}</div>}
       <textarea
         ref={textareaRef}
         value={value}

@@ -259,7 +259,6 @@ export default function AiAssistantPanel({
         onPointerCancel={onDragEnd}
         className="group absolute left-0 top-0 bottom-0 z-20 w-2 cursor-col-resize touch-none select-none"
       >
-        <div className="absolute inset-y-0 left-0 w-px bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/25 group-active:bg-[#3370FF]" />
       </div>
 
       {/* ── 头部：名字 + 收起（收起变悬浮球） ── */}

@@ -12,6 +12,8 @@ export const PROJECT_KINDS: Record<string, ProjectKind> = {
   '抖音 AI 工坊设计探索': 'web-app',
   '射击小游戏': 'web-game',
   '抖音 ACG 游戏新春会': 'marketing-h5',
+  '夯爆了 已上线': 'marketing-h5',
+  '夏日冲浪 · 顺风顺水': 'marketing-h5',
 }
 
 export const SHAPE_BY_KIND: Record<ProjectKind, OutputShape> = {

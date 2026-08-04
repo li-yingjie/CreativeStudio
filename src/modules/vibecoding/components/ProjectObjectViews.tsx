@@ -93,6 +93,216 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
     },
   },
 
+  /* ── 这夏夯爆了 · 夏日夜食指南（marketing-h5）── */
+  '夯爆了 已上线': {
+    基础信息: {
+      type: 'info',
+      summary:
+        '抖音生活服务夏季大促 H5，深夜食堂 × 小马 IP，核心玩法为「集美食卡 兑红包」：做任务抽卡、集齐档位兑券与实物奖励。',
+      tags: ['生活服务', '夏日促销', '集卡兑奖'],
+      groups: [
+        {
+          title: '活动信息',
+          rows: [
+            ['活动名称', '这夏夯爆了 · 夏日夜食指南'],
+            ['活动类型', '生活服务促投稿 H5'],
+            ['业务方', '抖音生活服务'],
+            ['当前阶段', '第二阶段 · 夏日夜食指南'],
+            ['状态', '待发布'],
+          ],
+        },
+        {
+          title: '投放',
+          rows: [
+            ['投放端', '抖音 / 抖音极速版'],
+            ['入口', '搜索词卡片 / 活动中心 / 话题页'],
+            ['活动时间', '2026-06-30 10:00 ~ 2026-08-31 23:59'],
+            ['分阶段', '夏天马上顺 → 夏日夜食指南 → 待揭晓'],
+          ],
+        },
+        {
+          title: '数据目标',
+          rows: [
+            ['目标 UV', '800 万'],
+            ['带定位投稿量', '120 万'],
+            ['集卡完成率（≥2 种）', '45%'],
+            ['券核销率', '18%'],
+          ],
+        },
+      ],
+    },
+    [GAMEPLAY_CONFIG_LABEL]: {
+      type: 'cards',
+      note: '本期上线「集美食卡 兑红包」，接金豆与投稿任务体系为后续阶段。',
+      items: [
+        { icon: '🎴', title: '抽夜食卡', desc: '消耗抽卡机会开出随机夜食卡，未获得品类权重更高；扇形卡阵动效 + 开卡结算页。', meta: '核心' },
+        { icon: '🍲', title: '集卡点亮', desc: '9 种夜食卡，未获得为石膏灰态，获得后点亮并累计张数。', meta: '9 种' },
+        { icon: '🧧', title: '档位兑奖', desc: '集齐 2/4/7/9 种分别解锁 2元券、5元券、43元券包、小马黄金转运珠，奖励可叠加。', meta: '4 档' },
+        { icon: '🤝', title: '赠送好友', desc: '同种卡持有 ≥2 张可赠送，好友领取后双方各得 1 次抽卡机会。', meta: '社交' },
+        { icon: '📝', title: '任务得机会', desc: '带定位投稿 +2 次/条（日上限 5）、赠卡 +1 次（日上限 3）、每日首次浏览 +1 次。', meta: '3 类' },
+        { icon: '🫘', title: '接金豆（下阶段）', desc: '烹饪小游戏得金豆，满 500/1000/2000 兑 5/10/20 元团购券。', meta: '待上线' },
+      ],
+    },
+    [DATA_CONFIG_LABEL]: {
+      type: 'database',
+      tables: [
+        {
+          name: 'food_cards',
+          desc: '9 种夜食卡定义',
+          columns: [
+            { name: 'id', type: 'varchar(32)', desc: '卡片标识' },
+            { name: 'name', type: 'varchar(32)', desc: '夜食名称' },
+            { name: 'motto', type: 'varchar(64)', desc: '卡面风味短句' },
+            { name: 'asset_lit', type: 'varchar(128)', desc: '已获得卡面' },
+            { name: 'asset_grey', type: 'varchar(128)', desc: '未获得石膏卡面' },
+          ],
+          rows: [
+            ['huoguo', '沸腾火锅', '热辣下肚 烦恼止步', 'cards/food-huoguo.png', 'cards/food-huoguo-grey.png'],
+            ['longxia', '红火小龙虾', '虾壳通红 焦虑清空', 'cards/food-longxia.png', '—'],
+            ['luwei', '解馋卤味', '越嚼越香 越吃越爽', '—', 'cards/food-luwei-grey.png'],
+          ],
+        },
+        {
+          name: 'reward_tiers',
+          desc: '集卡档位与奖励',
+          columns: [
+            { name: 'need_kinds', type: 'tinyint', desc: '需集齐种类数' },
+            { name: 'reward_name', type: 'varchar(64)', desc: '奖励名称' },
+            { name: 'reward_type', type: "enum('coupon','goods')", desc: '奖励类型' },
+            { name: 'daily_stock', type: 'int', desc: '每日库存' },
+          ],
+          rows: [
+            ['2', '2元夜食券', 'coupon', '7587'],
+            ['4', '5元夜食券', 'coupon', '2023'],
+            ['7', '43元夜食券包', 'coupon', '196'],
+            ['9', '小马黄金转运珠', 'goods', '1'],
+          ],
+        },
+        {
+          name: 'user_cards',
+          desc: '用户持卡与赠送记录',
+          columns: [
+            { name: 'id', type: 'bigint', desc: '主键' },
+            { name: 'user_id', type: 'bigint', desc: '用户' },
+            { name: 'card_id', type: 'varchar(32)', desc: '夜食卡' },
+            { name: 'count', type: 'int', desc: '持有张数' },
+            { name: 'source', type: "enum('draw','gift')", desc: '来源' },
+          ],
+        },
+        {
+          name: 'draw_chances',
+          desc: '抽卡机会流水（任务发放 / 抽卡消耗）',
+          columns: [
+            { name: 'id', type: 'bigint', desc: '主键' },
+            { name: 'user_id', type: 'bigint', desc: '用户' },
+            { name: 'task_code', type: 'varchar(32)', desc: '任务标识' },
+            { name: 'delta', type: 'int', desc: '增减次数' },
+            { name: 'created_at', type: 'datetime', desc: '时间' },
+          ],
+        },
+      ],
+    },
+  },
+
+  /* ── 夏日冲浪 · 顺风顺水（Marketing King / marketing-h5）── */
+  '夏日冲浪 · 顺风顺水': {
+    [GAMEPLAY_CONFIG_LABEL]: {
+      type: 'cards',
+      columns: 2,
+      note: '右侧活动预览和这里读取同一份夏日冲浪配置：7 种装备、4 个收集档位、5 类任务，以及主会场到奖品页的页面流转。',
+      items: [
+        { icon: '🌊', title: '活动主页', desc: '夏日 KV、地图顶栏、主题切换、分享/规则入口与「抽装备 一顺到底」主按钮。', meta: 'campaign-main' },
+        { icon: '🎲', title: '抽装备', desc: '消耗抽装备机会随机获得 7 种装备之一；抽中后更新装备册与主视觉层。', meta: 'draw' },
+        { icon: '📖', title: '顺风装备册', desc: '展示鲨鲨水枪、冰镇西瓜、顺风冲浪板等装备的收集进度，集齐后解锁奖励档位。', meta: '7 种装备' },
+        { icon: '🎁', title: '奖励档位', desc: '集齐 1 / 4 / 6 / 7 种分别领取 3 元券、12 元券、23 元券和足金顺顺马抽签码。', meta: '4 档' },
+        { icon: '✅', title: '任务与抽取机会', desc: '投稿、发布玩水灵感、点亮商户、赠送装备和浏览活动页，分别获得 1–2 次抽取机会。', meta: '5 类任务' },
+        { icon: '🫘', title: '冲浪得金豆', desc: '任务区的副玩法入口，保留“冲浪得金豆，好礼兑不停”文案和活动视觉，可继续接入金豆系统。', meta: '副玩法' },
+        { icon: '📍', title: '灵感话题与地点', desc: '承接暑期话题、清凉美食、晚霞和湖边玩水内容，以及上海动物园、世博文化公园等地点卡。', meta: '内容区' },
+        { icon: '🧭', title: '页面流转', desc: 'Loading → 角色选择 → 活动主页；主页可进入我的奖品，规则以浮层打开。', meta: '5 个页面' },
+      ],
+    },
+    [DATA_CONFIG_LABEL]: {
+      type: 'database',
+      tables: [
+        {
+          name: 'equipment_cards',
+          desc: '顺风装备册的 7 种装备定义',
+          columns: [
+            { name: 'id', type: 'varchar(32)', desc: '装备标识' },
+            { name: 'name', type: 'varchar(32)', desc: '装备名称' },
+            { name: 'rarity', type: "enum('普通','稀有')", desc: '稀有度' },
+            { name: 'asset_path', type: 'varchar(160)', desc: '卡面素材路径' },
+            { name: 'drop_weight', type: 'decimal(4,2)', desc: '抽取权重' },
+          ],
+          rows: [
+            ['watergun', '鲨鲨水枪', '普通', 'figma/equipment-water-gun.webp', '1.00'],
+            ['watermelon', '冰镇西瓜', '普通', 'figma/equipment-watermelon-bucket.webp', '1.00'],
+            ['sunhat', '遮阳幸运帽', '稀有', '待补素材态', '0.55'],
+          ],
+        },
+        {
+          name: 'reward_tiers',
+          desc: '装备收集档位与奖励',
+          columns: [
+            { name: 'threshold', type: 'tinyint', desc: '需点亮装备数' },
+            { name: 'title', type: 'varchar(64)', desc: '档位标题' },
+            { name: 'reward', type: 'varchar(64)', desc: '实际奖励' },
+            { name: 'kind', type: "enum('coupon','grand')", desc: '奖励类型' },
+          ],
+          rows: [
+            ['1', '清凉开运券', '¥3 清凉开运券', 'coupon'],
+            ['4', '玩水装备券', '¥12 玩水装备券', 'coupon'],
+            ['6', '一顺到底券', '¥23 一顺到底券', 'coupon'],
+            ['7', '足金顺顺马抽签码', '足金顺顺马抽签码', 'grand'],
+          ],
+        },
+        {
+          name: 'draw_chances',
+          desc: '用户抽装备机会流水',
+          columns: [
+            { name: 'user_id', type: 'bigint', desc: '用户标识' },
+            { name: 'source', type: 'varchar(32)', desc: '机会来源' },
+            { name: 'delta', type: 'smallint', desc: '机会变化量' },
+            { name: 'created_at', type: 'datetime', desc: '发生时间' },
+          ],
+          rows: [
+            ['10001', 'post', '+2', '2026-07-18 14:32'],
+            ['10001', 'store', '+1', '2026-07-18 15:06'],
+            ['10001', 'draw', '-1', '2026-07-18 15:08'],
+          ],
+        },
+        {
+          name: 'user_equipment',
+          desc: '用户装备册持有与点亮状态',
+          columns: [
+            { name: 'user_id', type: 'bigint', desc: '用户标识' },
+            { name: 'card_id', type: 'varchar(32)', desc: '装备标识' },
+            { name: 'owned_count', type: 'tinyint', desc: '持有数量' },
+            { name: 'first_received_at', type: 'datetime', desc: '首次获得时间' },
+          ],
+          rows: [
+            ['10001', 'watergun', '1', '2026-07-18 15:08'],
+            ['10001', 'surfboard', '2', '2026-07-18 15:10'],
+          ],
+        },
+        {
+          name: 'gold_points',
+          desc: '冲浪得金豆副玩法余额与来源',
+          columns: [
+            { name: 'user_id', type: 'bigint', desc: '用户标识' },
+            { name: 'balance', type: 'int', desc: '当前金豆余额' },
+            { name: 'source', type: 'varchar(32)', desc: '获得来源' },
+            { name: 'updated_at', type: 'datetime', desc: '更新时间' },
+          ],
+          rows: [
+            ['10001', '260', '冲浪任务', '2026-07-18 15:06'],
+            ['10002', '500', '首次参与', '2026-07-18 12:20'],
+          ],
+        },
+      ],
+    },
+  },
+
   /* ── 抖音 ACG 游戏新春会（marketing-h5）── */
   '抖音 ACG 游戏新春会': {
     基础信息: {

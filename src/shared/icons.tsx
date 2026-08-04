@@ -36,6 +36,7 @@ import {
   IconCalendar,
   IconCamera,
   IconChartBar,
+  IconBookmarkPlus,
   IconCheck,
   IconChevronDown,
   IconChevronLeft,
@@ -125,6 +126,9 @@ import {
   IconPlayerPause,
   IconPlayerPlay,
   IconPlus,
+  IconCirclePlus,
+  IconCreditCard,
+  IconPuzzle,
   IconPresentation,
   IconRefresh,
   IconRobot,
@@ -232,6 +236,7 @@ export const Brush = wrap(IconBrush)
 export const Calendar = wrap(IconCalendar)
 export const Camera = wrap(IconCamera)
 export const Check = wrap(IconCheck)
+export const BookmarkPlus = wrap(IconBookmarkPlus)
 export const CheckCircle2 = wrap(IconCircleCheck)
 export const CheckSquare = wrap(IconSquareCheck)
 export const ChevronDown = wrap(IconChevronDown)
@@ -331,6 +336,10 @@ export const Scissors = wrap(IconScissors)
 export const Crop = wrap(IconCrop)
 export const Ruler = wrap(IconRuler2)
 export const Plus = wrap(IconPlus)
+export const PlusCircle = wrap(IconCirclePlus)
+export const CreditCard = wrap(IconCreditCard)
+export const UserCircle = wrap(IconUserCircle)
+export const Puzzle = wrap(IconPuzzle)
 export const Presentation = wrap(IconPresentation)
 export const RefreshCw = wrap(IconRefresh)
 export const Rocket = wrap(IconRocket)

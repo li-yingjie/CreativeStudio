@@ -67,6 +67,13 @@ export const CHAT_SUGGESTIONS_BY_KIND: Record<ProjectKind, string[]> = {
 
 /** Per-project overrides — finer-grained chips for specific projects. */
 export const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
+  '夯爆了 已上线': [
+    '补齐卤味和螺蛳粉的彩色卡面',
+    '换一版深夜食堂主视觉',
+    '调整奖励档位和券面文案',
+    '把接金豆玩法加上',
+    '优化抽卡开卡动效',
+  ],
   '塔罗兴趣卡': [
     '换套更神秘的配色',
     '给卡片加上翻面动效',

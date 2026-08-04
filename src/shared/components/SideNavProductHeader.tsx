@@ -5,7 +5,8 @@ type SideNavProductHeaderProps = {
   collapsed?: boolean
   /** 与下方首项的间距；分身、百科需要紧贴时传 0。 */
   bottomGap?: 0 | 12
-  onToggle: () => void
+  /** 不传则不渲染收起按钮 —— 用于「本产品不提供收起」的场合（方案 4 首页）。 */
+  onToggle?: () => void
 } & (
   | {
       /** public/icons 下的产品图标 — logo 占位 */
@@ -44,24 +45,32 @@ export default function SideNavProductHeader(props: SideNavProductHeaderProps) {
       <div
         className={`${bottomGap === 0 ? 'mb-0' : 'mb-3'} flex items-center justify-center`}
       >
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-label="展开导航"
-          title="展开导航"
-          className="group relative flex size-8 shrink-0 items-center justify-center rounded-lg text-[#252632]/45 transition-colors duration-150 hover:bg-black/[0.03] hover:text-[#252632]/70 motion-reduce:transition-none"
-        >
-          <img
-            src={props.icon}
-            alt=""
-            aria-hidden
-            className="size-6 shrink-0 object-contain opacity-[0.67] transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0 motion-reduce:transition-none"
-          />
-          <SideNavPanelStateIcon
-            collapsed
-            className="absolute size-4 shrink-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none"
-          />
-        </button>
+        {/* 不提供收起的场合（方案 8：入口只在内容区）收起态就只是一枚
+            产品 logo，不能再挂一个「展开导航」的按钮语义。 */}
+        {onToggle ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label="展开导航"
+            title="展开导航"
+            className="group relative flex size-8 shrink-0 items-center justify-center rounded-lg text-[#565A60] transition-colors duration-150 hover:bg-black/[0.03] hover:text-[#161823] motion-reduce:transition-none"
+          >
+            <img
+              src={props.icon}
+              alt=""
+              aria-hidden
+              className="size-6 shrink-0 object-contain opacity-[0.67] transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0 motion-reduce:transition-none"
+            />
+            <SideNavPanelStateIcon
+              collapsed
+              className="absolute size-4 shrink-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none"
+            />
+          </button>
+        ) : (
+          <span className="flex size-8 shrink-0 items-center justify-center">
+            {iconGlyph}
+          </span>
+        )}
       </div>
     )
   }
@@ -69,7 +78,7 @@ export default function SideNavProductHeader(props: SideNavProductHeaderProps) {
   return (
     <div
       className={`${isTextHeader ? 'h-10' : bottomGap === 0 ? 'mb-0' : 'mb-3'} flex items-center ${
-        collapsed ? 'justify-center' : 'justify-between pl-1'
+        collapsed ? 'justify-center' : 'justify-between pl-1.5'
       }`}
     >
       {!collapsed && (
@@ -90,15 +99,17 @@ export default function SideNavProductHeader(props: SideNavProductHeaderProps) {
           <span className="flex items-center text-[#161823]">{iconGlyph}</span>
         )
       )}
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label={collapsed ? '展开导航' : '收起导航'}
-        title={collapsed ? '展开导航' : '收起导航'}
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-[#252632]/45 transition-colors hover:bg-black/[0.03] hover:text-[#252632]/70"
-      >
-        <SideNavPanelStateIcon collapsed={collapsed} />
-      </button>
+      {onToggle && (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={collapsed ? '展开导航' : '收起导航'}
+          title={collapsed ? '展开导航' : '收起导航'}
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg text-[#565A60] transition-colors hover:bg-black/[0.03] hover:text-[#161823]"
+        >
+          <SideNavPanelStateIcon collapsed={collapsed} />
+        </button>
+      )}
     </div>
   )
 }

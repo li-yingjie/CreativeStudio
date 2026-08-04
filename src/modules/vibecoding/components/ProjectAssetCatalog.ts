@@ -9,7 +9,15 @@ export interface AssetPrompt {
 export interface AssetItem {
   id?: string
   src: string
+  /** Browser-cached source key used by imported project assets. */
+  assetId?: string
+  /** Poster shown while an imported video source is not available locally. */
+  poster?: string
   label: string
+  /** Optional generated alternatives; src is always version 1. */
+  variants?: string[]
+  /** One-based version when the item is opened from a version picker. */
+  version?: number
   /** Frame count for animation folders — shown as a badge. */
   frames?: number
   kind?: AssetKind
@@ -287,11 +295,284 @@ export const ACG_NEW_YEAR_ASSET_GROUPS: AssetGroup[] = [
         'acg-12-mascot',
         '12-event-mascot-horse.png',
         '12 / 活动入口吉祥物',
-        '奔跑中的 3D 卡通白色小马吉祥物，橙红色鬃毛与大尾巴，红色缰绳，闭眼咧嘴笑，身体挂着同款小马挂件和金色星星。软胶玩具质感，圆润造型，透明背景，侧面完整动作，高细节。',
+        '站立的 3D 卡通红色小马吉祥物，深棕色蓬松鬃毛与尾巴，米色大口鼻、手脚，半睁眼和简单弧线笑脸。圆润软胶玩具质感，透明背景，三分之四正面，高细节。',
       ),
     ],
   },
 ]
+
+/* ─── 夏日冲浪 · 顺风顺水（Marketing King / marketing-h5）─── */
+
+const SUMMER_SURF_ART_DIRECTION =
+  '夏日冲浪 · 顺风顺水营销 H5，清爽海岛蓝与阳光黄配色，3D 软胶玩具质感，轻松、明亮、有风感，适配抖音生活服务活动页'
+
+function summerSurfAsset(
+  id: string,
+  file: string,
+  label: string,
+  subject: string,
+  model = 'NanoBanana',
+): AssetItem {
+  return {
+    id,
+    src: `/assets/marketing-king/${file}`,
+    label,
+    prompt: {
+      text: `${SUMMER_SURF_ART_DIRECTION}。${subject}。保持透明背景或原始画布比例，主体完整、边缘干净、无水印，直接对应“夏日冲浪 · 顺风顺水”的页面模块。`,
+      skillLabel: 'H5 活动视觉 skill',
+      model,
+    },
+  }
+}
+
+function summerSurfVideo(
+  id: string,
+  assetId: string,
+  posterFile: string,
+  label: string,
+  subject: string,
+): AssetItem {
+  return {
+    id,
+    src: '',
+    assetId,
+    poster: `/assets/marketing-king/${posterFile}`,
+    label,
+    kind: 'video',
+    prompt: {
+      text: `${SUMMER_SURF_ART_DIRECTION}。${subject}。这是原始 Marketing King 活动中的 Hero 视频资源，保持 3:4 竖版构图、首尾帧与夏日装备叠加层对齐，无文字水印。`,
+      skillLabel: 'H5 活动视频 skill',
+      model: 'Seedance 2',
+    },
+  }
+}
+
+export const SUMMER_SURF_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '主视觉与地图',
+    desc: '活动主页的夏日 KV、地图背景、首尾帧与原始 Hero 视频',
+    items: [
+      summerSurfVideo(
+        'surf-hero-video-start',
+        'builtin:summer:hero:start:video-native-v1',
+        'theme-assets/summer/hero-layer-base.png',
+        'Hero 视频 / 开场首焦',
+        '从夏日海岛首焦开始，承接活动入口与首个装备点亮前的开场动作。',
+      ),
+      summerSurfVideo(
+        'surf-hero-video-end',
+        'builtin:summer:hero:end:video-native-v1',
+        'theme-assets/summer/hero-scene-v2.png',
+        'Hero 视频 / 集卡完成尾帧',
+        '从装备逐步集齐过渡到顺风顺水完整合成画面，作为 Hero 的完成态视频。',
+      ),
+      summerSurfAsset(
+        'surf-hero-base',
+        'theme-assets/summer/hero-layer-base.png',
+        '主视觉底图 / 夏日海岛',
+        '海岛地图与蓝色海水的活动主视觉底图，预留装备叠加层与顶部导航区域。',
+      ),
+      summerSurfAsset(
+        'surf-hero-scene',
+        'theme-assets/summer/hero-scene-v2.png',
+        '主视觉合成 / 顺风顺水',
+        '已经合成装备与角色的最终活动 KV，对应预览中的首屏 hero composition。',
+      ),
+      summerSurfAsset(
+        'surf-map-cap',
+        'figma/map-cap.png',
+        '地图顶栏 / 活动入口',
+        '地图页顶部装饰与活动导航背景，承接“夏日冲浪 · 顺风顺水”标题和主题切换。',
+      ),
+    ],
+  },
+  {
+    title: '装备卡面',
+    desc: '顺风装备册的 7 种装备；其中 6 张已有真实图片，幸运帽按配置保留待补素材态',
+    items: [
+      summerSurfAsset('surf-card-watergun', 'figma/equipment-water-gun.webp', '装备卡 / 鲨鲨水枪', '蓝色鲨鱼造型水枪，装备册普通卡。'),
+      summerSurfAsset('surf-card-watermelon', 'figma/equipment-watermelon-bucket.webp', '装备卡 / 冰镇西瓜', '西瓜造型玩水桶，装备册普通卡。'),
+      summerSurfAsset('surf-card-surfboard', 'figma/equipment-paddle-board.webp', '装备卡 / 顺风冲浪板', '黄色冲浪板，装备册普通卡。'),
+      summerSurfAsset('surf-card-palmtree', 'figma/equipment-palm-tree.webp', '装备卡 / 海岛椰树', '海岛椰树装饰，装备册普通卡。'),
+      summerSurfAsset('surf-card-floatie', 'figma/equipment-pineapple-float.webp', '装备卡 / 好运泳圈', '菠萝造型泳圈，装备册普通卡。'),
+      summerSurfAsset('surf-card-deckchair', 'figma/equipment-sun-chair.webp', '装备卡 / 躺赢沙滩椅', '阳光沙滩椅，装备册普通卡。'),
+    ],
+  },
+  {
+    title: '角色与奖励',
+    desc: '活动 IP、足金顺顺马奖品与品牌标识',
+    items: [
+      summerSurfAsset('surf-mascot', 'figma/mascot-side-horse.webp', '活动角色 / 顺顺马', '侧身出现的红色小马 IP，作为活动主页的角色陪伴和引导。'),
+      summerSurfAsset('surf-grand-reward', 'figma/reward-gold-horse.webp', '大奖 / 足金顺顺马', '足金顺顺马实物奖励，出现在 7 件装备集齐档位。'),
+      summerSurfAsset('surf-brand-logo', 'figma/brand-logo.png', '页脚品牌 / 抖音生活服务', '抖音生活服务品牌字标，用于活动页底部品牌信息。'),
+    ],
+  },
+  {
+    title: '话题与内容区',
+    desc: '暑期灵感话题、玩水地点投稿与下半屏内容卡片',
+    items: [
+      summerSurfAsset('surf-topic-hotpot', 'figma/topic-hotpot-card.webp', '灵感卡 / 清凉美食指南', '清凉美食内容卡，承接“把夏天吃进这一口”灵感话题。'),
+      summerSurfAsset('surf-topic-sunset', 'figma/topic-sunset-card.webp', '灵感卡 / 晚霞打卡指南', '晚霞打卡内容卡，承接“晚霞就是天空的诗”灵感话题。'),
+      summerSurfAsset('surf-topic-lake', 'figma/topic-lake-card.webp', '灵感卡 / 扎进水里夏天', '湖边玩水内容卡，承接“把清凉值拉满”灵感话题。'),
+      summerSurfAsset('surf-content-lions', 'figma/content-card-lions.webp', '地点内容 / 上海动物园', '带定位的玩水地点内容卡，示例地点为上海动物园。'),
+      summerSurfAsset('surf-content-cabin', 'figma/content-card-cabin.webp', '地点内容 / 世博文化公园', '带定位的玩水地点内容卡，示例地点为世博文化公园。'),
+      summerSurfAsset('surf-content-avatar', 'figma/content-avatar.png', '内容头像 / 活动用户', '活动内容流中的用户头像，占位真实素材。'),
+    ],
+  },
+]
+
+/* ─── 这夏夯爆了 · 夏日夜食指南（marketing-h5）─── */
+
+const XIAHUA_ART_DIRECTION =
+  '抖音生活服务「这夏夯爆了」夏日夜食活动素材，深夜食堂夜市氛围，暖棕木质 + 霓虹夜景底色，红橙主色配荧光绿点缀，3D 软胶玩具质感，圆润造型，柔和高光'
+
+function xiahuaAsset(
+  id: string,
+  file: string,
+  label: string,
+  text: string,
+  model = 'NanoBanana',
+): AssetItem {
+  return {
+    id,
+    src: `/assets/xiahua/${file}`,
+    label,
+    prompt: { text, skillLabel: 'H5 活动视觉 skill', model },
+  }
+}
+
+/** 一张夜食卡的两种形态共用同一句描述，只切换「已获得 / 未获得」。 */
+function foodCard(
+  id: string,
+  file: string,
+  label: string,
+  dish: string,
+  grey = false,
+): AssetItem {
+  return xiahuaAsset(
+    id,
+    file,
+    label,
+    `${XIAHUA_ART_DIRECTION}。不锈钢餐盘俯视摆放${dish}，盘面左下压一张米色纸质贴纸标签，${
+      grey
+        ? '整卡为未获得态：统一米棕石膏材质，无彩色，仅保留浮雕体积与轮廓，标签文字同色下沉。'
+        : '标签上是红色手写体菜名与一句风味短句，菜品色彩饱满、油光水润。'
+    }竖版 109:145 卡面，透明背景，居中构图，无水印。`,
+  )
+}
+
+/** 已实际产出的候选版本；素材库只把存在的版本展示出来。 */
+const XIAHUA_ASSET_VARIANTS: Record<string, string[]> = {
+  'xh-kv-head': [
+    '/assets/xiahua/variants/head-kv-v2.png',
+    '/assets/xiahua/variants/head-kv-v3.png',
+    '/assets/xiahua/variants/head-kv-v4.png',
+  ],
+  'xh-title': ['/assets/xiahua/variants/title-v2.png'],
+  'xh-panel-bg': ['/assets/xiahua/variants/panel-bg-v2.png'],
+  'xh-btn-draw': ['/assets/xiahua/variants/btn-draw-v2.png'],
+  'xh-card-big': ['/assets/xiahua/variants/bigcard-v2.png'],
+  'xh-tier-43': ['/assets/xiahua/variants/tier-43-v2.png'],
+  'xh-card-huoguo': ['/assets/xiahua/variants/food-huoguo-v2.png'],
+}
+
+export const XIAHUA_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '主视觉与品牌',
+    desc: '活动头图、标题字与 IP —— 定调深夜食堂 × 小马的整体气质',
+    items: [
+      xiahuaAsset(
+        'xh-kv-head',
+        'head-kv.png',
+        '主视觉 / 深夜食堂 KV',
+        `${XIAHUA_ART_DIRECTION}。深夜居酒屋俯视场景：戴白色小鸡帽的红色小马 IP 坐在木桌前，桌上摆满小龙虾、烤串、火锅、卤味等夜宵，窗外是紫蓝色霓虹街景，暖黄吊灯打光，右侧一只红色小龙虾角色挥手互动。竖版活动头图，顶部预留标题区，高细节 3D 渲染。`,
+      ),
+      xiahuaAsset(
+        'xh-title',
+        'title.png',
+        '活动标题字 / 这夏夯爆了',
+        '中文书法涂鸦字「这夏夯爆了」，白色主字 + 荧光绿高亮「夏」「夯」，笔锋带喷漆滴落与飞白，右上角小字档期「7.20-8.31」，副标题「集夏夜美食 赢黄金汉堡喵喵！」。透明背景，横版排布，潮流手绘字体设计。',
+      ),
+      xiahuaAsset(
+        'xh-result-title',
+        'result-title.png',
+        '开卡标题 / 恭喜你获得',
+        '中文涂鸦字「恭喜你获得」，「恭喜」为荧光绿手写笔刷、「你获得」为白色粗黑体，上方点缀橙色小字 wow 与下划线，周围散落荧光绿菱形与橙色小圆点。透明背景，横版，适配深色开卡弹层。',
+      ),
+      xiahuaAsset(
+        'xh-mascot',
+        'mascot-horse-v3.png',
+        'IP 形象 / 小马 3D 对象',
+        '参考新版 IP 的 3D 卡通红色小马，深棕色蓬松鬃毛与尾巴，米色大口鼻、手脚，半睁眼和简单弧线笑脸，圆润软胶玩具质感，透明背景，三分之四视角，全身产品级渲染。可进入小马 3D 工作台调整视角、灯光与截图背景。',
+      ),
+      xiahuaAsset(
+        'xh-footer-logo',
+        'footer-logo.png',
+        '页脚字标 / 抖音生活服务',
+        '抖音生活服务品牌字标：音符 logo + 「抖音生活服务」白色字样，下方一行细字 slogan「让每次心动都值得」。透明背景，横版居中，简洁 UI 切图。',
+      ),
+    ],
+  },
+  {
+    title: '夜食卡面',
+    desc: '9 种虚拟夜食卡 · 已获得（彩色）/ 未获得（石膏）两态 + 开卡大图',
+    items: [
+      foodCard('xh-card-huoguo', 'food-huoguo.png', '沸腾火锅 / 已获得', '一口陶土砂锅盛红汤火锅，配青菜、番茄与五花肉片，底下小灶火焰'),
+      foodCard('xh-card-huoguo-grey', 'food-huoguo-grey.png', '沸腾火锅 / 未获得', '一口陶土砂锅盛火锅', true),
+      foodCard('xh-card-longxia', 'food-longxia.png', '红火小龙虾 / 已获得', '一盆麻辣小龙虾，虾壳通红油亮，撒葱花与辣椒'),
+      foodCard('xh-card-kaorou', 'food-kaorou.png', '滋滋烤肉 / 已获得', '三串炭烤肉串，肉块焦边油亮，夹青椒与葱段'),
+      foodCard('xh-card-huangyu', 'food-huangyu.png', '鲜烧黄鱼 / 已获得', '一条红烧黄鱼卧在浓褐酱汁椭圆盘中，鱼身撒葱丝，鱼眼是 X 形卡通符号'),
+      foodCard('xh-card-pisa', 'food-pisa.png', '浓香披萨 / 已获得', '一整块芝士拉丝披萨，边缘焦脆，铺满意式香肠'),
+      foodCard('xh-card-zhaji', 'food-zhaji.png', '香脆炸鸡 / 已获得', '一篮金黄炸鸡块，表皮酥脆颗粒分明，配柠檬角'),
+      foodCard('xh-card-ningcha', 'food-ningcha.png', '冰爽柠檬茶 / 已获得', '一杯冰镇柠檬茶，杯壁凝水珠，插柠檬片与吸管'),
+      foodCard('xh-card-luwei-grey', 'food-luwei-grey.png', '解馋卤味 / 未获得', '一盘卤味拼盘', true),
+      foodCard('xh-card-luosifen-grey', 'food-luosifen-grey.png', '上头螺蛳粉 / 未获得', '一碗螺蛳粉', true),
+      xiahuaAsset(
+        'xh-card-big',
+        'bigcard.png',
+        '开卡大图 / 沸腾火锅',
+        `${XIAHUA_ART_DIRECTION}。抽中卡片的全屏展示版：不锈钢餐盘盛陶土砂锅红汤火锅，配青菜番茄与五花肉，盘面左下压米色纸贴，红色手写「沸腾火锅」与竖排小字「热辣下肚，烦恼止步」。竖版 260:357 大卡，透明背景，正面微俯视，材质细节拉满。`,
+      ),
+    ],
+  },
+  {
+    title: '奖励与档位',
+    desc: '集齐 2 / 4 / 7 / 9 种解锁的券与实物奖励',
+    items: [
+      xiahuaAsset('xh-tier-2', 'tier-2.png', '档位 01 / 2 元夜食券', `${XIAHUA_ART_DIRECTION}。3D 立体优惠券图标，红色券身带齿孔边，正面居中白色粗体「¥2」，微微倾斜带投影。透明背景，产品级渲染。`),
+      xiahuaAsset('xh-tier-5', 'tier-5.png', '档位 02 / 5 元夜食券', `${XIAHUA_ART_DIRECTION}。3D 立体优惠券图标，红色券身带齿孔边，正面居中白色粗体「¥5」，比 2 元券更大更亮。透明背景，产品级渲染。`),
+      xiahuaAsset('xh-tier-43', 'tier-43.png', '档位 03 / 43 元券包', `${XIAHUA_ART_DIRECTION}。3D 立体优惠券包图标，多张红色券叠放，最上层白色粗体「¥43」，右上角露出叠层厚度。透明背景，产品级渲染。`),
+      xiahuaAsset('xh-tier-gold', 'tier-gold.png', '档位 04 / 黄金转运珠', `${XIAHUA_ART_DIRECTION}。3D 黄金小马转运珠实物奖品图标，足金材质高反光，圆润小马造型，底部标注「足金」小牌。透明背景，珠宝级渲染。`),
+      xiahuaAsset('xh-envelope', 'envelope.png', '兑换红包', `${XIAHUA_ART_DIRECTION}。3D 立体红包图标，粉红色软胶质感封套，中间一枚米金色圆形封印，边缘圆润带柔和高光。透明背景，正面居中。`),
+    ],
+  },
+  {
+    title: '交互组件',
+    desc: '按钮、面板底与浮层入口 —— 直接对应页面上的可点区域（阶段 Tab、分享/规则栏为代码实现，不占素材）',
+    items: [
+      xiahuaAsset('xh-btn-draw', 'btn-draw.png', '主按钮 / 抽夏日夜食', `${XIAHUA_ART_DIRECTION}。红色胶囊主行动按钮，白色粗体文案「抽夏日夜食」，表面带高光与厚度投影，微微上凸。透明背景，横版 UI 切图。`),
+      xiahuaAsset('xh-btn-my-cards', 'btn-my-cards.png', '侧入口 / 我的夜食', `${XIAHUA_ART_DIRECTION}。左侧半圆浮层入口，棕红色底衬白色两行小字「我的夜食」，右半贴合屏幕边缘。透明背景，UI 切图。`),
+      xiahuaAsset('xh-btn-my-prizes', 'btn-my-prizes.png', '侧入口 / 我的奖品', `${XIAHUA_ART_DIRECTION}。右侧半圆浮层入口，棕红色底衬白色两行小字「我的奖品」，左半贴合屏幕边缘。透明背景，UI 切图。`),
+      xiahuaAsset('xh-panel-bg', 'panel-bg.png', '集卡面板底', `${XIAHUA_ART_DIRECTION}。集卡进度面板底衬：深棕渐变圆角矩形，左上角内凹形成标题区，边缘带一圈浅棕描边。纯色 UI 底图，无文字。`),
+      xiahuaAsset('xh-bean-bar', 'bean-bar.png', '金豆入口条', `${XIAHUA_ART_DIRECTION}。横条形入口：左侧端着托盘的厨师小马 IP，中间白色文案「烹饪得金豆，好礼兑不停」与金豆计数，右侧红色圆形「冲！」按钮带角标。深棕底圆角长条，横版 UI 切图。`),
+    ],
+  },
+  {
+    title: '页面分区',
+    desc: '主会场下半屏的成段视觉 —— 任务区 / 话题流 / 活动 banner',
+    items: [
+      xiahuaAsset('xh-sec-tasks', 'sec-tasks.png', '任务区 / 玩一夏 赚更多', `${XIAHUA_ART_DIRECTION}。任务列表区块：顶部橙色标题「（玩一夏 赚更多。）」带「每天0点刷新」角标，下方「抽夜食!!／攒体力」双页签与多张米色任务卡（带定位投稿、赠送美食卡、浏览活动页），每张右侧红色行动按钮。竖版整段 UI 长图。`),
+      xiahuaAsset('xh-sec-topics', 'sec-topics.png', '话题区 / 暑期灵感话题', `${XIAHUA_ART_DIRECTION}。内容话题区块：标题「暑期（灵感话题）」，下方两行胶囊话题标签，再下方横向滑动的美食内容卡片（配图 + 话题名 + 箭头）。深棕底，竖版整段 UI 长图。`),
+      xiahuaAsset('xh-sec-banner', 'sec-banner.png', '底部 banner / 更多精彩活动', `${XIAHUA_ART_DIRECTION}。底部推广区块：居中胶囊按钮「更多精彩活动」，下方一张浅色活动 banner 占位卡。深棕底，横版整段 UI 切图。`),
+    ],
+  },
+].map((group) => ({
+  ...group,
+  items: group.items.map((item) => {
+    const variants = XIAHUA_ASSET_VARIANTS[item.id ?? '']
+    return variants ? { ...item, variants } : item
+  }),
+}))
 
 export function resolveAssetPrompt(item: AssetItem): AssetPrompt {
   if (item.prompt) return item.prompt

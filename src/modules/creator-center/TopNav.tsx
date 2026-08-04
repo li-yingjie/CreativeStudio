@@ -130,15 +130,16 @@ export default function TopNav({
 const menuRow =
   'flex w-full items-center gap-2 rounded-md px-2 py-2 text-[14px] leading-5 text-[#1c1f23] transition-colors hover:bg-[rgba(83,96,143,0.07)]'
 
-const AVATAR_NAV_VERSIONS = [1, 2, 3, 4, 5, 6, 7] as const satisfies readonly NavVersion[]
+const AVATAR_NAV_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const satisfies readonly NavVersion[]
 const NAV_VERSION_NAMES: Record<NavVersion, string> = {
   1: 'L 型',
-  2: '顶部工具栏',
+  2: '内容区收起',
   3: '底部收起',
   4: '增加 Header',
   5: '底部工具栏',
   6: '搜索工具栏',
-  7: '独立工坊',
+  7: '内部抖音 AI 工作台',
+  8: '顶部工具栏',
 }
 
 /** 头像下拉：账号菜单 + 导航方案。带 label 时整行都作为触发区。 */
@@ -159,7 +160,7 @@ export function AvatarMenu({
           aria-label="打开账号菜单"
           className={
             label
-              ? 'flex h-8 w-full items-center gap-2 rounded-md px-1 text-left text-[12px] font-medium text-[#34373D] hover:bg-black/[0.03]'
+              ? 'flex h-8 w-full items-center gap-2 rounded-md pl-1.5 pr-1 text-left text-[12px] font-medium text-[#34373D] hover:bg-black/[0.03]'
               : 'rounded-full'
           }
         >
@@ -221,7 +222,7 @@ export function AvatarMenu({
           <div
             role="radiogroup"
             aria-label="导航方案切换"
-            className="grid grid-cols-2 gap-1 px-2 pb-1"
+            className="flex flex-col gap-1 px-2 pb-1"
           >
             {AVATAR_NAV_VERSIONS.map((version) => (
               <Popover.Close asChild key={version}>
@@ -232,16 +233,14 @@ export function AvatarMenu({
                   aria-checked={navVersion === version}
                   title={`方案 ${version} · ${NAV_VERSION_NAMES[version]}`}
                   onClick={() => selectNavVersion(version)}
-                  className={`flex h-8 items-center gap-1.5 rounded-md px-2 text-left text-[11px] font-medium transition-colors ${
-                    version === 7 ? 'col-span-2' : ''
-                  } ${
+                  className={`flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[11px] font-medium transition-colors ${
                     navVersion === version
                       ? 'bg-[#161823] text-white shadow-sm'
                       : 'bg-[#f4f5f7] text-[#252632]/60 hover:bg-[#eceef2] hover:text-[#252632]'
                   }`}
                 >
                   <span className="shrink-0 text-[9px] opacity-55">方案 {version}</span>
-                  <span className="truncate">{NAV_VERSION_NAMES[version]}</span>
+                  <span className="whitespace-nowrap">{NAV_VERSION_NAMES[version]}</span>
                 </button>
               </Popover.Close>
             ))}

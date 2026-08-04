@@ -34,3 +34,4 @@ coverage/
 # Claude local
 .claude/
 .vercel
+design-refs/

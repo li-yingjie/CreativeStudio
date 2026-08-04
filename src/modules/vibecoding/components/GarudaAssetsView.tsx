@@ -1,8 +1,9 @@
 /* eslint-disable react-refresh/only-export-components -- asset schema and selectors are shared with the project toolbar */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   ArrowUp,
+  Check,
   ChevronDown,
   Film,
   FolderCode,
@@ -22,6 +23,7 @@ import {
   type AssetItem,
   type AssetKind,
 } from './ProjectAssetCatalog'
+import { resolveMarketingKingAssetUrl } from './marketingKingAssetCache'
 
 /**
  * Garuda 资产视图
@@ -58,6 +60,20 @@ function framePath(src: string, i: number): string {
   if (!m) return src
   const [, prefix, num, ext] = m
   return `${prefix}${String(i).padStart(num.length, '0')}${ext}`
+}
+
+function assetSources(item: AssetItem): string[] {
+  return [item.src, ...(item.variants ?? [])]
+}
+
+function versionedAsset(item: AssetItem, versionIndex: number): AssetItem {
+  const sources = assetSources(item)
+  const safeIndex = Math.max(0, Math.min(versionIndex, sources.length - 1))
+  return { ...item, src: sources[safeIndex], version: safeIndex + 1 }
+}
+
+function assetKey(item: AssetItem): string {
+  return item.id ?? item.src
 }
 
 /** An <img> that, when `playing` and the item is a frame sequence, loops
@@ -210,6 +226,7 @@ export default function GarudaAssetsView({
   const [viewMode, setViewMode] = useState<AssetViewMode>('grid')
   const [uploadedAssets, setUploadedAssets] = useState<AssetItem[]>([])
   const [promptDrafts, setPromptDrafts] = useState<Record<string, string>>({})
+  const [versionPicks, setVersionPicks] = useState<Record<string, number>>({})
   const gridUploadInputRef = useRef<HTMLInputElement>(null)
   // Controlled when the parent (toolbar) drives the kind selection.
   const controlled = controlledKind !== undefined
@@ -248,20 +265,68 @@ export default function GarudaAssetsView({
     if (!selControlled) setInternalSel(a)
   }
 
+  const versionIndexFor = (item: AssetItem) => {
+    const count = assetSources(item).length
+    return Math.max(0, Math.min(versionPicks[assetKey(item)] ?? 0, count - 1))
+  }
+  const openAsset = (item: AssetItem) => {
+    setSelected(versionedAsset(item, versionIndexFor(item)))
+  }
+  const selectVersion = (item: AssetItem, versionIndex: number) => {
+    const safeIndex = Math.max(0, Math.min(versionIndex, assetSources(item).length - 1))
+    setVersionPicks((current) => ({ ...current, [assetKey(item)]: safeIndex }))
+    if (selected && assetKey(selected) === assetKey(item)) {
+      setSelected(versionedAsset(item, safeIndex))
+    }
+  }
+
   const sourceGroups: AssetGroup[] =
-    uploadedAssets.length > 0
-      ? [
-          {
-            title: '上传素材',
-            desc: '本次会话中上传的本地图像',
-            items: uploadedAssets,
-          },
-          ...groups,
-        ]
-      : groups
+    useMemo(
+      () =>
+        uploadedAssets.length > 0
+          ? [
+              {
+                title: '上传素材',
+                desc: '本次会话中上传的本地图像',
+                items: uploadedAssets,
+              },
+              ...groups,
+            ]
+          : groups,
+      [groups, uploadedAssets],
+    )
+
+  const [resolvedGroups, setResolvedGroups] = useState(sourceGroups)
+  useEffect(() => {
+    let disposed = false
+    const createdUrls: string[] = []
+    const hydrate = async () => {
+      const next = await Promise.all(
+        sourceGroups.map(async (group) => ({
+          ...group,
+          items: await Promise.all(
+            group.items.map(async (item) => {
+              const src = await resolveMarketingKingAssetUrl(item.assetId)
+              if (!src) return item
+              createdUrls.push(src)
+              return { ...item, src }
+            }),
+          ),
+        })),
+      )
+      if (!disposed) setResolvedGroups(next)
+    }
+    void hydrate()
+    return () => {
+      disposed = true
+      createdUrls.forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [sourceGroups])
+
+  const displayGroups = resolvedGroups
 
   // Which kinds actually have assets — only those get a tab.
-  const kindCounts = sourceGroups.reduce(
+  const kindCounts = displayGroups.reduce(
     (a, g) => {
       g.items.forEach((it) => {
         a[it.kind ?? 'image'] += 1
@@ -276,7 +341,7 @@ export default function GarudaAssetsView({
   const effectiveKind = kindTabs.includes(activeKind) ? activeKind : kindTabs[0]
 
   // Filter by the selected kind tab, dropping groups that end up empty.
-  const visibleGroups = sourceGroups
+  const visibleGroups = displayGroups
     .map((g) => ({
       ...g,
       items: g.items.filter((it) => (it.kind ?? 'image') === effectiveKind),
@@ -307,7 +372,7 @@ export default function GarudaAssetsView({
   if (canvasOpen) {
     return (
       <ImageCanvasEditor
-        groups={garudaImageGroups(sourceGroups)}
+        groups={garudaImageGroups(displayGroups)}
         onClose={() => setCanvasOpen(false)}
       />
     )
@@ -328,7 +393,8 @@ export default function GarudaAssetsView({
         onPromptChange={(next) =>
           setPromptDrafts((current) => ({ ...current, [assetKey]: next }))
         }
-        onSelect={setSelected}
+        onSelect={openAsset}
+        onSelectVersion={(asset, version) => selectVersion(asset, version)}
         onCanvasEdit={() => setCanvasOpen(true)}
         onBack={() => setSelected(null)}
       />
@@ -451,7 +517,8 @@ export default function GarudaAssetsView({
                     <AssetThumb
                       key={`${group.title}-${item.id ?? item.src}-${index}`}
                       item={item}
-                      onOpen={() => setSelected(item)}
+                      selectedVersion={versionIndexFor(item)}
+                      onOpen={() => openAsset(item)}
                     />
                   ))}
                 </div>
@@ -470,7 +537,7 @@ export default function GarudaAssetsView({
                   <button
                     key={`${sourceGroup}-${item.id ?? item.src}-${index}`}
                     type="button"
-                    onClick={() => setSelected(item)}
+                    onClick={() => openAsset(item)}
                     className="grid h-14 w-full grid-cols-[40px_minmax(120px,1fr)_120px_84px_120px] items-center gap-3 border-b border-[var(--divider-soft)] px-3 text-left last:border-b-0 hover:bg-[var(--fill-hover)]"
                   >
                     <AssetListThumb item={item} />
@@ -510,7 +577,8 @@ export default function GarudaAssetsView({
                     <AssetThumb
                       key={`${row.page}-${item.id ?? item.src}-${index}`}
                       item={item}
-                      onOpen={() => setSelected(item)}
+                      selectedVersion={versionIndexFor(item)}
+                      onOpen={() => openAsset(item)}
                     />
                   ))}
                 </div>
@@ -532,6 +600,7 @@ function AssetPromptDetail({
   model,
   onPromptChange,
   onSelect,
+  onSelectVersion,
   onCanvasEdit,
   onBack,
 }: {
@@ -542,6 +611,7 @@ function AssetPromptDetail({
   model: string
   onPromptChange: (next: string) => void
   onSelect: (item: AssetItem) => void
+  onSelectVersion: (item: AssetItem, version: number) => void
   onCanvasEdit: () => void
   onBack: () => void
 }) {
@@ -559,6 +629,10 @@ function AssetPromptDetail({
     }
     reader.readAsDataURL(file)
   }
+  const sourceItem = assets.find((asset) => assetKey(asset) === assetKey(item)) ?? item
+  const sources = assetSources(sourceItem)
+  const currentVersion = Math.max(0, Math.min((item.version ?? 1) - 1, sources.length - 1))
+  const hasVersions = kind === 'image' && sources.length > 1
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-surface-0)]">
@@ -584,6 +658,11 @@ function AssetPromptDetail({
         <span className="truncate text-[12px] text-[var(--color-ink)]/55">
           {item.label}
         </span>
+        {hasVersions && (
+          <span className="shrink-0 rounded bg-[var(--fill-subtle)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--color-ink)]/55">
+            v{currentVersion + 1}/{sources.length}
+          </span>
+        )}
         {item.frames && (
           <span className="rounded bg-[var(--fill-subtle)] px-1.5 py-0.5 text-[10px] tabular-nums text-[var(--color-ink)]/55">
             {item.frames} 帧
@@ -623,13 +702,20 @@ function AssetPromptDetail({
                   {assetKind === 'audio' ? (
                     <Music2 className="size-5 text-[var(--color-ink)]/45" strokeWidth={1.6} />
                   ) : assetKind === 'video' ? (
-                    <video
-                      src={asset.src}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="size-full object-cover"
-                    />
+                    asset.src ? (
+                      <video
+                        src={asset.src}
+                        poster={asset.poster}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="size-full object-cover"
+                      />
+                    ) : asset.poster ? (
+                      <img src={asset.poster} alt="" className="size-full object-cover" />
+                    ) : (
+                      <Film className="size-5 text-[var(--color-ink)]/45" strokeWidth={1.6} />
+                    )
                   ) : (
                     <FrameImage
                       item={asset}
@@ -646,47 +732,103 @@ function AssetPromptDetail({
         <div className="thin-scroll flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-3">
           <section
             aria-label={`${item.label} 预览`}
-            className="group relative flex min-h-[280px] flex-1 items-center justify-center overflow-hidden rounded-xl bg-[rgba(83,96,143,0.07)] p-5"
+            className="relative flex min-h-[280px] flex-1 items-center justify-center overflow-hidden rounded-xl bg-[rgba(83,96,143,0.07)] p-5"
           >
-            {kind === 'video' ? (
-              <video
-                src={item.src}
-                controls
-                autoPlay
-                loop
-                className="max-h-full max-w-full rounded-lg"
-              />
-            ) : kind === 'audio' ? (
-              <div className="flex flex-col items-center gap-4 rounded-xl bg-white px-8 py-7 shadow-sm">
-                <Music2 className="size-10 text-[var(--color-ink)]/65" strokeWidth={1.4} />
-                <span className="text-[13px] text-[var(--color-ink)]/85">
-                  {item.label}
-                </span>
-                <audio src={item.src} controls autoPlay />
-              </div>
-            ) : replacementSrc ? (
-              <img
-                src={replacementSrc}
-                alt={`${item.label} 上传预览`}
-                className="max-h-full max-w-full object-contain"
-              />
-            ) : (
-              <FrameImage
-                item={item}
-                playing
-                className="max-h-full max-w-full object-contain"
-              />
-            )}
-            {kind === 'image' && (
-              <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-                <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-visible rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]">
-                  <ImageQuickTools
-                    onCanvasEdit={onCanvasEdit}
-                    onUpload={openUpload}
+            <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center gap-3">
+              <div className="group relative flex min-h-0 min-w-0 flex-1 items-center justify-center">
+                {kind === 'video' ? (
+                  item.src ? (
+                    <video
+                      src={item.src}
+                      poster={item.poster}
+                      controls
+                      autoPlay
+                      loop
+                      className="max-h-full max-w-full rounded-lg"
+                    />
+                  ) : (
+                    <div className="flex max-w-[360px] flex-col items-center gap-2 rounded-xl bg-white/80 px-8 py-8 text-center text-[var(--color-ink)]/55 shadow-sm">
+                      {item.poster && <img src={item.poster} alt="" className="mb-1 max-h-52 max-w-full rounded-lg object-contain" />}
+                      <Film className="size-7" strokeWidth={1.5} />
+                      <strong className="text-[13px] text-[var(--color-ink)]/75">原始项目视频缓存未导出</strong>
+                      <span className="text-[11px] leading-4">当前先展示真实首帧海报；如果浏览器缓存中有视频，会自动挂载播放。</span>
+                    </div>
+                  )
+                ) : kind === 'audio' ? (
+                  <div className="flex flex-col items-center gap-4 rounded-xl bg-white px-8 py-7 shadow-sm">
+                    <Music2 className="size-10 text-[var(--color-ink)]/65" strokeWidth={1.4} />
+                    <span className="text-[13px] text-[var(--color-ink)]/85">
+                      {item.label}
+                    </span>
+                    <audio src={item.src} controls autoPlay />
+                  </div>
+                ) : replacementSrc ? (
+                  <img
+                    src={replacementSrc}
+                    alt={`${item.label} 上传预览`}
+                    className="max-h-full max-w-full object-contain"
                   />
-                </div>
+                ) : (
+                  <FrameImage
+                    item={item}
+                    playing
+                    className="max-h-full max-w-full object-contain"
+                  />
+                )}
+                {kind === 'image' && (
+                  <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                    <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-visible rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]">
+                      <ImageQuickTools
+                        onCanvasEdit={onCanvasEdit}
+                        onUpload={openUpload}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+
+              {hasVersions && (
+                <div
+                  aria-label={`${item.label} 的版本`}
+                  className="thin-scroll flex max-h-full w-[64px] shrink-0 flex-col gap-1.5 overflow-y-auto"
+                >
+                  <span className="px-1 text-[10px] font-medium text-[var(--color-ink)]/45">版本</span>
+                  {sources.map((src, version) => {
+                    const active = version === currentVersion
+                    return (
+                      <button
+                        key={src}
+                        type="button"
+                        aria-label={`选择 ${item.label} 第 ${version + 1} 版`}
+                        aria-pressed={active}
+                        title={`第 ${version + 1} 版${active ? '（当前选中）' : ''}`}
+                        onClick={() => onSelectVersion(sourceItem, version)}
+                        className={`relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border transition-colors ${
+                          active
+                            ? 'border-[#357ef8] bg-[#eaf3ff] ring-1 ring-[#357ef8]/20'
+                            : 'border-[var(--divider-soft)] bg-[var(--color-surface-0)] hover:border-[#357ef8]/50 hover:bg-[#f5f8ff]'
+                        }`}
+                      >
+                        <img
+                          src={src}
+                          alt={`${item.label} 第 ${version + 1} 版缩略图`}
+                          draggable={false}
+                          className="max-h-full max-w-full object-contain"
+                        />
+                        <span className="absolute bottom-1 left-1 rounded bg-black/55 px-1 text-[9px] font-medium leading-3 text-white">
+                          v{version + 1}
+                        </span>
+                        {active && (
+                          <span className="absolute right-1 top-1 flex size-3.5 items-center justify-center rounded-full bg-[#357ef8] text-white">
+                            <Check className="size-2.5" strokeWidth={3} />
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </section>
 
           <section
@@ -808,13 +950,20 @@ function AssetListThumb({ item }: { item: AssetItem }) {
       {kind === 'audio' ? (
         <Music2 className="size-4 text-[var(--color-ink)]/45" strokeWidth={1.7} />
       ) : kind === 'video' ? (
-        <video
-          src={item.src}
-          muted
-          playsInline
-          preload="metadata"
-          className="size-full object-cover"
-        />
+        item.src ? (
+          <video
+            src={item.src}
+            poster={item.poster}
+            muted
+            playsInline
+            preload="metadata"
+            className="size-full object-cover"
+          />
+        ) : item.poster ? (
+          <img src={item.poster} alt="" className="size-full object-cover" />
+        ) : (
+          <Film className="size-4 text-[var(--color-ink)]/45" strokeWidth={1.7} />
+        )
       ) : (
         <FrameImage
           item={item}
@@ -826,54 +975,83 @@ function AssetListThumb({ item }: { item: AssetItem }) {
   )
 }
 
-function AssetThumb({ item, onOpen }: { item: AssetItem; onOpen: () => void }) {
+function AssetThumb({
+  item,
+  selectedVersion = 0,
+  onOpen,
+}: {
+  item: AssetItem
+  selectedVersion?: number
+  onOpen: () => void
+}) {
   const kind = item.kind ?? 'image'
   const [hover, setHover] = useState(false)
+  const sources = assetSources(item)
+  const pick = Math.max(0, Math.min(selectedVersion, sources.length - 1))
+  const displayItem = versionedAsset(item, pick)
   return (
-    <button
-      type="button"
-      onClick={onOpen}
+    <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className="group flex flex-col gap-1.5 overflow-hidden rounded-lg border border-[var(--divider-soft)] bg-[var(--fill-subtle)] p-1.5 text-left transition-colors hover:border-[var(--color-ink)]/25 hover:bg-[var(--fill-hover)]"
+      className="group flex min-w-0 flex-col gap-1.5 overflow-hidden rounded-lg border border-[var(--divider-soft)] bg-[var(--fill-subtle)] p-1.5 text-left transition-colors hover:border-[var(--color-ink)]/25 hover:bg-[var(--fill-hover)]"
     >
-      <div className="relative aspect-square overflow-hidden rounded bg-[var(--color-ink)]/[0.06]">
-        {kind === 'audio' ? (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-[var(--color-ink)]/45">
-            <Music2 size={18} strokeWidth={1.6} />
-            <span className="text-[10px] uppercase">audio</span>
-          </div>
-        ) : kind === 'video' ? (
-          <video
-            src={item.src}
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            className="h-full w-full object-cover"
-            onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
-            onMouseLeave={(e) => {
-              e.currentTarget.pause()
-              e.currentTarget.currentTime = 0
-            }}
-          />
-        ) : (
-          // Frame sequences loop-play on hover; static images just sit.
-          <FrameImage
-            item={item}
-            playing={hover}
-            className="h-full w-full object-contain transition-transform duration-150 group-hover:scale-[1.04]"
-          />
-        )}
-        {item.frames && (
-          <span className="absolute right-1 top-1 rounded-md bg-black/65 px-1.5 py-0.5 font-mono text-[9.5px] text-white/80">
-            {item.frames}f
-          </span>
-        )}
+      <div className="flex min-w-0 items-stretch gap-1">
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={`打开素材：${item.label}，当前第 ${pick + 1} 版`}
+          className="relative flex aspect-square min-w-0 flex-1 items-center justify-center overflow-hidden rounded bg-[var(--color-ink)]/[0.06]"
+        >
+          {kind === 'audio' ? (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-[var(--color-ink)]/45">
+              <Music2 size={18} strokeWidth={1.6} />
+              <span className="text-[10px] uppercase">audio</span>
+            </div>
+          ) : kind === 'video' ? (
+            displayItem.src ? (
+              <video
+                src={displayItem.src}
+                poster={displayItem.poster}
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                className="h-full w-full object-cover"
+                onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                onMouseLeave={(e) => {
+                  e.currentTarget.pause()
+                  e.currentTarget.currentTime = 0
+                }}
+              />
+            ) : displayItem.poster ? (
+              <img src={displayItem.poster} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <Film className="size-5 text-[var(--color-ink)]/45" strokeWidth={1.6} />
+            )
+          ) : (
+            // Frame sequences loop-play on hover; static images just sit.
+            <FrameImage
+              item={displayItem}
+              playing={hover}
+              className="h-full w-full object-contain transition-transform duration-150 group-hover:scale-[1.04]"
+            />
+          )}
+          {item.frames && (
+            <span className="absolute right-1 top-1 rounded-md bg-black/65 px-1.5 py-0.5 font-mono text-[9.5px] text-white/80">
+              {item.frames}f
+            </span>
+          )}
+        </button>
       </div>
-      <span className="truncate px-1 text-[11px] text-[var(--color-ink)]/70">
-        {item.label}
-      </span>
-    </button>
+      <div className="flex min-w-0 items-center gap-1 px-1">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="min-w-0 flex-1 truncate text-left text-[11px] text-[var(--color-ink)]/70"
+        >
+          {item.label}
+        </button>
+      </div>
+    </div>
   )
 }

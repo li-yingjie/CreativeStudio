@@ -4,6 +4,7 @@ import {
   useRef,
   useEffect,
   useCallback,
+  useMemo,
   type CSSProperties,
   type ReactNode,
 } from 'react'
@@ -38,6 +39,41 @@ import PlatformPlaceholderView from './PlatformPlaceholderView'
 import XiaohuaFeedPreview from './XiaohuaFeedPreview'
 import AgentHubPreview from './AgentHubPreview'
 import MarketingH5Preview from './MarketingH5Preview'
+import SummerSurfH5Preview, {
+  SUMMER_SURF_CONFIG_STORAGE_KEY,
+  getInitialSummerSurfEditConfig,
+  type SummerSurfEditConfig,
+  type SummerSurfSelection,
+} from './SummerSurfH5Preview'
+import SummerSurfEditPanel from './SummerSurfEditPanel'
+import XiahuaH5Preview, {
+  activityScreens,
+  type XiahuaScreen,
+} from './XiahuaH5Preview'
+import XiahuaGenerationLog from './XiahuaGenerationLog'
+import XiahuaEditPanel, { type XiahuaOverrides, type XiahuaSel } from './XiahuaEditPanel'
+import XiahuaGameplayEditor from './XiahuaGameplayEditor'
+import XiahuaEditCanvas from './XiahuaEditCanvas'
+import XiahuaBuildFlow from './XiahuaBuildFlow'
+import {
+  LEGACY_XIAHUA_TEMPLATE_TOKEN,
+  TEMPLATE_CLONE_PROJECT,
+  TEMPLATE_CLONE_SCRIPT,
+  XIAHUA_BUILD_SCRIPT,
+  XIAHUA_CLONE_PROJECT_DOCUMENT,
+  XIAHUA_TEMPLATE_TOKEN,
+  stepIndex,
+  type BuildPhase,
+  type BuildStage,
+  type BuildStep,
+} from './XiahuaBuildScript'
+import XiahuaPlanDoc, { defaultPlan, type PlanDoc } from './XiahuaPlanDoc'
+import XiahuaAssetBoard from './XiahuaAssetBoard'
+import XiahuaCloneDiff from './XiahuaCloneDiff'
+import XiahuaFramePanel from './XiahuaFramePanel'
+import XiahuaTemplateDoc from './XiahuaTemplateDoc'
+import { DEFAULT_XIAHUA_GAMEPLAY, type XiahuaGameplay } from './XiahuaGameplay'
+import { ACTIVITY_PRESETS, XIAHUA_PRESET, type ActivityPreset } from './ActivityPreset'
 import H5CanvasEditor from './H5CanvasEditor'
 import H5CanvasLayerTree from './H5CanvasLayerTree'
 import GameCanvasEditor from './GameCanvasEditor'
@@ -52,7 +88,11 @@ import GarudaAssetsView, {
   type AssetKind,
   type AssetItem,
 } from './GarudaAssetsView'
-import { ACG_NEW_YEAR_ASSET_GROUPS } from './ProjectAssetCatalog'
+import {
+  ACG_NEW_YEAR_ASSET_GROUPS,
+  SUMMER_SURF_ASSET_GROUPS,
+  XIAHUA_ASSET_GROUPS,
+} from './ProjectAssetCatalog'
 import AssetEditPanel from './AssetEditPanel'
 import VideoEditor from './VideoEditor'
 import ImageCanvasEditor from './ImageCanvasEditor'
@@ -60,7 +100,6 @@ import ErrorBoundary from '@/shared/components/ErrorBoundary'
 import PlatformHome from './PlatformHome'
 import SideNav, {
   SIDE_NAV_MOTION_DURATION,
-  SIDE_NAV_MOTION_OFFSET,
   SideNavActionButton,
   type SideNavItem,
 } from '@/shared/components/SideNav'
@@ -81,6 +120,8 @@ import {
   usesSchemeFourLayout,
   usesSearchToolbarLayout,
   usesStandaloneWorkshopLayout,
+  usesContentToggleLayout,
+  usesToolbarHeaderLayout,
 } from '@/shared/storage/nav-version'
 import { useProductSideNav, type ProductSideNavId } from '@/shared/storage/product-side-nav'
 import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
@@ -104,7 +145,7 @@ import GameGenerationFlow, { GameBuildProgress } from './GameGenerationFlow'
 import type { GameSpecDraft } from './GameConfirmCard'
 import AiPersonaChatPreview, { type TriggerSimulation } from './AiPersonaChatPreview'
 import { ProjectObjectView } from './ProjectObjectViews'
-import { PROJECT_DOCS, ACG_NEW_YEAR_PLAN_MD } from './data/project-docs'
+import { PROJECT_DOCS, ACG_NEW_YEAR_PLAN_MD, XIAHUA_PLAN_MD } from './data/project-docs'
 import { GENERIC_AI_REPLIES, CHAT_EMPTY_SUGGESTIONS, CHAT_SUGGESTIONS_BY_KIND, CHAT_SUGGESTIONS_BY_PROJECT } from './data/chat-suggestions'
 import { PROJECT_KINDS, SHAPE_BY_KIND, PROJECT_KIND_LABELS, type OutputShape } from './data/project-kinds'
 import { FlexAlignGlyph, ProductToolbar, ToolbarAction } from './Toolbar'
@@ -113,8 +154,9 @@ import { getFileIcon } from './file-tree-utils'
 import MentionPicker, { type MentionItem } from './MentionPicker'
 import TriggerDetailView from './TriggerDetailView'
 import { ChatFormCard, ChatFormStep, ChatFormSubmit } from './ChatFormCard'
-import ResourceHub from './resource-hub/ResourceHub'
-import ResourceLibraryView from './ResourceLibraryView'
+import SkillsLibraryPage from './skills/SkillsLibraryPage'
+import ProjectLibraryPage from './projects/ProjectLibraryPage'
+import ResourceLibraryPage from './resources/ResourceLibraryPage'
 import DataOpsView, { type DataOpsProject } from './DataOpsView'
 import ProposalGoalCard, { type ProposalGoalDraft } from './ProposalGoalCard'
 import ProposalDiagnosisCard from './ProposalDiagnosisCard'
@@ -148,7 +190,6 @@ import MarkdownView from './MarkdownView'
 import {
   RESOURCES,
   type Capability,
-  type PrimaryCategory,
   type Resource,
 } from './ResourceLibraryData'
 import {
@@ -246,6 +287,7 @@ import {
   ChevronRight,
   Clock,
   LayoutGrid,
+  ListChecks,
   MoreHorizontal,
   Moon,
   Sun,
@@ -256,12 +298,12 @@ import {
   FolderCode,
   FolderOpen,
   Headphones,
-  Share2,
   Menu4,
   Save,
   Search,
   Sparkles,
   Pencil,
+  Play,
   ExternalLink,
   Plus,
   Minus,
@@ -283,7 +325,6 @@ import {
   Type,
   MessageSquareText,
   MessageSquarePlus,
-  History,
   MessageCircleHeart,
   Gamepad2,
   FileSearch,
@@ -308,6 +349,7 @@ import {
   Zap,
   AppWindow,
   BriefcaseBusiness,
+  BookmarkPlus,
 } from '@/shared/icons'
 import type { LucideIcon } from '@/shared/icons'
 
@@ -1082,12 +1124,124 @@ const WORKSHOP_SCHEME_TWO_TOOLBAR_ACTIONS = [
   'settings',
   'search',
 ] as const
-const STANDALONE_WORKSHOP_WIDTH = 280
-const STANDALONE_WORKSHOP_FAVORITES = [
+const STANDALONE_WORKSHOP_WIDTH = 240
+/* 收展曲线：侧栏宽度与正文左偏移共用同一时长与缓动，全部走 CSS 过渡，
+   免得两条动画各跑各的时钟、一个到位一个还在路上。 */
+const STANDALONE_WORKSHOP_MOTION_DURATION = 0.24
+const STANDALONE_WORKSHOP_MOTION_CSS_EASE = 'cubic-bezier(0.32,0.72,0,1)'
+const STANDALONE_WORKSHOP_SHORTCUTS = [
   { label: '天气查询', Icon: Terminal },
   { label: '热点事件研判报道智能体', Icon: Zap },
   { label: '视频创作cot生产', Icon: Video },
 ] as const
+const STANDALONE_WORKSHOP_NAV_ITEMS: SideNavItem[] = [
+  { key: 'Skills', label: '技能库', Icon: FolderCodeLinearIcon },
+  { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
+  { key: '项目库', label: '项目库', Icon: FolderLibraryLinearIcon, dividerBefore: true },
+  ...STANDALONE_WORKSHOP_SHORTCUTS.map(({ label, Icon }) => ({
+    key: label,
+    label,
+    Icon,
+  })),
+]
+const STANDALONE_WORKSHOP_SIDE_NAV_STYLE = {
+  background: 'transparent',
+  '--sn-top': '0px',
+  '--sn-px': '12px',
+  '--sn-rh': '28px',
+  '--sn-rr': '10px',
+  '--sn-rpx': '8px',
+  '--sn-rip': '10px',
+  '--sn-rgap': '8px',
+  '--sn-rsp': '0px',
+  '--sn-rfs': '13px',
+} as CSSProperties
+
+function StandaloneWorkshopRail({
+  activeNav,
+  onExpand,
+  onNewProject,
+  onOpenResourceLibrary,
+  onOpenSkills,
+  onOpenCreativeSquare,
+  onOpenPlaceholder,
+}: {
+  activeNav: string | null
+  onExpand: () => void
+  onNewProject: () => void
+  onOpenResourceLibrary: () => void
+  onOpenSkills: () => void
+  onOpenCreativeSquare: () => void
+  onOpenPlaceholder?: (label: string) => void
+}) {
+  return (
+    <SideNav
+      ariaLabel="AI 工作台收起导航"
+      layout="fill"
+      chrome="panel"
+      showDivider={false}
+      flushHeader
+      collapsed
+      items={STANDALONE_WORKSHOP_NAV_ITEMS}
+      activeKey={activeNav}
+      onSelect={(key) => {
+        if (key === '资源库') onOpenResourceLibrary()
+        else if (key === 'Skills') onOpenSkills()
+        else if (key === '项目库') onOpenCreativeSquare()
+        else onOpenPlaceholder?.(key)
+      }}
+      style={STANDALONE_WORKSHOP_SIDE_NAV_STYLE}
+      header={
+        <div className="px-3 pb-3 pt-6">
+          <button
+            type="button"
+            onClick={onExpand}
+            aria-label="展开导航"
+            title="展开导航"
+            /* h-6 与展开态的品牌行等高 —— 高一档会把 logo 压低 4px、
+               把下面整组菜单顶下去 8px，收展时看着就是「跳一下」。 */
+            className="group relative mx-auto mb-2 flex size-6 items-center justify-center rounded-md text-[#565A60] hover:bg-black/[0.04] hover:text-[#161823]"
+          >
+            <img
+              src="/assets/logo2.svg"
+              alt=""
+              aria-hidden
+              className="size-[18px] shrink-0 object-contain transition-opacity duration-150 group-hover:opacity-0 motion-reduce:transition-none"
+            />
+            <SideNavPanelStateIcon
+              collapsed
+              className="absolute size-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 motion-reduce:transition-none"
+            />
+          </button>
+          <SideNavActionButton
+            aria-label="新建项目"
+            collapsed
+            onClick={onNewProject}
+            className="ring-inset"
+            /* 高度不在这里覆写 —— 走组件统一的 buttonHeight。
+               左内距与展开态一致，别用居中：15px 的 + 在按钮里居中会偏 0.5px。 */
+            style={{
+              borderRadius: 10,
+              fontWeight: 500,
+              justifyContent: 'flex-start',
+              paddingLeft: 10,
+            }}
+          >
+            <Plus size={15} strokeWidth={1.8} className="shrink-0" />
+          </SideNavActionButton>
+        </div>
+      }
+      footer={
+        <div className="px-3 pb-2 pt-1">
+          {/* h-8 对齐展开态带用户名的那一行，否则底部头像会差 4px */}
+          <div className="flex h-8 items-center justify-center">
+            <AvatarMenu compact />
+          </div>
+        </div>
+      }
+    />
+  )
+}
 
 function cleanTreePath(path: string) {
   return path
@@ -1102,6 +1256,7 @@ function cleanTreePath(path: string) {
  *  are static collapsed stubs. */
 function PlatformSidebar({
   projectTrees,
+  kindOf,
   expandedDirs,
   toggleDir,
   onOpenProduct,
@@ -1124,6 +1279,7 @@ function PlatformSidebar({
   deletedProjects,
   onDeleteProject,
   categoryExtras,
+  hiddenCategories,
   createdProjects,
   projectFilter,
   variant = 'workshop',
@@ -1134,6 +1290,8 @@ function PlatformSidebar({
   /** Per-project file trees. Projects missing from this map render the
    *  "暂无文件" empty state when expanded. */
   projectTrees: Record<string, FileNode[]>
+  /** 项目 → kind，覆盖种子项目与会话内新建的项目 */
+  kindOf: (name: string) => ProjectKind
   expandedDirs: Set<string>
   toggleDir: (path: string) => void
   /** Open a product leaf scoped to its owning project — switches projects
@@ -1180,6 +1338,8 @@ function PlatformSidebar({
   onDeleteProject: (name: string) => void
   /** User-added category objects, keyed `${project}::${category}`. */
   categoryExtras: Record<string, string[]>
+  /** 回放期间还没产出的目录（按项目名）—— 目录跟着过程一点点长出来。 */
+  hiddenCategories?: Record<string, string[]>
   /** Theme switcher — relocated from the (removed) top header. */
   /** Dynamically created projects (e.g. game flow output) — appended
    *  to the top of the project list. */
@@ -1240,6 +1400,8 @@ function PlatformSidebar({
       else next.add(name)
       return next
     })
+  const expandProject = (name: string) =>
+    setOpenProjects((prev) => (prev.has(name) ? prev : new Set(prev).add(name)))
   /* Sidebar project list. Entries with a tree in `projectTrees` expand
    * to a real FileTreeView; the rest fall back to an "暂无文件" stub.
    * `createdProjects` are appended at the top so freshly-generated
@@ -1254,6 +1416,9 @@ function PlatformSidebar({
     // 粉丝互动机器人 / 探店视频创作助手 / 每日打卡小程序 are hidden —
     // config exists but there's no scripted demo flow for them yet.
     '陶白白 Sensei 分身',
+    XIAHUA_PROJECT,
+    // 夏日冲浪不预置在侧栏 —— 它是「引用集卡活动模板生成」出来的那个活动，
+    // 生成之后才会作为新项目出现（createdProjects 里）。
     ACG_NEW_YEAR_PROJECT,
     '射击小游戏',
     TAROT_INTEREST_CARD_PROJECT,
@@ -1285,34 +1450,37 @@ function PlatformSidebar({
     avatarDisplayName.toLocaleLowerCase('zh-CN').includes(normalizedSidebarSearch)
 
   /* 顶部导航项 — 走统一 SideNav 菜单；分身变体为 技能库/资源库。 */
-  const navItems: SideNavItem[] = variant === 'avatar'
-    ? [
-        { key: 'Skills', label: '技能库', Icon: FolderCodeLinearIcon },
-        { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
-      ]
-    : [
-        {
-          key: 'Skills',
-          label: standaloneWorkshopLayout ? '技能库' : 'Skills',
-          Icon: FolderCodeLinearIcon,
-        },
-        { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
-        // 运营数据已并入创作者中心（顶栏「首页」的数据看板），侧栏不再入口
-        { key: '项目库', label: '项目库', Icon: FolderLibraryLinearIcon },
-      ]
+  const navItems: SideNavItem[] =
+    variant === 'avatar'
+      ? [
+          { key: 'Skills', label: '技能库', Icon: FolderCodeLinearIcon },
+          { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
+        ]
+      : standaloneWorkshopLayout
+        ? STANDALONE_WORKSHOP_NAV_ITEMS
+        : [
+            { key: 'Skills', label: 'Skills', Icon: FolderCodeLinearIcon },
+            { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
+            // 运营数据已并入创作者中心（顶栏「首页」的数据看板），侧栏不再入口
+            { key: '项目库', label: '项目库', Icon: FolderLibraryLinearIcon },
+          ]
   const visibleNavItems =
     searchToolbarLayout && normalizedSidebarSearch
       ? navItems.filter((item) =>
           item.label.toLocaleLowerCase('zh-CN').includes(normalizedSidebarSearch),
         )
       : navItems
-  const sideNavItems = standaloneWorkshopLayout
-    ? visibleNavItems.filter((item) => item.key !== '项目库')
-    : visibleNavItems
+  const sideNavItems = visibleNavItems
 
   return (
     <SideNav
-      ariaLabel={variant === 'avatar' ? 'AI 分身侧栏' : 'AI 工坊侧栏'}
+      ariaLabel={
+        variant === 'avatar'
+          ? 'AI 分身侧栏'
+          : standaloneWorkshopLayout
+            ? 'AI 工作台侧栏'
+            : 'AI 工坊侧栏'
+      }
       layout="fill"
       // 与创作者中心首页完全一致：panel 灰底 + 组件默认配色。
       // 不再覆写 --sidenav-* —— 之前覆写成主题变量，导致未选中项比首页
@@ -1336,75 +1504,86 @@ function PlatformSidebar({
       }}
       style={
         standaloneWorkshopLayout
-          ? ({
-              background: '#F2F2F7',
-              '--sn-top': '0px',
-              '--sn-px': '12px',
-              '--sn-rh': '28px',
-              '--sn-rr': '6px',
-              '--sn-rpx': '8px',
-              '--sn-rgap': '8px',
-              '--sn-rsp': '0px',
-              '--sn-rfs': '13px',
-            } as CSSProperties)
+          ? STANDALONE_WORKSHOP_SIDE_NAV_STYLE
           : undefined
       }
       header={
         /* + 新建项目 — 白底按钮（与首页「发布作品」的黑底区分开）。
            分身变体没有 AI 创作入口；方案 2 / 4 / 6 显示各自顶部工具栏。 */
         standaloneWorkshopLayout ? (
-          <div className="px-3 pb-3 pt-6">
-            <div className="mb-2 flex h-6 items-center gap-2 px-1">
-              <img
-                src="/assets/logo2.svg"
-                alt=""
-                aria-hidden
-                className="size-[18px] shrink-0 object-contain"
-              />
-              <span className="truncate text-[13px] font-semibold text-[#161823]">
-                抖音AI工坊
-              </span>
-              <button
-                ref={spaceMenuTriggerRef}
-                type="button"
-                aria-haspopup="dialog"
-                aria-expanded={spaceMenuPos !== null}
-                onClick={(event) => {
-                  const rect = event.currentTarget.getBoundingClientRect()
-                  setSpaceMenuPos((current) =>
-                    current
-                      ? null
-                      : {
-                          top: rect.bottom + 8,
-                          left: Math.min(
-                            Math.max(12, rect.left),
-                            Math.max(12, window.innerWidth - 636),
-                          ),
-                        },
-                  )
-                }}
-                className="ml-auto flex h-6 shrink-0 items-center rounded-md px-1.5 text-[11px] font-medium text-[#565A60] hover:bg-black/[0.04] hover:text-[#161823]"
-              >
-                {activeSpace}
-              </button>
+          <div className="px-3 pb-3 pt-4">
+            {collapsed ? (
               <button
                 type="button"
                 onClick={() => onCollapseSidebar?.()}
-                aria-label="收起导航"
-                title="收起导航"
-                className="flex size-6 shrink-0 items-center justify-center rounded-md text-[#565A60] hover:bg-black/[0.04] hover:text-[#161823]"
+                aria-label="展开导航"
+                title="展开导航"
+                className="mx-auto mb-2 flex size-8 items-center justify-center rounded-md hover:bg-black/[0.04]"
               >
-                <SideNavPanelStateIcon className="size-4 shrink-0" />
+                <img
+                  src="/assets/logo2.svg"
+                  alt=""
+                  aria-hidden
+                  className="size-[18px] shrink-0 object-contain"
+                />
               </button>
-            </div>
+            ) : (
+              /* gap 收到 6px：240 宽下「抖音 AI 工作台」+ 个人空间 + 收起
+                 三件东西刚好排满，gap-2 会把品牌名 truncate 掉。 */
+              <div className="mb-2 flex h-6 items-center gap-1.5 pl-[9px] pr-0">
+                <img
+                  src="/assets/logo2.svg"
+                  alt=""
+                  aria-hidden
+                  className="size-[18px] shrink-0 object-contain"
+                />
+                <span className="truncate text-[13px] font-semibold text-[#161823]">
+                  抖音 AI 工作台
+                </span>
+                <button
+                  ref={spaceMenuTriggerRef}
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded={spaceMenuPos !== null}
+                  onClick={(event) => {
+                    const rect = event.currentTarget.getBoundingClientRect()
+                    setSpaceMenuPos((current) =>
+                      current
+                        ? null
+                        : {
+                            top: rect.bottom + 8,
+                            left: Math.min(
+                              Math.max(12, rect.left),
+                              Math.max(12, window.innerWidth - 636),
+                            ),
+                          },
+                    )
+                  }}
+                  className="ml-auto flex h-6 shrink-0 items-center rounded-md px-1 text-[11px] font-medium text-[#565A60] hover:bg-black/[0.04] hover:text-[#161823]"
+                >
+                  {activeSpace}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onCollapseSidebar?.()}
+                  aria-label="收起导航"
+                  title="收起导航"
+                  className="flex size-6 shrink-0 items-center justify-center rounded-md text-[#565A60] hover:bg-black/[0.04] hover:text-[#161823]"
+                >
+                  <SideNavPanelStateIcon className="size-4 shrink-0" />
+                </button>
+              </div>
+            )}
             <SideNavActionButton
               aria-label="新建项目"
+              collapsed={collapsed}
               onClick={onNewProject}
               className="ring-inset"
-              style={{ height: 32, borderRadius: 6, fontWeight: 500 }}
+              /* 高度走组件统一的 buttonHeight，不在挂载处覆写 */
+              style={{ borderRadius: 10, fontWeight: 500 }}
             >
               <Plus size={15} strokeWidth={1.8} className="shrink-0" />
-              新建项目
+              {!collapsed && '新建项目'}
             </SideNavActionButton>
           </div>
         ) : usesProductHeaderLayout(navVersion) || variant !== 'avatar' ? (
@@ -1415,7 +1594,9 @@ function PlatformSidebar({
           >
             {usesProductHeaderLayout(navVersion) && (
               searchToolbarLayout ? (
-                <div className={variant === 'workshop' && !collapsed ? 'mb-3' : undefined}>
+                // mb-3 各产品统一给：收展两态、工坊/分身都一样，
+                // 否则「顶部工具条到下面第一项」的距离每个产品都不同。
+                <div className="mb-3">
                   <SideNavSearchToolbar
                     value={sidebarSearch}
                     onChange={setSidebarSearch}
@@ -1425,9 +1606,10 @@ function PlatformSidebar({
                     ariaLabel={variant === 'avatar' ? '搜索分身' : '搜索项目'}
                   />
                 </div>
-              ) : navVersion === 2 && !collapsed ? (
-                <div className={variant === 'workshop' ? 'mb-3' : undefined}>
+              ) : usesToolbarHeaderLayout(navVersion) ? (
+                <div className="mb-3">
                   <UnifiedToolbar
+                    collapsed={collapsed}
                     ariaLabel={variant === 'avatar' ? 'AI 分身工具条' : 'AI 工坊工具条'}
                     actions={
                       variant === 'avatar'
@@ -1462,7 +1644,12 @@ function PlatformSidebar({
                   )}
                   bottomGap={variant === 'avatar' ? 0 : 12}
                   collapsed={collapsed}
-                  onToggle={() => onCollapseSidebar?.()}
+                  /* 内容区收起方案的入口在右侧内容区左上角，侧栏里不重复放。 */
+                  onToggle={
+                    usesContentToggleLayout(navVersion)
+                      ? undefined
+                      : () => onCollapseSidebar?.()
+                  }
                 />
               )
             )}
@@ -1483,9 +1670,17 @@ function PlatformSidebar({
       footer={
         /* 方案 1 / 4 工坊底部与百科「我的词条」保持同一位置和行样式。 */
         standaloneWorkshopLayout ? (
-          <div className="px-3 pb-2 pt-1">
-            <AvatarMenu compact label="JJwwx2333" />
-          </div>
+          collapsed ? (
+            <div className="px-3 pb-2 pt-1">
+              <div className="flex h-8 items-center justify-center">
+                <AvatarMenu compact />
+              </div>
+            </div>
+          ) : (
+            <div className="px-3 pb-2 pt-1">
+              <AvatarMenu compact label="kingjaylee" />
+            </div>
+          )
         ) : navVersion === 3 ? (
           <div className="px-[var(--sn-px)] pb-3">
             <SideNavCollapseFooterButton
@@ -1528,52 +1723,7 @@ function PlatformSidebar({
       {!collapsed && (
         <>
       {standaloneWorkshopLayout && drilledProject === null && (
-        <>
-          <div className="mx-3 mt-2 border-t border-black/[0.06] pt-2">
-            <button
-              type="button"
-              aria-current={activeNav === '项目库' ? 'page' : undefined}
-              onClick={onOpenCreativeSquare}
-              className={`flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium ${
-                activeNav === '项目库'
-                  ? 'bg-[var(--sidenav-active)] text-[#1C1F23]'
-                  : 'text-[#34373D] hover:bg-black/[0.03]'
-              }`}
-            >
-              <FolderLibraryLinearIcon className="size-4 shrink-0" />
-              <span>项目库</span>
-            </button>
-          </div>
-          <section
-            aria-labelledby="standalone-workshop-favorites"
-            className="mx-3 border-b border-black/[0.06] pb-2 pt-1"
-          >
-            <h3
-              id="standalone-workshop-favorites"
-              className="px-2 py-1 text-[11px] font-normal text-[#878B99]"
-            >
-              我的收藏
-            </h3>
-            <div>
-              {STANDALONE_WORKSHOP_FAVORITES.map(({ label, Icon }) => (
-                <button
-                  key={label}
-                  type="button"
-                  aria-current={activeNav === label ? 'page' : undefined}
-                  onClick={() => onOpenPlaceholder?.(label)}
-                  className={`flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-[12px] ${
-                    activeNav === label
-                      ? 'bg-[var(--sidenav-active)] text-[#1C1F23]'
-                      : 'text-[#34373D] hover:bg-black/[0.03]'
-                  }`}
-                >
-                  <Icon size={14} strokeWidth={1.7} className="shrink-0" />
-                  <span className="truncate">{label}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </>
+        <div aria-hidden className="mx-3 mt-2 border-t-[0.5px] border-black/[0.06]" />
       )}
       {drilledProject !== null ? (
         /* ── Detail: one project's full file-view directory ── */
@@ -1801,7 +1951,11 @@ function PlatformSidebar({
                     ) : (
                       <button
                         onClick={() => {
-                          toggleProject(name)
+                          // 点名称＝打开项目预览，顺带展开；收起只走左侧箭头，
+                          // 否则「再点一下当前项目」会把刚看的目录收掉。
+                          // 没有目录树的项目不显示箭头，只能仍由名称切换。
+                          if (tree) expandProject(name)
+                          else toggleProject(name)
                           onSwitchProject(name)
                         }}
                         className={`flex min-w-0 flex-1 items-center py-1 pl-2.5 pr-1 text-[13px] font-medium transition-colors ${
@@ -1898,7 +2052,9 @@ function PlatformSidebar({
                       </div>
                     )
                     if (!tree) return emptyStub
-                    const kind = PROJECT_KINDS[name] ?? 'mini-program'
+                    // 会话里新建的项目不在 PROJECT_KINDS 里，得走同一套解析，
+                    // 否则会被当成小程序、长出「兴趣卡配置」这种不相干的目录
+                    const kind = kindOf(name)
                     // AI 分身 and 小程序 projects are config-driven;
                     // other kinds bucket the raw file tree.
                     const productTree = mergeCategoryExtras(
@@ -1912,7 +2068,7 @@ function PlatformSidebar({
                           : buildProductView(tree, kind),
                       categoryExtras,
                       name,
-                    )
+                    ).filter((n) => !(hiddenCategories?.[name] ?? []).includes(n.name))
                     if (productTree.length === 0) return emptyStub
                     return (
                       // Match the project row's mx-3 inset so selected object
@@ -1991,7 +2147,6 @@ function PlatformSidebar({
         </>
       )}
 
-
       {spaceMenuPos && (
         <SpaceMenuPopover
           pos={spaceMenuPos}
@@ -2002,6 +2157,28 @@ function PlatformSidebar({
       )}
         </>
       )}
+      {/* 收起态保留当前分身入口：圆形头像可点击直达分身项目 */}
+      {collapsed && variant === 'avatar' && (
+        <div className="flex justify-center pt-1">
+          <button
+            type="button"
+            onClick={() => onSwitchProject(AVATAR_PROJECT)}
+            aria-label={`打开${avatarDisplayName}`}
+            title={avatarDisplayName}
+            className={`flex size-9 items-center justify-center rounded-lg transition-colors ${
+              activeProjectName === AVATAR_PROJECT && activeNav === null && !drilledProject
+                ? 'bg-[var(--color-ink)]/[0.06]'
+                : 'hover:bg-[var(--color-ink)]/[0.04]'
+            }`}
+          >
+            <img
+              src={getAvatarConfig(AVATAR_PROJECT)?.preview?.avatarUrl ?? DEFAULT_AVATAR_PREVIEW.avatarUrl}
+              alt=""
+              className="size-6 shrink-0 rounded-full object-cover ring-1 ring-black/5"
+            />
+          </button>
+        </div>
+      )}
     </SideNav>
   )
 }
@@ -2010,7 +2187,39 @@ function PlatformSidebar({
 const AVATAR_PROJECT = '陶白白 Sensei 分身'
 const TAROT_INTEREST_CARD_PROJECT = '塔罗兴趣卡'
 const ACG_NEW_YEAR_PROJECT = '抖音 ACG 游戏新春会'
-const WORKSHOP_DEFAULT_PROJECT = ACG_NEW_YEAR_PROJECT
+const SUMMER_SURF_PROJECT = '夏日冲浪 · 顺风顺水'
+/** 已经做完并上线的那一版活动 —— 侧栏里的成品样板，也是模板的来源。 */
+const XIAHUA_PROJECT = '夯爆了 已上线'
+/** 首页传策划文档进来时新建的活动 —— 0→1 全过程在它身上从零跑一遍。 */
+const XIAHUA_BUILD_PROJECT = '这夏夯爆了'
+/** 引用模板复刻出来的新活动 —— 就是「夏日冲浪」，它有自己的预览组件，
+ *  所以不属于下面这一族。 */
+const XIAHUA_CLONE_PROJECT = TEMPLATE_CLONE_PROJECT
+/** 这两个项目共用「这夏夯爆了」这套活动预览/搭建机制（成品、新建）。 */
+const isXiahuaFamily = (t: string) =>
+  t === XIAHUA_PROJECT || t === XIAHUA_BUILD_PROJECT
+const XIAHUA_EDIT_STORAGE_KEY = 'xiahua-edit-state-v1'
+type XiahuaEditStorage = {
+  overrides: XiahuaOverrides
+  gameplay: XiahuaGameplay
+}
+const readXiahuaEditStorage = (): XiahuaEditStorage => {
+  if (typeof window === 'undefined') {
+    return { overrides: {}, gameplay: DEFAULT_XIAHUA_GAMEPLAY }
+  }
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(XIAHUA_EDIT_STORAGE_KEY) ?? 'null') as Partial<XiahuaEditStorage> | null
+    return {
+      overrides: saved?.overrides ?? {},
+      gameplay: saved?.gameplay ?? DEFAULT_XIAHUA_GAMEPLAY,
+    }
+  } catch {
+    return { overrides: {}, gameplay: DEFAULT_XIAHUA_GAMEPLAY }
+  }
+}
+type HomeAttachment = { name: string; size: number; type: string }
+/** 工坊首屏落在这夏夯爆了（侧栏默认只展开它，ACG 收起）。 */
+const WORKSHOP_DEFAULT_PROJECT = XIAHUA_PROJECT
 
 export default function VibeCodingPage({
   variant = 'workshop',
@@ -2207,8 +2416,6 @@ export default function VibeCodingPage({
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false)
   const sessionMenuRef = useRef<HTMLDivElement>(null)
   // 历史对话 dropdown (chat-header icon, right of 新建对话)
-  const [historyMenuOpen, setHistoryMenuOpen] = useState(false)
-  const historyMenuRef = useRef<HTMLDivElement>(null)
   /* Conversation state is stored under both project id and session id.
    * The session list alone is not history: each row needs the messages and
    * scripted-flow state that were visible when the user left it. */
@@ -2258,15 +2465,18 @@ export default function VibeCodingPage({
    * project switch, and feeds prior turns back as context for the next call. */
   const aiReplyCacheRef = useRef<Map<string, string>>(new Map())
   /* Platform "home" / new-project landing view — shown whenever the user
-   * clicks + 新建项目. AI 工坊首次挂载直接进入默认塔罗项目；AI 分身
-   * 暂时用 home 遮住首帧，随后由 avatar boot effect 打开分身项目。
+   * clicks + 新建项目. AI 工坊默认落在首页（AI 分身用 home 遮住首帧，
+   * 随后由 avatar boot effect 打开分身项目）；仅 ?project= / ?page=
+   * 深链时跳过首页直达对应项目或资源库。
    * Contains a hero title + a large prompt composer + suggestion pills.
    * Submitting returns to the normal workspace with the prompt routed
    * through sendChat. Closes when the user activates a project via
    * sidebar click. */
-  const [platformHomeOpen, setPlatformHomeOpen] = useState(
-    isAvatarStudio || standaloneWorkshopLayout,
-  )
+  const [platformHomeOpen, setPlatformHomeOpen] = useState(() => {
+    if (typeof window === 'undefined') return true
+    const params = new URLSearchParams(window.location.search)
+    return !params.get('project') && params.get('page') !== 'resources'
+  })
   const [homeDraft, setHomeDraft] = useState('')
   /* 第五人格 needs-collection mock — only surfaces when the user sends a
    * message containing 第五人格/小程序. Default off so the chat starts in
@@ -2390,7 +2600,7 @@ export default function VibeCodingPage({
   const chatOnLeft = layout === 'code' || isPlatform
   const reduceSideNavMotion = useReducedMotion() ?? false
   /* Platform-only: sidebar + chat widths are both user-draggable. Schemes
-   * 1 / 2 / 3 / 6 retain the shared icon rail when collapsed; the remaining
+   * 1 / 2 / 3 / 6 / 7 retain the shared icon rail when collapsed; the remaining
    * schemes keep the legacy fully-hidden layout. */
   const sideNavProductId: ProductSideNavId =
     variant === 'avatar' ? 'ai-avatar' : 'workshop'
@@ -2421,7 +2631,9 @@ export default function VibeCodingPage({
     (navVersion === 1 ||
       navVersion === 2 ||
       navVersion === 3 ||
-      navVersion === 6)
+      navVersion === 6 ||
+      navVersion === 7 ||
+      navVersion === 8)
   const sidebarFullyHidden = sidebarCollapsed && !sidebarRailCollapsed
   const fullyHiddenSidebarWidth = navVersion === 1 ? 0 : 12
   const baseEffectiveSidebarWidth = sidebarCollapsed
@@ -2429,6 +2641,28 @@ export default function VibeCodingPage({
       ? configuredCollapsedSidebarWidth
       : fullyHiddenSidebarWidth
     : effectivePlatformSidebarWidth
+  /* 侧栏宽度和正文左偏移共用同一条 CSS 过渡 —— 同时长同缓动、同一套
+     合成器时钟，两者逐帧对齐，不再出现「正文瞬移、侧栏慢慢收」的位移感。 */
+  const standaloneCssTransition = (props: string[]) =>
+    standaloneWorkshopLayout
+      ? props
+          .map(
+            (prop) =>
+              `${prop} ${
+                reduceSideNavMotion ? 0 : STANDALONE_WORKSHOP_MOTION_DURATION
+              }s ${STANDALONE_WORKSHOP_MOTION_CSS_EASE}`,
+          )
+          .join(', ')
+      : undefined
+  const standaloneWidthTransition = standaloneCssTransition(['width'])
+  const standaloneOffsetTransition = standaloneCssTransition(['margin-left', 'left'])
+  /* 只有展开层在淡入淡出，图标轨始终不透明地垫在下面 ——
+     两层交叉淡化时，logo / 图标 / 底部头像这些「两态同位又同图」的元素
+     会各剩 50% 透明度叠出一个不到 100% 的合成结果，看着就是闪一下。
+     单层淡化 + 不透明底：同位像素前后都是同一个颜色，全程不闪。 */
+  const standaloneLayerFade = `opacity ${
+    reduceSideNavMotion ? 0 : 0.18
+  }s ease-out`
   useEffect(() => {
     if (sidebarFullyHidden) sidebarExpandButtonRef.current?.focus()
   }, [sidebarFullyHidden])
@@ -2610,9 +2844,81 @@ export default function VibeCodingPage({
    *  typing + send or by clicking a suggestion pill). Spins up a brand-new
    *  project and routes the prompt into it — instead of dropping the user
    *  into an existing seeded project. */
-  const submitFromHome = (text: string) => {
+  /** 首页传策划文档 = 新起一个活动：注册项目、给一棵空的文件树，然后交给
+   *  0→1 回放去逐步长出内容。已上线的那版是另一个项目，不受影响。 */
+  const openNewActivityProject = () => {
+    if (projectTitle && !platformHomeOpen) {
+      projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
+    }
+    setCreatedProjectKinds((prev) => ({ ...prev, [XIAHUA_BUILD_PROJECT]: 'marketing-h5' }))
+    setCreatedProjects((prev) =>
+      prev.includes(XIAHUA_BUILD_PROJECT) ? prev : [XIAHUA_BUILD_PROJECT, ...prev],
+    )
+    setPlatformOpenProjects((prev) => new Set(prev).add(XIAHUA_BUILD_PROJECT))
+    setProjectTitle(XIAHUA_BUILD_PROJECT)
+    projectTitleRef.current = XIAHUA_BUILD_PROJECT
+    activatePublishProject(XIAHUA_BUILD_PROJECT)
+    setPlatformHomeOpen(false)
+    setPlatformResourceLibraryOpen(false)
+    setPlatformSkillsOpen(false)
+    setPlatformCreativeSquareOpen(false)
+    setPlatformDataOpsOpen(false)
+    setProjectTrees((prev) => ({
+      ...prev,
+      // 产物结构跟已上线那版一样（同一个活动模板），内容随回放逐步露出
+      [XIAHUA_BUILD_PROJECT]: prev[XIAHUA_BUILD_PROJECT] ?? prev[XIAHUA_PROJECT] ?? [],
+    }))
+    initProjectDefaults(XIAHUA_BUILD_PROJECT, false, 'marketing-h5', false)
+    // 从头搭：预设、玩法、选版全部回到出厂态，不继承已上线那版的成品状态
+    setXiahuaPreset(XIAHUA_PRESET)
+    setXiahuaGameplay(XIAHUA_PRESET.gameplay)
+    setXiahuaOverrides({})
+    setXiahuaScriptKind('build')
+  }
+
+  const submitFromHome = (text: string, attachment?: HomeAttachment) => {
     const trimmed = text.trim()
-    if (!trimmed) return
+    if (!trimmed && !attachment) return
+    const request = trimmed || `请根据上传的「${attachment?.name ?? '活动策划文档'}」完整搭建活动`
+    // @模板 引用：从模板复刻新活动（换背景 / 换形象 / 换素材），走复刻回放。
+    if (trimmed.includes(XIAHUA_TEMPLATE_TOKEN) || trimmed.includes(LEGACY_XIAHUA_TEMPLATE_TOKEN)) {
+      if (projectTitle && !platformHomeOpen) {
+        projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
+      }
+      // 复刻的目标就是「夏日冲浪」这个活动本身 —— 它平时不在侧栏里，
+      // 引用模板生成之后才出现，跟真实的「从模板做出一个新活动」一致。
+      setCreatedProjectKinds((prev) => ({ ...prev, [XIAHUA_CLONE_PROJECT]: 'marketing-h5' }))
+      setCreatedProjects((prev) =>
+        prev.includes(XIAHUA_CLONE_PROJECT) ? prev : [XIAHUA_CLONE_PROJECT, ...prev],
+      )
+      setPlatformOpenProjects((prev) => {
+        const next = new Set(prev)
+        next.add(XIAHUA_CLONE_PROJECT)
+        return next
+      })
+      setProjectTitle(XIAHUA_CLONE_PROJECT)
+      projectTitleRef.current = XIAHUA_CLONE_PROJECT
+      activatePublishProject(XIAHUA_CLONE_PROJECT)
+      setHomeDraft('')
+      setPlatformHomeOpen(false)
+      setPlatformResourceLibraryOpen(false)
+      setPlatformSkillsOpen(false)
+      setPlatformCreativeSquareOpen(false)
+      setPlatformDataOpsOpen(false)
+      initProjectDefaults(XIAHUA_CLONE_PROJECT, false, 'marketing-h5', false)
+      startTemplateClone(trimmed, { instant: true })
+      return
+    }
+    const attachmentContext = `${attachment?.name ?? ''} ${request}`
+    // 首页上传活动策划文档后进入同一条真实的 0→1 搭建链路：文档名会在
+    // 对话附件里保留，右侧依次经历方案、框架、素材与成品。
+    if (attachment && /活动|策划|夜宵|这夏|h5|营销/i.test(attachmentContext)) {
+      setHomeDraft('')
+      // 每次传文档进来都是一个新活动：新建项目从零搭，已上线的那版原样留在侧栏
+      openNewActivityProject()
+      startXiahuaBuild(attachment.name, trimmed, { instant: true })
+      return
+    }
     // Game prompt → dedicated Garuda mock-generation flow (it materialises
     // its own 射击小游戏 project). Runs before the generic path so the
     // scripted build always wins.
@@ -2620,14 +2926,14 @@ export default function VibeCodingPage({
       /弹幕|射击|stg|roguelike|太空|飞机.*游戏|游戏.*飞机|garuda/i.test(trimmed)
     ) {
       setHomeDraft('')
-      startGameFlow(trimmed)
+      startGameFlow(request)
       return
     }
     // Otherwise: create a fresh project, pick its kind from the prompt so the
     // right-side preview routes correctly, register it in the sidebar, switch
     // to it, then send the prompt into its (empty) chat.
-    const kind = classifyProjectKind(trimmed)
-    const name = makeNewProjectName(trimmed)
+    const kind = classifyProjectKind(request)
+    const name = makeNewProjectName(request)
     if (projectTitle && !platformHomeOpen) {
       projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
     }
@@ -2650,7 +2956,8 @@ export default function VibeCodingPage({
     // Enter the chat flow with the right pane closed (Artifacts-style); it
     // opens once a previewable artifact appears — see sendChat / seedProductTabs.
     const sessionId = initProjectDefaults(name, true, kind, false)
-    sendChat(trimmed, {
+    // 没匹配到活动流程的附件不能静默消失 —— 至少把文件名带进对话。
+    sendChat(attachment ? `【已上传文档：${attachment.name}】${request}` : request, {
       fromHomeEntry: true,
       projectId: name,
       projectKind: kind,
@@ -2980,6 +3287,18 @@ export default function VibeCodingPage({
    *  intact, then either replays the target project's prior snapshot or
    *  initialises kind-specific defaults on first visit. */
   const openProject = (name: string) => {
+    // 活动预览/搭建状态是这一族项目共用的：切回「已上线」那版时归位，免得它
+    // 顶着复刻换过的皮，或者停在新建活动搭到一半的状态。
+    if (name === XIAHUA_PROJECT && (xiahuaScriptKind === 'clone' || xiahuaBuildStep >= 0)) {
+      setXiahuaScriptKind('build')
+      setXiahuaPreset(XIAHUA_PRESET)
+      setXiahuaGameplay(XIAHUA_PRESET.gameplay)
+      setXiahuaOverrides({})
+      setXiahuaBuildStep(-1)
+      setXiahuaBuildPlaying(false)
+      setXiahuaBuildOwner(null)
+      setXiahuaPath([])
+    }
     const focusAcgPreview = name === ACG_NEW_YEAR_PROJECT
     const focusPreview = (tabs: { label: string; closable: boolean }[]) => {
       const previewIndex = tabs.findIndex((tab) => tab.label === '预览')
@@ -3035,17 +3354,6 @@ export default function VibeCodingPage({
     document.addEventListener('pointerdown', handler)
     return () => document.removeEventListener('pointerdown', handler)
   }, [sessionMenuOpen])
-
-  useEffect(() => {
-    if (!historyMenuOpen) return
-    const handler = (e: PointerEvent) => {
-      if (historyMenuRef.current && !historyMenuRef.current.contains(e.target as Node)) {
-        setHistoryMenuOpen(false)
-      }
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
-  }, [historyMenuOpen])
 
   /** Send a chat message. Triggers:
    *  - 发布/更新 → publish flow
@@ -3228,6 +3536,403 @@ export default function VibeCodingPage({
   // The H5 layer currently selected in the preview (edit mode) — the 编辑
   // panel refreshes to match. null = no element selected → 整体活动配置.
   const [h5Selected, setH5Selected] = useState<H5Selection | null>(null)
+  // Summer Surf has its own activity sections and copy, so its right-side
+  // editor keeps a separate selection/config model from the seeded H5 demo.
+  const [summerSurfSelected, setSummerSurfSelected] =
+    useState<SummerSurfSelection | null>(null)
+  const [summerSurfConfig, setSummerSurfConfig] = useState<SummerSurfEditConfig>(
+    () => ({ ...getInitialSummerSurfEditConfig() }),
+  )
+  useEffect(() => {
+    window.localStorage.setItem(SUMMER_SURF_CONFIG_STORAGE_KEY, JSON.stringify(summerSurfConfig))
+  }, [summerSurfConfig])
+  /* 这夏夯爆了编辑态：预览点选的元素 + 面板可回写的运行时属性。 */
+  const [xiahuaSelected, setXiahuaSelected] = useState<XiahuaSel | null>(null)
+  const [xiahuaHovered, setXiahuaHovered] = useState<string | null>(null)
+  const [xiahuaOverrides, setXiahuaOverrides] = useState<XiahuaOverrides>(
+    () => readXiahuaEditStorage().overrides,
+  )
+  /* 玩法配置：编辑面板「玩法」页签与项目目录「活动玩法配置」共用同一份。 */
+  const [xiahuaGameplay, setXiahuaGameplay] = useState<XiahuaGameplay>(
+    () => readXiahuaEditStorage().gameplay,
+  )
+  const persistXiahuaEdits = useCallback(() => {
+    try {
+      window.localStorage.setItem(
+        XIAHUA_EDIT_STORAGE_KEY,
+        JSON.stringify({ overrides: xiahuaOverrides, gameplay: xiahuaGameplay }),
+      )
+    } catch {
+      // localStorage unavailable: keep the live editor state in memory.
+    }
+  }, [xiahuaGameplay, xiahuaOverrides])
+  useEffect(() => {
+    persistXiahuaEdits()
+  }, [persistXiahuaEdits])
+  /* 0→1 生成流程：-1 = 未开始（直接看成品），>=0 = 正在回放第 N 步。 */
+  /* 活动模板：换 preset = 换素材目录 + 玩法 + 文案，版式与编辑能力不变。 */
+  const [xiahuaPreset, setXiahuaPreset] = useState<ActivityPreset>(XIAHUA_PRESET)
+  const xiahuaPresetRef = useRef(xiahuaPreset)
+  useEffect(() => {
+    xiahuaPresetRef.current = xiahuaPreset
+  }, [xiahuaPreset])
+  /** 切换活动模板：同步换掉玩法与画布改动。 */
+  const switchXiahuaPreset = useCallback((p: ActivityPreset) => {
+    setXiahuaPreset(p)
+    setXiahuaGameplay(p.gameplay)
+    setXiahuaOverrides({})
+    setXiahuaSelected(null)
+    setXiahuaBuildStep(-1)
+    setXiahuaBuildPlaying(false)
+    setXiahuaPlan(defaultPlan(p))
+    setXiahuaPicks({})
+    setXiahuaVersions({})
+  }, [])
+  /** 编辑画布上正在编辑的画板 —— 右侧图层清单跟着它换。 */
+  const [xiahuaScreen, setXiahuaScreen] = useState<XiahuaScreen>('main')
+  const [xiahuaBuildStep, setXiahuaBuildStep] = useState(-1)
+  /* 卡点点击后要切到的产物 tab；目标步骤本身可能还没有声明 phase，
+     例如「生成页面框架」先进入 ok-plan，再自动跑到 wireframe。 */
+  const xiahuaPendingTabRef = useRef<string | null>(null)
+  /* 实际走过的步骤下标（有序）。卡点会跳步，光靠下标区间渲染会把没走的支路也画出来。 */
+  const [xiahuaPath, setXiahuaPath] = useState<number[]>([])
+  const [xiahuaBuildPlaying, setXiahuaBuildPlaying] = useState(false)
+  /* 解析出来的活动方案（右侧「文档」态可改）与素材版本选择。 */
+  const [xiahuaPlan, setXiahuaPlan] = useState<PlanDoc>(() => defaultPlan(XIAHUA_PRESET))
+  const [xiahuaPicks, setXiahuaPicks] = useState<Record<string, number>>({})
+  /* 每个素材已经有几版 —— 默认 1 版，点「再出一版」才涨。 */
+  const [xiahuaVersions, setXiahuaVersions] = useState<Record<string, number>>({})
+  /* 选择卡里选中/写下的那句话 —— 按目标步骤 id 覆盖该步的用户消息文案。 */
+  const [xiahuaPickTexts, setXiahuaPickTexts] = useState<Record<string, string>>({})
+  /* 模板复刻：清单里哪些项被取消勾选（没进表 = 勾着）。 */
+  const [xiahuaClonePicks, setXiahuaClonePicks] = useState<Record<string, boolean>>({})
+  /* 回放正跑在哪个项目上 —— 目录随阶段收起只该影响它，别把旁边那个
+     已上线的项目也一起收了。 */
+  const [xiahuaBuildOwner, setXiahuaBuildOwner] = useState<string | null>(null)
+  /* 从首页上传时把真实文件名带进 0→1 对话附件。 */
+  const [xiahuaUploadedDocName, setXiahuaUploadedDocName] = useState<string | undefined>()
+  // 首页上传文档时用户附带的原话 —— 覆盖脚本里 doc 步的默认文案。
+  const [xiahuaDocText, setXiahuaDocText] = useState<string | undefined>()
+  /* 当前走哪套脚本：0→1 搭建 or @模板 复刻（这春嗨翻了）。 */
+  const [xiahuaScriptKind, setXiahuaScriptKind] = useState<'build' | 'clone'>('build')
+  const xiahuaScript = xiahuaScriptKind === 'clone' ? TEMPLATE_CLONE_SCRIPT : XIAHUA_BUILD_SCRIPT
+  /* @模板 时用户的原话，覆盖复刻脚本第一条用户消息。 */
+  const [xiahuaCloneUserText, setXiahuaCloneUserText] = useState<string | undefined>()
+  /** 到目前为止脚本里最后一个声明的某个字段。 */
+  const xiahuaUpTo = useCallback(
+    <K extends 'phase' | 'stage' | 'assetBatch' | 'replaceBatch' | 'gameplayPick'>(key: K) =>
+      xiahuaPath
+        .map((i) => xiahuaScript[i]?.[key])
+        .filter((v) => v !== undefined)
+        .pop(),
+    [xiahuaPath, xiahuaScript],
+  )
+  const xiahuaBuildStage: BuildStage | undefined =
+    xiahuaBuildStep < 0
+      ? undefined
+      : ((xiahuaUpTo('stage') as BuildStage) ?? 'empty')
+  /** 右侧此刻该展示哪个产物：文档 / 线框 / 素材板 / 成品。
+   *  没走到任何声明 phase 的步骤前一律 none —— 全屏聊天，等「读完出方案」
+   *  才展开右侧（首页带文档进来跳过前两步，不能兜底成 doc 提前开面板）。 */
+  const xiahuaBuildPhase: BuildPhase | undefined =
+    xiahuaBuildStep < 0
+      ? undefined
+      : ((xiahuaUpTo('phase') as BuildPhase) ?? 'none')
+  /* phase 写在一段 think 的第一步上，但产物要等这段思考后的完成回复才出现。
+     找不到完成回复时回退到上一个已完成 phase，避免右侧提前切换。 */
+  const xiahuaCompletedArtifactPhase = useMemo<BuildPhase | undefined>(() => {
+    if (xiahuaBuildStep < 0) return undefined
+    let latestPhasePathIndex = -1
+    let latestPhase: BuildPhase | undefined
+    for (let i = 0; i < xiahuaPath.length; i += 1) {
+      const phase = xiahuaScript[xiahuaPath[i]]?.phase
+      if (phase) {
+        latestPhasePathIndex = i
+        latestPhase = phase as BuildPhase
+      }
+    }
+    if (!latestPhase) return 'none'
+    const phaseStep = xiahuaScript[xiahuaPath[latestPhasePathIndex]]
+    const phaseDone =
+      phaseStep?.view.kind !== 'think' ||
+      xiahuaPath
+        .slice(latestPhasePathIndex + 1)
+        .some((index) => xiahuaScript[index]?.view.kind !== 'think')
+    if (phaseDone) return latestPhase
+    for (let i = latestPhasePathIndex - 1; i >= 0; i -= 1) {
+      const previous = xiahuaScript[xiahuaPath[i]]?.phase
+      if (previous) return previous as BuildPhase
+    }
+    return 'none'
+  }, [xiahuaBuildStep, xiahuaPath, xiahuaScript])
+  /* gameplay phase 的前半段只是确认并接入玩法，还没有生成玩法配置。
+     只有对应完成回复出现后，右侧才切到活动玩法配置；中间继续沿用上一阶段的页面框架。 */
+  const xiahuaGameplayChoiceStep =
+    xiahuaBuildStep >= 0 && xiahuaScript[xiahuaBuildStep]?.id === 'gp-choose'
+  const xiahuaGameplayConnected = xiahuaPath.some((index) => {
+    const id = xiahuaScript[index]?.id
+    return id === 'gp-done' || id === 'wf-e-done'
+  })
+  const xiahuaArtifactPhase: BuildPhase | undefined =
+    !xiahuaGameplayConnected &&
+    (xiahuaGameplayChoiceStep || xiahuaCompletedArtifactPhase === 'gameplay')
+      ? 'wireframe'
+      : xiahuaCompletedArtifactPhase
+  const xiahuaAssetBatch = (xiahuaUpTo('assetBatch') as number) ?? 0
+  /** 模板复刻的替换已经做完几批。 */
+  const xiahuaCloneCompletedReplaceBatch = useMemo(() => {
+    if (xiahuaScriptKind !== 'clone') return 0
+    return xiahuaPath.reduce((completed, index) => {
+      const id = xiahuaScript[index]?.id
+      if (id === 'tpl-b1-done' || id === 'tpl-b1-adjust-do') return Math.max(completed, 1)
+      if (id === 'tpl-b2-done') return Math.max(completed, 2)
+      if (id === 'tpl-done') return Math.max(completed, 3)
+      return completed
+    }, 0)
+  }, [xiahuaPath, xiahuaScript, xiahuaScriptKind])
+  const xiahuaReplaceBatch =
+    xiahuaScriptKind === 'clone'
+      ? xiahuaCloneCompletedReplaceBatch
+      : ((xiahuaUpTo('replaceBatch') as number) ?? 0)
+  /* 素材是不是已经生成出来了 —— 没在回放里就按成品算；在回放里必须真的跑到
+     素材阶段，卡池那种地方才可以显示卡面，不能提前把成品图摆出来。 */
+  const xiahuaAssetsReady =
+    xiahuaBuildStep < 0 ||
+    xiahuaBuildPhase === 'final' ||
+    (xiahuaBuildPhase === 'assets' && xiahuaAssetBatch >= 5)
+  /* 线框态覆盖两个阶段：搭页面框架，以及在框架占位上跑玩法 —— 玩法确认前
+     不出任何视觉，所以画面一直是灰的框。 */
+  const xiahuaWireframe =
+    xiahuaBuildPhase === 'wireframe' ||
+    xiahuaBuildPhase === 'gameplay' ||
+    // 清单阶段一张素材都还没生成，预览不能提前变成成品
+    xiahuaBuildPhase === 'assetList' ||
+    // 素材已经全部生成也还没组装成 UI，预览继续保持页面框架态
+    xiahuaBuildPhase === 'assets'
+  /* 回放时左侧目录跟着过程长：一开始只有上传的策划文档，界面搭出来才有项目文件，
+     素材开始生成才有素材库，玩法接上才有玩法配置和数据库。不在回放中则全给。 */
+  const xiahuaHiddenCategories = useMemo<Record<string, string[]>>(() => {
+    if (xiahuaBuildStep < 0 || !xiahuaArtifactPhase) return {}
+    const hide: string[] = []
+    const has = (p: BuildPhase[]) => p.includes(xiahuaArtifactPhase)
+    if (has(['none', 'doc'])) hide.push('项目文件')
+    // 素材库要等清单对齐了才出现；玩法配置在框架上接玩法那步就有了
+    if (has(['none', 'doc', 'wireframe', 'gameplay'])) hide.push(ASSET_LIBRARY_LABEL)
+    if (has(['none', 'doc', 'wireframe'])) hide.push(H5_GAMEPLAY_CONFIG_LABEL, DATABASE_LABEL)
+    if (!xiahuaBuildOwner) return {}
+    return { [xiahuaBuildOwner]: hide }
+  }, [xiahuaBuildStep, xiahuaArtifactPhase, xiahuaBuildOwner])
+  /** 停在卡点等确认：当前步声明了 gate 且播放已暂停。 */
+  const xiahuaGateWaiting =
+    xiahuaBuildStep >= 0 &&
+    !xiahuaBuildPlaying &&
+    Boolean(xiahuaScript[xiahuaBuildStep]?.gate)
+  /* 回放里用户说话时，先把字打进输入框再「发送」—— 跟真实使用的路径一致。 */
+  const [xiahuaTyping, setXiahuaTyping] = useState(false)
+  const xiahuaTypeTimers = useRef<number[]>([])
+  const typeIntoComposer = useCallback((text: string, done: () => void) => {
+    xiahuaTypeTimers.current.forEach(window.clearTimeout)
+    xiahuaTypeTimers.current = []
+    setXiahuaTyping(true)
+    const per = Math.max(18, Math.min(45, 900 / Math.max(1, text.length)))
+    for (let i = 1; i <= text.length; i++) {
+      xiahuaTypeTimers.current.push(
+        window.setTimeout(() => setComposerText(text.slice(0, i)), i * per),
+      )
+    }
+    xiahuaTypeTimers.current.push(
+      window.setTimeout(() => {
+        setComposerText('')
+        setXiahuaTyping(false)
+        done()
+      }, text.length * per + 380),
+    )
+  }, [])
+  useEffect(
+    () => () => {
+      xiahuaTypeTimers.current.forEach(window.clearTimeout)
+    },
+    [],
+  )
+
+  /** 从头开始回放：清空状态回到零。
+   *  docName 存在 = 从首页真实上传进来：用户原话 + 附件是同一条消息，
+   *  直接从脚本的 doc 步开场，不再替用户说脚本里的开场白。 */
+  const startXiahuaBuild = useCallback((
+    docName?: string,
+    userText?: string,
+    // 首页已经发过一次了，进来直接开播，不再把原话回打进输入框
+    opts?: { instant?: boolean },
+  ) => {
+    const p = xiahuaPresetRef.current
+    if (docName) setXiahuaUploadedDocName(docName)
+    setXiahuaBuildOwner(projectTitleRef.current)
+    setXiahuaScriptKind('build')
+    setXiahuaGameplay(p.gameplay)
+    setXiahuaOverrides({})
+    setXiahuaSelected(null)
+    setXiahuaPlan(defaultPlan(p))
+    setXiahuaPicks({})
+    setXiahuaVersions({})
+    setComposerText('')
+    setXiahuaPath([])
+    if (docName) {
+      const docIdx = stepIndex('doc')
+      const text = userText?.trim() || '这是活动的策划文档，帮我把这个活动完整搭出来'
+      setXiahuaDocText(text)
+      // 打字期间就进入搭建态（空路径 = 空对话、phase none = 右侧收起），
+      // 否则这几秒会闪出静态历史记录和成品预览。
+      setXiahuaBuildStep(docIdx)
+      const enter = () => {
+        setXiahuaPath([docIdx])
+        setXiahuaBuildPlaying(true)
+      }
+      if (opts?.instant) enter()
+      else typeIntoComposer(text, enter)
+      return
+    }
+    // 回放入口：按脚本原文播，第一条就是用户说话 —— 先打进输入框再发出去
+    setXiahuaDocText(undefined)
+    const first = XIAHUA_BUILD_SCRIPT[0]
+    const go = () => {
+      setXiahuaPath([0])
+      setXiahuaBuildStep(0)
+      setXiahuaBuildPlaying(true)
+    }
+    if (first?.view.kind === 'user') {
+      setXiahuaBuildStep(0)
+      typeIntoComposer(first.view.text, go)
+    } else go()
+  }, [typeIntoComposer])
+  /** @模板 复刻：结构/玩法全继承，从模板起步只换背景、形象、素材。 */
+  const startTemplateClone = useCallback(
+    (userText?: string, opts?: { instant?: boolean }) => {
+      // 起点就是完整模板：预置这夏夯爆了的成品状态，换皮过程逐步改 preset
+      setXiahuaBuildOwner(projectTitleRef.current)
+      setXiahuaPickTexts({})
+      setXiahuaClonePicks({})
+      setXiahuaScriptKind('clone')
+      setXiahuaPreset(XIAHUA_PRESET)
+      setXiahuaGameplay(XIAHUA_PRESET.gameplay)
+      setXiahuaOverrides({})
+      setXiahuaSelected(null)
+      setXiahuaPicks({})
+      setXiahuaVersions({})
+      setXiahuaUploadedDocName(undefined)
+      setXiahuaDocText(undefined)
+      setComposerText('')
+      setXiahuaPath([])
+      const text = userText?.trim() || (TEMPLATE_CLONE_SCRIPT[0].view as { text: string }).text
+      setXiahuaCloneUserText(text)
+      setXiahuaBuildStep(0)
+      const enter = () => {
+        setXiahuaPath([0])
+        setXiahuaBuildPlaying(true)
+      }
+      if (opts?.instant) enter()
+      else typeIntoComposer(text, enter)
+    },
+    [typeIntoComposer],
+  )
+  /** 应用某一步的真实改动（含模板复刻的 preset 换皮）。 */
+  const applyXiahuaMutation = useCallback((s: BuildStep | undefined) => {
+    const m = s?.mutate
+    if (!m) return
+    if (m.type === 'gameplay') setXiahuaGameplay(m.patch)
+    if (m.type === 'overrides') setXiahuaOverrides(m.patch)
+    if (m.type === 'plan') setXiahuaPlan(m.patch)
+    if (m.type === 'preset') setXiahuaPreset(m.patch)
+    if (m.type === 'picks') {
+      setXiahuaPicks(m.patch)
+      setXiahuaVersions(m.versions ?? ((v) => v))
+    }
+  }, [])
+  /** 跳到某一步并应用它的改动。 */
+  const gotoXiahuaStep = useCallback(
+    (idx: number) => {
+      const s = xiahuaScript[idx]
+      if (!s) return
+      applyXiahuaMutation(s)
+      setXiahuaPath((p) => [...p, idx])
+      setXiahuaBuildStep(idx)
+      setXiahuaBuildPlaying(!s.gate)
+    },
+    [xiahuaScript, applyXiahuaMutation],
+  )
+  /** 卡点上的选择：确认走主路径，「我要改」走支路。 */
+  const onXiahuaGate = useCallback(
+    (choice: 'confirm' | 'alt' | { to: string; text?: string }) => {
+      const g = xiahuaScript[xiahuaBuildStep]?.gate
+      if (!g) return
+      // 确认卡点是已经发出的动作，不走输入框打字动画；同时清掉可能还在收尾的上一段回放。
+      xiahuaTypeTimers.current.forEach(window.clearTimeout)
+      xiahuaTypeTimers.current = []
+      setComposerText('')
+      setXiahuaTyping(false)
+      const to =
+        typeof choice === 'object' ? choice.to : choice === 'confirm' ? g.confirmTo : g.altTo
+      // 选择卡里自己写的那句，就是接下来发出去的那条用户消息
+      if (typeof choice === 'object' && choice.text && to) {
+        setXiahuaPickTexts((prev) => ({ ...prev, [to]: choice.text as string }))
+      }
+      const idx = to ? xiahuaScript.findIndex((s) => s.id === to) : xiahuaBuildStep + 1
+      const upcomingStep = xiahuaScript
+        .slice(Math.max(0, idx))
+        .find((s) => s.phase)
+      const upcomingPhase = upcomingStep?.phase
+      const upcomingIsGameplayChoice = upcomingStep?.id === 'gp-choose'
+      xiahuaPendingTabRef.current =
+        upcomingPhase === 'doc'
+          ? PROJECT_DOCUMENT_LABEL
+          : upcomingPhase === 'assetList' || upcomingPhase === 'assets'
+            ? ASSET_LIBRARY_LABEL
+            : upcomingPhase === 'gameplay' && !upcomingIsGameplayChoice
+              ? H5_GAMEPLAY_CONFIG_LABEL
+              : upcomingPhase
+                ? '预览'
+                : null
+      // 点确认就等于把这句发出去了，不再逐字打进输入框；输入框只服务于
+      // 回放里的真实用户发言。
+      gotoXiahuaStep(idx)
+    },
+    [xiahuaBuildStep, xiahuaScript, gotoXiahuaStep],
+  )
+  // 回放时对话跟着往下滚，否则新步骤长在视口外面看不见。
+  useEffect(() => {
+    if (xiahuaBuildStep < 0) return
+    const raf = requestAnimationFrame(() => {
+      const el = chatScrollRef.current
+      if (el) el.scrollTop = el.scrollHeight
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [xiahuaBuildStep])
+  // 定时推进，并在推进时应用该步的真实改动；遇到卡点停下等人点。
+  useEffect(() => {
+    if (!xiahuaBuildPlaying) return
+    if (xiahuaBuildStep < 0 || xiahuaBuildStep >= xiahuaScript.length - 1) {
+      setXiahuaBuildPlaying(false)
+      return
+    }
+    const cur = xiahuaScript[xiahuaBuildStep]
+    if (cur?.gate) {
+      setXiahuaBuildPlaying(false)
+      return
+    }
+    const advance = () => {
+      const next = xiahuaScript[xiahuaBuildStep + 1]
+      applyXiahuaMutation(next)
+      setXiahuaPath((p) => [...p, xiahuaBuildStep + 1])
+      setXiahuaBuildStep((n) => n + 1)
+      if (next?.gate) setXiahuaBuildPlaying(false)
+    }
+    const t = window.setTimeout(() => {
+      // 下一步是用户说话 → 先把字打进输入框，打完再「发出去」
+      const next = xiahuaScript[xiahuaBuildStep + 1]
+      if (next?.view.kind === 'user') typeIntoComposer(next.view.text, advance)
+      else advance()
+    }, cur?.hold ?? 1200)
+    return () => window.clearTimeout(t)
+  }, [xiahuaBuildPlaying, xiahuaBuildStep, xiahuaScript, applyXiahuaMutation, typeIntoComposer])
   // Quick-edit object selection for the game and interest-card previews.
   // Their right-side fields are derived from these semantic targets.
   const [gameSelectedObject, setGameSelectedObject] =
@@ -3640,6 +4345,221 @@ export default function VibeCodingPage({
       { name: 'gameplay', type: 'dir', children: [{ name: '玩法配置.json', type: 'file' }] },
       { name: 'config', type: 'dir', children: [{ name: 'h5.config.json', type: 'file' }] },
     ],
+    // Marketing King 里的夏日冲浪活动：这里的树与右侧 H5 预览共用同一套
+    // 页面、组件、素材和配置命名，点击「项目文件」能定位到真实模块。
+    [SUMMER_SURF_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '夏日冲浪活动方案.md', type: 'file' }],
+      },
+      {
+        name: 'src',
+        type: 'dir',
+        children: [
+          {
+            name: 'pages',
+            type: 'dir',
+            children: [
+              { name: 'loading', type: 'dir', children: [{ name: 'index.tsx', type: 'file' }] },
+              { name: 'character-select', type: 'dir', children: [{ name: 'index.tsx', type: 'file' }] },
+              { name: 'campaign-main', type: 'dir', children: [{ name: 'index.tsx', type: 'file' }] },
+              { name: 'prizes', type: 'dir', children: [{ name: 'index.tsx', type: 'file' }] },
+              { name: 'rules', type: 'dir', children: [{ name: 'index.tsx', type: 'file' }] },
+            ],
+          },
+          {
+            name: 'components',
+            type: 'dir',
+            children: [
+              { name: 'HeroComposition.tsx', type: 'file' },
+              { name: 'ThemeSwitcher.tsx', type: 'file' },
+              { name: 'DrawEntry.tsx', type: 'file' },
+              { name: 'EquipmentCard.tsx', type: 'file' },
+              { name: 'RewardShelf.tsx', type: 'file' },
+              { name: 'TaskTabs.tsx', type: 'file' },
+              { name: 'InspirationFeed.tsx', type: 'file' },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          {
+            name: 'theme-assets',
+            type: 'dir',
+            children: [
+              { name: 'summer/hero-layer-base.png', type: 'file' },
+              { name: 'summer/hero-scene-v2.png', type: 'file' },
+              { name: 'night/hero-scene.webp', type: 'file' },
+            ],
+          },
+          {
+            name: 'figma',
+            type: 'dir',
+            children: [
+              { name: 'equipment-water-gun.webp', type: 'file' },
+              { name: 'equipment-watermelon-bucket.webp', type: 'file' },
+              { name: 'equipment-paddle-board.webp', type: 'file' },
+              { name: 'equipment-palm-tree.webp', type: 'file' },
+              { name: 'equipment-pineapple-float.webp', type: 'file' },
+              { name: 'equipment-sun-chair.webp', type: 'file' },
+              { name: 'reward-gold-horse.webp', type: 'file' },
+              { name: 'mascot-side-horse.webp', type: 'file' },
+              { name: 'topic-hotpot-card.webp', type: 'file' },
+              { name: 'topic-sunset-card.webp', type: 'file' },
+              { name: 'topic-lake-card.webp', type: 'file' },
+              { name: 'content-card-lions.webp', type: 'file' },
+              { name: 'content-card-cabin.webp', type: 'file' },
+              { name: 'content-avatar.png', type: 'file' },
+              { name: 'map-cap.png', type: 'file' },
+              { name: 'brand-logo.png', type: 'file' },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'data',
+        type: 'dir',
+        children: [
+          { name: 'campaign-pages.ts', type: 'file' },
+          { name: 'campaign-flow.ts', type: 'file' },
+          { name: 'equipment-cards.ts', type: 'file' },
+          { name: 'reward-tiers.ts', type: 'file' },
+          { name: 'tasks.ts', type: 'file' },
+          { name: 'inspiration-feed.ts', type: 'file' },
+        ],
+      },
+      {
+        name: 'config',
+        type: 'dir',
+        children: [
+          { name: 'summer-surf.config.ts', type: 'file' },
+          { name: 'theme-colors.ts', type: 'file' },
+          { name: 'asset-manifest.ts', type: 'file' },
+        ],
+      },
+      {
+        name: 'database',
+        type: 'dir',
+        children: [
+          { name: 'equipment_cards.schema.ts', type: 'file' },
+          { name: 'reward_tiers.schema.ts', type: 'file' },
+          { name: 'draw_chances.schema.ts', type: 'file' },
+          { name: 'user_equipment.schema.ts', type: 'file' },
+          { name: 'gold_points.schema.ts', type: 'file' },
+        ],
+      },
+    ],
+    // 这夏夯爆了 — 夏日集卡 H5。文件树对应真实产物：一个自包含的活动
+    // 页组件 + 30 个素材切图 + 玩法/数据配置。
+    [XIAHUA_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '这夏夯爆了项目策划-内部沟通版.md', type: 'file' }],
+      },
+      {
+        name: 'src',
+        type: 'dir',
+        children: [
+          {
+            name: 'pages',
+            type: 'dir',
+            children: [
+              { name: 'MainVenue.tsx', type: 'file' },
+              { name: 'DrawFlow.tsx', type: 'file' },
+              { name: 'MyCards.tsx', type: 'file' },
+              { name: 'MyPrizes.tsx', type: 'file' },
+              { name: 'Rules.tsx', type: 'file' },
+            ],
+          },
+          {
+            name: 'components',
+            type: 'dir',
+            children: [
+              { name: 'FoodCardFace.tsx', type: 'file' },
+              { name: 'CollectPanel.tsx', type: 'file' },
+              { name: 'TierRewards.tsx', type: 'file' },
+              { name: 'DrawOverlay.tsx', type: 'file' },
+              { name: 'RedeemOverlay.tsx', type: 'file' },
+            ],
+          },
+          { name: 'foods.ts', type: 'file' },
+          { name: 'tiers.ts', type: 'file' },
+        ],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          {
+            name: 'brand',
+            type: 'dir',
+            children: [
+              { name: 'head-kv.png', type: 'file' },
+              { name: 'title.png', type: 'file' },
+              { name: 'result-title.png', type: 'file' },
+              { name: 'mascot.png', type: 'file' },
+              { name: 'footer-logo.png', type: 'file' },
+            ],
+          },
+          {
+            name: 'cards',
+            type: 'dir',
+            children: [
+              { name: 'food-huoguo.png', type: 'file' },
+              { name: 'food-huoguo-grey.png', type: 'file' },
+              { name: 'food-longxia.png', type: 'file' },
+              { name: 'food-kaorou.png', type: 'file' },
+              { name: 'food-huangyu.png', type: 'file' },
+              { name: 'food-pisa.png', type: 'file' },
+              { name: 'food-zhaji.png', type: 'file' },
+              { name: 'food-ningcha.png', type: 'file' },
+              { name: 'food-luwei-grey.png', type: 'file' },
+              { name: 'food-luosifen-grey.png', type: 'file' },
+              { name: 'bigcard.png', type: 'file' },
+            ],
+          },
+          {
+            name: 'rewards',
+            type: 'dir',
+            children: [
+              { name: 'tier-2.png', type: 'file' },
+              { name: 'tier-5.png', type: 'file' },
+              { name: 'tier-43.png', type: 'file' },
+              { name: 'tier-gold.png', type: 'file' },
+              { name: 'envelope.png', type: 'file' },
+            ],
+          },
+          {
+            name: 'ui',
+            type: 'dir',
+            children: [
+              { name: 'btn-draw.png', type: 'file' },
+              { name: 'btn-my-cards.png', type: 'file' },
+              { name: 'btn-my-prizes.png', type: 'file' },
+              { name: 'panel-bg.png', type: 'file' },
+              { name: 'bean-bar.png', type: 'file' },
+              { name: 'sec-tasks.png', type: 'file' },
+              { name: 'sec-topics.png', type: 'file' },
+              { name: 'sec-banner.png', type: 'file' },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'config',
+        type: 'dir',
+        children: [
+          { name: '集卡玩法配置.json', type: 'file' },
+          { name: 'rewards.json', type: 'file' },
+          { name: 'h5.config.json', type: 'file' },
+        ],
+      },
+    ],
     '抖音 AI 工坊设计探索': webAppFileTree,
     '射击小游戏': garudaFileTree,
     '沪上火锅·五一种草提案': [
@@ -3661,6 +4581,8 @@ export default function VibeCodingPage({
     wantsProposalDeepLink ? [] : [{ label: '预览', closable: false }],
   )
   const [activePreviewTab, setActivePreviewTab] = useState(0)
+
+
 
   // When the right preview area is fully hidden (artifact-shape projects
   // with no artefacts yet), center the chat in the area between the
@@ -3724,6 +4646,26 @@ export default function VibeCodingPage({
   /** Right-side edit panel — opens a visualization editor alongside the
    *  active product preview. */
   const [editPanelOpen, setEditPanelOpen] = useState(false)
+  const closeXiahuaEditor = useCallback(() => {
+    persistXiahuaEdits()
+    setEditPanelOpen(false)
+    setXiahuaSelected(null)
+    setXiahuaHovered(null)
+    toast('编辑修改已保存')
+  }, [persistXiahuaEdits])
+  const closeSummerSurfEditor = useCallback(() => {
+    try {
+      window.localStorage.setItem(
+        SUMMER_SURF_CONFIG_STORAGE_KEY,
+        JSON.stringify(summerSurfConfig),
+      )
+    } catch {
+      // localStorage unavailable: keep the live editor state in memory.
+    }
+    setEditPanelOpen(false)
+    setSummerSurfSelected(null)
+    toast('编辑修改已保存')
+  }, [summerSurfConfig])
   /** Canvas editor — web-game images use the asset board; marketing H5 uses
    *  an immersive full-page canvas. Takes over the preview content when open. */
   const [canvasEditOpen, setCanvasEditOpen] = useState(false)
@@ -3750,6 +4692,18 @@ export default function VibeCodingPage({
     document.addEventListener('pointerdown', handler)
     return () => document.removeEventListener('pointerdown', handler)
   }, [productMenuOpen])
+  const [xiahuaPageMenuOpen, setXiahuaPageMenuOpen] = useState(false)
+  const xiahuaPageMenuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!xiahuaPageMenuOpen) return
+    const handler = (e: PointerEvent) => {
+      if (xiahuaPageMenuRef.current && !xiahuaPageMenuRef.current.contains(e.target as Node)) {
+        setXiahuaPageMenuOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [xiahuaPageMenuOpen])
   const onEditPanelDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
     editPanelDragRef.current = { startX: e.clientX, startWidth: editPanelWidth }
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
@@ -3764,7 +4718,10 @@ export default function VibeCodingPage({
     editPanelDragRef.current = null
     ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
   }
-  const previewHidden = openTabs.length === 0 || previewCollapsed
+  /* 回放刚开始只是在聊需求，还没有任何产物 —— 右侧不开，对话独占。
+     等解析出方案（第一个产物）才展开。 */
+  const previewCollapsedEff = previewCollapsed || xiahuaBuildPhase === 'none'
+  const previewHidden = openTabs.length === 0 || previewCollapsedEff
 
   /* ─── Category-tab helpers ─── */
   /** The active project's product-view tree (synthetic plain-language
@@ -3880,6 +4837,53 @@ export default function VibeCodingPage({
     setOpenTabs(next)
     setActivePreviewTab(next.length - 1)
   }
+
+  /** 找到并切换产物 tab；素材库等 tab 可能还没出现，首次定位时顺手创建。 */
+  const focusPreviewTab = useCallback((label: string) => {
+    const existing = openTabs.findIndex((tab) => tab.label === label)
+    if (existing >= 0) {
+      setActivePreviewTab(existing)
+      return
+    }
+    const next = [...openTabs, { label, closable: label !== '预览' }]
+    setOpenTabs(next)
+    setActivePreviewTab(next.length - 1)
+  }, [openTabs])
+
+  /* 产物落在哪个 tab 就把哪个 tab 开出来切过去：方案→项目文档，页面框架/
+     成品→预览，核心玩法→活动玩法配置，素材清单/素材→素材库。卡点点击会通过 pending ref 提前定位，
+     不必等目标步骤自动播放完才切 tab。 */
+  const artifactTabRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (xiahuaBuildStep < 0) {
+      artifactTabRef.current = null
+      xiahuaPendingTabRef.current = null
+      return
+    }
+    const phaseLabel =
+      xiahuaArtifactPhase === 'doc'
+        ? PROJECT_DOCUMENT_LABEL
+        : xiahuaArtifactPhase === 'assetList' || xiahuaArtifactPhase === 'assets'
+          ? ASSET_LIBRARY_LABEL
+          : xiahuaArtifactPhase === 'gameplay'
+            ? H5_GAMEPLAY_CONFIG_LABEL
+            : xiahuaArtifactPhase && xiahuaArtifactPhase !== 'none'
+              ? '预览'
+              : null
+    const pendingLabel = xiahuaPendingTabRef.current
+    if (!phaseLabel) return
+    // 卡点点击后先保持当前产物，等思考阶段的完成回复出现、目标 phase 真正完成，
+    // 再切到目标 tab；不能因为 pending ref 就提前把空产物页打开。
+    if (pendingLabel && phaseLabel !== pendingLabel) return
+    const label = phaseLabel
+    if (artifactTabRef.current === label) {
+      xiahuaPendingTabRef.current = null
+      return
+    }
+    artifactTabRef.current = label
+    focusPreviewTab(label)
+    xiahuaPendingTabRef.current = null
+  }, [xiahuaBuildStep, xiahuaArtifactPhase, focusPreviewTab])
 
   const openFileInTab = (filename: string, path?: string) => {
     // 项目文件 — the in-tab code editor (real source tree + code). Added from
@@ -4031,7 +5035,13 @@ export default function VibeCodingPage({
       filename === '文档' &&
       !proposalDocs[filename]
     ) {
-      setProposalDocs((prev) => ({ ...prev, [filename]: ACG_NEW_YEAR_PLAN_MD }))
+      setProposalDocs((prev) => ({
+        ...prev,
+        [filename]:
+          isXiahuaFamily(projectTitle)
+            ? XIAHUA_PLAN_MD
+            : PROJECT_DOCS[projectTitle] ?? ACG_NEW_YEAR_PLAN_MD,
+      }))
     }
     // H5 product leaves are structured views, not raw source files. Product
     // tree paths include the synthetic `__product__/...` prefix, so route by
@@ -4123,38 +5133,6 @@ export default function VibeCodingPage({
     platformCreativeSquareOpen ||
     platformDataOpsOpen ||
     platformPlaceholderPage !== null
-  // Resource library / Skills view state (the original 资源-Skills page is
-  // rendered in the Skills menu; the 资源库 menu uses the new ResourceHub).
-  const [resourceLibraryPrimary, setResourceLibraryPrimary] =
-    useState<PrimaryCategory | null>('官方')
-  const [resourceLibrarySecondary, setResourceLibrarySecondary] = useState<
-    string | null
-  >(null)
-  const [resourceLibraryCapability, setResourceLibraryCapability] = useState<
-    { platformId: string; name: string; category: string | null } | null
-  >(null)
-  const [resourceLibraryExpanded, setResourceLibraryExpanded] = useState<
-    Set<PrimaryCategory>
-  >(
-    () =>
-      new Set([
-        '业务平台',
-        '舆情监控',
-        '内容理解与生成',
-        '数据分析和处理',
-        '开发和效率',
-        '官方引入',
-      ]),
-  )
-  const [resourceLibrarySearch, setResourceLibrarySearch] = useState('')
-  const toggleResourceLibraryExpanded = (primary: PrimaryCategory) => {
-    setResourceLibraryExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(primary)) next.delete(primary)
-      else next.add(primary)
-      return next
-    })
-  }
   /** When set, the workspace mounts and inserts an @-mention with this
    *  shape into the chat composer once it's available. Consumed by an
    *  effect so the DOM ref is ready before we manipulate it.
@@ -5095,6 +6073,7 @@ export default function VibeCodingPage({
       setAvatarPromptEditing(false)
       setGameSelectedAsset(null)
       setH5Selected(null)
+      setSummerSurfSelected(null)
       setGameSelectedObject(null)
       setTarotSelectedObject(null)
     })
@@ -5106,6 +6085,7 @@ export default function VibeCodingPage({
     if (editPanelOpen) return
     const frame = requestAnimationFrame(() => {
       setH5Selected(null)
+      setSummerSurfSelected(null)
       setGameSelectedObject(null)
       setTarotSelectedObject(null)
     })
@@ -5120,15 +6100,22 @@ export default function VibeCodingPage({
   const h5CanvasModeOpen =
     canvasEditOpen &&
     activeProjectKind === 'marketing-h5' &&
+    // 这夏夯爆了预览自包含玩法，不接 ACG 的画布编辑链路。
+    !isXiahuaFamily(projectTitle) &&
     openTabs[activePreviewTab]?.label === '预览'
   const gameCanvasModeOpen =
     canvasEditOpen &&
     activeProjectKind === 'web-game' &&
     openTabs[activePreviewTab]?.label === '预览'
   const immersiveCanvasModeOpen = h5CanvasModeOpen || gameCanvasModeOpen
+  // 这夏夯爆了编辑态：进入编辑后左侧项目导航自动收起，给属性面板让位。
+  const xiahuaEditMode =
+    editPanelOpen &&
+    isXiahuaFamily(projectTitle) &&
+    openTabs[activePreviewTab]?.label === '预览'
   const projectSidebarHidden =
-    sidebarFullyHidden || immersiveCanvasModeOpen
-  const effectiveSidebarWidth = immersiveCanvasModeOpen
+    sidebarFullyHidden || immersiveCanvasModeOpen || xiahuaEditMode
+  const effectiveSidebarWidth = immersiveCanvasModeOpen || xiahuaEditMode
     ? 0
     : baseEffectiveSidebarWidth
   const effectiveChatWidth: string | number = previewHidden
@@ -5197,6 +6184,68 @@ export default function VibeCodingPage({
       ? previewRoute
       : null
 
+  /* 0→1 每个阶段的产物形态不同，右侧要给对应的视图：
+   *   方案 → 文档视图（整页文档，无点阵画布、无缩放、无编辑）
+   *   素材 → 素材视图（整页画廊，同上）
+   *   框架 / 成品 → 画布视图（点阵底 + 手机 / 画板 + 缩放 + 编辑）
+   * 这里只决定「用哪种壳」，壳里的内容由 previewSurface 决定。 */
+  /* 回放是不是跑在当前这个项目上 —— 模板复刻的目标是另一个活动（夏日冲浪），
+     它有自己的预览组件，不能靠 isXiahuaFamily 判断。 */
+  const buildFlowHere = xiahuaBuildStep >= 0 && xiahuaBuildOwner === projectTitle
+  /** 素材库该显示到哪一批 —— 它是同一个视图，只按项目当前阶段刷新：
+   *  清单刚建好时一批都没开始（-1），批量生成时跟着批次走，生成完 / 不在回放里
+   *  就是全部完成。 */
+  const xiahuaAssetDone = !buildFlowHere
+    ? Number.MAX_SAFE_INTEGER
+    : xiahuaBuildPhase === 'assetList'
+      ? -1
+      : xiahuaAssetBatch
+  /* 预览旁边那条栏放什么 —— 只放跟画面绑在一起的东西（页面框架的分解、
+     模板复刻的替换清单）；方案和素材都各自有 tab。 */
+  const xiahuaPanel = !buildFlowHere
+    ? null
+    : xiahuaArtifactPhase === 'wireframe'
+        ? <XiahuaFramePanel preset={xiahuaPreset} />
+        : xiahuaArtifactPhase === 'diff'
+              ? (
+                  <XiahuaCloneDiff
+                    templateName="这夏夯爆了"
+                    selected={xiahuaClonePicks}
+                    onToggle={(id) =>
+                      setXiahuaClonePicks((p) => ({ ...p, [id]: p[id] === false }))
+                    }
+                    doneBatches={xiahuaReplaceBatch}
+                  />
+                )
+              : null
+
+  /* 整屏产物态（方案 / 素材清单）：没有手机，就不该出编辑按钮和缩放条。
+     其余阶段手机还在，这些控件照常给。 */
+  /* 产物都各自有 tab，预览位不再被整块换掉。 */
+  const xiahuaArtifactView: null = null
+  /** 回放中右侧产物的标题（各阶段各自的说法）。 */
+  const xiahuaBuildView =
+    buildFlowHere && xiahuaArtifactPhase
+      ? {
+          none: null,
+          doc: {
+            label: xiahuaScriptKind === 'clone' ? '模板说明' : '活动方案',
+            icon: FileText,
+          },
+          wireframe: { label: '页面框架', icon: LayoutGrid },
+          gameplay: { label: H5_GAMEPLAY_CONFIG_LABEL, icon: Gamepad2 },
+          assetList: { label: '素材清单', icon: ListChecks },
+          assets: { label: '素材', icon: ImageIcon },
+          template: { label: '引用的模板', icon: BookmarkPlus },
+          diff: { label: '替换清单', icon: ListChecks },
+          // 复刻链路最后出来的是完整活动，不是从零拼出来的界面
+          final: {
+            label: xiahuaScriptKind === 'clone' ? '活动预览' : 'UI 界面',
+            icon: Smartphone,
+          },
+        }[xiahuaArtifactPhase]
+      : null
+
   /* Right-side preview surface — picks the inner preview for the active
    * project. web-app renders the site full-bleed (its address bar lives
    * in the top strip); everything else keeps the phone frame. Stub
@@ -5222,6 +6271,80 @@ export default function VibeCodingPage({
     <div className="@container relative min-h-0 w-full flex-1 overflow-hidden bg-white">
       <AgentHubPreview key={miniAppKey} />
     </div>
+  ) : isXiahuaFamily(projectTitle) ? (
+    // 产物都在自己的 tab 里（方案→项目文档、素材→素材库），预览位只放预览。
+    // 其余阶段预览常驻，产物挂在右边那条栏里。
+    // 编辑态铺开 5 个关键页面的画板；非编辑态是单机预览。
+    editPanelOpen ? (
+    <XiahuaEditCanvas
+      selected={xiahuaSelected}
+      onSelect={setXiahuaSelected}
+      hoveredId={xiahuaHovered}
+      onOffsetsCommit={(offsets) => setXiahuaOverrides((prev) => ({ ...prev, offsets }))}
+      overrides={xiahuaOverrides}
+      gameplay={xiahuaGameplay}
+      previewKey={miniAppKey}
+      build={xiahuaBuildStage}
+      preset={xiahuaPreset}
+      wireframe={xiahuaWireframe}
+      picks={xiahuaPicks}
+      activeScreen={xiahuaScreen}
+      onActiveScreen={setXiahuaScreen}
+    />
+    ) : (
+    // 这夏夯爆了 — 自包含的夏日集卡 H5 还原（抽卡/集卡/兑红包在组件内闭环）。
+    // 机身有 3px 内衬，+6/+6 让内容区正好是设计稿的 375×812。
+    <PhoneMockup width={381} height={818} maxScale={1.4}>
+      <XiahuaH5Preview
+        key={miniAppKey}
+        editing={editPanelOpen}
+        selected={xiahuaSelected}
+        onSelect={setXiahuaSelected}
+        hoveredId={xiahuaHovered}
+        onOffsetsCommit={(offsets) =>
+          setXiahuaOverrides((prev) => ({ ...prev, offsets }))
+        }
+        overrides={xiahuaOverrides}
+        gameplay={xiahuaGameplay}
+        build={xiahuaBuildStage}
+        preset={xiahuaPreset}
+        wireframe={xiahuaWireframe}
+        picks={xiahuaPicks}
+        screen={xiahuaScreen}
+      />
+    </PhoneMockup>
+    )
+  ) : projectTitle === SUMMER_SURF_PROJECT ? (
+    // 夏日冲浪按替换批次逐步落到预览；第一批完成前保留模板灰阶框架，
+    // 不把已有成品一次性当成生成结果。
+    xiahuaScriptKind === 'clone' &&
+    xiahuaBuildStep >= 0 &&
+    xiahuaCloneCompletedReplaceBatch === 0 ? (
+      <PhoneMockup width={381} height={818} maxScale={1.4}>
+        <XiahuaH5Preview
+          key={miniAppKey}
+          gameplay={XIAHUA_PRESET.gameplay}
+          preset={XIAHUA_PRESET}
+          build="playable"
+          wireframe
+          overrides={{}}
+          picks={{}}
+          readOnly
+        />
+      </PhoneMockup>
+    ) : (
+      <PhoneMockup width={360} height={760} maxScale={1.4}>
+        <SummerSurfH5Preview
+          editing={editPanelOpen}
+          selected={summerSurfSelected}
+          onSelect={setSummerSurfSelected}
+          generationBatch={
+            xiahuaScriptKind === 'clone' ? xiahuaCloneCompletedReplaceBatch : undefined
+          }
+          config={summerSurfConfig}
+        />
+      </PhoneMockup>
+    )
   ) : activeProjectKind === 'marketing-h5' ? (
     <PhoneMockup width={360} height={760} maxScale={1.4}>
       <MarketingH5Preview
@@ -5350,16 +6473,6 @@ export default function VibeCodingPage({
    *  foreground. The composer DOM is unmounted while the resource library
    *  page is showing, so we stash the target in `pendingMention` and let
    *  an effect run the insert once the workspace remounts. */
-  const useCapabilityInChat = (platform: Resource, capability: Capability) => {
-    setActivePreviewTab(0)
-    setResourceLibraryCapability(null)
-    setPlatformResourceLibraryOpen(false)
-    setPlatformSkillsOpen(false)
-    setPendingMention({
-      id: `${platform.id}#${capability.name}#${capability.category ?? ''}`,
-      name: capability.name,
-    })
-  }
 
   /** Auto-scroll the chat so the latest AI bubble lands at the top of
    *  the viewport every time the proposal flow advances. Long replies +
@@ -5519,6 +6632,67 @@ export default function VibeCodingPage({
     { kind: 'cmd', text: '  Local:   http://localhost:10086/' },
     { kind: 'info', text: '  Network: http://192.168.1.42:10086/' },
   ]
+  const platformSidebarActiveNav = platformResourceLibraryOpen
+    ? '资源库'
+    : platformSkillsOpen
+      ? 'Skills'
+      : platformCreativeSquareOpen
+        ? '项目库'
+        : platformDataOpsOpen
+          ? '运营数据'
+          : platformPlaceholderPage
+  const platformSidebarNode = (
+    <PlatformSidebar
+      variant={variant}
+      collapsed={standaloneWorkshopLayout ? false : sidebarRailCollapsed}
+      onOpenPlaceholder={openPlatformPlaceholderPage}
+      onCollapseSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+      projectFilter={
+        isAvatarStudio
+          ? (project) => project === AVATAR_PROJECT
+          : (project) => project !== AVATAR_PROJECT
+      }
+      projectTrees={
+        // While the Garuda 0→1 generation flow is still mid-run, suppress its
+        // pre-baked tree until the build animation completes.
+        gameStep !== 'idle' && gameStep !== 'done'
+          ? (() => {
+              const { '射击小游戏': _omit, ...rest } = projectTreesForSidebar
+              void _omit
+              return rest
+            })()
+          : projectTreesForSidebar
+      }
+      kindOf={kindOf}
+      expandedDirs={expandedDirs}
+      toggleDir={toggleDir}
+      onOpenProduct={openProductInProject}
+      onNewProject={handleNewProject}
+      openProjects={platformOpenProjects}
+      setOpenProjects={setPlatformOpenProjects}
+      onSwitchProject={openProject}
+      onCollapseAll={() => {
+        setExpandedDirs(new Set())
+        setPlatformOpenProjects(new Set())
+      }}
+      onOpenResourceLibrary={openResourceLibraryPage}
+      onOpenSkills={openPlatformSkillsPage}
+      onOpenCreativeSquare={openPlatformCreativeSquarePage}
+      activeNav={platformSidebarActiveNav}
+      activeRoute={previewRoute}
+      activeFilePath={openTabs[activePreviewTab]?.label ?? null}
+      activeProjectName={platformHomeOpen ? '' : projectTitle}
+      projectDisplayNames={projectDisplayNames}
+      onRenameProject={renameProject}
+      pinnedProjects={pinnedProjects}
+      onTogglePinProject={togglePinProject}
+      deletedProjects={deletedProjects}
+      onDeleteProject={deleteProject}
+      categoryExtras={categoryExtras}
+      hiddenCategories={xiahuaHiddenCategories}
+      createdProjects={createdProjects}
+    />
+  )
 
   /* ─── Render ─── */
   return (
@@ -5541,105 +6715,95 @@ export default function VibeCodingPage({
         <motion.div
           data-side-nav-motion
           data-product={sideNavProductId}
-          data-state={projectSidebarHidden ? 'collapsed' : 'expanded'}
+          data-state={
+            projectSidebarHidden || sidebarRailCollapsed ? 'collapsed' : 'expanded'
+          }
           initial={false}
-          animate={{
-            x:
-              projectSidebarHidden && !reduceSideNavMotion
-                ? -SIDE_NAV_MOTION_OFFSET
-                : 0,
-            opacity: projectSidebarHidden ? 0 : 1,
-          }}
+          animate={{ opacity: projectSidebarHidden ? 0 : 1 }}
           transition={{
             duration: reduceSideNavMotion ? 0 : SIDE_NAV_MOTION_DURATION,
             ease: 'easeOut',
           }}
-          className="absolute inset-y-0 left-0 z-40 overflow-hidden"
+          className={`absolute inset-y-0 left-0 z-40 overflow-hidden ${
+            standaloneWorkshopLayout ? 'bg-[#F2F2F7]' : ''
+          }`}
+          /* 方案 7：外层自己就是那块面板底 —— 宽度收展 + overflow-hidden 把
+             展开层逐帧裁掉，不会有 240px 宽的文字浮在 60px 轨道上。宽度走
+             CSS 过渡而不是 framer：和正文左偏移同一套时钟，主线程卡顿时也
+             不会一个到位、一个还在路上。 */
           style={{
-            width: immersiveCanvasModeOpen
-              ? 0
-              : sidebarFullyHidden && navVersion === 1
+            width: standaloneWorkshopLayout
+              ? sidebarRailCollapsed
+                ? configuredCollapsedSidebarWidth
+                : STANDALONE_WORKSHOP_WIDTH
+              : immersiveCanvasModeOpen
                 ? 0
-                : sidebarRailCollapsed
-                  ? configuredCollapsedSidebarWidth
-                  : effectivePlatformSidebarWidth,
-            pointerEvents: projectSidebarHidden ? 'none' : 'auto',
+                : sidebarFullyHidden && navVersion === 1
+                  ? 0
+                  : sidebarRailCollapsed
+                    ? configuredCollapsedSidebarWidth
+                    : effectivePlatformSidebarWidth,
+            transition: standaloneWidthTransition,
+            pointerEvents:
+              projectSidebarHidden || standaloneWorkshopLayout ? 'none' : 'auto',
           }}
           aria-hidden={projectSidebarHidden}
           inert={projectSidebarHidden}
         >
-          {/* Inner column locked at the full sidebar width — clipping
-              comes from the outer overflow-hidden, so contents stay
-              still while the wrapper closes. */}
+          {/* 方案 7 常驻展开层与 60px 图标轨，避免宽度切换时卸载项目树；
+              其他方案继续由同一列切换收起形态。 */}
           <div
             className="absolute inset-y-0 left-0"
             style={{
-              width: sidebarRailCollapsed
-                ? configuredCollapsedSidebarWidth
-                : effectivePlatformSidebarWidth,
+              width: standaloneWorkshopLayout
+                ? STANDALONE_WORKSHOP_WIDTH
+                : sidebarRailCollapsed
+                  ? configuredCollapsedSidebarWidth
+                  : effectivePlatformSidebarWidth,
+              pointerEvents:
+                projectSidebarHidden || standaloneWorkshopLayout ? 'none' : 'auto',
             }}
           >
-          <PlatformSidebar
-            variant={variant}
-            collapsed={sidebarRailCollapsed}
-            onOpenPlaceholder={openPlatformPlaceholderPage}
-            onCollapseSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
-            projectFilter={
-              isAvatarStudio
-                ? (p) => p === AVATAR_PROJECT
-                : (p) => p !== AVATAR_PROJECT
-            }
-            projectTrees={
-              // While the Garuda 0→1 generation flow is still mid-run,
-              // suppress its pre-baked tree so the sidebar shows the
-              // project row with a "暂无文件" stub instead of dumping the
-              // finished file list before the build animation completes.
-              gameStep !== 'idle' && gameStep !== 'done'
-                ? (() => {
-                    const { '射击小游戏': _omit, ...rest } = projectTreesForSidebar
-                    void _omit
-                    return rest
-                  })()
-                : projectTreesForSidebar
-            }
-            expandedDirs={expandedDirs}
-            toggleDir={toggleDir}
-            onOpenProduct={openProductInProject}
-            onNewProject={handleNewProject}
-            openProjects={platformOpenProjects}
-            setOpenProjects={setPlatformOpenProjects}
-            onSwitchProject={openProject}
-            onCollapseAll={() => {
-              // Fold every open folder + project down to the root level.
-              setExpandedDirs(new Set())
-              setPlatformOpenProjects(new Set())
-            }}
-            onOpenResourceLibrary={openResourceLibraryPage}
-            onOpenSkills={openPlatformSkillsPage}
-            onOpenCreativeSquare={openPlatformCreativeSquarePage}
-            activeNav={
-              platformResourceLibraryOpen
-                ? '资源库'
-                : platformSkillsOpen
-                  ? 'Skills'
-                  : platformCreativeSquareOpen
-                    ? '项目库'
-                    : platformDataOpsOpen
-                      ? '运营数据'
-                      : platformPlaceholderPage
-            }
-            activeRoute={previewRoute}
-            activeFilePath={openTabs[activePreviewTab]?.label ?? null}
-            activeProjectName={platformHomeOpen ? '' : projectTitle}
-            projectDisplayNames={projectDisplayNames}
-            onRenameProject={renameProject}
-            pinnedProjects={pinnedProjects}
-            onTogglePinProject={togglePinProject}
-            deletedProjects={deletedProjects}
-            onDeleteProject={deleteProject}
-            categoryExtras={categoryExtras}
-            createdProjects={createdProjects}
-          />
+            {standaloneWorkshopLayout ? (
+              <>
+                {/* 展开层：不透明底 + 单向淡化，盖在常驻图标轨之上 */}
+                <div
+                  aria-hidden={sidebarRailCollapsed}
+                  inert={sidebarRailCollapsed}
+                  className="absolute inset-y-0 left-0 z-10 bg-[#F2F2F7]"
+                  style={{
+                    width: STANDALONE_WORKSHOP_WIDTH,
+                    opacity: sidebarRailCollapsed ? 0 : 1,
+                    transition: standaloneLayerFade,
+                    pointerEvents: sidebarRailCollapsed ? 'none' : 'auto',
+                  }}
+                >
+                  {platformSidebarNode}
+                </div>
+                {/* 图标轨：常驻不透明，从不参与淡化 */}
+                <div
+                  aria-hidden={!sidebarRailCollapsed}
+                  inert={!sidebarRailCollapsed}
+                  className="absolute inset-y-0 left-0"
+                  style={{
+                    width: configuredCollapsedSidebarWidth,
+                    pointerEvents: sidebarRailCollapsed ? 'auto' : 'none',
+                  }}
+                >
+                  <StandaloneWorkshopRail
+                    activeNav={platformSidebarActiveNav}
+                    onExpand={() => setSidebarCollapsed(false)}
+                    onNewProject={handleNewProject}
+                    onOpenResourceLibrary={openResourceLibraryPage}
+                    onOpenSkills={openPlatformSkillsPage}
+                    onOpenCreativeSquare={openPlatformCreativeSquarePage}
+                    onOpenPlaceholder={openPlatformPlaceholderPage}
+                  />
+                </div>
+              </>
+            ) : (
+              platformSidebarNode
+            )}
           </div>
         </motion.div>
       )}
@@ -5909,10 +7073,15 @@ export default function VibeCodingPage({
           style={
             chatCollapsed
               ? isPlatform
-                ? { left: effectiveSidebarWidth }
+                ? { left: effectiveSidebarWidth, transition: standaloneOffsetTransition }
                 : undefined
               : isPlatform
-                ? { width: effectiveChatWidth, left: effectiveChatLeft }
+                ? {
+                    width: effectiveChatWidth,
+                    left: effectiveChatLeft,
+                    // 宽度不进过渡：会话列宽是拖拽实时改的，加过渡会拖不跟手。
+                    transition: standaloneOffsetTransition,
+                  }
                 : { width: effectiveChatWidth }
           }
         >
@@ -5937,7 +7106,13 @@ export default function VibeCodingPage({
               with a bottom divider. Messages + composer live below in
               their own padded flex-col. Left: 项目 / 会话 breadcrumb.
               Right: 分享 + 展开/收起 X. ══════ */}
-          <div className="flex h-10 w-full shrink-0 items-center justify-between gap-2 px-3">
+          {/* 内容区收起方案：入口钉在内容区左上角，压在这一行上。
+              Header 统一 40 高、左内距 48，和其他产品同一条水平线。 */}
+          <div
+            className={`flex h-10 w-full shrink-0 items-center justify-between gap-2 pr-3 ${
+              usesContentToggleLayout(navVersion) ? 'pl-12' : 'pl-3'
+            }`}
+          >
             <div className="flex min-w-0 flex-1 items-center gap-1.5">
               {isPlatform && !immersiveCanvasModeOpen && sidebarFullyHidden && navVersion !== 1 && (
                 <button
@@ -6041,72 +7216,28 @@ export default function VibeCodingPage({
               >
                 <MessageSquarePlus size={13} strokeWidth={1.8} />
               </button>
-              {/* 历史对话 — floating dropdown of past sessions */}
-              <div ref={historyMenuRef} className="relative">
+              {/* 0→1 回放 —— 只有活动项目有，放在会话头右上角 */}
+              {(projectTitle === XIAHUA_PROJECT || projectTitle === XIAHUA_BUILD_PROJECT) && (
                 <button
                   type="button"
-                  title="历史对话"
-                  onClick={() => setHistoryMenuOpen((v) => !v)}
+                  title="回放 0 → 1 搭建过程"
+                  aria-label="回放 0 → 1 搭建过程"
+                  onClick={() => startXiahuaBuild(xiahuaUploadedDocName, xiahuaDocText)}
                   className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
-                    historyMenuOpen
+                    xiahuaBuildStep >= 0
                       ? 'bg-[var(--fill-hover)] text-[var(--color-ink)]/85'
                       : 'text-[var(--color-ink)]/55 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
                   }`}
                 >
-                  <History size={13} strokeWidth={1.8} />
+                  <Play size={13} strokeWidth={1.8} />
                 </button>
-                {historyMenuOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[240px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]">
-                    <div className="px-3 py-2 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-ink)]/45">
-                      历史对话
-                    </div>
-                    <div className="thin-scroll max-h-[320px] overflow-y-auto pb-1">
-                      {sessions.length === 0 ? (
-                        <div className="px-3 py-3 text-[12px] text-[var(--color-ink)]/40">暂无历史对话</div>
-                      ) : (
-                        sessions.map((s) => {
-                          const isActive = s.id === activeSessionId
-                          return (
-                            <button
-                              key={s.id}
-                              type="button"
-                              onClick={() => {
-                                if (s.id !== activeSessionId) {
-                                  switchSession(s.id)
-                                }
-                                setHistoryMenuOpen(false)
-                              }}
-                              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] transition-colors ${
-                                isActive
-                                  ? 'bg-[var(--color-ink)]/[0.06] text-[var(--color-ink)]/85'
-                                  : 'text-[var(--color-ink)]/70 hover:bg-[var(--fill-subtle)]'
-                              }`}
-                            >
-                              <MessageSquare size={12} className="shrink-0 text-[var(--color-ink)]/35" />
-                              <span className="min-w-0 flex-1 truncate">{s.name}</span>
-                              {isActive && <Check size={12} className="shrink-0 text-[var(--color-ink)]/60" />}
-                            </button>
-                          )
-                        })
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                title="分享"
-                onClick={() => toast.info('分享链接已复制到剪贴板')}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-              >
-                <Share2 size={13} strokeWidth={1.8} />
-              </button>
+              )}
               {/* When the X panel is already expanded, its own header
                    carries the collapse button — no need to duplicate it
                    here. The chat-header button only surfaces when the
                    panel is collapsed, so the user has a way to bring it
                    back. */}
-              {previewCollapsed && (
+              {previewCollapsedEff && (
                 <button
                   type="button"
                   title="展开预览"
@@ -6162,6 +7293,67 @@ export default function VibeCodingPage({
           {/* Scrollable messages */}
           <div ref={chatScrollRef} className={`thin-scroll flex-1 overflow-y-auto px-5 pt-8 pb-8 ${chatCleared ? '' : 'space-y-6'} ${fadeClassFromEdges(chatScrollEdges)}`}>
             {(chatCleared || (!needsFlowActive && !showChatPublish && sentMessages.length === 0)) && proposalStep === 'idle' ? (
+              // 这夏夯爆了：空会话固定回放「生成过程」记录（模拟平台从策划
+              // 文档到可玩活动的对话链路）——它就是这个项目的历史。
+              isXiahuaFamily(projectTitle) || buildFlowHere ? (
+                <div className="space-y-6">
+                  {buildFlowHere ? (
+                    <XiahuaBuildFlow
+                      step={xiahuaBuildStep}
+                      path={xiahuaPath}
+                      waiting={xiahuaGateWaiting}
+                      script={xiahuaScript}
+                      textOverrides={{
+                        ...(xiahuaScriptKind === 'clone' && xiahuaCloneUserText
+                          ? { 'tpl-ask': xiahuaCloneUserText }
+                          : {}),
+                        ...xiahuaPickTexts,
+                      }}
+                      docName={xiahuaUploadedDocName}
+                      docText={xiahuaDocText}
+                      // 上传来的文档只显示文件名，不再补一行来源说明
+                      docMeta={xiahuaUploadedDocName ? '' : undefined}
+                      onGate={onXiahuaGate}
+                      onOpenCard={(card) => {
+                        // 每张卡片对应一个视图：方案→项目文档，清单/素材→素材库，
+                        // 框架/玩法/成品→预览
+                        const target =
+                          card.type === 'doc'
+                            ? // 模板使用说明就是项目文档；0→1 活动方案仍在回放预览位
+                              xiahuaScriptKind === 'clone'
+                              ? PROJECT_DOCUMENT_LABEL
+                              : buildFlowHere
+                                ? '预览'
+                                : PROJECT_DOCUMENT_LABEL
+                            : card.type === 'list' || card.type === 'asset'
+                              ? ASSET_LIBRARY_LABEL
+                              : '预览'
+                        focusPreviewTab(target)
+                      }}
+                      // 上传过就按上传的那条重放（真实文件名 + 用户原话），否则播脚本；
+                      // 复刻流程则按 @模板 的那条重放。
+                      onReplay={() =>
+                        xiahuaScriptKind === 'clone'
+                          ? startTemplateClone(xiahuaCloneUserText)
+                          : startXiahuaBuild(xiahuaUploadedDocName, xiahuaDocText)
+                      }
+                      onExit={() => {
+                        setXiahuaBuildPlaying(false)
+                        setXiahuaBuildStep(-1)
+                      }}
+                    />
+                  ) : projectTitle === XIAHUA_PROJECT ? (
+                    <XiahuaGenerationLog />
+                  ) : (
+                    <ChatEmptyState
+                      suggestions={
+                        CHAT_SUGGESTIONS_BY_KIND[activeProjectKind] ?? CHAT_EMPTY_SUGGESTIONS
+                      }
+                      onPick={(t) => sendChat(t)}
+                    />
+                  )}
+                </div>
+              ) : (
               <ChatEmptyState
                 suggestions={
                   CHAT_SUGGESTIONS_BY_PROJECT[projectTitle] ??
@@ -6170,7 +7362,11 @@ export default function VibeCodingPage({
                 }
                 onPick={(t) => sendChat(t)}
               />
+              )
             ) : (<>
+
+            {/* 这夏夯爆了：生成过程记录常驻在新消息上方，后续调整接着记。 */}
+            {projectTitle === XIAHUA_PROJECT && <XiahuaGenerationLog />}
 
             {/* ── User-sent messages — always rendered first. Plain
                  messages get a generic AI ack below; trigger-matched
@@ -7730,7 +8926,8 @@ export default function VibeCodingPage({
               <div className="relative min-h-0 flex-1 pl-2">
                 <div
                   ref={chatInputRef}
-                  contentEditable="plaintext-only"
+                  /* 回放正在替用户打字时锁住输入，免得两边抢同一个框 */
+                  contentEditable={xiahuaTyping ? false : 'plaintext-only'}
                   suppressContentEditableWarning
                   role="textbox"
                   aria-multiline
@@ -7858,7 +9055,6 @@ export default function VibeCodingPage({
               onPointerCancel={onChatDragEnd}
               className="group absolute right-0 top-0 bottom-0 z-10 w-1 translate-x-1/2 cursor-col-resize touch-none select-none"
             >
-              <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
             </div>
           )}
         </aside>
@@ -7878,6 +9074,7 @@ export default function VibeCodingPage({
                       : previewHidden
                         ? `calc(${effectiveSidebarWidth}px + min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px))`
                         : effectiveSidebarWidth + platformChatWidth,
+                transition: standaloneOffsetTransition,
               }
             : undefined
         }
@@ -7914,7 +9111,7 @@ export default function VibeCodingPage({
                     ))}
               </div>
               {/* Phone + ambient glow */}
-              <div className="relative flex min-h-0 w-full flex-1 items-center justify-center">
+              <div className="relative flex min-h-0 w-full flex-1 items-center justify-center gap-4 px-4">
                 <div
                   aria-hidden
                   className="pointer-events-none absolute inset-0 z-0"
@@ -7971,10 +9168,8 @@ export default function VibeCodingPage({
               onPointerDown={onPreviewColDragStart}
               onPointerMove={onPreviewColDragMove}
               onPointerUp={onPreviewColDragEnd}
-              className="group/divider relative flex w-[6px] shrink-0 cursor-col-resize items-center justify-center border-r border-[var(--divider-soft)] transition-colors hover:border-[var(--divider)]"
-            >
-              <span className="pointer-events-none absolute top-1/2 h-10 w-[3px] -translate-y-1/2 rounded-full bg-white/0 transition-colors group-hover/divider:bg-[var(--fill-strong)]" />
-            </div>
+              className="relative flex w-[6px] shrink-0 cursor-col-resize items-center justify-center border-r border-[var(--divider-soft)]"
+            />
 
             {/* Middle: file editor */}
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -8044,7 +9239,6 @@ export default function VibeCodingPage({
                       onPointerCancel={onFileTreeDragEnd}
                       className="group absolute right-0 top-0 bottom-0 z-10 w-1 translate-x-1/2 cursor-col-resize touch-none select-none"
                     >
-                      <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
                     </div>
                   </div>
                 )}
@@ -8176,7 +9370,6 @@ export default function VibeCodingPage({
                       onPointerCancel={onFileTreeDragEnd}
                       className="group absolute right-0 top-0 bottom-0 z-10 w-1 translate-x-1/2 cursor-col-resize touch-none select-none"
                     >
-                      <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
                     </div>
                   </div>
                 )}
@@ -8244,7 +9437,7 @@ export default function VibeCodingPage({
               onPointerUp={onPreviewColDragEnd}
               className="group/divider relative w-[6px] shrink-0 cursor-col-resize"
             >
-              <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[var(--divider)] transition-colors group-hover/divider:bg-[var(--color-ink)]/20" />
+              <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[var(--divider)]" />
             </div>
 
             {/* Right: 常驻手机预览 */}
@@ -8319,7 +9512,7 @@ export default function VibeCodingPage({
 
         {isPlatform && platformResourceLibraryOpen && (
           <div className="flex min-h-0 flex-1 overflow-hidden">
-            <ResourceHub />
+            <ResourceLibraryPage />
           </div>
         )}
 
@@ -8330,34 +9523,19 @@ export default function VibeCodingPage({
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="flex min-h-0 flex-1 overflow-hidden"
           >
-            <ResourceLibraryView
-              selectedPrimary={resourceLibraryPrimary}
-              selectedSecondary={resourceLibrarySecondary}
-              selectedCapability={resourceLibraryCapability}
-              expandedPrimary={resourceLibraryExpanded}
-              searchQuery={resourceLibrarySearch}
-              typeFilter="skill-tool"
-              onTogglePrimary={toggleResourceLibraryExpanded}
-              onSelectCategory={(p, s) => {
-                setResourceLibraryPrimary(p)
-                setResourceLibrarySecondary(s)
-                setResourceLibraryCapability(null)
-              }}
-              onSelectCapability={setResourceLibraryCapability}
-              onSearchChange={setResourceLibrarySearch}
-              onUseCapabilityInChat={useCapabilityInChat}
-              onOpenProject={(name) => {
-                setResourceLibraryCapability(null)
-                openProject(name)
-              }}
-            />
+            <SkillsLibraryPage />
           </motion.div>
         )}
 
         {isPlatform && platformCreativeSquareOpen && (
-          <div className="@container flex min-h-0 flex-1 overflow-hidden bg-[var(--color-surface-0)]">
-            <AgentHubPreview hideSidebar />
-          </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="flex min-h-0 flex-1 overflow-hidden"
+          >
+            <ProjectLibraryPage />
+          </motion.div>
         )}
 
         {/* 分身变体导航的评测库建设中页面。 */}
@@ -8416,7 +9594,7 @@ export default function VibeCodingPage({
           // confirm/build (openTabs is seeded only when generation
           // finishes). User-collapsed state also folds the panel away.
           openTabs.length > 0 &&
-          !previewCollapsed && (
+          !previewCollapsedEff && (
           <motion.div
             key="preview-pane"
             initial={{ opacity: 0 }}
@@ -8621,14 +9799,110 @@ export default function VibeCodingPage({
                 const isGamePreview = activeProjectKind === 'web-game'
                 const toolbarProjectName = displayProjectName(projectTitle)
                   .replace(/^抖音\s*ACG\s*/, '')
+                const xiahuaPages = activityScreens(xiahuaPreset)
+                const xiahuaCurrentPage =
+                  xiahuaPages.find((page) => page.id === xiahuaScreen) ?? xiahuaPages[0]
+                const xiahuaPagePicker = isXiahuaFamily(projectTitle) ? (
+                  <div ref={xiahuaPageMenuRef} className="relative">
+                    <button
+                      type="button"
+                      aria-label="选择活动页面"
+                      aria-haspopup="menu"
+                      aria-expanded={xiahuaPageMenuOpen}
+                      title={`${XIAHUA_PROJECT} · ${xiahuaCurrentPage.label}`}
+                      onClick={() => setXiahuaPageMenuOpen((open) => !open)}
+                      className="inline-flex h-7 max-w-[112px] cursor-pointer items-center gap-1 rounded-lg bg-[#f5f7fa] px-2.5 text-left text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#eef1f5]"
+                    >
+                      <span className="min-w-0 max-w-[76px] truncate">{xiahuaCurrentPage.label}</span>
+                      <ChevronDown
+                        aria-hidden
+                        className={`size-3.5 shrink-0 text-[#1c1f23]/45 transition-transform ${
+                          xiahuaPageMenuOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+                    {xiahuaPageMenuOpen && (
+                      <div
+                        role="menu"
+                        aria-label="活动页面"
+                        className="absolute left-0 top-full z-50 mt-1 w-[124px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] py-1 shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]"
+                      >
+                        {xiahuaPages.map(({ id, label, desc }) => {
+                          const selected = xiahuaScreen === id
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              role="menuitemradio"
+                              aria-checked={selected}
+                              onClick={() => {
+                                setXiahuaScreen(id)
+                                setXiahuaPageMenuOpen(false)
+                              }}
+                              className={`flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--fill-subtle)] ${
+                                selected
+                                  ? 'font-medium text-[var(--color-ink)]'
+                                  : 'text-[var(--color-ink)]/70'
+                              }`}
+                              title={desc}
+                            >
+                              <span className="min-w-0 flex-1 truncate">{label}</span>
+                              {selected && (
+                                <Check size={12} className="ml-auto shrink-0 text-[#357ef8]" />
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ) : null
                 return (
                   <div className="flex h-10 shrink-0 items-center gap-2 border-b border-black/[0.06] bg-white px-3">
-                    <div className="flex w-[196px] shrink-0 items-center">
-                      <span className="truncate rounded-lg bg-[#f5f7fa] px-2.5 py-1.5 text-[12px] font-semibold leading-4 text-[#1c1f23]">
-                        {toolbarProjectName}
-                      </span>
+                    <div className="flex min-w-0 shrink-0 items-center">
+                      {/* 回放中标题说清楚右侧是什么产物：方案 / 框架 / 素材 / 成品 */}
+                      {isXiahuaFamily(projectTitle) && xiahuaBuildPhase === 'final' ? (
+                        xiahuaPagePicker
+                      ) : xiahuaBuildView ? (
+                        <span className="flex items-center gap-1.5 rounded-lg bg-[#f5f7fa] px-2.5 py-1.5 text-[12px] font-semibold leading-4 text-[#1c1f23]">
+                          <xiahuaBuildView.icon className="size-3.5 shrink-0 text-[#1c1f23]/45" />
+                          {xiahuaBuildView.label}
+                        </span>
+                      ) : isXiahuaFamily(projectTitle) ? (
+                        xiahuaPagePicker
+                      ) : (
+                        <span className="w-[196px] truncate rounded-lg bg-[#f5f7fa] px-2.5 py-1.5 text-[12px] font-semibold leading-4 text-[#1c1f23]">
+                          {toolbarProjectName}
+                        </span>
+                      )}
                     </div>
                     <div className="ml-auto flex min-w-0 items-center justify-end gap-1">
+                      {/* 活动做完存成模板 —— 之后在首页「营销活动」的模板里选它，
+                          或者输入框里 @ 引用，就能换素材换玩法复刻出新活动 */}
+                      {isXiahuaFamily(projectTitle) &&
+                        (xiahuaBuildPhase === undefined || xiahuaBuildPhase === 'final') && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              window.localStorage.setItem('xiahua-template-registered', '1')
+                              toast('已抽象为「夯爆了 · 集卡 H5 模板」，可在首页「营销活动」里引用', {
+                                className: 'whitespace-nowrap',
+                                style: {
+                                  width: 'max-content',
+                                  minWidth: 0,
+                                  maxWidth: 'calc(100vw - 32px)',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                },
+                              })
+                            }}
+                            className="flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-[12px] text-[#1c1f23]/70 transition-colors hover:bg-[#f5f7fa] hover:text-[#1c1f23]"
+                          >
+                            <BookmarkPlus className="size-3.5" />
+                            存为活动模板
+                          </button>
+                        )}
                       <button
                         type="button"
                         aria-label="重新加载"
@@ -8644,6 +9918,69 @@ export default function VibeCodingPage({
                           />
                         </span>
                       </button>
+                      {xiahuaArtifactView ? null : isXiahuaFamily(projectTitle) ? (
+                        // 编辑态按设计稿 25:39783：浅蓝底 #D4EBFF + 蓝字/蓝图标
+                        // #357EF8。图标用 mask 上色，保持原 quick-select 形状。
+                        <button
+                          type="button"
+                          aria-pressed={editPanelOpen}
+                          title="编辑"
+                          onClick={() => {
+                            setCanvasEditOpen(false)
+                            if (editPanelOpen) closeXiahuaEditor()
+                            else setEditPanelOpen(true)
+                          }}
+                          className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa] aria-pressed:bg-[#d4ebff] aria-pressed:text-[#357ef8]"
+                        >
+                          <span className="flex size-4 items-center justify-center">
+                            <span
+                              aria-hidden
+                              className="block size-[14.474px] bg-current"
+                              style={{
+                                maskImage: 'url(/icons/h5-editor/quick-select.svg)',
+                                WebkitMaskImage: 'url(/icons/h5-editor/quick-select.svg)',
+                                maskSize: 'contain',
+                                WebkitMaskSize: 'contain',
+                                maskRepeat: 'no-repeat',
+                                WebkitMaskRepeat: 'no-repeat',
+                                maskPosition: 'center',
+                                WebkitMaskPosition: 'center',
+                              }}
+                            />
+                          </span>
+                          <span>编辑</span>
+                        </button>
+                      ) : projectTitle === SUMMER_SURF_PROJECT ? (
+                        <button
+                          type="button"
+                          aria-pressed={editPanelOpen}
+                          title="编辑"
+                          onClick={() => {
+                            setCanvasEditOpen(false)
+                            if (editPanelOpen) closeSummerSurfEditor()
+                            else setEditPanelOpen(true)
+                          }}
+                          className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa] aria-pressed:bg-[#d4ebff] aria-pressed:text-[#357ef8]"
+                        >
+                          <span className="flex size-4 items-center justify-center">
+                            <span
+                              aria-hidden
+                              className="block size-[14.474px] bg-current"
+                              style={{
+                                maskImage: 'url(/icons/h5-editor/quick-select.svg)',
+                                WebkitMaskImage: 'url(/icons/h5-editor/quick-select.svg)',
+                                maskSize: 'contain',
+                                WebkitMaskSize: 'contain',
+                                maskRepeat: 'no-repeat',
+                                WebkitMaskRepeat: 'no-repeat',
+                                maskPosition: 'center',
+                              }}
+                            />
+                          </span>
+                          <span>编辑</span>
+                        </button>
+                      ) : (
+                      <>
                       <button
                         type="button"
                         aria-pressed={canvasEditOpen}
@@ -8687,10 +10024,13 @@ export default function VibeCodingPage({
                         </span>
                         <span>快速编辑</span>
                       </button>
+                      </>
+                      )}
                     </div>
                   </div>
                 )
               }
+
               // ── LEFT: object tabs / mode filters / surface label ──
               let toolbarTabs: ReactNode
               if (activeProjectKind === 'web-app') {
@@ -8734,6 +10074,15 @@ export default function VibeCodingPage({
                       {lbl === '预览' ? '游戏' : lbl || '产物'}
                     </span>
                   )
+              } else if (xiahuaBuildView) {
+                // 回放中：标题说清楚右侧此刻是什么产物，不再统一叫「预览」
+                const VIcon = xiahuaBuildView.icon
+                toolbarTabs = (
+                  <span className="flex items-baseline gap-1.5 px-1.5 py-1 text-[13px] font-medium text-[var(--color-ink)]">
+                    <VIcon className="size-3.5 shrink-0 translate-y-[2px] text-[var(--color-ink)]/50" />
+                    {xiahuaBuildView.label}
+                  </span>
+                )
               } else if (isPageTab) {
                 toolbarTabs = renderCategoryTabs(lbl)
               } else {
@@ -8799,14 +10148,25 @@ export default function VibeCodingPage({
                     </div>
                   )}
                   <ToolbarAction icon={RefreshCw} label="重新加载" iconOnly onClick={() => setMiniAppKey((k) => k + 1)} />
-                  {!(activeProjectKind === 'marketing-h5' && lbl === '预览') && (
+                  {!xiahuaArtifactView && !(activeProjectKind === 'marketing-h5' && lbl === '预览') && (
                     <ToolbarAction icon={Smartphone} label="真机预览" iconOnly />
                   )}
                   {lbl === ASSET_LIBRARY_LABEL && activeProjectKind === 'web-game' && gameAssetKind === 'image' && (
                     <ToolbarAction icon={LayoutGrid} label="画布编辑" onClick={() => setCanvasEditOpen(true)} />
                   )}
                   {lbl === ASSET_LIBRARY_LABEL && <ToolbarAction icon={Upload} label="上传" />}
-                  {activeProjectKind === 'marketing-h5' && lbl === '预览' ? (
+                  {xiahuaArtifactView ? null : isXiahuaFamily(projectTitle) && lbl === '预览' ? null : projectTitle === SUMMER_SURF_PROJECT && lbl === '预览' ? (
+                    <ToolbarAction
+                      icon={Pencil}
+                      label="编辑"
+                      active={editPanelOpen}
+                      onClick={() => {
+                        setCanvasEditOpen(false)
+                        if (editPanelOpen) closeSummerSurfEditor()
+                        else setEditPanelOpen(true)
+                      }}
+                    />
+                  ) : activeProjectKind === 'marketing-h5' && lbl === '预览' ? (
                     <div
                       role="group"
                       aria-label="编辑模式"
@@ -8832,6 +10192,7 @@ export default function VibeCodingPage({
                         onClick={() => {
                           setEditPanelOpen(false)
                           setH5Selected(null)
+                          setSummerSurfSelected(null)
                           setH5CanvasSidebarTab('chat')
                           setConsoleOpen(false)
                           setCanvasEditOpen(true)
@@ -8854,10 +10215,14 @@ export default function VibeCodingPage({
               )
               return <ProductToolbar tabs={toolbarTabs} actions={toolbarActions} />
             })()
+            // 文档 / 素材阶段：整页平铺，不套点阵画布，也不给缩放和编辑。
+            /* 0→1 的产物（方案 / 玩法选择 / 素材清单 / 素材生成 / 替换清单）不再
+               把预览整块换掉 —— 预览一直在左边，产物挂在它右边一条固定的栏里。
+               换来换去的右侧看不出「这一步改了画面的什么」。 */
             const phoneView = (
               <>
                 {previewToolbar}
-
+                <div className="flex min-h-0 flex-1 overflow-hidden">
                 {/* phone mockup area — product-color ambient glow is dark-
                      mode-only (in light mode it bloomed into pastel halos
                      that washed out the dot grid on either side of the
@@ -8920,6 +10285,13 @@ export default function VibeCodingPage({
                       </div>
                     </div>
                   </div>
+                </div>
+                {xiahuaPanel && (
+                  // 产物栏定宽；再窄也不低于 280，低于这个宽度清单和素材板就没法读了
+                  <aside className="flex w-[336px] min-w-[280px] max-w-[70%] shrink-0 flex-col overflow-hidden border-l border-[var(--divider-soft)] bg-[var(--color-surface-0)]">
+                    {xiahuaPanel}
+                  </aside>
+                )}
                 </div>
               </>
             )
@@ -9174,6 +10546,39 @@ export default function VibeCodingPage({
               ) {
                 return productView
               }
+              // 模板复刻第一步的「项目文档」= 用户需求 + 已生成模板的本期项目方案
+              if (
+                label === PROJECT_DOCUMENT_LABEL &&
+                xiahuaScriptKind === 'clone' &&
+                xiahuaBuildStep >= 0 &&
+                xiahuaBuildPhase === 'doc'
+              ) {
+                return (
+                  <XiahuaTemplateDoc
+                    document={XIAHUA_CLONE_PROJECT_DOCUMENT}
+                    confirmed={xiahuaPath.some(
+                      (index) => xiahuaScript[index]?.id === 'tpl-doc-confirm',
+                    )}
+                    variant="project"
+                  />
+                )
+              }
+              // 回放中的「项目文档」= 刚解析出来的那份活动方案，字段可直接改
+              if (
+                label === PROJECT_DOCUMENT_LABEL &&
+                isXiahuaFamily(projectTitle) &&
+                xiahuaBuildStep >= 0
+              ) {
+                return (
+                  <XiahuaPlanDoc
+                    preset={xiahuaPreset}
+                    plan={xiahuaPlan}
+                    onChange={setXiahuaPlan}
+                    parsing={xiahuaBuildStep < stepIndex('parsed')}
+                    docName={xiahuaUploadedDocName}
+                  />
+                )
+              }
               if (
                 (label === BASIC_INFO_LABEL || label === PROJECT_DOCUMENT_LABEL) &&
                 activeProjectKind !== 'ai-avatar'
@@ -9186,7 +10591,10 @@ export default function VibeCodingPage({
                 })
                 const docValue =
                   activeProjectKind === 'marketing-h5'
-                    ? proposalDocs['文档'] ?? ACG_NEW_YEAR_PLAN_MD
+                    ? proposalDocs['文档'] ??
+                      (isXiahuaFamily(projectTitle)
+                        ? XIAHUA_PLAN_MD
+                        : PROJECT_DOCS[projectTitle] ?? ACG_NEW_YEAR_PLAN_MD)
                     : projectDocEdits[projectTitle] ??
                       PROJECT_DOCS[projectTitle] ??
                       buildDefaultProjectDoc(projectTitle, activeProjectKind)
@@ -9414,12 +10822,66 @@ export default function VibeCodingPage({
               }
               // marketing-h5 product-view sections.
               if (activeProjectKind === 'marketing-h5') {
+                // 这夏夯爆了「活动玩法配置」= 预览正在跑的那份玩法，可直接改。
+                if (isXiahuaFamily(projectTitle) && label === H5_GAMEPLAY_CONFIG_LABEL) {
+                  return (
+                    <div className="h-full overflow-y-auto bg-[var(--color-surface-0)]">
+                      <div className="mx-auto max-w-[720px] py-2">
+                        <div className="px-4 py-3">
+                          <h2 className="text-[15px] font-semibold text-[var(--color-ink)]">
+                            集卡玩法配置
+                          </h2>
+                          <p className="mt-1 text-[12px] leading-relaxed text-[var(--color-ink)]/50">
+                            这份配置就是右侧预览正在运行的规则 —— 改动会即时生效。
+                            预览编辑态里选中对应元素，也能在「玩法」页签改到同一份。
+                          </p>
+                        </div>
+                        {/* 活动模板切换 —— 换 preset = 换素材目录 + 玩法 + 文案 */}
+                        <div className="mx-4 mb-3 rounded-[10px] border border-[var(--divider-soft)] p-3">
+                          <p className="text-[12px] font-semibold text-[var(--color-ink)]/70">
+                            活动模板
+                          </p>
+                          <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--color-ink)]/40">
+                            版式、热区、编辑能力是通用模板；换一个活动 = 换素材目录 + 玩法 + 文案。
+                            素材按约定命名放进 public/assets/&lt;id&gt;/ 即可，缺图会显示占位框。
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {ACTIVITY_PRESETS.map((p) => (
+                              <button
+                                key={p.id}
+                                aria-pressed={xiahuaPreset.id === p.id}
+                                className="cursor-pointer rounded-[8px] border border-[var(--divider-soft)] px-3 py-1.5 text-left text-[12px] text-[var(--color-ink)]/75 hover:border-[#357ef8] hover:text-[#357ef8] aria-pressed:border-[#357ef8] aria-pressed:bg-sky-50 aria-pressed:text-[#357ef8]"
+                                onClick={() => switchXiahuaPreset(p)}
+                              >
+                                <span className="font-medium">{p.name}</span>
+                                <span className="ml-1.5 font-mono text-[10px] opacity-60">
+                                  {p.assetRoot}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <XiahuaGameplayEditor
+                          value={xiahuaGameplay}
+                          onChange={setXiahuaGameplay}
+                          preset={xiahuaPreset}
+                          assetsReady={xiahuaAssetsReady}
+                        />
+                      </div>
+                    </div>
+                  )
+                }
                 // 文档 — rich markdown editor (edit / preview / split).
                 if (label === '文档') {
                   return (
                     <MarketingDocEditor
                       title="文档"
-                      value={proposalDocs['文档'] ?? ACG_NEW_YEAR_PLAN_MD}
+                      value={
+                        proposalDocs['文档'] ??
+                        (isXiahuaFamily(projectTitle)
+                          ? XIAHUA_PLAN_MD
+                          : PROJECT_DOCS[projectTitle] ?? ACG_NEW_YEAR_PLAN_MD)
+                      }
                       onChange={(next) =>
                         setProposalDocs((prev) => ({ ...prev, ['文档']: next }))
                       }
@@ -9429,7 +10891,30 @@ export default function VibeCodingPage({
                 // 素材 — visual asset grid using the same layout as 游戏 素材
                 // (grouped sections, zoom modal).
                 if (label === ASSET_LIBRARY_LABEL) {
-                  return <GarudaAssetsView groups={ACG_NEW_YEAR_ASSET_GROUPS} />
+                  // 回放中素材库要跟着过程走 —— 清单刚对完的时候一张都还没生成，
+                  // 直接摆成品图等于把后面的结果提前给了
+                  if (isXiahuaFamily(projectTitle) && xiahuaBuildStep >= 0) {
+                    return (
+                      <XiahuaAssetBoard
+                        preset={xiahuaPreset}
+                        done={xiahuaAssetDone}
+                        picks={xiahuaPicks}
+                        versions={xiahuaVersions}
+                        onPick={(k, v) => setXiahuaPicks((p) => ({ ...p, [k]: v }))}
+                      />
+                    )
+                  }
+                  return (
+                    <GarudaAssetsView
+                      groups={
+                        projectTitle === SUMMER_SURF_PROJECT
+                          ? SUMMER_SURF_ASSET_GROUPS
+                          : isXiahuaFamily(projectTitle)
+                          ? XIAHUA_ASSET_GROUPS
+                          : ACG_NEW_YEAR_ASSET_GROUPS
+                      }
+                    />
+                  )
                 }
               }
               // 小程序 product-view sections — config-driven structured tabs.
@@ -9496,6 +10981,8 @@ export default function VibeCodingPage({
             const activeLabel = openTabs[activePreviewTab]?.label
             if (
               activeProjectKind === 'marketing-h5' &&
+              !isXiahuaFamily(projectTitle) &&
+              projectTitle !== SUMMER_SURF_PROJECT &&
               activeLabel === '预览' &&
               canvasEditOpen
             ) {
@@ -9569,7 +11056,7 @@ export default function VibeCodingPage({
                     onPointerCancel={onDividerPointerUp}
                     className="group relative w-1 shrink-0 cursor-col-resize touch-none select-none"
                   >
-                    <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[var(--fill-hover)] transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
+                    <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[var(--fill-hover)]" />
                   </div>
                   {leftIsProduct ? codeCol : productCol}
                 </div>
@@ -9719,7 +11206,6 @@ export default function VibeCodingPage({
                   onPointerCancel={onConsoleDragEnd}
                   className="group absolute inset-x-0 top-0 z-20 h-1 cursor-row-resize touch-none select-none"
                 >
-                  <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
                 </div>
                 <div className="flex h-full flex-col bg-[var(--color-surface-0)]/50">
                   {/* console header */}
@@ -9770,7 +11256,7 @@ export default function VibeCodingPage({
           )}
 
           {/* zoom control — only on the 预览 surface; scales the preview */}
-          {openTabs[activePreviewTab]?.label === '预览' && !immersiveCanvasModeOpen && (
+          {openTabs[activePreviewTab]?.label === '预览' && !immersiveCanvasModeOpen && !xiahuaEditMode && !xiahuaArtifactView && (
           <div className="absolute bottom-3 right-3 z-20 flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_8px_rgba(16,18,24,0.10)]">
             <button
               type="button"
@@ -9811,7 +11297,31 @@ export default function VibeCodingPage({
               className="relative shrink-0 border-l border-[var(--divider-soft)]"
               style={{ width: editPanelWidth }}
             >
-              {activeProjectKind === 'marketing-h5' ? (
+              {isXiahuaFamily(projectTitle) ? (
+                <XiahuaEditPanel
+                  selection={xiahuaSelected}
+                  overrides={xiahuaOverrides}
+                  onOverrides={setXiahuaOverrides}
+                  onSelect={setXiahuaSelected}
+                  onHover={setXiahuaHovered}
+                  gameplay={xiahuaGameplay}
+                  onGameplay={setXiahuaGameplay}
+                  screen={xiahuaScreen}
+                  onClose={() => {
+                    closeXiahuaEditor()
+                  }}
+                />
+              ) : projectTitle === SUMMER_SURF_PROJECT ? (
+                <SummerSurfEditPanel
+                  selection={summerSurfSelected}
+                  onSelect={setSummerSurfSelected}
+                  config={summerSurfConfig}
+                  onConfigChange={setSummerSurfConfig}
+                  onClose={() => {
+                    closeSummerSurfEditor()
+                  }}
+                />
+              ) : activeProjectKind === 'marketing-h5' ? (
                 <H5LayerEditPanel
                   selection={h5Selected}
                   onClose={() => setEditPanelOpen(false)}
@@ -9872,7 +11382,6 @@ export default function VibeCodingPage({
                 onPointerCancel={onEditPanelDragEnd}
                 className="group absolute left-0 top-0 bottom-0 z-10 w-1 -translate-x-1/2 cursor-col-resize touch-none select-none"
               >
-                <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
               </div>
             </aside>
           )}
@@ -9971,7 +11480,6 @@ export default function VibeCodingPage({
                 onPointerCancel={onFileTreeDragEnd}
                 className="group absolute left-0 top-0 bottom-0 z-10 w-1 -translate-x-1/2 cursor-col-resize touch-none select-none"
               >
-                <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent transition-colors group-hover:bg-[var(--color-ink)]/20 group-active:bg-[var(--color-ink)]/30" />
               </div>
             </div>
           )}

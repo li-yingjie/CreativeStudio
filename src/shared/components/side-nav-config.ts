@@ -69,7 +69,7 @@ export const SIDE_NAV_DEFAULTS: SideNavConfig = {
   collapsedWidth: 60,
   topPadding: 12,
   listPaddingX: 12,
-  buttonHeight: 40,
+  buttonHeight: 36,
   buttonRadius: 8,
   buttonFontSize: 13,
   rowHeight: 36,
@@ -198,6 +198,8 @@ function loadSaved(): SideNavConfig {
     if (parsed.collapsedWidth === 61) parsed.collapsedWidth = SIDE_NAV_DEFAULTS.collapsedWidth
     // 旧版菜单行默认间距是 4px；迁移到新版的紧凑 0px，其他自定义值不动。
     if (parsed.rowSpacing === 4) parsed.rowSpacing = SIDE_NAV_DEFAULTS.rowSpacing
+    // 旧版主按钮默认 40px，比菜单行高一档；统一到和行高一样的 36。
+    if (parsed.buttonHeight === 40) parsed.buttonHeight = SIDE_NAV_DEFAULTS.buttonHeight
     return sanitizeSideNavConfig(parsed)
   } catch {
     return SIDE_NAV_DEFAULTS

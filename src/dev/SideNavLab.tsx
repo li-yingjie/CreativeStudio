@@ -25,6 +25,8 @@ import type { ProductId } from '@/modules/creator-center/data'
 import { Disclosure, FileTreeView } from '@/modules/vibecoding/components/FileTreeView'
 import SideNavDisclosureIcon from '@/shared/components/SideNavDisclosureIcon'
 import SideNavPanelStateIcon from '@/shared/components/SideNavPanelStateIcon'
+import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
+import { Settings01LinearIcon } from 'master-icon/react/Settings01LinearIcon'
 import {
   SIDE_NAV_NUMERIC_CONSTRAINTS,
   useSideNavConfig,
@@ -162,20 +164,33 @@ function ActionButton({
   )
 }
 
-/** 底部「收起导航」—— 所有产品共用这一行。 */
-function CollapseRow({ collapsed }: { collapsed?: boolean }) {
+/** 顶部产品头 —— 左侧业务文案，右侧收起入口（设计稿 统一导航 583-5262）。
+ *  收起入口只有这一处；底部不再放。 */
+const PRODUCT_HEADER_HEIGHT = 40
+
+function ProductHeaderRow({ text, collapsed }: { text: string; collapsed?: boolean }) {
   return (
-    <div className="px-[var(--sn-px)] pb-3">
+    <div className="px-[var(--sn-px)]">
+      <SideNavProductHeader leadingText={text} collapsed={collapsed} onToggle={() => {}} />
+    </div>
+  )
+}
+
+/** 底部业务自定义区 —— 组件本身不规定放什么，各产品自己注入
+ *  （工坊/首页放「偏好设置」，百科放「我的词条」…）。 */
+function BusinessFooterRow({ collapsed }: { collapsed?: boolean }) {
+  return (
+    <div className={collapsed ? 'px-[var(--sn-px)] pb-3' : 'pb-3'}>
       <button
         type="button"
-        aria-label={collapsed ? '展开导航' : '收起导航'}
-        title={collapsed ? '展开导航' : '收起导航'}
-        className={`flex h-[var(--sn-rh)] w-full items-center gap-[var(--sn-rgap)] rounded-[var(--sn-rr)] px-[var(--sn-rpx)] text-[length:var(--sn-rfs)] text-[#252632]/70 transition-colors hover:bg-black/[0.03] ${
-          collapsed ? 'justify-center' : ''
+        aria-label="偏好设置"
+        title={collapsed ? '偏好设置' : undefined}
+        className={`flex h-8 w-full items-center gap-1.5 rounded-lg text-[12px] font-medium text-[#252632]/80 transition-colors hover:bg-black/[0.03] ${
+          collapsed ? 'justify-center' : 'pl-[22px] pr-2'
         }`}
       >
-        <SideNavPanelStateIcon collapsed={collapsed} />
-        {!collapsed && '收起导航'}
+        <Settings01LinearIcon className="size-4 shrink-0" />
+        {!collapsed && '偏好设置'}
       </button>
     </div>
   )
@@ -852,8 +867,13 @@ function GlobalLayoutSideNav({
       items={LAYOUT_ITEMS}
       activeKey={selection.area === 'menu' ? selection.key : null}
       onSelect={(key) => onSelect({ area: 'menu', key })}
-      header={<ActionButton label="主操作" />}
-      footer={<CollapseRow />}
+      header={
+        <>
+          <ProductHeaderRow text="开启创作" />
+          <ActionButton label="主操作" />
+        </>
+      }
+      footer={<BusinessFooterRow />}
     >
       <div className="mt-2 flex flex-col">
         <div className="px-[var(--sn-px)] pb-1 text-[11px] text-[#252632]/70">我的收藏</div>
@@ -1023,7 +1043,7 @@ function GlobalLayoutBlueprint({
 }
 
 export default function SideNavLab() {
-  const [configPanelOpen, setConfigPanelOpen] = useState(true)
+  const [configPanelOpen, setConfigPanelOpen] = useState(false)
   const [specSelection, setSpecSelection] = useState<{
     area: 'menu' | 'tree'
     key: string
@@ -1059,7 +1079,7 @@ export default function SideNavLab() {
   // 菜单到项目列表已无额外间距。
   const g = (() => {
     const c = liveCfg
-    const navTop = c.topPadding + c.buttonHeight + 12
+    const navTop = c.topPadding + PRODUCT_HEADER_HEIGHT + c.buttonHeight + 12
     const menuRow = (i: number) => navTop + i * (c.rowHeight + c.rowSpacing)
     const projTop = menuRow(2) + c.rowHeight + 30
     const treeRow = (i: number) => projTop + c.treeRowHeight + i * c.treeRowHeight
@@ -1098,8 +1118,13 @@ export default function SideNavLab() {
                   items={WORKSHOP_ITEMS}
                   activeKey={specSelection.area === 'menu' ? specSelection.key : null}
                   onSelect={(key) => setSpecSelection({ area: 'menu', key })}
-                  header={<ActionButton label="AI 创作" />}
-                  footer={<CollapseRow />}
+                  header={
+                    <>
+                      <ProductHeaderRow text="开启创作" />
+                      <ActionButton label="AI 创作" />
+                    </>
+                  }
+                  footer={<BusinessFooterRow />}
                 >
                   <WorkshopTree
                     picked={specSelection.area === 'tree' ? specSelection.key : ''}
@@ -1112,7 +1137,13 @@ export default function SideNavLab() {
                   每个读数都可点击就地修改。高度：上内边距 / 主按钮 / 菜单行 /
                   行间距 / 树行 —— 一个尺寸只标一次 */}
               <HMeasure top={0} height={liveCfg.topPadding} editKey="topPadding" />
-              <HMeasure top={liveCfg.topPadding} height={liveCfg.buttonHeight} editKey="buttonHeight" />
+              {/* 产品头是固定 40px 行（文案 + 收起），不进配置。 */}
+              <HMeasure top={liveCfg.topPadding} height={PRODUCT_HEADER_HEIGHT} />
+              <HMeasure
+                top={liveCfg.topPadding + PRODUCT_HEADER_HEIGHT}
+                height={liveCfg.buttonHeight}
+                editKey="buttonHeight"
+              />
               <HMeasure top={g.menuRow(0)} height={liveCfg.rowHeight} editKey="rowHeight" />
               <HMeasure top={g.menuRow(0) + liveCfg.rowHeight} height={liveCfg.rowSpacing} editKey="rowSpacing" />
               <HMeasure top={g.treeRow(0)} height={liveCfg.treeRowHeight} editKey="treeRowHeight" />
@@ -1149,6 +1180,7 @@ export default function SideNavLab() {
                 items={SIDE_MENU as SideNavItem[]}
                 activeKey={homeActive}
                 onSelect={setHomeActive}
+                /* 首页没有产品头（不提供收起、无业务文案），底部也不挂东西。 */
                 header={
                   <ActionButton
                     variant="dark"
@@ -1157,7 +1189,6 @@ export default function SideNavLab() {
                     Icon={SlideWideAddLinearIcon}
                   />
                 }
-                footer={<CollapseRow />}
               />
             </VariantCard>
 
@@ -1167,8 +1198,13 @@ export default function SideNavLab() {
                 items={WORKSHOP_ITEMS}
                 activeKey={shopSelection.area === 'menu' ? shopSelection.key : null}
                 onSelect={(key) => setShopSelection({ area: 'menu', key })}
-                header={<ActionButton label="AI 创作" />}
-                footer={<CollapseRow />}
+                header={
+                  <>
+                    <ProductHeaderRow text="开启创作" />
+                    <ActionButton label="AI 创作" />
+                  </>
+                }
+                footer={<BusinessFooterRow />}
               >
                 <WorkshopTree
                   picked={shopSelection.area === 'tree' ? shopSelection.key : ''}
@@ -1183,7 +1219,8 @@ export default function SideNavLab() {
                 items={AVATAR_ITEMS}
                 activeKey={avatarSelection.area === 'menu' ? avatarSelection.key : null}
                 onSelect={(key) => setAvatarSelection({ area: 'menu', key })}
-                footer={<CollapseRow />}
+                header={<ProductHeaderRow text="管理分身" />}
+                footer={<BusinessFooterRow />}
               >
                 <AvatarTree
                   picked={avatarSelection.area === 'tree' ? avatarSelection.key : ''}
@@ -1201,7 +1238,7 @@ export default function SideNavLab() {
             </VariantCard>
 
             {/* 随变没走 SideNav —— 它是缩略图列表，不是菜单。放进来是为了
-                对齐可共享的部分：统一配置宽度 + 可拖拽 + 同一个收起导航行。 */}
+                对齐可共享的部分：统一配置宽度 + 可拖拽 + 同一条顶部产品头。 */}
             <VariantCard title="随变">
               <div className="flex h-full">
                 <SuibianSideNav />
@@ -1216,14 +1253,17 @@ export default function SideNavLab() {
               activeKey={railActive}
               onSelect={setRailActive}
               header={
-                <ActionButton
-                  variant="dark"
-                  label="发布作品"
-                  collapsed
-                  Icon={SlideWideAddLinearIcon}
-                />
+                <>
+                  <ProductHeaderRow text="开启创作" collapsed />
+                  <ActionButton
+                    variant="dark"
+                    label="发布作品"
+                    collapsed
+                    Icon={SlideWideAddLinearIcon}
+                  />
+                </>
               }
-              footer={<CollapseRow collapsed />}
+              footer={<BusinessFooterRow collapsed />}
             />
           </VariantCard>
         </div>

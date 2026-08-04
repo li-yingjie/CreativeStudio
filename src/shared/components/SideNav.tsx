@@ -1,4 +1,4 @@
-import { forwardRef, useId, useMemo, useState, type ComponentProps, type ComponentType, type CSSProperties, type ReactNode } from 'react'
+import { forwardRef, Fragment, useId, useMemo, useState, type ComponentProps, type ComponentType, type CSSProperties, type ReactNode } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { motion, useReducedMotion } from 'framer-motion'
 import SideNavDisclosureIcon from './SideNavDisclosureIcon'
@@ -17,7 +17,6 @@ export {
 } from './side-nav-config'
 
 export const SIDE_NAV_MOTION_DURATION = 0.16
-export const SIDE_NAV_MOTION_OFFSET = 12
 
 /* ─── 统一左侧导航 ───
  *
@@ -37,6 +36,8 @@ export interface SideNavItem {
   icon?: string
   /** 可折叠子菜单；点击子项回调 `${key}:${子项}` */
   children?: string[]
+  /** 在该项之前插入一条分组分隔线。 */
+  dividerBefore?: boolean
 }
 
 /** 菜单图标 — MasterIcon 组件或 mask 着色的 SVG。
@@ -77,6 +78,10 @@ export const SideNavActionButton = forwardRef<
   // 统一导航 275-22603，可在 /sidebar 的配置面板运行时调整；variant 只切换
   // 配色：dark = 首页「发布作品」，light = 工坊「AI 创作」。
   const cfg = useSideNavConfig((s) => s.config)
+  const expandedIconPadding = Math.max(
+    0,
+    (cfg.collapsedWidth - cfg.menuIconSize) / 2 - cfg.listPaddingX,
+  )
   const tone =
     variant === 'dark'
       ? 'bg-[#1c1f23] text-white hover:bg-[#2b2e33]'
@@ -86,16 +91,16 @@ export const SideNavActionButton = forwardRef<
       ref={ref}
       type="button"
       {...rest}
-      // 收起态与菜单行一样收成正方形（外层 px 提供左右内边距）
       className={`relative flex w-full items-center gap-[var(--sn-rgap,8px)] font-semibold ${tone} ${
         collapsed ? 'justify-center' : ''
       } ${className}`}
       style={{
-        height: collapsed ? cfg.rowHeight : cfg.buttonHeight,
+        // 收展保持同高，避免按钮下方整组菜单产生纵向跳动。
+        height: cfg.buttonHeight,
         borderRadius: cfg.buttonRadius,
         // 顶部操作与下方菜单共享 13px 字号和横向对齐基线。
         fontSize: 13,
-        paddingLeft: collapsed ? 0 : cfg.rowPaddingX,
+        paddingLeft: collapsed ? 0 : expandedIconPadding,
         paddingRight: collapsed ? 0 : cfg.rowPaddingX,
         ...style,
       }}
@@ -134,13 +139,14 @@ export default function SideNav({
   header?: ReactNode
   /** 菜单下方的产品自定义区（如工坊的项目列表树）。 */
   children?: ReactNode
-  /** 底部固定区（如首页的「收起导航」按钮）。 */
+  /** 底部固定区 —— 业务自定义（工坊/首页「偏好设置」、百科「我的词条」…）；
+   *  收起入口不放这里，统一在顶部产品头右侧。 */
   footer?: ReactNode
   /** fixed = 组件自身固定统一宽度；fill = 撑满外层（外层负责宽度）。 */
   layout?: 'fixed' | 'fill'
   /** <lg 收缩为只有 icon 的窄导航（icon rail），仅 fixed 布局使用。 */
   responsive?: boolean
-  /** 手动收起为 icon rail（由外部状态控制，如底部「收起导航」）。 */
+  /** 手动收起为 icon rail（由外部状态控制，入口在顶部产品头右侧）。 */
   collapsed?: boolean
   /** fixed 布局下允许拖拽右边缘调整当前页面内的展开宽度；收起态自动隐藏手柄。 */
   resizable?: boolean
@@ -195,12 +201,21 @@ export default function SideNav({
           ? 'w-[var(--sn-wc)] lg:w-[var(--sn-w)]'
           : 'w-[var(--sn-w)]'
   const chromeClass =
-    chrome === 'panel' && showDivider ? 'border-r border-black/5' : ''
+    chrome === 'panel' && showDivider
+      ? "after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-black/5 after:content-['']"
+      : ''
   const topPaddingClass = flushHeader ? 'pt-0' : 'pt-[var(--sn-top)]'
 
   const rowClass = (active: boolean) =>
-    `flex h-[var(--sn-rh)] w-full items-center gap-[var(--sn-rgap)] rounded-[var(--sn-rr)] px-[var(--sn-rpx)] text-[length:var(--sn-rfs)] font-medium transition-colors ${
-      collapsed ? 'justify-center' : responsive ? 'justify-center lg:justify-start' : ''
+    `flex h-[var(--sn-rh)] w-full items-center gap-[var(--sn-rgap)] rounded-[var(--sn-rr)] text-[length:var(--sn-rfs)] font-medium transition-colors ${
+      collapsed
+        ? // 收起态用和展开态同一个 --sn-rip 左内距（该值本就等于「图标在
+          // 收起宽度里居中」），而不是 justify-center —— 后者会被滚动条
+          // 占位挤偏，导致收展时图标横向跳 3px。
+          'pl-[var(--sn-rip)] pr-0'
+        : responsive
+          ? 'justify-center px-0 lg:justify-start lg:pl-[var(--sn-rip)] lg:pr-[var(--sn-rpx)]'
+          : 'pl-[var(--sn-rip)] pr-[var(--sn-rpx)]'
     } ${
       active
         ? 'bg-[var(--sidenav-active,rgba(83,96,143,0.12))] text-[var(--sidenav-ink,#1c1f23)]'
@@ -228,6 +243,10 @@ export default function SideNav({
     '--sn-rh': `${cfg.rowHeight}px`,
     '--sn-rr': `${cfg.rowRadius}px`,
     '--sn-rpx': `${cfg.rowPaddingX}px`,
+    '--sn-rip': `${Math.max(
+      0,
+      (cfg.collapsedWidth - cfg.menuIconSize) / 2 - cfg.listPaddingX,
+    )}px`,
     '--sn-rgap': `${cfg.rowGap}px`,
     '--sn-rsp': `${cfg.rowSpacing}px`,
     '--sn-rfs': `${cfg.rowFontSize}px`,
@@ -249,11 +268,8 @@ export default function SideNav({
   const collapseFeedback = useMemo(
     () =>
       reduceMotion
-        ? { x: 0, opacity: 1 }
-        : {
-            x: 0,
-            opacity: collapsed ? [0.86, 1] : [0.82, 1],
-          },
+        ? { opacity: 1 }
+        : { opacity: [0.88, 1] },
     [collapsed, reduceMotion],
   )
   // Popover 通过 Portal 挂到 body，需显式携带侧栏主题变量。
@@ -268,130 +284,142 @@ export default function SideNav({
   } as CSSProperties
 
   return (
-    <motion.aside
+    <aside
       aria-label={ariaLabel}
       data-side-nav-motion
       data-side-nav-surface
       data-state={collapsed ? 'collapsed' : 'expanded'}
-      initial={false}
-      animate={collapseFeedback}
-      transition={{
-        duration: reduceMotion ? 0 : SIDE_NAV_MOTION_DURATION,
-        ease: 'easeOut',
-      }}
       style={resolvedStyle}
       className={`relative flex h-full min-h-0 shrink-0 flex-col ${widthClass} ${chromeClass} ${topPaddingClass}`}
     >
-      {header && <div className="shrink-0">{header}</div>}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {items.length > 0 && (
-          <nav
-            aria-label={`${ariaLabel}菜单`}
-            className="flex shrink-0 flex-col gap-[var(--sn-rsp)] px-[var(--sn-px)]"
-          >
-            {items.map((m, itemIndex) => {
-            const active = itemActive(m)
+      <motion.div
+        initial={false}
+        animate={collapseFeedback}
+        transition={{
+          duration: reduceMotion ? 0 : SIDE_NAV_MOTION_DURATION,
+          ease: 'easeOut',
+        }}
+        className="flex min-h-0 min-w-0 flex-1 flex-col"
+      >
+        {header && <div className="shrink-0">{header}</div>}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          {items.length > 0 && (
+            <nav
+              aria-label={`${ariaLabel}菜单`}
+              className="flex shrink-0 flex-col gap-[var(--sn-rsp)] px-[var(--sn-px)]"
+            >
+              {items.map((m, itemIndex) => {
+              const active = itemActive(m)
+              const divider = m.dividerBefore ? (
+                <div aria-hidden className="my-2 border-t-[0.5px] border-black/[0.06]" />
+              ) : null
 
-            if (m.children?.length) {
-              const subOpen = openSub === m.key
-              const subId = `${subIdPrefix}-sub-${itemIndex}`
-              return (
-                <div key={m.key}>
-                  {/* 收缩态（icon rail）下子菜单走 Popover，保证窄屏可达 */}
-                  {(responsive || collapsed) && (
-                    <div className={collapsed ? '' : 'lg:hidden'}>
-                      <Popover.Root>
-                        <Popover.Trigger asChild>
-                          <button type="button" title={m.label} aria-label={`打开${m.label}菜单`} className={rowClass(active)}>
-                            <ItemGlyph item={m} size={cfg.menuIconSize} />
-                          </button>
-                        </Popover.Trigger>
-                        <Popover.Portal>
-                          <Popover.Content
-                            side="right"
-                            align="start"
-                            sideOffset={8}
-                            aria-label={m.label}
-                            style={popoverStyle}
-                            className="z-50 min-w-36 rounded-xl border border-[var(--sidenav-popover-border,rgba(0,0,0,0.05))] bg-[var(--sidenav-popover-bg,#fff)] p-2 shadow-lg"
+              if (m.children?.length) {
+                const subOpen = openSub === m.key
+                const subId = `${subIdPrefix}-sub-${itemIndex}`
+                return (
+                  <Fragment key={m.key}>
+                  {divider}
+                  <div>
+                    {/* 收缩态（icon rail）下子菜单走 Popover，保证窄屏可达 */}
+                    {(responsive || collapsed) && (
+                      <div className={collapsed ? '' : 'lg:hidden'}>
+                        <Popover.Root>
+                          <Popover.Trigger asChild>
+                            <button type="button" title={m.label} aria-label={`打开${m.label}菜单`} className={rowClass(active)}>
+                              <ItemGlyph item={m} size={cfg.menuIconSize} />
+                            </button>
+                          </Popover.Trigger>
+                          <Popover.Portal>
+                            <Popover.Content
+                              side="right"
+                              align="start"
+                              sideOffset={8}
+                              aria-label={m.label}
+                              style={popoverStyle}
+                              className="z-50 min-w-36 rounded-xl border border-[var(--sidenav-popover-border,rgba(0,0,0,0.05))] bg-[var(--sidenav-popover-bg,#fff)] p-2 shadow-lg"
+                            >
+                              <div className="px-2 pb-1.5 text-[12px] font-medium text-[var(--sidenav-ink-dim,rgba(28,31,35,0.65))]">
+                                {m.label}
+                              </div>
+                              {m.children.map((c) => (
+                                <Popover.Close asChild key={c}>
+                                  <button
+                                    type="button"
+                                    aria-current={activeKey === `${m.key}:${c}` ? 'page' : undefined}
+                                    onClick={() => selectSubItem(m.key, c)}
+                                    className={`flex h-8 w-full items-center rounded-lg px-2 text-[13px] ${
+                                      activeKey === `${m.key}:${c}`
+                                        ? 'bg-[var(--sidenav-active,rgba(83,96,143,0.12))] font-medium text-[var(--sidenav-ink,#1c1f23)]'
+                                        : 'text-[var(--sidenav-ink-dim,rgba(28,31,35,0.65))] hover:bg-[var(--sidenav-hover,rgba(0,0,0,0.03))] hover:text-[var(--sidenav-ink-hover,#1c1f23)]'
+                                    }`}
+                                  >
+                                    {c}
+                                  </button>
+                                </Popover.Close>
+                              ))}
+                            </Popover.Content>
+                          </Popover.Portal>
+                        </Popover.Root>
+                      </div>
+                    )}
+
+                    {!collapsed && (
+                      <button
+                        type="button"
+                        aria-expanded={subOpen}
+                        aria-controls={subId}
+                        onClick={() => setOpenSub(subOpen ? null : m.key)}
+                        className={`${rowClass(active)} ${responsive ? 'hidden lg:flex' : ''}`}
+                      >
+                        <ItemGlyph item={m} size={cfg.menuIconSize} />
+                        <span>{m.label}</span>
+                        <SideNavDisclosureIcon expanded={subOpen} className="ml-auto opacity-50" />
+                      </button>
+                    )}
+                    {subOpen && !collapsed && (
+                      <div id={subId} className={`mt-0.5 space-y-0.5 ${responsive ? 'hidden lg:block' : ''}`}>
+                        {m.children.map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            aria-current={activeKey === `${m.key}:${c}` ? 'page' : undefined}
+                            onClick={() => selectSubItem(m.key, c)}
+                            className={subRowClass(activeKey === `${m.key}:${c}`)}
                           >
-                            <div className="px-2 pb-1.5 text-[12px] font-medium text-[var(--sidenav-ink-dim,rgba(28,31,35,0.65))]">
-                              {m.label}
-                            </div>
-                            {m.children.map((c) => (
-                              <Popover.Close asChild key={c}>
-                                <button
-                                  type="button"
-                                  aria-current={activeKey === `${m.key}:${c}` ? 'page' : undefined}
-                                  onClick={() => selectSubItem(m.key, c)}
-                                  className={`flex h-8 w-full items-center rounded-lg px-2 text-[13px] ${
-                                    activeKey === `${m.key}:${c}`
-                                      ? 'bg-[var(--sidenav-active,rgba(83,96,143,0.12))] font-medium text-[var(--sidenav-ink,#1c1f23)]'
-                                      : 'text-[var(--sidenav-ink-dim,rgba(28,31,35,0.65))] hover:bg-[var(--sidenav-hover,rgba(0,0,0,0.03))] hover:text-[var(--sidenav-ink-hover,#1c1f23)]'
-                                  }`}
-                                >
-                                  {c}
-                                </button>
-                              </Popover.Close>
-                            ))}
-                          </Popover.Content>
-                        </Popover.Portal>
-                      </Popover.Root>
-                    </div>
-                  )}
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  </Fragment>
+                )
+              }
 
-                  {!collapsed && (
-                    <button
-                      type="button"
-                      aria-expanded={subOpen}
-                      aria-controls={subId}
-                      onClick={() => setOpenSub(subOpen ? null : m.key)}
-                      className={`${rowClass(active)} ${responsive ? 'hidden lg:flex' : ''}`}
-                    >
-                      <ItemGlyph item={m} size={cfg.menuIconSize} />
-                      <span>{m.label}</span>
-                      <SideNavDisclosureIcon expanded={subOpen} className="ml-auto opacity-50" />
-                    </button>
-                  )}
-                  {subOpen && !collapsed && (
-                    <div id={subId} className={`mt-0.5 space-y-0.5 ${responsive ? 'hidden lg:block' : ''}`}>
-                      {m.children.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          aria-current={activeKey === `${m.key}:${c}` ? 'page' : undefined}
-                          onClick={() => selectSubItem(m.key, c)}
-                          className={subRowClass(activeKey === `${m.key}:${c}`)}
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              return (
+                <Fragment key={m.key}>
+                  {divider}
+                  <button
+                    type="button"
+                    title={m.label}
+                    aria-label={m.label}
+                    aria-current={active ? 'page' : undefined}
+                    onClick={() => onSelect(m.key)}
+                    className={rowClass(active)}
+                  >
+                    <ItemGlyph item={m} size={cfg.menuIconSize} />
+                    <span className={collapsed ? 'hidden' : responsive ? 'hidden lg:inline' : ''}>{m.label}</span>
+                  </button>
+                </Fragment>
               )
-            }
-
-            return (
-              <button
-                key={m.key}
-                type="button"
-                title={m.label}
-                aria-label={m.label}
-                aria-current={active ? 'page' : undefined}
-                onClick={() => onSelect(m.key)}
-                className={rowClass(active)}
-              >
-                <ItemGlyph item={m} size={cfg.menuIconSize} />
-                <span className={collapsed ? 'hidden' : responsive ? 'hidden lg:inline' : ''}>{m.label}</span>
-              </button>
-            )
-            })}
-          </nav>
-        )}
-        {children}
-      </div>
-      {footer && <div className="mt-auto shrink-0">{footer}</div>}
+              })}
+            </nav>
+          )}
+          {children}
+        </div>
+        {footer && <div className="mt-auto shrink-0">{footer}</div>}
+      </motion.div>
       {resizable && !collapsed && layout === 'fixed' && (
         <SideNavResizeHandle
           value={resizedWidth}
@@ -399,6 +427,6 @@ export default function SideNav({
           ariaLabel={`调整${ariaLabel}宽度`}
         />
       )}
-    </motion.aside>
+    </aside>
   )
 }

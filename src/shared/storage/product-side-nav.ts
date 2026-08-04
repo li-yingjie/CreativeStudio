@@ -21,17 +21,18 @@ interface ProductSideNavState {
   toggleCollapsed: (product: ProductSideNavId) => void
 }
 
+// 收起/展开是全局偏好:在任一页面操作后,所有页面同步同一状态。
+const syncAll = (collapsed: boolean): Record<ProductSideNavId, boolean> => ({
+  home: collapsed,
+  'ai-avatar': collapsed,
+  wiki: collapsed,
+  suibian: collapsed,
+  workshop: collapsed,
+})
+
 export const useProductSideNav = create<ProductSideNavState>((set) => ({
   collapsed: DEFAULT_COLLAPSED,
-  setCollapsed: (product, collapsed) =>
-    set((state) => ({
-      collapsed: { ...state.collapsed, [product]: collapsed },
-    })),
+  setCollapsed: (_product, collapsed) => set(() => ({ collapsed: syncAll(collapsed) })),
   toggleCollapsed: (product) =>
-    set((state) => ({
-      collapsed: {
-        ...state.collapsed,
-        [product]: !state.collapsed[product],
-      },
-    })),
+    set((state) => ({ collapsed: syncAll(!state.collapsed[product]) })),
 }))

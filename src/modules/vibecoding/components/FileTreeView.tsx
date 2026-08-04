@@ -185,8 +185,11 @@ export function FileTreeView({
                   onClick={() => {
                     // 四级分类：文件夹只展开、不可选中；模块反之只打开自己的
                     // 页签（macOS Finder 里点文件夹同样是展开而非"打开"）。
-                    if (expandable) onToggleDir(path)
-                    else onOpenDir?.(node, path)
+                    // 点标题只会展开，收起统一交给左侧箭头 —— 否则「再点一下
+                    // 刚打开的那层」会把自己收掉。
+                    if (expandable) {
+                      if (!isExpanded) onToggleDir(path)
+                    } else onOpenDir?.(node, path)
                   }}
                   className="flex min-w-0 flex-1 items-center text-left"
                   style={{ gap: cfg.treeGap }}

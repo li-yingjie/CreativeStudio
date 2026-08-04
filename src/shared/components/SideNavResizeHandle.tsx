@@ -69,7 +69,8 @@ export default function SideNavResizeHandle({
       }}
       className="side-nav-resize-handle group pointer-events-auto absolute inset-y-0 right-0 z-10 w-2 translate-x-full cursor-col-resize touch-none select-none"
     >
-      <div className="side-nav-resize-handle__line absolute inset-y-0 left-0 w-px -translate-x-px bg-transparent transition-colors group-hover:bg-black/20 group-active:bg-black/30" />
+      {/* 平时不可见；仅键盘聚焦时由 index.css 上色 */}
+      <div className="side-nav-resize-handle__line absolute inset-y-0 left-0 w-px -translate-x-px bg-transparent" />
     </div>
   )
 }

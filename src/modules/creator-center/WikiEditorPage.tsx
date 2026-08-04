@@ -5,7 +5,6 @@ import ChatComposer from '@/shared/components/ChatComposer'
 import ComposerLocalFileButton from '@/shared/components/ComposerLocalFileButton'
 import SharedSideNav, {
   SIDE_NAV_MOTION_DURATION,
-  SIDE_NAV_MOTION_OFFSET,
 } from '@/shared/components/SideNav'
 import SideNavPanelStateIcon from '@/shared/components/SideNavPanelStateIcon'
 import SideNavIconFooterActions, {
@@ -19,6 +18,8 @@ import {
   usesProductHeaderLayout,
   usesSchemeFourLayout,
   usesSearchToolbarLayout,
+  usesContentToggleLayout,
+  usesToolbarHeaderLayout,
 } from '@/shared/storage/nav-version'
 import { useResizableSideNavWidth } from '@/shared/hooks/useResizableSideNavWidth'
 import { Disclosure, DISCLOSURE_INDENT } from '@/modules/vibecoding/components/FileTreeView'
@@ -114,14 +115,20 @@ function NavRow({
       className={`group flex w-full items-center rounded-lg transition-colors ${
         schemeFour ? 'h-9 gap-1.5 pr-2' : 'min-h-[28px] gap-1 pr-2'
       } ${
+        !schemeFour && depth === 0
+          ? '[&>span:first-child]:order-last [&>span:first-child]:ml-auto'
+          : ''
+      } ${
         active
           ? 'bg-[var(--sidenav-active,rgba(83,96,143,0.12))]'
           : 'hover:bg-[var(--sidenav-hover,rgba(0,0,0,0.03))]'
       }`}
       style={{
         paddingLeft: schemeFour
-          ? 8 + depth * 22
-          : 4 + depth * DISCLOSURE_INDENT,
+          ? 10 + depth * 22
+          : depth === 0
+            ? 10
+            : 4 + depth * DISCLOSURE_INDENT,
       }}
     >
       {!schemeFour && (
@@ -191,36 +198,33 @@ function WikiSchemeFourHeader({
   onCollapse: () => void
 }) {
   return (
-    <div className="flex h-10 items-center justify-between px-4">
-      <WikiObjectSwitcher
-        activeId={activeObjectId}
-        onChange={onSelectObject}
-        compact
-      />
-      <button
-        type="button"
-        title="文件"
-        aria-label="文件"
-        onClick={() => toast('文件入口（演示）')}
-        className="flex size-6 items-center justify-center rounded-md hover:bg-black/[0.04]"
-      >
-        <img
-          src={`${ICON}/scheme4-files.svg`}
-          alt=""
-          aria-hidden
-          className="size-4"
+    <>
+      {/* 产品头与其他产品同一条：左侧业务文案，右侧收起（设计稿 统一导航 583-5262）。 */}
+      <div className="px-[var(--sn-px)]">
+        <SideNavProductHeader leadingText="百科目录" onToggle={onCollapse} />
+      </div>
+      <div className="flex h-10 items-center px-4">
+        <WikiObjectSwitcher
+          activeId={activeObjectId}
+          onChange={onSelectObject}
+          compact
         />
-      </button>
-      <button
-        type="button"
-        title="收起导航"
-        aria-label="收起导航"
-        onClick={onCollapse}
-        className="flex size-6 items-center justify-center rounded-md hover:bg-black/[0.04]"
-      >
-        <SideNavPanelStateIcon />
-      </button>
-    </div>
+        <button
+          type="button"
+          title="文件"
+          aria-label="文件"
+          onClick={() => toast('文件入口（演示）')}
+          className="ml-auto flex size-6 items-center justify-center rounded-md hover:bg-black/[0.04]"
+        >
+          <img
+            src={`${ICON}/scheme4-files.svg`}
+            alt=""
+            aria-hidden
+            className="size-4"
+          />
+        </button>
+      </div>
+    </>
   )
 }
 
@@ -320,71 +324,109 @@ export function WikiSideNav({
   if (
     collapsed &&
     (navVersion === 1 ||
-      navVersion === 2 ||
+      usesToolbarHeaderLayout(navVersion) ||
       navVersion === 3 ||
-      searchToolbarLayout)
+      searchToolbarLayout ||
+      usesContentToggleLayout(navVersion))
   ) {
     return (
-      <SharedSideNav
-        ariaLabel="百科目录"
-        collapsed
-        chrome={navVersion === 1 ? 'plain' : 'panel'}
-        showDivider={navVersion !== 1}
-        flushHeader={searchToolbarLayout}
-        items={[
-          ...NAV_GROUPS.map((group) => ({
-            key: group.key,
-            label: group.label,
-            icon: group.icon,
-          })),
-          {
-            key: '关系网',
-            label: '关系网',
-            icon: `${ICON}/nav-relation.svg`,
-          },
-        ]}
-        activeKey={null}
-        onSelect={() => onCollapse?.()}
-        header={
-          searchToolbarLayout ? (
-            <div className="px-[var(--sn-px)]">
-              <SideNavSearchToolbar
-                value={navSearch}
-                onChange={setNavSearch}
-                onToggle={onCollapse ?? (() => {})}
-                placeholder="搜索"
-                ariaLabel="搜索百科内容"
-                collapsed
-              />
-            </div>
-          ) : navVersion === 2 ? (
-            <div className="px-[var(--sn-px)]">
-              <SideNavProductHeader
-                icon="/icons/nav-products/wiki.svg"
-                productLabel="百科"
-                bottomGap={0}
-                collapsed
-                onToggle={() => onCollapse?.()}
-              />
-            </div>
-          ) : undefined
+      <motion.div
+        key="wiki-collapsed"
+        initial={
+          reduceSideNavMotion
+            ? false
+            : { opacity: 0.88 }
         }
-        footer={
-          navVersion === 3 ? (
-            <div className="px-[var(--sn-px)] pb-3">
-              <SideNavCollapseFooterButton
-                collapsed
-                onToggle={() => onCollapse?.()}
-              />
-            </div>
-          ) : undefined
-        }
-      />
+        animate={{ opacity: 1 }}
+        transition={{
+          duration: reduceSideNavMotion ? 0 : SIDE_NAV_MOTION_DURATION,
+          ease: 'easeOut',
+        }}
+        className="h-full shrink-0"
+      >
+        <SharedSideNav
+          ariaLabel="百科目录"
+          collapsed
+          chrome={navVersion === 1 ? 'plain' : 'panel'}
+          showDivider={navVersion !== 1}
+          flushHeader={searchToolbarLayout}
+          items={[
+            ...NAV_GROUPS.map((group) => ({
+              key: group.key,
+              label: group.label,
+              icon: group.icon,
+            })),
+            {
+              key: '关系网',
+              label: '关系网',
+              icon: `${ICON}/nav-relation.svg`,
+            },
+          ]}
+          activeKey={null}
+          onSelect={() => onCollapse?.()}
+          header={
+            <>
+              {searchToolbarLayout ? (
+                <div className="px-[var(--sn-px)]">
+                  <SideNavSearchToolbar
+                    value={navSearch}
+                    onChange={setNavSearch}
+                    onToggle={onCollapse ?? (() => {})}
+                    placeholder="搜索"
+                    ariaLabel="搜索百科内容"
+                    collapsed
+                  />
+                </div>
+              ) : usesToolbarHeaderLayout(navVersion) ? (
+                /* 收起态沿用同一条工具条（只留收起入口）：图标和 x 位置
+                   与展开态一模一样，收展之间那颗按钮原地不动。 */
+                <div className="px-[var(--sn-px)]">
+                  <UnifiedToolbar
+                    collapsed
+                    ariaLabel="百科工具条"
+                    actions={WIKI_SCHEME_TWO_TOOLBAR_ACTIONS}
+                    onAction={() => onCollapse?.()}
+                  />
+                </div>
+              ) : null}
+              {/* 收起态保留百科对象切换：展示当前封面，点击弹出切换列表 */}
+              <div className="flex justify-center pb-2">
+                <WikiObjectSwitcher
+                  activeId={resolvedObjectId}
+                  onChange={selectObject}
+                  collapsed
+                />
+              </div>
+            </>
+          }
+          footer={
+            navVersion === 3 ? (
+              <div className="px-[var(--sn-px)] pb-3">
+                <SideNavCollapseFooterButton
+                  collapsed
+                  onToggle={() => onCollapse?.()}
+                />
+              </div>
+            ) : undefined
+          }
+        />
+      </motion.div>
     )
   }
 
   return (
-    <div
+    <motion.div
+      key="wiki-expanded"
+      initial={
+        reduceSideNavMotion
+          ? false
+          : { opacity: 0.88 }
+      }
+      animate={{ opacity: 1 }}
+      transition={{
+        duration: reduceSideNavMotion ? 0 : SIDE_NAV_MOTION_DURATION,
+        ease: 'easeOut',
+      }}
       data-side-nav-motion
       data-product="wiki"
       data-state={collapsed ? 'collapsed' : 'expanded'}
@@ -395,7 +437,6 @@ export function WikiSideNav({
         data-side-nav-motion-layer
         initial={false}
         animate={{
-          x: collapsed && !reduceSideNavMotion ? -SIDE_NAV_MOTION_OFFSET : 0,
           opacity: collapsed ? 0 : 1,
         }}
         transition={{
@@ -433,8 +474,11 @@ export function WikiSideNav({
             />
           ) : (
             <div className="px-[var(--sn-px)] pb-2">
+              {/* 顶部工具条 / 搜索框到下面「百科对象切换」之间统一 12px，
+                  和其他产品「工具条→第一项」的距离对齐。 */}
               {usesProductHeaderLayout(navVersion) && (
                 searchToolbarLayout ? (
+                  <div className="mb-3">
                   <SideNavSearchToolbar
                     value={navSearch}
                     onChange={setNavSearch}
@@ -442,7 +486,9 @@ export function WikiSideNav({
                     placeholder="搜索"
                     ariaLabel="搜索百科内容"
                   />
-                ) : navVersion === 2 ? (
+                  </div>
+                ) : usesToolbarHeaderLayout(navVersion) ? (
+                  <div className="mb-3">
                   <UnifiedToolbar
                     ariaLabel="百科工具条"
                     actions={WIKI_SCHEME_TWO_TOOLBAR_ACTIONS}
@@ -462,13 +508,19 @@ export function WikiSideNav({
                       toast(action === 'search' ? '搜索百科内容（演示）' : '任务入口待配置')
                     }}
                   />
+                  </div>
                 ) : (
                   <SideNavProductHeader
                     icon="/icons/nav-products/wiki.svg"
                     productLabel="百科"
                     onLogoClick={onBackHome}
                     bottomGap={0}
-                    onToggle={onCollapse ?? (() => {})}
+                    /* 方案 8 收起入口统一在内容区左上角 */
+                    onToggle={
+                      usesContentToggleLayout(navVersion)
+                        ? undefined
+                        : onCollapse ?? (() => {})
+                    }
                   />
                 )
               )}
@@ -570,7 +622,7 @@ export function WikiSideNav({
         </nav>
         </SharedSideNav>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -605,13 +657,20 @@ export default function WikiEditorPage({
     <div className="flex h-full bg-white">
       {/* ── 中：文档编辑区 ── */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-10 shrink-0 items-center justify-between px-3">
+        {/* 内容区收起方案：入口钉在内容区左上角，压在这一行上。Header 统一
+            40 高、左内距 48，和其他产品在同一条水平线上。 */}
+        <div
+          className={`flex h-10 shrink-0 items-center justify-between pr-3 ${
+            usesContentToggleLayout(navVersion) ? 'pl-12' : 'pl-3'
+          }`}
+        >
           <div className="flex items-center gap-1">
             {sidebarCollapsed &&
               navVersion !== 1 &&
-              navVersion !== 2 &&
+              !usesToolbarHeaderLayout(navVersion) &&
               navVersion !== 3 &&
-              navVersion !== 6 && (
+              navVersion !== 6 &&
+              !usesContentToggleLayout(navVersion) && (
               <button
                 type="button"
                 title="展开导航"
