@@ -237,6 +237,10 @@ export default function XiahuaMascot3DStudio({
       }
       resize()
       window.addEventListener('resize', resize)
+      // 预览在左右布局里是弹性的：右栏折叠、面板拖宽都不触发 window.resize，
+      // 只盯窗口的话画面会被拉伸。
+      const boxObserver = new ResizeObserver(resize)
+      boxObserver.observe(mount)
 
       const loader = new GLTFLoader()
       loader.load(
@@ -293,6 +297,7 @@ export default function XiahuaMascot3DStudio({
         active = false
         cancelAnimationFrame(frame)
         window.removeEventListener('resize', resize)
+        boxObserver.disconnect()
         runtimeRef.current = null
         if (runtime?.model) {
           runtime.model.traverse((node: ThreeNode) => {
@@ -397,10 +402,13 @@ export default function XiahuaMascot3DStudio({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[var(--color-surface-0)]">
-      <div className="thin-scroll min-h-0 flex-1 overflow-y-auto p-3">
+    // 左右布局：预览占满左侧并随面板伸缩，参数与换装收进右侧独立滚动的栏
+    <div className="flex h-full min-h-0 bg-[var(--color-surface-0)]">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col p-3">
+        {/* 预览按比例居中，不跟着栏高拉成窄条 —— 这个面板可以很窄 */}
+        <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center">
         <div
-          className={`relative h-[330px] touch-none select-none overflow-hidden rounded-[14px] border border-black/10 ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          className={`relative aspect-[4/5] max-h-full w-full touch-none select-none overflow-hidden rounded-[14px] border border-black/10 ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
           style={{ perspective: '900px', background: BACKGROUNDS[state.background].css }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -428,7 +436,7 @@ export default function XiahuaMascot3DStudio({
                 src={activeOutfit.src}
                 alt={`${activeOutfit.label}换装效果`}
                 draggable={false}
-                className="h-[318px] w-[318px] object-contain transition-[filter,transform] duration-150"
+                className="h-full max-h-[420px] w-auto max-w-full object-contain transition-[filter,transform] duration-150"
                 style={{ transform: modelTransform, filter: `${modelFilter} drop-shadow(0 16px 12px rgba(0,0,0,.22))` }}
               />
             </div>
@@ -463,11 +471,12 @@ export default function XiahuaMascot3DStudio({
             Y {Math.round(state.yaw)}° · X {Math.round(state.pitch)}°
           </div>
         </div>
+        </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3 flex shrink-0 gap-2">
           <button
             type="button"
-            className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] bg-[#111111] text-[12px] font-semibold text-white shadow-sm hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-8 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] bg-[#111111] text-[12px] font-semibold text-white shadow-sm hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
             onClick={exportPng}
             disabled={!isOutfitPreview && modelStatus !== 'ready'}
           >
@@ -475,14 +484,17 @@ export default function XiahuaMascot3DStudio({
           </button>
           <button
             type="button"
-            className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] border border-[var(--divider-soft)] text-[12px] text-[var(--color-ink)]/70 hover:bg-[var(--fill-hover)]"
+            className="flex h-8 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] border border-[var(--divider-soft)] text-[12px] text-[var(--color-ink)]/70 hover:bg-[var(--fill-hover)]"
             onClick={reset}
           >
             <RotateCcw className="size-3.5" /> 重置视角
           </button>
         </div>
+      </div>
 
-        <div className="mt-3 rounded-[10px] border border-[var(--divider-soft)] bg-[var(--color-surface-1)] p-3">
+      {/* 面板窄的时候按比例让位，别把预览挤成一条 */}
+      <aside className="thin-scroll flex w-[268px] max-w-[46%] shrink-0 flex-col overflow-y-auto border-l border-[var(--divider-soft)] p-3">
+        <div className="rounded-[10px] border border-[var(--divider-soft)] bg-[var(--color-surface-1)] p-3">
           <div className="mb-3 flex items-center gap-1.5 text-[12px] font-semibold text-[var(--color-ink)]/75">
             <Box className="size-3.5 text-[var(--color-ink)]" /> 对象变换
           </div>
@@ -573,7 +585,7 @@ export default function XiahuaMascot3DStudio({
           <Download className="mt-0.5 size-3.5 shrink-0" />
           原始款保留真实 GLB 旋转与灯光；三套换装为参考 Figma 生成的造型预览，支持切换与 PNG 输出。
         </div>
-      </div>
+      </aside>
     </div>
   )
 }
