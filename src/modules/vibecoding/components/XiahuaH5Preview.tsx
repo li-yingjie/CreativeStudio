@@ -36,7 +36,12 @@ import {
 const TIER_ART = ['tier1', 'tier2', 'tier3', 'tier4'] as const
 const MORE_ACTIVITIES_CARD_SRC = '/assets/xiahua/more-activities-card.png'
 
-type Food = { id: string; name: string; motto: string; img?: string; imgGrey?: string }
+type Food = { id: string
+  name: string
+  motto: string
+  weight?: number
+  img?: string
+  imgGrey?: string }
 
 /** 由玩法配置派生的档位（含展示用 label 与图标 key）。 */
 type Tier = { need: number; label: string; reward: string; img: string }
@@ -110,7 +115,13 @@ function KvPiece({ src, layer }: { src: string; layer: KvLayer }) {
   )
 }
 
-function KvComposite({ preset, style }: { preset: ActivityPreset; style?: React.CSSProperties }) {
+function KvComposite({
+  preset,
+  style,
+}: {
+  preset: ActivityPreset
+  style?: React.CSSProperties
+}) {
   return (
     <div className="absolute h-[494px] w-full overflow-hidden" style={style}>
       {(preset.kvLayers ?? []).map((l) =>
@@ -122,7 +133,11 @@ function KvComposite({ preset, style }: { preset: ActivityPreset; style?: React.
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (
-          <KvPiece key={`${l.id}-${l.file}`} src={kvLayerSrc(preset, l)} layer={l} />
+          <KvPiece
+            key={`${l.id}-${l.file}`}
+            src={kvLayerSrc(preset, l)}
+            layer={l}
+          />
         ),
       )}
     </div>
@@ -176,9 +191,21 @@ function FoodCardFace({
 
 /* ─── 大卡卡面：火锅有专属大卡图，其余品类放大专属中卡 ─── */
 
-function BigCardFace({ food, bigCardSrc }: { food: Food; bigCardSrc?: string }) {
+function BigCardFace({
+  food,
+  bigCardSrc,
+}: {
+  food: Food
+  bigCardSrc?: string
+}) {
   if (bigCardSrc) {
-    return <ImgOrPlaceholder src={bigCardSrc} label={food.name} className="h-full w-full" />
+    return (
+      <ImgOrPlaceholder
+        src={bigCardSrc}
+        label={food.name}
+        className="h-full w-full"
+      />
+    )
   }
   return <FoodCardFace food={food} owned className="h-full w-full" />
 }
@@ -209,7 +236,10 @@ function InsertedBlock({
       </div>
     )
   return (
-    <div style={style} className="flex items-center justify-center px-3 text-[15px] font-semibold text-white">
+    <div
+      style={style}
+      className="flex items-center justify-center px-3 text-[15px] font-semibold text-white"
+    >
       {ins.text ?? '新文本'}
     </div>
   )
@@ -218,7 +248,9 @@ function InsertedBlock({
 /** 编辑态画板铺开的关键页面。 */
 export type XiahuaScreen = 'main' | 'result' | 'cards' | 'redeem' | 'rules'
 
-export function activityScreens(p: ActivityPreset): { id: XiahuaScreen; label: string; desc: string }[] {
+export function activityScreens(
+  p: ActivityPreset,
+): { id: XiahuaScreen; label: string; desc: string }[] {
   const c = p.copy.screens
   return [
     { id: 'main', label: c.main, desc: '可编辑 · 集卡与入口' },
@@ -292,17 +324,29 @@ function XiahuaH5PreviewBase({
   const pickedAsset = (key: string) => {
     if (wireframe) return ''
     const sources = assetVariants(ps, key)
-    return sources[Math.min(picks?.[key] ?? 0, Math.max(0, sources.length - 1))] ?? sources[0]
+    return (
+      sources[Math.min(picks?.[key] ?? 0, Math.max(0, sources.length - 1))] ??
+      sources[0]
+    )
   }
   /** 卡池：玩法定义 id/文案，UI 层补卡面素材。 */
   const FOODS: Food[] = useMemo(
     () =>
-      gp.cards.map((c) => {
-        if (wireframe) return { ...c }
-        const art = cardArtVariants(ps, c.id)
-        const pick = Math.min(picks?.[`card-${c.id}`] ?? 0, art.img.length - 1)
-        return { ...c, img: art.img[pick] ?? art.img[0], imgGrey: art.grey[0] }
-      }),
+      gp.cards
+        .filter((card) => card.enabled !== false)
+        .map((c) => {
+          if (wireframe) return { ...c }
+          const art = cardArtVariants(ps, c.id)
+          const pick = Math.min(
+            picks?.[`card-${c.id}`] ?? 0,
+            art.img.length - 1,
+          )
+          return {
+            ...c,
+            img: art.img[pick] ?? art.img[0],
+            imgGrey: art.grey[0],
+          }
+        }),
     [gp.cards, ps, picks, wireframe],
   )
   /** 档位：按 need 排序，图标按序取。 */
@@ -328,14 +372,21 @@ function XiahuaH5PreviewBase({
     })
     return seed
   })
-  const [draws, setDraws] = useState(() => (gameplay ?? (preset ?? XIAHUA_PRESET).gameplay).draw.initialChances)
-  const [stage, setStage] = useState<string>(ps.stages[ps.stages.length - 1]?.id ?? '')
+  const [draws, setDraws] = useState(
+    () => (gameplay ?? (preset ?? XIAHUA_PRESET).gameplay).draw.initialChances,
+  )
+  const [repeatStreak, setRepeatStreak] = useState(0)
+  const [stage, setStage] = useState<string>(
+    ps.stages[ps.stages.length - 1]?.id ?? '',
+  )
   const [claimed, setClaimed] = useState<Record<number, boolean>>({})
   const [overlay, setOverlay] = useState<Overlay>({ kind: 'none' })
 
   /* 画布拖动的位置偏移（设计稿 px）。拖动中本地更新，松手后经
    * onOffsetsCommit 提交给编辑面板，面板重置时经 overrides 同步回来。 */
-  const [offsets, setOffsets] = useState<Record<string, { x: number; y: number; s?: number }>>({})
+  const [offsets, setOffsets] = useState<
+    Record<string, { x: number; y: number; s?: number }>
+  >({})
   const dragRef = useRef<{
     id: string
     mode: 'move' | 'resize'
@@ -381,7 +432,9 @@ function XiahuaH5PreviewBase({
     return {
       left: baseX + (o?.x ?? 0),
       top: baseY + (o?.y ?? 0),
-      ...(s !== 1 ? { transform: `scale(${s})`, transformOrigin: 'top left' } : {}),
+      ...(s !== 1
+        ? { transform: `scale(${s})`, transformOrigin: 'top left' }
+        : {}),
     }
   }
   /** 搭建阶段门禁：未到该阶段的部分先不渲染。 */
@@ -437,18 +490,43 @@ function XiahuaH5PreviewBase({
   /* 抽卡：未拥有的品类权重更高，保证集卡有推进感 */
   const startDraw = useCallback(() => {
     if (overlay.kind !== 'none') return
-    if (draws <= 0) {
-      showToast('抽卡机会用完啦，去做任务赚机会吧')
+    if (!FOODS.length) {
+      showToast('卡池没有启用内容，请先完成配置')
       return
     }
-    setDraws((d) => d - 1)
+    const drawCost = gp.modules?.lottery.costPerDraw ?? 1
+    if (draws < drawCost) {
+      showToast(
+        gp.copy.chancesInsufficient ?? '抽卡机会用完啦，去做任务赚机会吧')
+      return
+    }
+    setDraws((d) => Math.max(0, d - drawCost))
     setOverlay({ kind: 'drawing' })
     const unowned = FOODS.filter((f) => !(owned[f.id] ?? 0))
-    const pool = unowned.length && Math.random() < gp.draw.newCardBias ? unowned : FOODS
-    const food = pool[Math.floor(Math.random() * pool.length)]
+    const pityAfter = gp.modules?.lottery.pityAfter ?? 6
+    const forceNew = unowned.length > 0 && repeatStreak >= pityAfter - 1
+    const duplicateAllowed = gp.modules?.lottery.allowDuplicate ?? true
+    const pool = unowned.length &&
+      (!duplicateAllowed || forceNew || Math.random() < gp.draw.newCardBias)
+        ? unowned : FOODS
+    const totalWeight = pool.reduce(
+      (sum, item) => sum + (item.weight ?? 100),
+      0,
+    )
+    let cursor = Math.random() * totalWeight
+    const food =
+      pool.find((item) => {
+        cursor -= item.weight ?? 100
+        return cursor <= 0
+      }) ?? pool[pool.length - 1]
     const isNew = !(owned[food.id] ?? 0)
+    setRepeatStreak((current) => (isNew ? 0 : current + 1))
     window.setTimeout(() => setOverlay({ kind: 'result', food, isNew }), 1750)
-  }, [draws, overlay.kind, owned, showToast, FOODS, gp.draw.newCardBias])
+  }, [draws, overlay.kind, owned, showToast, FOODS, gp.copy.chancesInsufficient,
+    gp.draw.newCardBias,
+    gp.modules?.lottery,
+    repeatStreak,
+  ])
 
   const acceptResult = useCallback(() => {
     if (overlay.kind !== 'result') return
@@ -477,10 +555,14 @@ function XiahuaH5PreviewBase({
         if (n < gp.gift.minHold) return prev
         return { ...prev, [food.id]: n - 1 }
       })
-      if ((owned[food.id] ?? 0) < gp.gift.minHold) showToast('留一张给自己，送不了啦')
-      else showToast(`已把「${food.name}」送给好友，领取后生效`)
+      if ((owned[food.id] ?? 0) < gp.gift.minHold)
+        showToast('留一张给自己，送不了啦')
+      else
+        showToast(
+          `「${food.name}」${gp.copy.giftSuccess ?? '已送给好友，领取后生效'}`,
+        )
     },
-    [owned, showToast, gp.gift.minHold],
+    [owned, showToast, gp.copy.giftSuccess, gp.gift.minHold],
   )
 
   const ownedList = FOODS.filter((f) => (owned[f.id] ?? 0) > 0)
@@ -506,7 +588,9 @@ function XiahuaH5PreviewBase({
         background: TH.bg,
         // 线框态 = 黑白线框图：素材位已全部置空，整层去色 + 反相后，
         // 深色活动皮肤变浅灰底、白字变深字、彩色按钮变中灰 —— 只剩版式。
-        ...(wireframe ? { filter: 'grayscale(1) invert(0.92) contrast(1.02)' } : {}),
+        ...(wireframe
+          ? { filter: 'grayscale(1) invert(0.92) contrast(1.02)' }
+          : {}),
       }}
     >
       {/* ── 可滚动页面 ── */}
@@ -523,256 +607,467 @@ function XiahuaH5PreviewBase({
           <div className="relative w-full">
             {/* 头部 KV（含阶段 tab、深夜食堂场景） */}
             <div className="relative h-[668px] w-full">
-              {has('kv') && !isHidden('kv') && (
+              {has('kv') &&
+                !isHidden('kv') &&
                 // v1 默认态 = 多素材图层合成；挑了整图候选（v2+）或线框态才退回单图
-                !wireframe && (picks?.headKv ?? 0) === 0 && ps.kvLayers ? (
+                (!wireframe && (picks?.headKv ?? 0) === 0 && ps.kvLayers ? (
                   <KvComposite preset={ps} style={pos('kv', 0, 0)} />
                 ) : (
-                  <ImgOrPlaceholder src={pickedAsset('headKv')} label="头图 KV" className="absolute h-[494px] w-full object-cover" style={pos('kv', 0, 0)} />
-                )
-              )}
+                  <ImgOrPlaceholder
+                    src={pickedAsset('headKv')}
+                    label="头图 KV"
+                    className="absolute h-[494px] w-full object-cover"
+                    style={pos('kv', 0, 0)}
+                  />
+                ))}
               {/* 标题字压在 KV 上（透明底），位置对齐设计稿 1:4914 */}
               {has('title') && !isHidden('title') && (
-              <ImgOrPlaceholder src={pickedAsset('title')} label="活动标题" className="absolute h-[68px] w-[247px] object-contain" style={pos('title', 74, 25)} />
+                <ImgOrPlaceholder
+                  src={pickedAsset('title')}
+                  label="活动标题"
+                  className="absolute h-[68px] w-[247px] object-contain"
+                  style={pos('title', 74, 25)}
+                />
               )}
 
               {/* 阶段 Tab — 设计稿 1:4902：半透明棕底容器 + 选中态白胶囊 */}
               {has('title') && !isHidden('stage-tabs') && (
-              <div className="absolute flex h-[28px] w-[185px] items-center rounded-full p-[3px] backdrop-blur-[2px]" style={{ ...pos('stage-tabs', 94, 126), background: TH.tabBar }}>
-                {STAGES.map((s) => {
-                  const active = s.id === stage
-                  return (
-                    <button
-                      key={s.id}
-                      className={`flex h-[22px] cursor-pointer items-center justify-center gap-[3px] rounded-full text-[13px] transition-colors ${
+                <div
+                  className="absolute flex h-[28px] w-[185px] items-center rounded-full p-[3px] backdrop-blur-[2px]"
+                  style={{
+                    ...pos('stage-tabs', 94, 126),
+                    background: TH.tabBar,
+                  }}
+                >
+                  {STAGES.map((s) => {
+                    const active = s.id === stage
+                    return (
+                      <button
+                        key={s.id}
+                        className={`flex h-[22px] cursor-pointer items-center justify-center gap-[3px] rounded-full text-[13px] transition-colors ${
                         active ? 'bg-white font-semibold' : 'font-medium'
                       }`}
-                      style={{ width: s.w, color: active ? TH.tabActiveText : TH.tabIdleText }}
-                      onClick={() => {
-                        if (s.locked) showToast('该阶段尚未解锁，敬请期待')
-                        else setStage(s.id)
-                      }}
-                    >
-                      {s.locked && (
-                        <svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor" className="shrink-0">
-                          <rect x="0" y="4" width="9" height="6" rx="1.5" />
-                          <path d="M2 4V3a2.5 2.5 0 0 1 5 0v1" fill="none" stroke="currentColor" strokeWidth="1.4" />
-                        </svg>
-                      )}
-                      {s.label}
-                    </button>
-                  )
-                })}
-              </div>
+                        style={{
+                          width: s.w,
+                          color: active ? TH.tabActiveText : TH.tabIdleText,
+                        }}
+                        onClick={() => {
+                          if (s.locked) showToast('该阶段尚未解锁，敬请期待')
+                          else setStage(s.id)
+                        }}
+                      >
+                        {s.locked && (
+                          <svg
+                            width="9"
+                            height="10"
+                            viewBox="0 0 9 10"
+                            fill="currentColor"
+                            className="shrink-0"
+                          >
+                            <rect x="0" y="4" width="9" height="6" rx="1.5" />
+                            <path
+                              d="M2 4V3a2.5 2.5 0 0 1 5 0v1"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.4"
+                            />
+                          </svg>
+                        )}
+                        {s.label}
+                      </button>
+                    )
+                  })}
+                </div>
               )}
 
               {/* 分享 / 规则侧栏 — 设计稿 1:5325：两枚半透明胶囊贴右边缘 */}
               {has('title') && !isHidden('rail') && (
-              <div className="absolute flex w-[24px] flex-col gap-[6px]" style={pos('rail', 351, 97)}>
-                <button className={railCls} style={railStyle} onClick={() => showToast('分享链接已复制')}>
-                  <span>分</span>
-                  <span>享</span>
-                </button>
-                <button className={railCls} style={railStyle} onClick={() => setOverlay({ kind: 'rules' })}>
-                  <span>规</span>
-                  <span>则</span>
-                </button>
-              </div>
+                <div
+                  className="absolute flex w-[24px] flex-col gap-[6px]"
+                  style={pos('rail', 351, 97)}
+                >
+                  <button
+                    className={railCls}
+                    style={railStyle}
+                    onClick={() => showToast('分享链接已复制')}
+                  >
+                    <span>分</span>
+                    <span>享</span>
+                  </button>
+                  <button
+                    className={railCls}
+                    style={railStyle}
+                    onClick={() => setOverlay({ kind: 'rules' })}
+                  >
+                    <span>规</span>
+                    <span>则</span>
+                  </button>
+                </div>
               )}
 
               {/* 主 CTA：抽夏日夜食 — 外层承载画布变换，内层留给 framer 动效 */}
               {has('actions') && !isHidden('btn-draw') && (
-              <div className="absolute h-[50px] w-[207px]" style={pos('btn-draw', 84, 375)}>
-              <motion.button
-                whileTap={{ scale: 0.94 }}
-                className="relative h-full w-full cursor-pointer"
-                onClick={startDraw}
-              >
-                <motion.div
-                  className="h-full w-full"
-                  animate={readOnly ? undefined : { scale: [1, 1.04, 1] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                <div
+                  className="absolute h-[50px] w-[207px]"
+                  style={pos('btn-draw', 84, 375)}
                 >
-                  <ImgOrPlaceholder src={pickedAsset('btnDraw')} label="抽卡按钮" className="h-full w-full rounded-full" />
-                </motion.div>
-                {/* 剩余次数角标 — 设计稿 1:4891：(178,-6) 29×18 */}
-                <span className="absolute left-[178px] top-[-6px] flex h-[18px] min-w-[29px] items-center justify-center rounded-full border-2 border-white bg-[#a2ff37] px-1 text-[11px] font-bold text-[#3d6b00]">
-                  {draws}
-                </span>
-              </motion.button>
-              </div>
+                  <motion.button
+                    whileTap={{ scale: 0.94 }}
+                    className="relative h-full w-full cursor-pointer"
+                    onClick={startDraw}
+                  >
+                    <motion.div
+                      className="h-full w-full"
+                      animate={readOnly ? undefined : { scale: [1, 1.04, 1] }}
+                      transition={{
+                        duration: 1.6,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                    >
+                      <ImgOrPlaceholder
+                        src={pickedAsset('btnDraw')}
+                        label="抽卡按钮"
+                        className="h-full w-full rounded-full"
+                      />
+                    </motion.div>
+                    {/* 剩余次数角标 — 设计稿 1:4891：(178,-6) 29×18 */}
+                    <span className="absolute left-[178px] top-[-6px] flex h-[18px] min-w-[29px] items-center justify-center rounded-full border-2 border-white bg-[#a2ff37] px-1 text-[11px] font-bold text-[#3d6b00]">
+                      {draws}
+                    </span>
+                  </motion.button>
+                </div>
               )}
 
               {/* 我的夜食 / 我的奖品 */}
               {has('actions') && !isHidden('btn-my-cards') && (
-              <button className="absolute h-[42px] w-[56px] cursor-pointer active:brightness-90" style={pos('btn-my-cards', 0, 379)} onClick={() => setOverlay({ kind: 'cards' })}>
-                <ImgOrPlaceholder src={A.btnMyCards} label={ps.copy.screens.cards} className="h-full w-full" />
-              </button>
+                <button
+                  className="absolute h-[42px] w-[56px] cursor-pointer active:brightness-90"
+                  style={pos('btn-my-cards', 0, 379)}
+                  onClick={() => setOverlay({ kind: 'cards' })}
+                >
+                  <ImgOrPlaceholder
+                    src={A.btnMyCards}
+                    label={ps.copy.screens.cards}
+                    className="h-full w-full"
+                  />
+                </button>
               )}
               {has('actions') && !isHidden('btn-my-prizes') && (
-              <button className="absolute h-[42px] w-[56px] cursor-pointer active:brightness-90" style={pos('btn-my-prizes', 319, 379)} onClick={() => setOverlay({ kind: 'prizes' })}>
-                <ImgOrPlaceholder src={A.btnMyPrizes} label="我的奖品" className="h-full w-full" />
-              </button>
+                <button
+                  className="absolute h-[42px] w-[56px] cursor-pointer active:brightness-90"
+                  style={pos('btn-my-prizes', 319, 379)}
+                  onClick={() => setOverlay({ kind: 'prizes' })}
+                >
+                  <ImgOrPlaceholder
+                    src={A.btnMyPrizes}
+                    label="我的奖品"
+                    className="h-full w-full"
+                  />
+                </button>
               )}
 
               {/* ── 集卡面板 ── */}
               {has('collect') && (
-              <div className="absolute left-[10px] top-[438px] h-[230px] w-[355px]">
-                <ImgOrPlaceholder src={pickedAsset('panelBg')} label="集卡面板底" className="absolute left-0 top-0 h-[150px] w-full" />
+                <div className="absolute left-[10px] top-[438px] h-[230px] w-[355px]">
+                  <ImgOrPlaceholder
+                    src={pickedAsset('panelBg')}
+                    label="集卡面板底"
+                    className="absolute left-0 top-0 h-[150px] w-full"
+                  />
 
-                {/* 进度文案 — 编组承载画布变换（面板坐标 16,18） */}
-                <div className="absolute h-[38px] w-[150px]" style={pos('collect-info', 16, 18)}>
-                  <div className="absolute left-0 top-0 whitespace-nowrap text-[16px] font-bold text-white">
-                    {(() => {
-                      const { main } = renderProgress(gp.copy, remaining, nextTier?.reward, FOODS.length)
-                      // 模板里的数字高亮成红色（对齐设计稿）
-                      const parts = main.split(String(remaining))
-                      return nextTier && parts.length === 2 ? (
-                        <>
-                          {parts[0]}
-                          <span className="px-[1px]" style={{ color: TH.accent }}>{remaining}</span>
-                          {parts[1]}
-                        </>
-                      ) : (
-                        main
-                      )
-                    })()}
+                  {/* 进度文案 — 编组承载画布变换（面板坐标 16,18） */}
+                  <div
+                    className="absolute h-[38px] w-[150px]"
+                    style={pos('collect-info', 16, 18)}
+                  >
+                    <div className="absolute left-0 top-0 whitespace-nowrap text-[16px] font-bold text-white">
+                      {(() => {
+                        const { main } = renderProgress(
+                          gp.copy,
+                          remaining,
+                          nextTier?.reward,
+                          FOODS.length,
+                        )
+                        // 模板里的数字高亮成红色（对齐设计稿）
+                        const parts = main.split(String(remaining))
+                        return nextTier && parts.length === 2 ? (
+                          <>
+                            {parts[0]}
+                            <span
+                              className="px-[1px]"
+                              style={{ color: TH.accent }}
+                            >
+                              {remaining}
+                            </span>
+                            {parts[1]}
+                          </>
+                        ) : (
+                          main
+                        )
+                      })()}
+                    </div>
+                    <p
+                      className="absolute left-0 top-[21px] whitespace-nowrap text-[12px]"
+                      style={{ color: TH.subText }}
+                    >
+                      {
+                        renderProgress(
+                          gp.copy,
+                          remaining,
+                          nextTier?.reward,
+                          FOODS.length,
+                        ).sub
+                      }
+                    </p>
                   </div>
-                  <p className="absolute left-0 top-[21px] whitespace-nowrap text-[12px]" style={{ color: TH.subText }}>
-                    {renderProgress(gp.copy, remaining, nextTier?.reward, FOODS.length).sub}
-                  </p>
-                </div>
 
-                {/* 奖励档位 — 设计稿 1:4996/5028/5071/5058：中心固定在
+                  {/* 奖励档位 — 设计稿 1:4996/5028/5071/5058：中心固定在
                     137/197/257/317（编组内 26/86/146/206），待领取的一档
                     放大到 52px 并上移。编组承载画布变换。 */}
-                <div className="absolute h-[64px] w-[232px]" style={pos('tier-row', 111, -14)}>
-                {TIERS.map((t, i) => {
-                  const reached = kinds >= t.need
-                  const isClaimed = !!claimed[t.need]
-                  const claimable = reached && !isClaimed
-                  const size = claimable ? 52 : 44
-                  return (
-                    <button
-                      key={t.need}
-                      className={`absolute flex flex-col items-center ${claimable ? 'cursor-pointer' : 'cursor-default'}`}
-                      style={{ left: 26 + i * 60 - size / 2, top: claimable ? 0 : 12 }}
-                      onClick={() => claimable && setOverlay({ kind: 'redeem', tier: t })}
-                    >
-                      <motion.div
-                        style={{ width: size, height: size, opacity: isClaimed ? 0.5 : 1 }}
-                        animate={claimable && !readOnly ? { y: [0, -3, 0] } : {}}
-                        transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut' }}
-                      >
-                        <ImgOrPlaceholder
-                          src={pickedAsset(t.img)}
-                          label={t.reward}
-                          className="h-full w-full rounded-full object-contain"
-                        />
-                      </motion.div>
-                      <span className="mt-[-2px] flex h-[14px] items-center gap-[2px] whitespace-nowrap text-[11px] font-semibold text-[#ffd2a4]">
-                        {isClaimed ? (
-                          <>✓ 已领</>
-                        ) : claimable ? (
-                          <span className="rounded-full bg-gradient-to-b from-[#ff5a36] to-[#f52b0f] px-2 py-[1px] text-white">领取</span>
-                        ) : (
-                          <>
-                            <svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor" opacity="0.9"><rect x="0" y="4" width="9" height="6" rx="1.5"/><path d="M2 4V3a2.5 2.5 0 0 1 5 0v1" fill="none" stroke="currentColor" strokeWidth="1.4"/></svg>
-                            {t.label}
-                          </>
-                        )}
-                      </span>
-                    </button>
-                  )
-                })}
-                </div>
-
-                {/* 卡槽横条：9 格，未获得为石膏态 */}
-                <div className="absolute w-[347px] overflow-x-auto rounded-[16px] px-[8px] py-[6px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={pos('card-strip', 4, 64)}>
-                  <div className="flex w-max items-center gap-[4px]">
-                    {FOODS.map((f) => {
-                      const n = owned[f.id] ?? 0
+                  <div
+                    className="absolute h-[64px] w-[232px]"
+                    style={pos('tier-row', 111, -14)}
+                  >
+                    {TIERS.map((t, i) => {
+                      const reached = kinds >= t.need
+                      const isClaimed = !!claimed[t.need]
+                      const claimable = reached && !isClaimed
+                      const size = claimable ? 52 : 44
                       return (
-                        <motion.div
-                          key={f.id}
-                          className="relative h-[70px] w-[60px] shrink-0 cursor-pointer overflow-hidden rounded-[8px]"
-                          animate={
-                            justLit === f.id
-                              ? { scale: [1, 1.22, 1], rotate: [0, -4, 4, 0] }
-                              : {}
+                        <button
+                          key={t.need}
+                          className={`absolute flex flex-col items-center ${claimable ? 'cursor-pointer' : 'cursor-default'}`}
+                          style={{
+                            left: 26 + i * 60 - size / 2,
+                            top: claimable ? 0 : 12,
+                          }}
+                          onClick={() =>
+                            claimable && setOverlay({ kind: 'redeem', tier: t })
                           }
-                          transition={{ duration: 0.7 }}
-                          onClick={() => setOverlay({ kind: 'cards' })}
                         >
-                          <FoodCardFace food={f} owned={n > 0} className="h-full w-full" />
-                          {n > 1 && (
-                            <span className="absolute right-[2px] top-[2px] rounded-full bg-[#ff2e1a] px-[5px] text-[10px] font-bold leading-[14px] text-white">
-                              x{n}
-                            </span>
-                          )}
-                          {justLit === f.id && (
-                            <motion.div
-                              className="pointer-events-none absolute inset-0 rounded-[8px]"
-                              initial={{ boxShadow: '0 0 0 0 rgba(255,214,120,0)' }}
-                              animate={{ boxShadow: ['0 0 18px 6px rgba(255,214,120,0.9)', '0 0 0 0 rgba(255,214,120,0)'] }}
-                              transition={{ duration: 1.4 }}
+                          <motion.div
+                            style={{
+                              width: size,
+                              height: size,
+                              opacity: isClaimed ? 0.5 : 1,
+                            }}
+                            animate={
+                              claimable && !readOnly ? { y: [0, -3, 0] } : {}
+                            }
+                            transition={{
+                              duration: 0.9,
+                              repeat: Infinity,
+                              ease: 'easeInOut',
+                            }}
+                          >
+                            <ImgOrPlaceholder
+                              src={pickedAsset(t.img)}
+                              label={t.reward}
+                              className="h-full w-full rounded-full object-contain"
                             />
-                          )}
-                        </motion.div>
+                          </motion.div>
+                          <span className="mt-[-2px] flex h-[14px] items-center gap-[2px] whitespace-nowrap text-[11px] font-semibold text-[#ffd2a4]">
+                            {isClaimed ? (
+                              <>✓ 已领</>
+                            ) : claimable ? (
+                              <span className="rounded-full bg-gradient-to-b from-[#ff5a36] to-[#f52b0f] px-2 py-[1px] text-white">
+                                领取
+                              </span>
+                            ) : (
+                              <>
+                                <svg
+                                  width="9"
+                                  height="10"
+                                  viewBox="0 0 9 10"
+                                  fill="currentColor"
+                                  opacity="0.9"
+                                >
+                                  <rect
+                                    x="0"
+                                    y="4"
+                                    width="9"
+                                    height="6"
+                                    rx="1.5"
+                                  />
+                                  <path
+                                    d="M2 4V3a2.5 2.5 0 0 1 5 0v1"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.4"
+                                  />
+                                </svg>
+                                {t.label}
+                              </>
+                            )}
+                          </span>
+                        </button>
                       )
                     })}
                   </div>
-                </div>
 
-                {/* 金豆条（导出整图 + 热区） */}
-                <div className="absolute h-[72px] w-full" style={pos('bean-bar', 0, 158)}>
-                  <ImgOrPlaceholder src={pickedAsset('beanBar')} label="任务条底" className="h-full w-full" />
-                  <button
-                    className="absolute right-[10px] top-[14px] h-[44px] w-[64px] cursor-pointer"
-                    aria-label="接金豆"
-                    onClick={() => showToast('接金豆玩法在下一阶段开启，敬请期待')}
-                  />
+                  {/* 卡槽横条：9 格，未获得为石膏态 */}
+                  <div
+                    className="absolute w-[347px] overflow-x-auto rounded-[16px] px-[8px] py-[6px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    style={pos('card-strip', 4, 64)}
+                  >
+                    <div className="flex w-max items-center gap-[4px]">
+                      {FOODS.map((f) => {
+                        const n = owned[f.id] ?? 0
+                        return (
+                          <motion.div
+                            key={f.id}
+                            className="relative h-[70px] w-[60px] shrink-0 cursor-pointer overflow-hidden rounded-[8px]"
+                            animate={
+                              justLit === f.id
+                                ? { scale: [1, 1.22, 1], rotate: [0, -4, 4, 0] }
+                                : {}
+                            }
+                            transition={{ duration: 0.7 }}
+                            onClick={() => setOverlay({ kind: 'cards' })}
+                          >
+                            <FoodCardFace
+                              food={f}
+                              owned={n > 0}
+                              className="h-full w-full"
+                            />
+                            {n > 1 && (
+                              <span className="absolute right-[2px] top-[2px] rounded-full bg-[#ff2e1a] px-[5px] text-[10px] font-bold leading-[14px] text-white">
+                                x{n}
+                              </span>
+                            )}
+                            {justLit === f.id && (
+                              <motion.div
+                                className="pointer-events-none absolute inset-0 rounded-[8px]"
+                                initial={{
+                                  boxShadow: '0 0 0 0 rgba(255,214,120,0)',
+                                }}
+                                animate={{
+                                  boxShadow: [
+                                    '0 0 18px 6px rgba(255,214,120,0.9)',
+                                    '0 0 0 0 rgba(255,214,120,0)',
+                                  ],
+                                }}
+                                transition={{ duration: 1.4 }}
+                              />
+                            )}
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 金豆条（导出整图 + 热区） */}
+                  <div
+                    className="absolute h-[72px] w-full"
+                    style={pos('bean-bar', 0, 158)}
+                  >
+                    <ImgOrPlaceholder
+                      src={pickedAsset('beanBar')}
+                      label="任务条底"
+                      className="h-full w-full"
+                    />
+                    <button
+                      className="absolute right-[10px] top-[14px] h-[44px] w-[64px] cursor-pointer"
+                      aria-label="接金豆"
+                      onClick={() =>
+                        showToast('接金豆玩法在下一阶段开启，敬请期待')
+                      }
+                    />
+                  </div>
                 </div>
-              </div>
               )}
             </div>
 
             {/* ── 下半屏：按 buildFlow 的槽位顺序渲染，插入 / 删除后自动顺延 ── */}
-            {has('sections') && slots.map((slot) => {
-              const mt = { marginTop: slot.gap }
-              if (slot.ins) return <InsertedBlock key={slot.id} ins={slot.ins} style={{ ...mt, ...mvFlow(slot.id) }} />
-              if (slot.id === 'sec-tasks')
-                return (
-                  <div key={slot.id} className="relative h-[449px] w-full" style={{ ...mt, ...mvFlow('sec-tasks') }}>
-                    <ImgOrPlaceholder src={pickedAsset('secTasks')} label="任务区" className="block h-full w-full" />
-                    {/* 去投稿 ×2 / 去赠送 — 位置按设计稿比例落点 */}
-                    <button className="absolute left-[6.4%] top-[46.5%] h-[7%] w-[19%] cursor-pointer" aria-label="去投稿" onClick={() => showToast('投稿任务完成！+2 次抽卡机会')} />
-                    <button className="absolute left-[91%] top-[46.5%] h-[7%] w-[9%] cursor-pointer" aria-label="去投稿" onClick={() => showToast('投稿任务完成！+2 次抽卡机会')} />
-                    <button className="absolute left-[73%] top-[62%] h-[6.5%] w-[21%] cursor-pointer" aria-label="去赠送" onClick={() => setOverlay({ kind: 'cards' })} />
-                  </div>
-                )
-              if (slot.id === 'sec-topics')
-                return <ImgOrPlaceholder key={slot.id} src={pickedAsset('secTopics')} label="话题区" className="block h-[317px] w-full" style={{ ...mt, ...mvFlow('sec-topics') }} />
-              if (slot.id === 'sec-banner')
-                return (
-                  <div key={slot.id} className="relative h-[158px] w-full" style={{ ...mt, ...mvFlow('sec-banner') }}>
-                    <ImgOrPlaceholder src={pickedAsset('secBanner')} label="底部 banner" className="block h-full w-full" />
-                    {ps.id === 'xiahua' && !wireframe && (
-                      <img
-                        src={MORE_ACTIVITIES_CARD_SRC}
-                        alt="更多精彩活动卡片"
-                        className="pointer-events-none absolute left-[12px] top-[68px] h-[90px] w-[351px] rounded-[12px] object-cover"
-                        draggable={false}
+            {has('sections') &&
+              slots.map((slot) => {
+                const mt = { marginTop: slot.gap }
+                if (slot.ins)
+                  return (
+                    <InsertedBlock
+                      key={slot.id}
+                      ins={slot.ins}
+                      style={{ ...mt, ...mvFlow(slot.id) }}
+                    />
+                  )
+                if (slot.id === 'sec-tasks')
+                  return (
+                    <div
+                      key={slot.id}
+                      className="relative h-[449px] w-full"
+                      style={{ ...mt, ...mvFlow('sec-tasks') }}
+                    >
+                      <ImgOrPlaceholder
+                        src={pickedAsset('secTasks')}
+                        label="任务区"
+                        className="block h-full w-full"
                       />
-                    )}
+                      {/* 去投稿 ×2 / 去赠送 — 位置按设计稿比例落点 */}
+                      <button
+                        className="absolute left-[6.4%] top-[46.5%] h-[7%] w-[19%] cursor-pointer"
+                        aria-label="去投稿"
+                        onClick={() => showToast('投稿任务完成！+2 次抽卡机会')}
+                      />
+                      <button
+                        className="absolute left-[91%] top-[46.5%] h-[7%] w-[9%] cursor-pointer"
+                        aria-label="去投稿"
+                        onClick={() => showToast('投稿任务完成！+2 次抽卡机会')}
+                      />
+                      <button
+                        className="absolute left-[73%] top-[62%] h-[6.5%] w-[21%] cursor-pointer"
+                        aria-label="去赠送"
+                        onClick={() => setOverlay({ kind: 'cards' })}
+                      />
+                    </div>
+                  )
+                if (slot.id === 'sec-topics')
+                  return (
+                    <ImgOrPlaceholder
+                      key={slot.id}
+                      src={pickedAsset('secTopics')}
+                      label="话题区"
+                      className="block h-[317px] w-full"
+                      style={{ ...mt, ...mvFlow('sec-topics') }}
+                    />
+                  )
+                if (slot.id === 'sec-banner')
+                  return (
+                    <div
+                      key={slot.id}
+                      className="relative h-[158px] w-full"
+                      style={{ ...mt, ...mvFlow('sec-banner') }}
+                    >
+                      <ImgOrPlaceholder
+                        src={pickedAsset('secBanner')}
+                        label="底部 banner"
+                        className="block h-full w-full"
+                      />
+                      {ps.id === 'xiahua' && !wireframe && (
+                        <img
+                          src={MORE_ACTIVITIES_CARD_SRC}
+                          alt="更多精彩活动卡片"
+                          className="pointer-events-none absolute left-[12px] top-[68px] h-[90px] w-[351px] rounded-[12px] object-cover"
+                          draggable={false}
+                        />
+                      )}
+                    </div>
+                  )
+                return (
+                  <div
+                    key={slot.id}
+                    className="flex w-full justify-center"
+                    style={mt}
+                  >
+                    <ImgOrPlaceholder
+                      src={A.footerLogo}
+                      label="页脚 logo"
+                      className="h-[32px] w-[121px]"
+                      style={mvFlow('footer')}
+                    />
                   </div>
                 )
-              return (
-                <div key={slot.id} className="flex w-full justify-center" style={mt}>
-                  <ImgOrPlaceholder src={A.footerLogo} label="页脚 logo" className="h-[32px] w-[121px]" style={mvFlow('footer')} />
-                </div>
-              )
-            })}
+              })}
             <div className="h-[46px]" />
           </div>
 
@@ -783,7 +1078,12 @@ function XiahuaH5PreviewBase({
               <InsertedBlock
                 key={ins.id}
                 ins={ins}
-                style={{ position: 'absolute', ...pos(ins.id, ins.x ?? 0, ins.y ?? 0), width: ins.w, height: ins.h }}
+                style={{
+                  position: 'absolute',
+                  ...pos(ins.id, ins.x ?? 0, ins.y ?? 0),
+                  width: ins.w,
+                  height: ins.h,
+                }}
               />
             ))}
 
@@ -833,7 +1133,8 @@ function XiahuaH5PreviewBase({
                         id: t.id,
                         mode: 'move',
                         // 屏幕像素 → 设计稿像素换算（手机整体被缩放过）
-                        scale: e.currentTarget.getBoundingClientRect().width / zw,
+                        scale:
+                          e.currentTarget.getBoundingClientRect().width / zw,
                         px: e.clientX,
                         py: e.clientY,
                         ox: off?.x ?? 0,
@@ -872,11 +1173,21 @@ function XiahuaH5PreviewBase({
                       const d1 = Math.hypot(e.clientX - d.ax, e.clientY - d.ay)
                       const ns = Math.min(3, Math.max(0.3, (d.os * d1) / d.d0))
                       d.moved = true
-                      const nx = d.corner === 'tl' || d.corner === 'bl' ? d.ox + d.w * (d.os - ns) : d.ox
-                      const ny = d.corner === 'tl' || d.corner === 'tr' ? d.oy + d.h * (d.os - ns) : d.oy
+                      const nx =
+                        d.corner === 'tl' || d.corner === 'bl'
+                          ? d.ox + d.w * (d.os - ns)
+                          : d.ox
+                      const ny =
+                        d.corner === 'tl' || d.corner === 'tr'
+                          ? d.oy + d.h * (d.os - ns)
+                          : d.oy
                       setOffsets((prev) => ({
                         ...prev,
-                        [t.id]: { x: Math.round(nx), y: Math.round(ny), s: Math.round(ns * 100) / 100 },
+                        [t.id]: {
+                          x: Math.round(nx),
+                          y: Math.round(ny),
+                          s: Math.round(ns * 100) / 100,
+                        },
                       }))
                     }}
                     onPointerUp={() => {
@@ -903,8 +1214,10 @@ function XiahuaH5PreviewBase({
                             if (!zone) return
                             const box = zone.getBoundingClientRect()
                             // 被拖角的对角 = 缩放锚点（屏幕坐标）
-                            const ax = c === 'tl' || c === 'bl' ? box.right : box.left
-                            const ay = c === 'tl' || c === 'tr' ? box.bottom : box.top
+                            const ax =
+                              c === 'tl' || c === 'bl' ? box.right : box.left
+                            const ay =
+                              c === 'tl' || c === 'tr' ? box.bottom : box.top
                             dragRef.current = {
                               id: t.id,
                               mode: 'resize',
@@ -918,7 +1231,10 @@ function XiahuaH5PreviewBase({
                               h: t.rect[3],
                               ax,
                               ay,
-                              d0: Math.max(4, Math.hypot(e.clientX - ax, e.clientY - ay)),
+                              d0: Math.max(
+                                4,
+                                Math.hypot(e.clientX - ax, e.clientY - ay),
+                              ),
                               corner: c,
                               moved: false,
                             }
@@ -935,7 +1251,9 @@ function XiahuaH5PreviewBase({
                     >
                       {t.label}
                       {GAMEPLAY_BINDING[t.id] && (
-                        <span className="ml-1 rounded-[2px] bg-white/25 px-[3px] text-[8px]">玩法</span>
+                        <span className="ml-1 rounded-[2px] bg-white/25 px-[3px] text-[8px]">
+                          玩法
+                        </span>
                       )}
                     </span>
                     {/* 承载玩法规则的元素常驻一枚齿轮角标，编辑态一眼看出哪些能改玩法 */}
@@ -954,9 +1272,25 @@ function XiahuaH5PreviewBase({
 
       {/* ── 覆盖层 ── */}
       <AnimatePresence>
-        {shownOverlay.kind === 'drawing' && <DrawingOverlay key="drawing" foods={FOODS} />}
+        {shownOverlay.kind === 'drawing' && (
+          <DrawingOverlay key="drawing" foods={FOODS} />
+        )}
         {shownOverlay.kind === 'result' && (
-          <ResultOverlay key="result" food={shownOverlay.food} isNew={shownOverlay.isNew} spin={!readOnly} art={{ resultTitle: A.resultTitle, bigCard: shownOverlay.food.id === FOODS[0]?.id ? pickedAsset('bigCard') : undefined }} onAccept={acceptResult} onClose={acceptResult} />
+          <ResultOverlay
+            key="result"
+            food={shownOverlay.food}
+            isNew={shownOverlay.isNew}
+            spin={!readOnly}
+            art={{
+              resultTitle: A.resultTitle,
+              bigCard:
+                shownOverlay.food.id === FOODS[0]?.id
+                  ? pickedAsset('bigCard')
+                  : undefined,
+            }}
+            onAccept={acceptResult}
+            onClose={acceptResult}
+          />
         )}
         {shownOverlay.kind === 'cards' && (
           <CardsDrawer
@@ -983,10 +1317,23 @@ function XiahuaH5PreviewBase({
           />
         )}
         {shownOverlay.kind === 'prizes' && (
-          <PrizesOverlay key="prizes" tiers={TIERS} art={{ mascot: A.mascot, envelope: A.envelope }} emptyText={ps.copy.prizesEmpty} claimed={claimed} onClose={() => setOverlay({ kind: 'none' })} />
+          <PrizesOverlay
+            key="prizes"
+            tiers={TIERS}
+            art={{ mascot: A.mascot, envelope: A.envelope }}
+            emptyText={gp.copy.prizeEmpty ?? ps.copy.prizesEmpty}
+            claimed={claimed}
+            onClose={() => setOverlay({ kind: 'none' })}
+          />
         )}
         {shownOverlay.kind === 'redeem' && (
-          <RedeemOverlay key="redeem" tier={shownOverlay.tier} giftSrc={A.envelope} onAccept={() => claimTier(shownOverlay.tier)} onClose={() => setOverlay({ kind: 'none' })} />
+          <RedeemOverlay
+            key="redeem"
+            tier={shownOverlay.tier}
+            giftSrc={A.envelope}
+            onAccept={() => claimTier(shownOverlay.tier)}
+            onClose={() => setOverlay({ kind: 'none' })}
+          />
         )}
         {shownOverlay.kind === 'rules' && (
           <RulesOverlay
@@ -1013,7 +1360,12 @@ function XiahuaH5PreviewBase({
                     ? 'border-2 border-[#357ef8] bg-[#357ef8]/10'
                     : 'border border-dashed border-white/45 hover:border-solid hover:border-[#357ef8] hover:bg-[#357ef8]/10'
                 }`}
-                style={{ left: t.rect[0], top: t.rect[1], width: t.rect[2], height: t.rect[3] }}
+                style={{
+                  left: t.rect[0],
+                  top: t.rect[1],
+                  width: t.rect[2],
+                  height: t.rect[3],
+                }}
                 onClick={(e) => {
                   e.stopPropagation()
                   onSelect?.(toSel(t))
@@ -1068,18 +1420,38 @@ function DrawingOverlay({ foods }: { foods: Food[] }) {
               animate={{
                 opacity: [0, 1, 1, 1],
                 rotate: [angle, angle + 20, angle + 20, 0],
-                x: [0, Math.cos(((angle - 90) * Math.PI) / 180) * 92, Math.cos(((angle - 90) * Math.PI) / 180) * 92, 0],
-                y: [0, Math.sin(((angle - 90) * Math.PI) / 180) * 92, Math.sin(((angle - 90) * Math.PI) / 180) * 92, 0],
+                x: [
+                  0,
+                  Math.cos(((angle - 90) * Math.PI) / 180) * 92,
+                  Math.cos(((angle - 90) * Math.PI) / 180) * 92,
+                  0,
+                ],
+                y: [
+                  0,
+                  Math.sin(((angle - 90) * Math.PI) / 180) * 92,
+                  Math.sin(((angle - 90) * Math.PI) / 180) * 92,
+                  0,
+                ],
                 scale: [0.4, 1, 1, 0.72],
               }}
-              transition={{ duration: 1.7, times: [0, 0.28, 0.62, 1], ease: 'easeInOut' }}
+              transition={{
+                duration: 1.7,
+                times: [0, 0.28, 0.62, 1],
+                ease: 'easeInOut',
+              }}
             >
-              <FoodCardFace food={foods[i % foods.length]} owned={false} className="h-full w-full" />
+              <FoodCardFace
+                food={foods[i % foods.length]}
+                owned={false}
+                className="h-full w-full"
+              />
             </motion.div>
           )
         })}
       </motion.div>
-      <p className="absolute bottom-[18%] text-[14px] tracking-[0.2em] text-white/80">夜食出锅中…</p>
+      <p className="absolute bottom-[18%] text-[14px] tracking-[0.2em] text-white/80">
+        夜食出锅中…
+      </p>
     </motion.div>
   )
 }
@@ -1134,9 +1506,18 @@ function ResultOverlay({
         className="absolute left-[48px] top-[126px] w-[281px]"
         initial={{ opacity: 0, y: -18, scale: 0.92 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ delay: 0.15, type: 'spring', stiffness: 220, damping: 18 }}
+        transition={{
+          delay: 0.15,
+          type: 'spring',
+          stiffness: 220,
+          damping: 18,
+        }}
       >
-        <ImgOrPlaceholder src={art.resultTitle} label="恭喜你获得" className="h-[54px] w-full object-contain" />
+        <ImgOrPlaceholder
+          src={art.resultTitle}
+          label="恭喜你获得"
+          className="h-[54px] w-full object-contain"
+        />
       </motion.div>
 
       {/* 大卡 */}
@@ -1144,7 +1525,12 @@ function ResultOverlay({
         className="absolute left-1/2 top-[230px] h-[357px] w-[260px] -translate-x-1/2"
         initial={{ opacity: 0, scale: 0.55, rotate: -8, y: 40 }}
         animate={{ opacity: 1, scale: 1, rotate: 0, y: 0 }}
-        transition={{ delay: 0.25, type: 'spring', stiffness: 190, damping: 16 }}
+        transition={{
+          delay: 0.25,
+          type: 'spring',
+          stiffness: 190,
+          damping: 16,
+        }}
       >
         <div className="relative h-full w-full drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)]">
           <BigCardFace food={food} bigCardSrc={art.bigCard} />
@@ -1154,7 +1540,12 @@ function ResultOverlay({
             className="absolute -right-2 -top-3 rounded-full bg-gradient-to-b from-[#ffd76e] to-[#ffb83d] px-2.5 py-1 text-[12px] font-bold text-[#7a3c00] shadow"
             initial={{ scale: 0, rotate: -20 }}
             animate={{ scale: 1, rotate: 0 }}
-            transition={{ delay: 0.6, type: 'spring', stiffness: 320, damping: 14 }}
+            transition={{
+              delay: 0.6,
+              type: 'spring',
+              stiffness: 320,
+              damping: 14,
+            }}
           >
             新卡入手!
           </motion.span>
@@ -1216,8 +1607,22 @@ function CardsDrawer({
     >
       {/* 标题栏：返回 + 装备卡/夜食卡页签 + 交换记录 */}
       <div className="relative flex h-[56px] shrink-0 items-center justify-center">
-        <button className="absolute left-3 cursor-pointer rounded-full p-1.5 text-white" onClick={onClose} aria-label="返回">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11.5 3.5 6 9l5.5 5.5" /></svg>
+        <button
+          className="absolute left-3 cursor-pointer rounded-full p-1.5 text-white"
+          onClick={onClose}
+          aria-label="返回"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 18 18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <path d="M11.5 3.5 6 9l5.5 5.5" />
+          </svg>
         </button>
         <div className="flex items-center gap-7">
           <button
@@ -1227,7 +1632,9 @@ function CardsDrawer({
             {tabs.other}
           </button>
           <div className="relative">
-            <span className="text-[16px] font-bold text-white">{tabs.current}</span>
+            <span className="text-[16px] font-bold text-white">
+              {tabs.current}
+            </span>
             <span className="absolute -bottom-[7px] left-1/2 h-[3px] w-[16px] -translate-x-1/2 rounded-full bg-white" />
           </div>
         </div>
@@ -1250,7 +1657,11 @@ function CardsDrawer({
                 className={`relative w-full ${has ? 'cursor-pointer' : ''}`}
                 onClick={() => has && onOpenViewer(viewerIndex)}
               >
-                <FoodCardFace food={f} owned={has} className="aspect-[109/145] w-full" />
+                <FoodCardFace
+                  food={f}
+                  owned={has}
+                  className="aspect-[109/145] w-full"
+                />
                 {has && (
                   <span className="absolute right-0 top-0 rounded-full border border-white/70 bg-[#04ce6c] px-[6px] text-[11px] font-bold leading-[16px] text-white shadow-sm">
                     x{n}
@@ -1322,7 +1733,10 @@ function CardViewer({
       {/* 三联卡：中间为当前卡，两侧露边 */}
       <div className="absolute left-0 top-[157px] h-[357px] w-full">
         {prev && (
-          <button className="absolute left-[-226px] top-0 h-full w-[260px] cursor-pointer opacity-80" onClick={() => onIndex(index - 1)}>
+          <button
+            className="absolute left-[-226px] top-0 h-full w-[260px] cursor-pointer opacity-80"
+            onClick={() => onIndex(index - 1)}
+          >
             <BigCardFace food={ownedList[index - 1]} />
           </button>
         )}
@@ -1336,7 +1750,10 @@ function CardViewer({
           <BigCardFace food={food} />
         </motion.div>
         {next && (
-          <button className="absolute right-[-226px] top-0 h-full w-[260px] cursor-pointer opacity-80" onClick={() => onIndex(index + 1)}>
+          <button
+            className="absolute right-[-226px] top-0 h-full w-[260px] cursor-pointer opacity-80"
+            onClick={() => onIndex(index + 1)}
+          >
             <BigCardFace food={ownedList[index + 1]} />
           </button>
         )}
@@ -1392,7 +1809,10 @@ function RedeemOverlay({
     >
       <motion.div
         className="absolute left-1/2 top-[46%] h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(255,120,80,0.3) 0%, rgba(255,90,54,0.12) 36%, transparent 64%)' }}
+        style={{
+          background:
+            'radial-gradient(circle, rgba(255,120,80,0.3) 0%, rgba(255,90,54,0.12) 36%, transparent 64%)',
+        }}
         animate={{ scale: [0.9, 1.06, 1] }}
         transition={{ duration: 1 }}
       />
@@ -1431,7 +1851,10 @@ function RedeemOverlay({
       >
         开心收下
       </motion.button>
-      <button className="mt-6 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/15 text-[15px] text-white/90" onClick={onClose}>
+      <button
+        className="mt-6 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/15 text-[15px] text-white/90"
+        onClick={onClose}
+      >
         ✕
       </button>
     </motion.div>
@@ -1463,26 +1886,56 @@ function PrizesOverlay({
       transition={{ type: 'spring', stiffness: 300, damping: 32 }}
     >
       <div className="relative flex h-[88px] shrink-0 items-end justify-center bg-gradient-to-b from-[#ffe1b8] to-[#f7ecdc] pb-2">
-        <button className="absolute bottom-1.5 left-3 cursor-pointer rounded-full p-1.5 text-[#6b4a2b]" onClick={onClose}>
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11.5 3.5 6 9l5.5 5.5" /></svg>
+        <button
+          className="absolute bottom-1.5 left-3 cursor-pointer rounded-full p-1.5 text-[#6b4a2b]"
+          onClick={onClose}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 18 18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <path d="M11.5 3.5 6 9l5.5 5.5" />
+          </svg>
         </button>
         <h2 className="text-[17px] font-bold text-[#4a2c12]">我的奖品</h2>
       </div>
       {got.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 pb-16">
-          <ImgOrPlaceholder src={art.mascot} label="IP" className="w-[120px] opacity-90" />
+          <ImgOrPlaceholder
+            src={art.mascot}
+            label="IP"
+            className="w-[120px] opacity-90"
+          />
           <p className="text-[14px] text-[#9a7b58]">{emptyText}</p>
         </div>
       ) : (
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pt-4">
           {got.map((t) => (
-            <div key={t.need} className="flex items-center gap-3 rounded-[14px] bg-white/80 p-3 shadow-[0_2px_8px_rgba(90,52,18,0.1)]">
-              <ImgOrPlaceholder src={art.envelope} label="奖励" className="h-[52px] w-[42px] object-contain" />
+            <div
+              key={t.need}
+              className="flex items-center gap-3 rounded-[14px] bg-white/80 p-3 shadow-[0_2px_8px_rgba(90,52,18,0.1)]"
+            >
+              <ImgOrPlaceholder
+                src={art.envelope}
+                label="奖励"
+                className="h-[52px] w-[42px] object-contain"
+              />
               <div className="flex-1">
-                <p className="text-[15px] font-bold text-[#4a2c12]">{t.reward}</p>
-                <p className="text-[12px] text-[#9a7b58]">集齐{t.need}种夜食兑换 · 有效期至 8.31</p>
+                <p className="text-[15px] font-bold text-[#4a2c12]">
+                  {t.reward}
+                </p>
+                <p className="text-[12px] text-[#9a7b58]">
+                  集齐{t.need}种夜食兑换 · 有效期至 8.31
+                </p>
               </div>
-              <span className="rounded-full bg-[#eee2cf] px-2.5 py-1 text-[12px] font-semibold text-[#8a6b47]">已到账</span>
+              <span className="rounded-full bg-[#eee2cf] px-2.5 py-1 text-[12px] font-semibold text-[#8a6b47]">
+                已到账
+              </span>
             </div>
           ))}
         </div>
@@ -1504,7 +1957,10 @@ function RulesOverlay({
   const tierNeeds = gameplay.tiers.map((tier) => tier.need).join(' / ')
   const tierRewards = gameplay.tiers.map((tier) => tier.reward).join('、')
   const taskRules = gameplay.tasks
-    .map((task) => `${task.label}（每日上限 ${task.dailyLimit} 次，完成一次 +${task.reward} 次）`)
+    .map(
+      (task) =>
+        `${task.label}（每日上限 ${task.dailyLimit} 次，完成一次 +${task.reward} 次）`,
+    )
     .join('；')
   const hasGoods = gameplay.tiers.some((tier) => tier.kind === 'goods')
 
@@ -1523,16 +1979,37 @@ function RulesOverlay({
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="mb-3 shrink-0 text-center text-[17px] font-black text-[#4a2c12]">活动规则</h3>
+        <h3 className="mb-3 shrink-0 text-center text-[17px] font-black text-[#4a2c12]">
+          {gameplay.copy.rulesTitle ?? '活动规则'}
+        </h3>
         {/* 正文滚动，按钮固定在弹窗底部 —— 否则按钮会被卷进滚动区裁掉 */}
         <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto text-[13px] leading-relaxed text-[#6b4a2b] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <p><b>活动时间：</b>6月30日 10:00 — 8月31日 23:59（北京时间）</p>
-          <p><b>集美食卡 领奖励：</b>活动设有 {cardNames} 共 {gameplay.cards.length} 种虚拟夜食卡。</p>
-          <p>集齐 <b>{tierNeeds}</b> 种，可分别解锁 <b>{tierRewards}</b>。奖励可叠加领取。</p>
-          <p><b>获得抽卡机会：</b>{taskRules}。</p>
-          <p><b>赠送规则：</b>同一种卡持有 {gameplay.gift.minHold} 张及以上时可赠送好友，好友领取后生效。</p>
-          <p>优惠券每日限量发放，先到先得。{hasGoods ? '实物奖励需按页面提示完成领取信息登记。' : ''}</p>
-          <p className="text-[#9a7b58]">本活动与 Apple Inc. 无关。最终解释权归平台所有。</p>
+          <p>
+            <b>活动时间：</b>6月30日 10:00 — 8月31日 23:59（北京时间）
+          </p>
+          <p>
+            <b>集美食卡 领奖励：</b>活动设有 {cardNames} 共{' '}
+            {gameplay.cards.length} 种虚拟夜食卡。
+          </p>
+          <p>
+            集齐 <b>{tierNeeds}</b> 种，可分别解锁 <b>{tierRewards}</b>
+            。奖励可叠加领取。
+          </p>
+          <p>
+            <b>获得抽卡机会：</b>
+            {taskRules}。
+          </p>
+          <p>
+            <b>赠送规则：</b>同一种卡持有 {gameplay.gift.minHold}{' '}
+            张及以上时可赠送好友，好友领取后生效。
+          </p>
+          <p>
+            优惠券每日限量发放，先到先得。
+            {hasGoods ? '实物奖励需按页面提示完成领取信息登记。' : ''}
+          </p>
+          <p className="text-[#9a7b58]">
+            本活动与 Apple Inc. 无关。最终解释权归平台所有。
+          </p>
         </div>
         <button
           className="mx-auto mt-4 block h-[40px] w-[140px] shrink-0 cursor-pointer rounded-full bg-gradient-to-b from-[#ff5a36] to-[#f52b0f] text-[15px] font-bold text-white"
