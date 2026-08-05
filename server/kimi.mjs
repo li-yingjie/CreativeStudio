@@ -42,6 +42,7 @@ let envLoaded = false
 let inFlightRequests = 0
 let lastRateSweep = 0
 const rateBuckets = new Map()
+const inFlightByClient = new Map()
 
 function loadEnvOnce() {
   if (envLoaded) return
@@ -61,6 +62,7 @@ function boundedInt(value, fallback, min, max) {
 export function loadKimiConfig() {
   loadEnvOnce()
   const model = process.env.KIMI_MODEL?.trim() || DEFAULT_MODEL
+  const maxConcurrent = boundedInt(process.env.KIMI_MAX_CONCURRENT, 4, 1, 20)
   const configuredModels = (process.env.KIMI_ALLOWED_MODELS || '')
     .split(',')
     .map((item) => item.trim())
@@ -73,20 +75,28 @@ export function loadKimiConfig() {
     baseUrl: (process.env.KIMI_BASE_URL || 'https://api.moonshot.cn/v1').replace(/\/$/, ''),
     model,
     allowedModels,
-    maxConcurrent: boundedInt(process.env.KIMI_MAX_CONCURRENT, 4, 1, 20),
+    maxConcurrent,
+    maxConcurrentPerClient: boundedInt(
+      process.env.KIMI_MAX_CONCURRENT_PER_CLIENT,
+      Math.min(2, maxConcurrent),
+      1,
+      maxConcurrent,
+    ),
     maxOutputTokens: boundedInt(process.env.KIMI_MAX_OUTPUT_TOKENS, 2_048, 128, 4_096),
     maxOutputBytes: boundedInt(process.env.KIMI_MAX_OUTPUT_BYTES, 2_000_000, 64_000, 4_000_000),
     rateLimitMax: boundedInt(process.env.KIMI_RATE_LIMIT_MAX, 15, 1, 120),
     rateLimitWindowMs: boundedInt(process.env.KIMI_RATE_LIMIT_WINDOW_MS, 60_000, 1_000, 3_600_000),
     upstreamTimeoutMs: boundedInt(process.env.KIMI_TIMEOUT_MS, 45_000, 5_000, 120_000),
     intentTimeoutMs: boundedInt(process.env.KIMI_INTENT_TIMEOUT_MS, 6_000, 1_000, 15_000),
+    bodyReadTimeoutMs: boundedInt(process.env.KIMI_BODY_TIMEOUT_MS, 5_000, 100, 30_000),
   }
 }
 
 class RequestError extends Error {
-  constructor(status, message) {
+  constructor(status, message, closeConnection = false) {
     super(message)
     this.status = status
+    this.closeConnection = closeConnection
   }
 }
 
@@ -94,11 +104,33 @@ function byteLength(value) {
   return Buffer.byteLength(value, 'utf8')
 }
 
-function readJsonBody(req) {
+function stopReading(req) {
+  req.pause?.()
+  req.unpipe?.()
+}
+
+function validateContentLength(req) {
+  const value = req.headers?.['content-length']
+  if (value == null || value === '') return
+  const raw = Array.isArray(value) ? '' : String(value).trim()
+  if (!/^\d+$/.test(raw)) {
+    stopReading(req)
+    throw new RequestError(400, 'invalid content-length header', true)
+  }
+  if (BigInt(raw) > BigInt(BODY_LIMIT_BYTES)) {
+    stopReading(req)
+    throw new RequestError(413, 'request body is too large', true)
+  }
+}
+
+function readJsonBody(req, timeoutMs) {
+  validateContentLength(req)
+
   if (req.body != null && req.body !== '') {
     const raw = typeof req.body === 'string' ? req.body : JSON.stringify(req.body)
     if (byteLength(raw) > BODY_LIMIT_BYTES) {
-      return Promise.reject(new RequestError(413, 'request body is too large'))
+      stopReading(req)
+      return Promise.reject(new RequestError(413, 'request body is too large', true))
     }
     try {
       return Promise.resolve(typeof req.body === 'string' ? JSON.parse(req.body) : req.body)
@@ -111,33 +143,57 @@ function readJsonBody(req) {
     const chunks = []
     let size = 0
     let settled = false
+    let deadline
+
+    const cleanup = () => {
+      clearTimeout(deadline)
+      req.off('data', onData)
+      req.off('end', onEnd)
+      req.off('error', onError)
+      req.off('aborted', onAborted)
+    }
 
     const fail = (error) => {
       if (settled) return
       settled = true
+      cleanup()
+      chunks.length = 0
+      if (error.closeConnection) stopReading(req)
       reject(error)
     }
 
-    req.on('data', (chunk) => {
+    const onData = (chunk) => {
       if (settled) return
-      size += chunk.length
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      size += buffer.length
       if (size > BODY_LIMIT_BYTES) {
-        fail(new RequestError(413, 'request body is too large'))
+        fail(new RequestError(413, 'request body is too large', true))
         return
       }
-      chunks.push(chunk)
-    })
-    req.on('end', () => {
+      chunks.push(buffer)
+    }
+    const onEnd = () => {
       if (settled) return
       settled = true
+      cleanup()
       try {
         const raw = Buffer.concat(chunks).toString('utf8')
         resolve(raw ? JSON.parse(raw) : {})
       } catch {
         reject(new RequestError(400, 'invalid JSON body'))
       }
-    })
-    req.on('error', () => fail(new RequestError(400, 'unable to read request body')))
+    }
+    const onError = () => fail(new RequestError(400, 'unable to read request body', true))
+    const onAborted = () => fail(new RequestError(400, 'request body was aborted', true))
+
+    req.on('data', onData)
+    req.on('end', onEnd)
+    req.on('error', onError)
+    req.on('aborted', onAborted)
+    deadline = setTimeout(
+      () => fail(new RequestError(408, 'request body timed out', true)),
+      timeoutMs,
+    )
   })
 }
 
@@ -149,6 +205,13 @@ function sendJson(res, status, obj, extraHeaders = {}) {
   res.setHeader('X-Content-Type-Options', 'nosniff')
   for (const [name, value] of Object.entries(extraHeaders)) res.setHeader(name, value)
   res.end(JSON.stringify(obj))
+}
+
+function sendRequestError(req, res, error) {
+  const requestError = error instanceof RequestError ? error : new RequestError(400, 'invalid request')
+  const headers = requestError.closeConnection ? { Connection: 'close' } : {}
+  if (requestError.closeConnection) res.shouldKeepAlive = false
+  sendJson(res, requestError.status, { error: requestError.message }, headers)
 }
 
 function rejectMethod(req, res, allowedMethod) {
@@ -187,6 +250,7 @@ function normalizeMessages(messages) {
 }
 
 function trustsProxyHeaders() {
+  loadEnvOnce()
   return (
     process.env.TRUST_PROXY_HEADERS === 'true' ||
     Boolean(process.env.VERCEL || process.env.CF_PAGES || process.env.CF_WORKER)
@@ -195,14 +259,31 @@ function trustsProxyHeaders() {
 
 function requestHost(req) {
   const forwarded = trustsProxyHeaders() ? req.headers?.['x-forwarded-host'] : ''
-  return String(forwarded || req.headers?.host || '').split(',')[0].trim().toLowerCase()
+  return String(forwarded || req.headers?.host || '').split(',')[0].trim()
+}
+
+function requestProtocol(req) {
+  const forwarded = trustsProxyHeaders() ? req.headers?.['x-forwarded-proto'] : ''
+  const protocol = String(forwarded || (req.socket?.encrypted ? 'https' : 'http'))
+    .split(',')[0]
+    .trim()
+    .toLowerCase()
+  return protocol === 'http' || protocol === 'https' ? protocol : ''
 }
 
 function isSameOrigin(req) {
   const origin = req.headers?.origin
-  if (!origin) return true
+  if (!origin) {
+    loadEnvOnce()
+    return process.env.KIMI_ALLOW_MISSING_ORIGIN === 'true'
+  }
   try {
-    return new URL(origin).host.toLowerCase() === requestHost(req)
+    const rawOrigin = String(origin).trim()
+    const parsedOrigin = new URL(rawOrigin)
+    const protocol = requestProtocol(req)
+    const host = requestHost(req)
+    if (!protocol || !host || rawOrigin.toLowerCase() !== parsedOrigin.origin.toLowerCase()) return false
+    return parsedOrigin.origin === new URL(`${protocol}://${host}`).origin
   } catch {
     return false
   }
@@ -235,6 +316,24 @@ function clientKey(req) {
       req.socket?.remoteAddress ||
       'unknown',
   ).slice(0, 128)
+}
+
+function acquireRequestSlot(req, cfg) {
+  const key = clientKey(req)
+  const clientInFlight = inFlightByClient.get(key) || 0
+  if (clientInFlight >= cfg.maxConcurrentPerClient) return { acquired: false, clientLimited: true }
+  if (inFlightRequests >= cfg.maxConcurrent) return { acquired: false, clientLimited: false }
+
+  inFlightRequests += 1
+  inFlightByClient.set(key, clientInFlight + 1)
+  return { acquired: true, key }
+}
+
+function releaseRequestSlot(key) {
+  inFlightRequests = Math.max(0, inFlightRequests - 1)
+  const remaining = (inFlightByClient.get(key) || 1) - 1
+  if (remaining > 0) inFlightByClient.set(key, remaining)
+  else inFlightByClient.delete(key)
 }
 
 function sweepRateBuckets(now, windowMs) {
@@ -278,7 +377,7 @@ export function parseProductIntentTarget(content) {
 export async function handleProductIntent(req, res) {
   if (rejectMethod(req, res, 'POST')) return
   if (!isSameOrigin(req)) {
-    sendJson(res, 403, { error: 'cross-origin requests are not allowed' })
+    sendJson(res, 403, { error: 'request origin is not allowed' })
     return
   }
   if (!String(req.headers?.['content-type'] || '').toLowerCase().startsWith('application/json')) {
@@ -294,7 +393,7 @@ export async function handleProductIntent(req, res) {
 
   let text
   try {
-    const body = await readJsonBody(req)
+    const body = await readJsonBody(req, cfg.bodyReadTimeoutMs)
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       throw new RequestError(400, 'request body must be a JSON object')
     }
@@ -306,8 +405,7 @@ export async function handleProductIntent(req, res) {
       throw new RequestError(400, `text must contain 1-${MAX_PRODUCT_INTENT_CHARS} characters`)
     }
   } catch (error) {
-    const status = error instanceof RequestError ? error.status : 400
-    sendJson(res, status, { error: error instanceof Error ? error.message : 'invalid request' })
+    sendRequestError(req, res, error)
     return
   }
 
@@ -316,12 +414,21 @@ export async function handleProductIntent(req, res) {
     sendJson(res, 429, { error: 'too many intent requests' }, { 'Retry-After': String(retryAfter) })
     return
   }
-  if (inFlightRequests >= cfg.maxConcurrent) {
-    sendJson(res, 503, { error: 'chat service is busy; retry shortly' }, { 'Retry-After': '2' })
+  const slot = acquireRequestSlot(req, cfg)
+  if (!slot.acquired) {
+    sendJson(
+      res,
+      slot.clientLimited ? 429 : 503,
+      {
+        error: slot.clientLimited
+          ? 'too many concurrent requests from this client'
+          : 'chat service is busy; retry shortly',
+      },
+      { 'Retry-After': '2' },
+    )
     return
   }
 
-  inFlightRequests += 1
   const controller = new AbortController()
   let timedOut = false
   const timeout = setTimeout(() => {
@@ -383,14 +490,14 @@ export async function handleProductIntent(req, res) {
   } finally {
     clearTimeout(timeout)
     res.off('close', onClose)
-    inFlightRequests = Math.max(0, inFlightRequests - 1)
+    releaseRequestSlot(slot.key)
   }
 }
 
 export async function handleChat(req, res) {
   if (rejectMethod(req, res, 'POST')) return
   if (!isSameOrigin(req)) {
-    sendJson(res, 403, { error: 'cross-origin requests are not allowed' })
+    sendJson(res, 403, { error: 'request origin is not allowed' })
     return
   }
   if (!String(req.headers?.['content-type'] || '').toLowerCase().startsWith('application/json')) {
@@ -407,14 +514,13 @@ export async function handleChat(req, res) {
   let body
   let messages
   try {
-    body = await readJsonBody(req)
+    body = await readJsonBody(req, cfg.bodyReadTimeoutMs)
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       throw new RequestError(400, 'request body must be a JSON object')
     }
     messages = normalizeMessages(body.messages)
   } catch (error) {
-    const status = error instanceof RequestError ? error.status : 400
-    sendJson(res, status, { error: error instanceof Error ? error.message : 'invalid request' })
+    sendRequestError(req, res, error)
     return
   }
 
@@ -434,12 +540,21 @@ export async function handleChat(req, res) {
     sendJson(res, 429, { error: 'too many chat requests' }, { 'Retry-After': String(retryAfter) })
     return
   }
-  if (inFlightRequests >= cfg.maxConcurrent) {
-    sendJson(res, 503, { error: 'chat service is busy; retry shortly' }, { 'Retry-After': '2' })
+  const slot = acquireRequestSlot(req, cfg)
+  if (!slot.acquired) {
+    sendJson(
+      res,
+      slot.clientLimited ? 429 : 503,
+      {
+        error: slot.clientLimited
+          ? 'too many concurrent requests from this client'
+          : 'chat service is busy; retry shortly',
+      },
+      { 'Retry-After': '2' },
+    )
     return
   }
 
-  inFlightRequests += 1
   const controller = new AbortController()
   let timedOut = false
   const timeout = setTimeout(() => {
@@ -514,6 +629,6 @@ export async function handleChat(req, res) {
   } finally {
     clearTimeout(timeout)
     res.off('close', onClose)
-    inFlightRequests = Math.max(0, inFlightRequests - 1)
+    releaseRequestSlot(slot.key)
   }
 }

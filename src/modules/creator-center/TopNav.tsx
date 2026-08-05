@@ -84,8 +84,8 @@ export default function TopNav({
                   layoutId="topnav-active-pill"
                   className="absolute inset-0 bg-[#161823]"
                   // borderRadius 放 style 里，framer 在缩放插值时才能实时校正圆角
-                  style={{ borderRadius: 9999 }}
-                  // tween 不过冲：spring 会滑过头再回弹，看起来像晃动
+                  style={{ borderRadius: 10 }}
+                  // tween 不过冲，快速收束时不会产生回弹晃动。
                   transition={{ type: 'tween', duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
                 />
               )}

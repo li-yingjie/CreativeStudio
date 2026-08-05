@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- asset schema and selectors are shared with the project toolbar */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   ArrowUp,
@@ -25,7 +25,9 @@ import {
   type AssetKind,
 } from './ProjectAssetCatalog'
 import { resolveMarketingKingAssetUrl } from './marketingKingAssetCache'
-import XiahuaMascot3DStudio from './XiahuaMascot3DStudio'
+
+// Three.js 仅在用户真正打开 3D 素材详情时下载。
+const XiahuaMascot3DStudio = lazy(() => import('./XiahuaMascot3DStudio'))
 
 /**
  * Garuda 资产视图
@@ -630,7 +632,15 @@ function AssetModelDetail({
         </span>
       </div>
       <div className="min-h-0 flex-1">
-        <XiahuaMascot3DStudio modelSrc={modelSrc} />
+        <Suspense
+          fallback={(
+            <div className="flex h-full items-center justify-center bg-[var(--color-surface-1)] text-[12px] text-[var(--color-ink)]/50" role="status">
+              3D 编辑器加载中…
+            </div>
+          )}
+        >
+          <XiahuaMascot3DStudio modelSrc={modelSrc} />
+        </Suspense>
       </div>
     </div>
   )

@@ -17,7 +17,6 @@ import {
   usesContentToggleLayout,
 } from '@/shared/storage/nav-version'
 import { useProductSideNav } from '@/shared/storage/product-side-nav'
-import CreatorCenterHome from './CreatorCenterHome'
 import TopNav from './TopNav'
 import type { ProductId } from './data'
 
@@ -195,6 +194,7 @@ function SideNavBrandHeader({
 }
 
 const VibeCodingPage = lazy(() => import('@/modules/vibecoding/components/VibeCodingPage'))
+const CreatorCenterHome = lazy(() => import('./CreatorCenterHome'))
 const WikiWorkspacePage = lazy(() => import('./WikiWorkspacePage'))
 const SuibianPage = lazy(() => import('./SuibianPage'))
 
@@ -252,6 +252,7 @@ export default function CreatorCenterShell() {
     standaloneWorkshop ? 'workshop' : 'home',
   )
   const reduceMotion = useReducedMotion() ?? false
+  const [homeMounted, setHomeMounted] = useState(!standaloneWorkshop)
   const [workshopMounted, setWorkshopMounted] = useState(standaloneWorkshop)
   const [workshopCanvasMode, setWorkshopCanvasMode] = useState(false)
   const configuredSideNavWidth = useSideNavConfig((state) => state.config.width)
@@ -290,6 +291,7 @@ export default function CreatorCenterShell() {
     setWorkshopCanvasMode(open)
   }, [])
   const selectProduct = (id: ProductId) => {
+    if (id === 'home') setHomeMounted(true)
     if (id === 'workshop') setWorkshopMounted(true)
     if (id === 'ai-avatar') setAvatarMounted(true)
     setActive(id)
@@ -340,12 +342,22 @@ export default function CreatorCenterShell() {
       )}
       {/* overflow-hidden：产品层的轻位移不外溢成文档滚动条（避免顶栏抖动）。 */}
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        <ProductSurface active={active === 'home'} reduceMotion={reduceMotion}>
-          <CreatorCenterHome
-            active={active === 'home'}
-            onOpenProduct={selectProduct}
-          />
-        </ProductSurface>
+        {(homeMounted || !standaloneWorkshop) && (
+          <ProductSurface active={active === 'home'} reduceMotion={reduceMotion}>
+            <Suspense
+              fallback={(
+                <div className="flex h-full items-center justify-center bg-[#F5F6F8] text-sm text-[#252632]/65" role="status">
+                  创作者中心加载中…
+                </div>
+              )}
+            >
+              <CreatorCenterHome
+                active={active === 'home'}
+                onOpenProduct={selectProduct}
+              />
+            </Suspense>
+          </ProductSurface>
+        )}
         <Suspense
           fallback={(
             <div className="flex h-full items-center justify-center bg-[#F5F6F8] text-sm text-[#252632]/65" role="status">

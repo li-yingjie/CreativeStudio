@@ -24,6 +24,7 @@ import {
 } from '@/modules/editor/store/publish-flow-store'
 import { useThemeStore } from '@/shared/storage/theme'
 import { type ChatMessage } from '@/shared/api/chat'
+import { buildChatQueueHistory, isChatQueueTurnActive } from '@/shared/api/chat-queue'
 import { LiveAiReply } from '@/shared/components/LiveAiReply'
 import { ChatEmptyState } from '@/shared/components/ChatEmptyState'
 import MiniAppPreview from './MiniAppPreview'
@@ -46,6 +47,7 @@ import SummerSurfH5Preview, {
   type SummerSurfSelection,
 } from './SummerSurfH5Preview'
 import SummerSurfEditPanel from './SummerSurfEditPanel'
+import { summerSurfConfigForStorage } from './summerSurfLocalAssets'
 import XiahuaH5Preview, {
   activityScreens,
   type XiahuaScreen,
@@ -151,8 +153,9 @@ import type { GameSpecDraft } from './GameConfirmCard'
 import AiPersonaChatPreview, { type TriggerSimulation } from './AiPersonaChatPreview'
 import { ProjectObjectView, DatabaseView, type DbContent } from './ProjectObjectViews'
 import { PROJECT_DOCS, ACG_NEW_YEAR_PLAN_MD, XIAHUA_PLAN_MD } from './data/project-docs'
-import { GENERIC_AI_REPLIES, CHAT_EMPTY_SUGGESTIONS, CHAT_SUGGESTIONS_BY_KIND, CHAT_SUGGESTIONS_BY_PROJECT } from './data/chat-suggestions'
+import { CHAT_EMPTY_SUGGESTIONS, CHAT_SUGGESTIONS_BY_KIND, CHAT_SUGGESTIONS_BY_PROJECT } from './data/chat-suggestions'
 import { PROJECT_KINDS, SHAPE_BY_KIND, PROJECT_KIND_LABELS, type OutputShape } from './data/project-kinds'
+import { classifyProjectKind } from './project-kind-classifier'
 import { FlexAlignGlyph, ProductToolbar, ToolbarAction } from './Toolbar'
 import { Disclosure, FileTreeView } from './FileTreeView'
 import { getFileIcon } from './file-tree-utils'
@@ -258,30 +261,6 @@ import { generateAvatarConfig } from './artifact/generate'
 // `ProjectKind` is defined in ./ProjectProductView (shared with the
 // product-view bucketing) and imported above.
 
-/** Heuristic kind classifier — used when the home screen takes a free
- *  prompt and we need to pick a shape before the project is named.
- *  Keyword-based for the demo; real product would route through an AI
- *  classifier with confidence scores + user override.
- */
-function classifyProjectKind(prompt: string): ProjectKind {
-  const p = prompt.toLowerCase()
-  // App keywords beat artifact when both appear (build something is more
-  // specific than describe something).
-  if (
-    /(小程序|mini[-\s]?program|app|分身|avatar|网页|web)/i.test(p)
-  ) {
-    if (/(分身|avatar|persona|chat[-\s]?bot)/i.test(p)) return 'ai-avatar'
-    return 'mini-program'
-  }
-  // Artifact keywords cover most ops-proposal-like cases.
-  if (
-    /(方案|提案|报告|brief|看板|复盘|分析|策略|提案|种草|投放|brief)/i.test(p)
-  ) {
-    return 'ops-proposal'
-  }
-  // Fallback: most VibeCoding traffic builds an app.
-  return 'mini-program'
-}
 import {
   ArrowLeft,
   ArrowUp,
@@ -2598,6 +2577,9 @@ export default function VibeCodingPage({
    * streamed reply render instantly (no re-fetch) when the chat remounts on
    * project switch, and feeds prior turns back as context for the next call. */
   const aiReplyCacheRef = useRef<Map<string, string>>(new Map())
+  // Cache writes happen outside React state. This promotes the next unresolved
+  // turn only after the previous assistant reply has actually completed.
+  const [, setAiReplyRevision] = useState(0)
   /* Platform "home" / new-project landing view — shown whenever the user
    * clicks + 新建项目. AI 工坊默认落在首页（AI 分身用 home 遮住首帧，
    * 随后由 avatar boot effect 打开分身项目）；仅 ?project= / ?page=
@@ -2974,6 +2956,25 @@ export default function VibeCodingPage({
     return `${base} ${i}`
   }
 
+  /** Stop a replay before its owner loses focus. The original playback flag is
+   * remembered once per owner so returning to that project resumes naturally;
+   * no timer or simulated typing callback may keep mutating the next project. */
+  const pauseXiahuaReplayForProjectChange = (nextProject: string) => {
+    const owner = xiahuaBuildOwner
+    if (!owner || owner === nextProject || xiahuaBuildStep < 0) return
+    if (!xiahuaPlaybackByOwnerRef.current.has(owner)) {
+      xiahuaPlaybackByOwnerRef.current.set(owner, xiahuaBuildPlaying)
+    }
+    setXiahuaBuildPlaying(false)
+    setXiahuaBuildFocused(false)
+    const pendingTyping = xiahuaPendingTypingRef.current
+    if (pendingTyping?.owner === owner) pendingTyping.paused = true
+    xiahuaTypeTimers.current.forEach(window.clearTimeout)
+    xiahuaTypeTimers.current = []
+    setComposerText('')
+    setXiahuaTyping(false)
+  }
+
   /** Called when the user submits a prompt from the home screen (either by
    *  typing + send or by clicking a suggestion pill). Spins up a brand-new
    *  project and routes the prompt into it — instead of dropping the user
@@ -2989,6 +2990,7 @@ export default function VibeCodingPage({
       prev.includes(XIAHUA_BUILD_PROJECT) ? prev : [XIAHUA_BUILD_PROJECT, ...prev],
     )
     setPlatformOpenProjects((prev) => new Set(prev).add(XIAHUA_BUILD_PROJECT))
+    pauseXiahuaReplayForProjectChange(XIAHUA_BUILD_PROJECT)
     setProjectTitle(XIAHUA_BUILD_PROJECT)
     projectTitleRef.current = XIAHUA_BUILD_PROJECT
     activatePublishProject(XIAHUA_BUILD_PROJECT)
@@ -3030,6 +3032,7 @@ export default function VibeCodingPage({
         next.add(XIAHUA_CLONE_PROJECT)
         return next
       })
+      pauseXiahuaReplayForProjectChange(XIAHUA_CLONE_PROJECT)
       setProjectTitle(XIAHUA_CLONE_PROJECT)
       projectTitleRef.current = XIAHUA_CLONE_PROJECT
       activatePublishProject(XIAHUA_CLONE_PROJECT)
@@ -3080,6 +3083,7 @@ export default function VibeCodingPage({
       next.add(name)
       return next
     })
+    pauseXiahuaReplayForProjectChange(name)
     setProjectTitle(name)
     projectTitleRef.current = name
     activatePublishProject(name)
@@ -3128,6 +3132,7 @@ export default function VibeCodingPage({
     const sid = `s-${Date.now()}`
     const sessionName =
       userPrompt.length > 20 ? `${userPrompt.slice(0, 20)}…` : userPrompt
+    pauseXiahuaReplayForProjectChange('射击小游戏')
     setProjectTitle('射击小游戏')
     projectTitleRef.current = '射击小游戏'
     activatePublishProject('射击小游戏')
@@ -3195,7 +3200,8 @@ export default function VibeCodingPage({
 
   const captureSessionSnapshot = (): SessionChatSnapshot => ({
     sentMessages: sentMessages.map((message) => ({ ...message })),
-    chatDraft,
+    // Scripted replay typing is presentation state, not a user-authored draft.
+    chatDraft: xiahuaTyping ? '' : chatDraft,
     chatCleared,
     needsFlowActive,
     needsThinkingVisible,
@@ -3423,6 +3429,7 @@ export default function VibeCodingPage({
    *  intact, then either replays the target project's prior snapshot or
    *  initialises kind-specific defaults on first visit. */
   const openProject = (name: string) => {
+    pauseXiahuaReplayForProjectChange(name)
     // 活动预览/搭建状态是这一族项目共用的：切回「已上线」那版时归位，免得它
     // 顶着复刻换过的皮，或者停在新建活动搭到一半的状态。
     if (name === XIAHUA_PROJECT && (xiahuaScriptKind === 'clone' || xiahuaBuildStep >= 0)) {
@@ -3434,7 +3441,9 @@ export default function VibeCodingPage({
           scriptKind: xiahuaScriptKind,
           buildStep: xiahuaBuildStep,
           path: xiahuaPath,
-          playing: xiahuaBuildPlaying,
+          playing:
+            xiahuaPlaybackByOwnerRef.current.get(xiahuaBuildOwner) ??
+            xiahuaBuildPlaying,
           preset: xiahuaPreset,
           gameplay: xiahuaGameplay,
           overrides: xiahuaOverrides,
@@ -3447,6 +3456,7 @@ export default function VibeCodingPage({
           docText: xiahuaDocText,
           cloneUserText: xiahuaCloneUserText,
         }
+        xiahuaPlaybackByOwnerRef.current.delete(xiahuaBuildOwner)
       }
       setXiahuaScriptKind('build')
       setXiahuaPreset(XIAHUA_PRESET)
@@ -3454,6 +3464,7 @@ export default function VibeCodingPage({
       setXiahuaOverrides(createFinalXiahuaOverrides())
       setXiahuaBuildStep(-1)
       setXiahuaBuildPlaying(false)
+      setXiahuaBuildFocused(false)
       setXiahuaBuildOwner(null)
       setXiahuaPath([])
     }
@@ -3477,6 +3488,14 @@ export default function VibeCodingPage({
       setXiahuaPath(replayStash.path)
       setXiahuaBuildStep(replayStash.buildStep)
       setXiahuaBuildPlaying(replayStash.playing)
+      setXiahuaBuildFocused(true)
+    } else if (xiahuaBuildOwner === name) {
+      const resumePlayback = xiahuaPlaybackByOwnerRef.current.get(name)
+      if (resumePlayback !== undefined) {
+        xiahuaPlaybackByOwnerRef.current.delete(name)
+        setXiahuaBuildPlaying(resumePlayback)
+        setXiahuaBuildFocused(true)
+      }
     }
     const focusAcgPreview = name === ACG_NEW_YEAR_PROJECT
     const focusPreview = (tabs: { label: string; closable: boolean }[]) => {
@@ -3722,8 +3741,20 @@ export default function VibeCodingPage({
   const [summerSurfConfig, setSummerSurfConfig] = useState<SummerSurfEditConfig>(
     () => ({ ...getInitialSummerSurfEditConfig() }),
   )
+  const summerSurfStorageWarningShownRef = useRef(false)
   useEffect(() => {
-    window.localStorage.setItem(SUMMER_SURF_CONFIG_STORAGE_KEY, JSON.stringify(summerSurfConfig))
+    try {
+      window.localStorage.setItem(
+        SUMMER_SURF_CONFIG_STORAGE_KEY,
+        JSON.stringify(summerSurfConfigForStorage(summerSurfConfig)),
+      )
+    } catch {
+      // localStorage unavailable/full: the live config remains in memory.
+      if (!summerSurfStorageWarningShownRef.current) {
+        summerSurfStorageWarningShownRef.current = true
+        toast.error('保存失败，配置仅保留在当前会话')
+      }
+    }
   }, [summerSurfConfig])
   /* 这夏夯爆了编辑态：预览点选的元素 + 面板可回写的运行时属性。 */
   const [xiahuaSelected, setXiahuaSelected] = useState<XiahuaSel | null>(null)
@@ -3774,13 +3805,21 @@ export default function VibeCodingPage({
     docText?: string
     cloneUserText?: string
   } | null>(null)
+  /** Auto-play state captured while its owner project is not active. */
+  const xiahuaPlaybackByOwnerRef = useRef<Map<string, boolean>>(new Map())
   /** 回放自身的状态全部归零 —— 三个入口（0→1 / 模板复刻 / 换模板）都从这里走，
    *  漏掉任何一项都会把上一次回放的分支文案或勾选带进新的一次。 */
   const resetXiahuaReplay = useCallback(() => {
     // 重新开一场就作废暂存的旧场次，避免日后错误恢复
     xiahuaReplayStashRef.current = null
+    xiahuaPlaybackByOwnerRef.current.clear()
+    xiahuaPendingTypingRef.current = null
+    xiahuaTypeTimers.current.forEach(window.clearTimeout)
+    xiahuaTypeTimers.current = []
+    setXiahuaTyping(false)
     setXiahuaBuildStep(-1)
     setXiahuaBuildPlaying(false)
+    setXiahuaBuildFocused(false)
     setXiahuaPath([])
     setXiahuaBuildOwner(null)
     setXiahuaPickTexts({})
@@ -3806,6 +3845,8 @@ export default function VibeCodingPage({
   /* 实际走过的步骤下标（有序）。卡点会跳步，光靠下标区间渲染会把没走的支路也画出来。 */
   const [xiahuaPath, setXiahuaPath] = useState<number[]>([])
   const [xiahuaBuildPlaying, setXiahuaBuildPlaying] = useState(false)
+  /* True only while the replay owner is the visible project. */
+  const [xiahuaBuildFocused, setXiahuaBuildFocused] = useState(false)
   /* 解析出来的活动方案（右侧「文档」态可改）与素材版本选择。 */
   const [xiahuaPlan, setXiahuaPlan] = useState<PlanDoc>(() => defaultPlan(XIAHUA_PRESET))
   const [xiahuaPicks, setXiahuaPicks] = useState<Record<string, number>>({})
@@ -3939,24 +3980,52 @@ export default function VibeCodingPage({
   /* 回放里用户说话时，先把字打进输入框再「发送」—— 跟真实使用的路径一致。 */
   const [xiahuaTyping, setXiahuaTyping] = useState(false)
   const xiahuaTypeTimers = useRef<number[]>([])
+  const xiahuaPendingTypingRef = useRef<{
+    owner: string
+    text: string
+    done: () => void
+    paused: boolean
+  } | null>(null)
   const typeIntoComposer = useCallback((text: string, done: () => void) => {
+    const owner = projectTitleRef.current
+    const task = { owner, text, done, paused: false }
+    xiahuaPendingTypingRef.current = task
     xiahuaTypeTimers.current.forEach(window.clearTimeout)
     xiahuaTypeTimers.current = []
     setXiahuaTyping(true)
     const per = Math.max(18, Math.min(45, 900 / Math.max(1, text.length)))
     for (let i = 1; i <= text.length; i++) {
       xiahuaTypeTimers.current.push(
-        window.setTimeout(() => setComposerText(text.slice(0, i)), i * per),
+        window.setTimeout(() => {
+          if (projectTitleRef.current === owner) setComposerText(text.slice(0, i))
+        }, i * per),
       )
     }
     xiahuaTypeTimers.current.push(
       window.setTimeout(() => {
+        if (projectTitleRef.current !== owner) {
+          task.paused = true
+          return
+        }
+        if (xiahuaPendingTypingRef.current === task) {
+          xiahuaPendingTypingRef.current = null
+        }
         setComposerText('')
         setXiahuaTyping(false)
         done()
       }, text.length * per + 380),
     )
   }, [])
+  useEffect(() => {
+    const pending = xiahuaPendingTypingRef.current
+    if (
+      !xiahuaBuildFocused ||
+      !pending?.paused ||
+      pending.owner !== xiahuaBuildOwner ||
+      pending.owner !== projectTitleRef.current
+    ) return
+    typeIntoComposer(pending.text, pending.done)
+  }, [typeIntoComposer, xiahuaBuildFocused, xiahuaBuildOwner])
   useEffect(
     () => () => {
       xiahuaTypeTimers.current.forEach(window.clearTimeout)
@@ -3979,6 +4048,7 @@ export default function VibeCodingPage({
     if (docName) setXiahuaUploadedDocName(docName)
     resetXiahuaReplay()
     setXiahuaBuildOwner(projectTitleRef.current)
+    setXiahuaBuildFocused(true)
     setXiahuaScriptKind('build')
     setXiahuaGameplay(buildGameplay)
     setXiahuaOverrides({})
@@ -4021,6 +4091,7 @@ export default function VibeCodingPage({
       // 起点就是完整模板：预置这夏夯爆了的成品状态，换皮过程逐步改 preset
       resetXiahuaReplay()
       setXiahuaBuildOwner(projectTitleRef.current)
+      setXiahuaBuildFocused(true)
       setXiahuaScriptKind('clone')
       setXiahuaPreset(XIAHUA_PRESET)
       setXiahuaGameplay(XIAHUA_PRESET.gameplay)
@@ -4060,6 +4131,7 @@ export default function VibeCodingPage({
   /** 跳到某一步并应用它的改动。 */
   const gotoXiahuaStep = useCallback(
     (idx: number) => {
+      if (xiahuaBuildOwner !== projectTitleRef.current) return
       const s = xiahuaScript[idx]
       if (!s) return
       applyXiahuaMutation(s)
@@ -4067,11 +4139,12 @@ export default function VibeCodingPage({
       setXiahuaBuildStep(idx)
       setXiahuaBuildPlaying(!s.gate)
     },
-    [xiahuaScript, applyXiahuaMutation],
+    [xiahuaBuildOwner, xiahuaScript, applyXiahuaMutation],
   )
   /** 卡点上的选择：确认走主路径，「我要改」走支路。 */
   const onXiahuaGate = useCallback(
     (choice: 'confirm' | 'alt' | { to: string; text?: string }) => {
+      if (xiahuaBuildOwner !== projectTitleRef.current) return
       const g = xiahuaScript[xiahuaBuildStep]?.gate
       if (!g) return
       // 确认卡点是已经发出的动作，不走输入框打字动画；同时清掉可能还在收尾的上一段回放。
@@ -4108,20 +4181,20 @@ export default function VibeCodingPage({
       // 回放里的真实用户发言。
       gotoXiahuaStep(idx)
     },
-    [xiahuaBuildStep, xiahuaScript, gotoXiahuaStep],
+    [xiahuaBuildOwner, xiahuaBuildStep, xiahuaScript, gotoXiahuaStep],
   )
   // 回放时对话跟着往下滚，否则新步骤长在视口外面看不见。
   useEffect(() => {
-    if (xiahuaBuildStep < 0) return
+    if (xiahuaBuildStep < 0 || xiahuaBuildOwner !== projectTitleRef.current) return
     const raf = requestAnimationFrame(() => {
       const el = chatScrollRef.current
       if (el) el.scrollTop = el.scrollHeight
     })
     return () => cancelAnimationFrame(raf)
-  }, [xiahuaBuildStep])
+  }, [xiahuaBuildOwner, xiahuaBuildStep])
   // 定时推进，并在推进时应用该步的真实改动；遇到卡点停下等人点。
   useEffect(() => {
-    if (!xiahuaBuildPlaying) return
+    if (!xiahuaBuildPlaying || xiahuaBuildOwner !== projectTitleRef.current) return
     if (xiahuaBuildStep < 0 || xiahuaBuildStep >= xiahuaScript.length - 1) {
       setXiahuaBuildPlaying(false)
       return
@@ -4132,6 +4205,7 @@ export default function VibeCodingPage({
       return
     }
     const advance = () => {
+      if (xiahuaBuildOwner !== projectTitleRef.current) return
       const next = xiahuaScript[xiahuaBuildStep + 1]
       applyXiahuaMutation(next)
       setXiahuaPath((p) => [...p, xiahuaBuildStep + 1])
@@ -4139,13 +4213,14 @@ export default function VibeCodingPage({
       if (next?.gate) setXiahuaBuildPlaying(false)
     }
     const t = window.setTimeout(() => {
+      if (xiahuaBuildOwner !== projectTitleRef.current) return
       // 下一步是用户说话 → 先把字打进输入框，打完再「发出去」
       const next = xiahuaScript[xiahuaBuildStep + 1]
       if (next?.view.kind === 'user') typeIntoComposer(next.view.text, advance)
       else advance()
     }, cur?.hold ?? 1200)
     return () => window.clearTimeout(t)
-  }, [xiahuaBuildPlaying, xiahuaBuildStep, xiahuaScript, applyXiahuaMutation, typeIntoComposer])
+  }, [xiahuaBuildOwner, xiahuaBuildPlaying, xiahuaBuildStep, xiahuaScript, applyXiahuaMutation, typeIntoComposer])
   // Quick-edit object selection for the game and interest-card previews.
   // Their right-side fields are derived from these semantic targets.
   const [gameSelectedObject, setGameSelectedObject] =
@@ -4867,17 +4942,20 @@ export default function VibeCodingPage({
     toast('编辑修改已保存')
   }, [persistXiahuaEdits])
   const closeSummerSurfEditor = useCallback(() => {
+    let persisted = true
     try {
       window.localStorage.setItem(
         SUMMER_SURF_CONFIG_STORAGE_KEY,
-        JSON.stringify(summerSurfConfig),
+        JSON.stringify(summerSurfConfigForStorage(summerSurfConfig)),
       )
     } catch {
       // localStorage unavailable: keep the live editor state in memory.
+      persisted = false
+      toast.error('保存失败，配置仅保留在当前会话')
     }
     setEditPanelOpen(false)
     setSummerSurfSelected(null)
-    toast('编辑修改已保存')
+    if (persisted) toast('编辑修改已保存')
   }, [summerSurfConfig])
   /** Canvas editor — web-game images use the asset board; marketing H5 uses
    *  an immersive full-page canvas. Takes over the preview content when open. */
@@ -4933,7 +5011,8 @@ export default function VibeCodingPage({
   }
   /* 回放刚开始只是在聊需求，还没有任何产物 —— 右侧不开，对话独占。
      等解析出方案（第一个产物）才展开。 */
-  const previewCollapsedEff = previewCollapsed || xiahuaBuildPhase === 'none'
+  const previewCollapsedEff =
+    previewCollapsed || (xiahuaBuildFocused && xiahuaBuildPhase === 'none')
   const previewHidden = openTabs.length === 0 || previewCollapsedEff
 
   /* ─── Category-tab helpers ─── */
@@ -5073,6 +5152,7 @@ export default function VibeCodingPage({
       xiahuaPendingTabRef.current = null
       return
     }
+    if (xiahuaBuildOwner !== projectTitleRef.current) return
     const phaseLabel =
       xiahuaArtifactPhase === 'doc'
         ? PROJECT_DOCUMENT_LABEL
@@ -5096,7 +5176,7 @@ export default function VibeCodingPage({
     artifactTabRef.current = label
     focusPreviewTab(label)
     xiahuaPendingTabRef.current = null
-  }, [xiahuaBuildStep, xiahuaArtifactPhase, focusPreviewTab])
+  }, [xiahuaBuildOwner, xiahuaBuildStep, xiahuaArtifactPhase, focusPreviewTab])
 
   const openFileInTab = (filename: string, path?: string) => {
     // 项目文件 — the in-tab code editor (real source tree + code). Added from
@@ -5372,18 +5452,21 @@ export default function VibeCodingPage({
   useEffect(() => {
     const sync = () => {
       const params = new URLSearchParams(window.location.search)
-      if (params.get('page') === 'resources') {
+      const resourcesOpen =
+        params.get('page') === 'resources' && !standaloneWorkshopLayout
+      setPlatformResourceLibraryOpen(resourcesOpen)
+      if (resourcesOpen) {
         setPlatformHomeOpen(false)
         setPlatformSkillsOpen(false)
         setPlatformCreativeSquareOpen(false)
         setPlatformDataOpsOpen(false)
-        setPlatformResourceLibraryOpen(true)
+        setPlatformPlaceholderPage(null)
       }
     }
     sync()
     window.addEventListener('popstate', sync)
     return () => window.removeEventListener('popstate', sync)
-  }, [])
+  }, [standaloneWorkshopLayout])
 
   /** Mirror the library-open state back to the URL so the page is
    *  shareable / refresh-safe. Uses replaceState to avoid spurious
@@ -5434,8 +5517,10 @@ export default function VibeCodingPage({
     if (!openTabs[index]?.closable) return
     const next = openTabs.filter((_, i) => i !== index)
     setOpenTabs(next)
-    if (activePreviewTab >= next.length) setActivePreviewTab(next.length - 1)
-    else if (activePreviewTab === index) setActivePreviewTab(Math.max(0, index - 1))
+    const lastIndex = Math.max(0, next.length - 1)
+    if (index < activePreviewTab) setActivePreviewTab(activePreviewTab - 1)
+    else if (activePreviewTab === index) setActivePreviewTab(Math.min(index, lastIndex))
+    else if (activePreviewTab > lastIndex) setActivePreviewTab(lastIndex)
   }
 
   /* ─── Trigger detail tab helpers ─── */
@@ -7646,6 +7731,18 @@ export default function VibeCodingPage({
                 {m.trigger === 'none' && (() => {
                   const replyKey = `${projectTitle}::${activeSessionId}::${m.id}`
                   const cached = aiReplyCacheRef.current.get(replyKey)
+                  // FIFO per project/session: only the first uncached plain turn
+                  // may call the backend. Later rows stay visibly queued.
+                  const queueTurns = sentMessages.map((message) => ({
+                    id: message.id,
+                    text: message.text,
+                    includeInAiHistory: message.trigger === 'none',
+                  }))
+                  const active = isChatQueueTurnActive(queueTurns, i, (messageId) =>
+                    aiReplyCacheRef.current.has(
+                      `${projectTitle}::${activeSessionId}::${messageId}`,
+                    ),
+                  )
                   // Build the conversation context: the system framing plus
                   // every plain user turn up to here, interleaved with the
                   // assistant replies we've already streamed (cached). The
@@ -7658,31 +7755,32 @@ export default function VibeCodingPage({
                     day: 'numeric',
                     weekday: 'long',
                   })
-                  const history: ChatMessage[] = [
-                    {
-                      role: 'system',
-                      content: `你是「抖音 AI 工坊」的智能助手。当前日期：${nowStr}。用户当前在「${projectTitle}」(${PROJECT_KIND_LABELS[activeProjectKind]}) 项目下与你对话：如果用户在描述要做的产品或功能，就帮他梳理并推进搭建；如果只是提问、闲聊或让你做自我介绍，就直接正常回答，不要当成搭建需求。请用简体中文，语气专业、简洁、可执行，必要时给出具体步骤或示例。`,
-                    },
-                  ]
-                  for (let k = 0; k <= i; k++) {
-                    if (sentMessages[k]?.trigger !== 'none') continue
-                    history.push({ role: 'user', content: sentMessages[k].text })
-                    if (k < i) {
-                      const previousMessage = sentMessages[k]
-                      const prev = aiReplyCacheRef.current.get(
-                        `${projectTitle}::${activeSessionId}::${previousMessage.id}`,
-                      )
-                      if (prev) history.push({ role: 'assistant', content: prev })
-                    }
+                  const systemMessage: ChatMessage = {
+                    role: 'system',
+                    content: `你是「抖音 AI 工坊」的智能助手。当前日期：${nowStr}。用户当前在「${projectTitle}」(${PROJECT_KIND_LABELS[activeProjectKind]}) 项目下与你对话：如果用户在描述要做的产品或功能，就帮他梳理并推进搭建；如果只是提问、闲聊或让你做自我介绍，就直接正常回答，不要当成搭建需求。请用简体中文，语气专业、简洁、可执行，必要时给出具体步骤或示例。`,
                   }
+                  const history = buildChatQueueHistory(
+                    systemMessage,
+                    queueTurns,
+                    i,
+                    (messageId) =>
+                      aiReplyCacheRef.current.get(
+                        `${projectTitle}::${activeSessionId}::${messageId}`,
+                      ),
+                  )
                   return (
                     <LiveAiReply
                       key={replyKey}
                       messages={history}
                       cached={cached}
-                      fallback={GENERIC_AI_REPLIES[i % GENERIC_AI_REPLIES.length]}
+                      active={active}
                       onDone={(reply) => {
                         aiReplyCacheRef.current.set(replyKey, reply)
+                        setAiReplyRevision((revision) => revision + 1)
+                        requestAnimationFrame(() => {
+                          const el = chatScrollRef.current
+                          if (el) el.scrollTop = el.scrollHeight
+                        })
                       }}
                     />
                   )

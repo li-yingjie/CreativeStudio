@@ -827,7 +827,6 @@ function buildHomeOverview() {
   ]
 
   // 最新发布的作品（works 表末条）+ 一个体面的累计播放/点赞
-  const w = works[works.length - 1]
   const rnd = mulberry32(hashSeed('home-latest'))
   const latestPlays = Math.round(3.2e7 + rnd() * 1.2e7)
   const latestWork = {

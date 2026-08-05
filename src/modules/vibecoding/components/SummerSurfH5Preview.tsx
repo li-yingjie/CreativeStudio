@@ -1,4 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  hydrateSummerSurfConfigAssets,
+  summerSurfConfigForStorage,
+} from './summerSurfLocalAssets'
 import './SummerSurfH5Preview.css'
 
 export type SummerSurfThemeId = 'summer' | 'night'
@@ -187,6 +191,7 @@ export type SurfTier = {
   icon: string
   kind: 'coupon' | 'grand'
   image?: string
+  imageAssetId?: string
   imageWidth?: number
   imageHeight?: number
   reward: string
@@ -527,14 +532,14 @@ export function getInitialSummerSurfEditConfig(): SummerSurfEditConfig {
   try {
     const saved = JSON.parse(window.localStorage.getItem(SUMMER_SURF_CONFIG_STORAGE_KEY) ?? 'null') as Partial<SummerSurfEditConfig> | null
     if (!saved) return DEFAULT_SUMMER_SURF_EDIT_CONFIG
-    return {
+    return summerSurfConfigForStorage({
       ...DEFAULT_SUMMER_SURF_EDIT_CONFIG,
       ...saved,
       heroMedia: { ...DEFAULT_SUMMER_SURF_EDIT_CONFIG.heroMedia, ...saved.heroMedia },
       heroComposition: { ...DEFAULT_SUMMER_SURF_EDIT_CONFIG.heroComposition, ...saved.heroComposition, layers: saved.heroComposition?.layers ?? DEFAULT_SUMMER_SURF_EDIT_CONFIG.heroComposition.layers },
       assets: { ...DEFAULT_SUMMER_SURF_EDIT_CONFIG.assets, ...saved.assets },
       colors: { ...DEFAULT_SUMMER_SURF_EDIT_CONFIG.colors, ...saved.colors },
-    }
+    })
   } catch {
     return DEFAULT_SUMMER_SURF_EDIT_CONFIG
   }
@@ -573,7 +578,38 @@ export default function SummerSurfH5Preview({
   config,
   generationBatch,
 }: SummerSurfH5PreviewProps) {
-  const editConfig = { ...DEFAULT_SUMMER_SURF_EDIT_CONFIG, ...config }
+  const baseEditConfig = useMemo(
+    () => ({ ...DEFAULT_SUMMER_SURF_EDIT_CONFIG, ...config }),
+    [config],
+  )
+  const [hydratedAssets, setHydratedAssets] = useState<{
+    source: Partial<SummerSurfEditConfig> | undefined
+    config: SummerSurfEditConfig
+  } | null>(null)
+  const [localAssetNotice, setLocalAssetNotice] = useState('')
+  const editConfig = hydratedAssets && hydratedAssets.source === config
+    ? hydratedAssets.config
+    : baseEditConfig
+
+  useEffect(() => {
+    let cancelled = false
+    hydrateSummerSurfConfigAssets(baseEditConfig)
+      .then((result) => {
+        if (cancelled) return
+        setHydratedAssets({ source: config, config: result.config })
+        setLocalAssetNotice(result.missingAssetIds.length > 0
+          ? '部分本地素材未找到，请打开编辑面板重新上传。'
+          : '')
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLocalAssetNotice('本地素材库不可用，上传素材可能需要重新选择。')
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [baseEditConfig, config])
   const generationProgress = Math.max(0, Math.min(3, generationBatch ?? 3))
   const heroReady = generationBatch == null || generationProgress >= 1
   const cardsReady = generationBatch == null || generationProgress >= 2
@@ -749,6 +785,11 @@ export default function SummerSurfH5Preview({
         '--surf-action-dark': editConfig.colors.actionShadow,
       } as React.CSSProperties}
     >
+      {localAssetNotice && (
+        <div className="absolute inset-x-3 top-3 z-50 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-pretty text-xs text-amber-900 shadow-sm" role="status">
+          {localAssetNotice}
+        </div>
+      )}
       <div className="summer-surf-scroll">
         <section
           className={`surf-stage${targetClass('page')}`}

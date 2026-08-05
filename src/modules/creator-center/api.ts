@@ -23,10 +23,11 @@ function makeResourceHook<T>(path: string) {
     })
     return pending
   }
-  return function useResource() {
+  return function useResource(enabled = true) {
     const [data, setData] = useState<T | null>(cache)
     const [error, setError] = useState<string | null>(null)
     useEffect(() => {
+      if (!enabled) return
       let alive = true
       fetcher()
         .then((d) => alive && setData(d))
@@ -34,8 +35,8 @@ function makeResourceHook<T>(path: string) {
       return () => {
         alive = false
       }
-    }, [])
-    return { data, error, loading: !data && !error }
+    }, [enabled])
+    return { data, error, loading: enabled && !data && !error }
   }
 }
 
@@ -466,7 +467,7 @@ export function fetchCreatorStats(range: StatsRange): Promise<CreatorStats> {
 }
 
 /** 按时间范围拉取统计。切 range 会真实重新查询（同 range 走内存缓存）。 */
-export function useCreatorStats(range: StatsRange) {
+export function useCreatorStats(range: StatsRange, enabled = true) {
   const [state, setState] = useState<{
     range: StatsRange
     data: CreatorStats | null
@@ -477,6 +478,7 @@ export function useCreatorStats(range: StatsRange) {
     setState({ range, data: cache.get(range) ?? null, error: null })
   }
   useEffect(() => {
+    if (!enabled) return
     let alive = true
     fetchCreatorStats(range)
       .then((d) => alive && setState((s) => (s.range === range ? { ...s, data: d } : s)))
@@ -484,8 +486,12 @@ export function useCreatorStats(range: StatsRange) {
     return () => {
       alive = false
     }
-  }, [range])
-  return { data: state.data, error: state.error, loading: !state.data && !state.error }
+  }, [enabled, range])
+  return {
+    data: state.data,
+    error: state.error,
+    loading: enabled && !state.data && !state.error,
+  }
 }
 
 /* ─── 展示格式化 ─── */

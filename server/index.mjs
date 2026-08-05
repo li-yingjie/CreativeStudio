@@ -1,9 +1,11 @@
 import express from 'express'
 import path from 'node:path'
 import fs from 'node:fs'
+import { createServer } from 'node:http'
 import { createBrotliCompress, createGzip, constants as zlibConstants } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { handleChat, handleHealth, handleProductIntent, loadKimiConfig } from './kimi.mjs'
+import { staticCacheControl } from './static-cache.mjs'
 import {
   handleCreatorActivities,
   handleCreatorCollab,
@@ -18,8 +20,29 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
+// The shared config loader also loads .env once; self-host settings below need
+// those values before the HTTP server is created.
+loadKimiConfig()
 const PORT = Number.parseInt(process.env.PORT || '8787', 10)
+const DIST_DIR = path.join(ROOT, 'dist')
 const COMPRESSIBLE_EXTENSIONS = new Set(['.css', '.html', '.js', '.json', '.map', '.svg', '.txt', '.xml'])
+
+function boundedTimeout(value, fallback, min, max) {
+  const parsed = Number.parseInt(value || '', 10)
+  return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback
+}
+
+const SERVER_REQUEST_TIMEOUT_MS = boundedTimeout(process.env.SERVER_REQUEST_TIMEOUT_MS, 15_000, 1_000, 120_000)
+const SERVER_HEADERS_TIMEOUT_MS = Math.min(
+  SERVER_REQUEST_TIMEOUT_MS,
+  boundedTimeout(process.env.SERVER_HEADERS_TIMEOUT_MS, 10_000, 1_000, 60_000),
+)
+const SERVER_KEEP_ALIVE_TIMEOUT_MS = boundedTimeout(
+  process.env.SERVER_KEEP_ALIVE_TIMEOUT_MS,
+  5_000,
+  1_000,
+  30_000,
+)
 
 const apiRoutes = new Map([
   ['/api/health', { method: 'GET', handler: handleHealth }],
@@ -64,17 +87,9 @@ function acceptsEncoding(req, encoding) {
 }
 
 function setStaticCacheHeaders(res, filePath) {
-  const name = path.basename(filePath)
-  const extension = path.extname(name).toLowerCase()
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
-  if (extension === '.html' || name === 'sw.js') {
-    res.setHeader('Cache-Control', 'no-cache')
-  } else if (/[-.][A-Za-z0-9_-]{8,}\.[^.]+$/.test(name) && filePath.includes(`${path.sep}assets${path.sep}`)) {
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
-  } else {
-    res.setHeader('Cache-Control', 'public, max-age=3600')
-  }
+  res.setHeader('Cache-Control', staticCacheControl(filePath, DIST_DIR))
 }
 
 function compressedStatic(root) {
@@ -166,17 +181,16 @@ app.use((req, res, next) => {
   })
 })
 
-const distDir = path.join(ROOT, 'dist')
-if (fs.existsSync(distDir)) {
-  app.use(compressedStatic(distDir))
+if (fs.existsSync(DIST_DIR)) {
+  app.use(compressedStatic(DIST_DIR))
   app.use(
-    express.static(distDir, {
+    express.static(DIST_DIR, {
       index: false,
       setHeaders: setStaticCacheHeaders,
     }),
   )
   app.get('*', (_req, res) => {
-    const indexPath = path.join(distDir, 'index.html')
+    const indexPath = path.join(DIST_DIR, 'index.html')
     setStaticCacheHeaders(res, indexPath)
     res.sendFile(indexPath)
   })
@@ -188,7 +202,12 @@ app.use((error, req, res, _next) => {
   else if (!res.headersSent) res.status(500).send('Internal server error')
 })
 
-app.listen(PORT, () => {
+const server = createServer(app)
+server.requestTimeout = SERVER_REQUEST_TIMEOUT_MS
+server.headersTimeout = SERVER_HEADERS_TIMEOUT_MS
+server.keepAliveTimeout = SERVER_KEEP_ALIVE_TIMEOUT_MS
+
+server.listen(PORT, () => {
   const cfg = loadKimiConfig()
   console.log(`[server] listening on http://localhost:${PORT} (model: ${cfg.model})`)
   if (!cfg.apiKey) console.warn('[server] WARNING: KIMI_API_KEY is not set')

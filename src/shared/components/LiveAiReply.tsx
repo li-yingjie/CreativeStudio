@@ -1,90 +1,140 @@
 import { useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
-import { streamChat, type ChatMessage } from '@/shared/api/chat'
+import { ChatStreamError, streamChat, type ChatMessage } from '@/shared/api/chat'
 
-/** Live AI reply block — streams a real reply from the Kimi-backed
- *  /api/chat proxy, showing a thinking indicator until the first token
- *  lands. Caches the finished text in the parent (via `cached` / `onDone`)
- *  so re-opening renders instantly instead of re-fetching, and falls back
- *  to a canned line if the request fails. Failed or incomplete streams
- *  remain uncached so a later remount can retry.
- *  Ink color follows `--color-ink` — hosts on a light surface can scope
- *  the var locally instead of forking the component. */
+type ReplyStatus = 'queued' | 'streaming' | 'complete' | 'error'
+
+function userFacingError(error: unknown): string {
+  if (error instanceof ChatStreamError) {
+    if (error.status === 429) return '请求较多，请稍后重试。'
+    if (error.status === 401 || error.status === 403) return 'AI 服务暂时不可用，请稍后重试。'
+    if (error.status !== undefined && error.status >= 500) {
+      return 'AI 服务暂时没有响应，请稍后重试。'
+    }
+  }
+  if (error instanceof TypeError) return '网络连接失败，请检查网络后重试。'
+  return '回复生成失败，请重试。'
+}
+
+/** Streams one AI turn. `active=false` keeps the turn visibly queued, which
+ * lets the parent serialize a conversation without disabling the composer. */
 export function LiveAiReply({
   messages,
   cached,
-  fallback,
+  active = true,
+  fallback: _fallback,
   onDone,
+  onError,
+  onRetry,
 }: {
   /** Full conversation context (system + prior turns + this user message). */
   messages: ChatMessage[]
   /** Previously-streamed reply for this turn; when set, render it instantly. */
   cached?: string
-  /** Canned reply shown if the API call fails. */
-  fallback: string
+  /** Only the first unresolved turn in a conversation should be active. */
+  active?: boolean
+  /** Kept for compatibility; failures are shown explicitly instead. */
+  fallback?: string
   /** Called once with the final text so the parent can cache it. */
   onDone?: (reply: string) => void
+  /** Called when the stream fails, before the inline retry is shown. */
+  onError?: (error: unknown) => void
+  /** Called immediately before retrying a failed turn. */
+  onRetry?: () => void
 }) {
+  void _fallback
   const [text, setText] = useState(cached ?? '')
-  const [thinking, setThinking] = useState(cached == null)
-  const onDoneRef = useRef(onDone)
-  useEffect(() => {
-    onDoneRef.current = onDone
-  })
-  // Capture the message context from first render — the reply is tied to this
-  // turn, so later re-renders shouldn't change what we asked.
+  const [status, setStatus] = useState<ReplyStatus>(
+    cached != null ? 'complete' : active ? 'streaming' : 'queued',
+  )
+  const [errorMessage, setErrorMessage] = useState('')
+  const [attempt, setAttempt] = useState(0)
   const messagesRef = useRef(messages)
+  const onDoneRef = useRef(onDone)
+  const onErrorRef = useRef(onError)
+  const onRetryRef = useRef(onRetry)
+
   useEffect(() => {
-    if (cached != null) return // already have the reply — no fetch
+    messagesRef.current = messages
+    onDoneRef.current = onDone
+    onErrorRef.current = onError
+    onRetryRef.current = onRetry
+  }, [messages, onDone, onError, onRetry])
+
+  useEffect(() => {
+    if (cached != null || !active) return
+
     const controller = new AbortController()
     let acc = ''
     streamChat(messagesRef.current, {
       signal: controller.signal,
       onToken: (token) => {
         acc += token
-        setThinking(false)
         setText(acc)
       },
     })
       .then((full) => {
-        const completedReply = (acc || full || '').trim()
-        const reply = completedReply || fallback
-        setThinking(false)
-        setText(reply)
-        if (completedReply) onDoneRef.current?.(completedReply)
-      })
-      .catch(() => {
         if (controller.signal.aborted) return
-        setThinking(false)
-        setText(fallback)
+        const reply = (acc || full).trim()
+        if (!reply) throw new ChatStreamError('chat returned an empty reply')
+        setText(reply)
+        setStatus('complete')
+        onDoneRef.current?.(reply)
       })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return
+        setStatus('error')
+        setErrorMessage(userFacingError(error))
+        onErrorRef.current?.(error)
+      })
+
     return () => controller.abort()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [active, attempt, cached])
+
+  const retry = () => {
+    onRetryRef.current?.()
+    setText('')
+    setErrorMessage('')
+    setStatus('streaming')
+    setAttempt((value) => value + 1)
+  }
+
+  const displayedStatus: ReplyStatus = cached != null
+    ? 'complete'
+    : !active && status !== 'complete'
+      ? 'queued'
+      : active && status === 'queued'
+        ? 'streaming'
+        : status
+  const displayedText = cached ?? text
+
   return (
     <div className="space-y-2.5">
-      {thinking && (
-        <div className="flex items-center gap-1.5 text-[12px] text-[var(--color-ink)]/45">
-          {[0, 1, 2].map((k) => (
-            <motion.span
-              key={k}
-              animate={{ y: [0, -3, 0], opacity: [0.35, 0.85, 0.35] }}
-              transition={{ duration: 0.9, delay: k * 0.15, repeat: Infinity, ease: 'easeInOut' }}
-              className="h-1.5 w-1.5 rounded-full bg-[var(--color-ink)]"
-            />
-          ))}
-          <span className="ml-1">AI 正在回复</span>
-        </div>
+      {displayedStatus === 'queued' && (
+        <p role="status" className="text-pretty text-[12px] leading-5 text-[var(--color-ink)]/45">
+          已排队，等待上一条回复完成
+        </p>
       )}
-      {text && (
-        <motion.p
-          initial={cached != null ? false : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={cached != null ? { duration: 0 } : { duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="whitespace-pre-wrap text-[14px] leading-[20px] text-[var(--color-ink)]"
-        >
-          {text}
-        </motion.p>
+      {displayedStatus === 'streaming' && !displayedText && (
+        <p role="status" className="text-pretty text-[12px] leading-5 text-[var(--color-ink)]/45">
+          AI 正在回复…
+        </p>
+      )}
+      {displayedText && (
+        <p className="text-pretty whitespace-pre-wrap text-[14px] leading-[20px] text-[var(--color-ink)]">
+          {displayedText}
+        </p>
+      )}
+      {displayedStatus === 'error' && (
+        <div role="alert" className="flex flex-wrap items-center gap-2 text-[12px] leading-5">
+          <span className="text-pretty text-red-600 dark:text-red-400">{errorMessage}</span>
+          <button
+            type="button"
+            onClick={retry}
+            className="rounded-md border border-[var(--divider)] px-2 py-1 font-medium text-[var(--color-ink)] hover:bg-[var(--fill-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ink)]"
+          >
+            重试
+          </button>
+        </div>
       )}
     </div>
   )

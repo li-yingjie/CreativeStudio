@@ -270,6 +270,7 @@ export default function SideNav({
       reduceMotion
         ? { opacity: 1 }
         : { opacity: [0.88, 1] },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Replay feedback when the panel state changes.
     [collapsed, reduceMotion],
   )
   // Popover 通过 Portal 挂到 body，需显式携带侧栏主题变量。
