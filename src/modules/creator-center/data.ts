@@ -30,13 +30,14 @@ export const PRODUCTS: ProductEntry[] = [
 /** 星光余额（创作激励计量单位，顶栏右侧展示）。 */
 export const STARLIGHT = 276
 
-/** 首页「智能创作」入口卡。homeIcon 是设计稿整组 4x 导出的合成图；front/back
- *  保留给产品占位页使用，避免首页素材更新波及其它页面。 */
+/** 首页「智能创作」入口卡。homeFront/homeBack 是设计稿分层导出的 4x 透明 PNG；
+ *  front/back 保留给产品占位页使用，避免首页素材更新波及其它页面。 */
 export const SMART_CREATE_ENTRIES: {
   id: Exclude<ProductId, 'home'>
   label: string
   desc: string
-  homeIcon: string
+  homeFront: string
+  homeBack: string
   front: string
   back?: string
 }[] = [
@@ -44,7 +45,8 @@ export const SMART_CREATE_ENTRIES: {
     id: 'ai-avatar',
     label: 'AI分身',
     desc: '创造陪伴用户的另一个“你”',
-    homeIcon: '/icons/creator-center/smart-create-ai-avatar.png',
+    homeFront: '/icons/creator-center/smart-create-ai-avatar-front.png',
+    homeBack: '/icons/creator-center/smart-create-ai-avatar-back.png',
     front: '/icons/creator-center/entry-ai-avatar-front.png',
     back: '/icons/creator-center/entry-ai-avatar-back.png',
   },
@@ -52,7 +54,8 @@ export const SMART_CREATE_ENTRIES: {
     id: 'wiki',
     label: '百科',
     desc: '汇聚创作构想搭建专属世界',
-    homeIcon: '/icons/creator-center/smart-create-wiki.png',
+    homeFront: '/icons/creator-center/smart-create-wiki-front.png',
+    homeBack: '/icons/creator-center/smart-create-wiki-back.png',
     front: '/icons/creator-center/entry-wiki-front.png',
     back: '/icons/creator-center/entry-wiki-back.png',
   },
@@ -60,7 +63,8 @@ export const SMART_CREATE_ENTRIES: {
     id: 'suibian',
     label: '随变',
     desc: '自由角色创作，专业 Agent 成片',
-    homeIcon: '/icons/creator-center/smart-create-suibian.png',
+    homeFront: '/icons/creator-center/smart-create-suibian-front.png',
+    homeBack: '/icons/creator-center/smart-create-suibian-back.png',
     front: '/icons/creator-center/entry-suibian-front.png',
     back: '/icons/creator-center/entry-suibian-back.png',
   },
@@ -68,7 +72,8 @@ export const SMART_CREATE_ENTRIES: {
     id: 'workshop',
     label: 'AI工坊',
     desc: '把好想法变成好玩法',
-    homeIcon: '/icons/creator-center/smart-create-workshop.png',
+    homeFront: '/icons/creator-center/smart-create-workshop-front.png',
+    homeBack: '/icons/creator-center/smart-create-workshop-back.png',
     front: '/icons/creator-center/entry-workshop.png',
   },
 ]

@@ -362,11 +362,6 @@ function EntryCard({
   )
 }
 
-/** 智能创作图标已在 Figma 内完成前后卡叠放，直接按整组渲染以保持原始几何。 */
-function SmartCreateImageIcon({ src }: { src: string }) {
-  return <img src={src} alt="" className="pointer-events-none block h-full w-full object-contain" />
-}
-
 /** 入口卡图标：正卡（front，设计稿导出的 4x 贴纸）在左，后卡与正卡等大、在右后方
  *  斜置探出（有 back 图则铺图，否则用中性浅色底板——对应设计里作品发布/工坊的白底后卡）。
  *  默认几何与 hover 增量分层：后卡绕左下角右扇，正卡同时向左展开。 */
@@ -956,7 +951,7 @@ export default function CreatorCenterHome({
                   {SMART_CREATE_ENTRIES.map((e) => (
                     <EntryCard
                       key={e.id}
-                      icon={<SmartCreateImageIcon src={e.homeIcon} />}
+                      icon={<CardImageIcon front={e.homeFront} back={e.homeBack} />}
                       label={e.label}
                       desc={e.desc}
                       onClick={() => onOpenProduct(e.id)}
