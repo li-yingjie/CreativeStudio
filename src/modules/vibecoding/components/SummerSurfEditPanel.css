@@ -148,7 +148,7 @@
 .studio-ai-slot-action span { font-size: 11px; font-weight: 800; }
 .studio-ai-slot-action small { color: #667fae; font-size: 8px; font-weight: 600; }
 .studio-hero-frame-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.studio-hero-frame-card { display: grid; min-width: 0; grid-template-columns: 48px minmax(0, 1fr); gap: 7px; align-items: center; padding: 7px; overflow: hidden; border: 1px solid #dce4ef; border-radius: 9px; background: #fff; }
+.studio-hero-frame-card { display: grid; min-width: 0; grid-template-columns: 48px minmax(0, 1fr); gap: 7px; align-items: center; padding: 7px; overflow: hidden; border: 1px solid #dce4ef; border-radius: 9px; background: #fff; cursor: pointer; }
 .studio-hero-frame-card > span:last-child { display: grid; min-width: 0; gap: 2px; }
 .studio-hero-frame-card strong { color: #273342; font-size: 10px; }
 .studio-hero-frame-card small { overflow: hidden; color: #7a8796; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }

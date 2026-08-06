@@ -24,6 +24,17 @@ import {
   type SurfCard,
   type SurfTier,
 } from './SummerSurfH5Preview'
+import { parseSummerSurfConfigImport } from './summerSurfConfigValidation'
+import {
+  collectSummerSurfAssetIds,
+  countSummerSurfObjectUrls,
+  createSummerSurfAssetId,
+  createSummerSurfSessionAssetUrl,
+  hydrateSummerSurfConfigAssets,
+  persistSummerSurfAsset,
+  pruneSummerSurfAssets,
+  summerSurfConfigForStorage,
+} from './summerSurfLocalAssets'
 import './SummerSurfEditPanel.css'
 
 const HERO_WIDTH = 375
@@ -89,10 +100,16 @@ function cloneConfig(config: SummerSurfEditConfig): SummerSurfEditConfig {
   return JSON.parse(JSON.stringify(config)) as SummerSurfEditConfig
 }
 
-function mediaFromFile(file: File, fit: 'cover' | 'contain' = 'contain'): SummerSurfHeroMedia {
+function mediaFromFile(
+  file: File,
+  assetId: string,
+  src: string,
+  fit: 'cover' | 'contain' = 'contain',
+): SummerSurfHeroMedia {
   return {
     type: file.type.startsWith('video/') ? 'video' : 'image',
-    src: URL.createObjectURL(file),
+    src,
+    assetId,
     fit,
     position: 'center top',
   }
@@ -252,28 +269,62 @@ function createNightConfig(base: SummerSurfEditConfig): SummerSurfEditConfig {
   }
 }
 
-function readSavedDrafts(): DraftEntry[] | null {
-  if (typeof window === 'undefined') return null
+type SavedDraftsResult = {
+  drafts: DraftEntry[] | null
+  expiredUrlCount: number
+}
+
+function readSavedDrafts(): SavedDraftsResult {
+  if (typeof window === 'undefined') return { drafts: null, expiredUrlCount: 0 }
   try {
     const saved = JSON.parse(window.localStorage.getItem(DRAFTS_STORAGE_KEY) ?? 'null') as unknown
-    if (!Array.isArray(saved) || !saved.length) return null
-    const valid = saved.filter((item): item is DraftEntry => Boolean(item && typeof item === 'object' && typeof (item as DraftEntry).id === 'string' && (item as DraftEntry).config))
-    return valid.length ? valid.map((item) => ({ ...item, config: { ...DEFAULT_SUMMER_SURF_EDIT_CONFIG, ...item.config, colors: { ...DEFAULT_SUMMER_SURF_EDIT_CONFIG.colors, ...item.config.colors }, assets: { ...DEFAULT_SUMMER_SURF_EDIT_CONFIG.assets, ...item.config.assets } } })) : null
+    if (!Array.isArray(saved) || !saved.length) return { drafts: null, expiredUrlCount: 0 }
+    let expiredUrlCount = 0
+    const valid: DraftEntry[] = []
+    saved.forEach((item) => {
+      if (!item || typeof item !== 'object') return
+      const candidate = item as Partial<DraftEntry>
+      if (typeof candidate.id !== 'string' || !candidate.config) return
+      try {
+        expiredUrlCount += countSummerSurfObjectUrls(candidate.config)
+        const sanitized = summerSurfConfigForStorage(candidate.config)
+        const parsed = parseSummerSurfConfigImport(sanitized)
+        valid.push({
+          id: candidate.id,
+          name: typeof candidate.name === 'string' ? candidate.name : parsed.campaignName,
+          config: parsed,
+        })
+      } catch {
+        // 单个损坏草稿不应阻断其余可用方案。
+      }
+    })
+    return { drafts: valid.length ? valid : null, expiredUrlCount }
   } catch {
-    return null
+    return { drafts: null, expiredUrlCount: 0 }
   }
 }
 
 export default function SummerSurfEditPanel({ selection, onSelect, config, onConfigChange, onClose }: { selection: SummerSurfSelection | null; onSelect: (selection: SummerSurfSelection | null) => void; config: SummerSurfEditConfig; onConfigChange: (config: SummerSurfEditConfig) => void; onClose: () => void }) {
+  const [initialDraftState] = useState(() => {
+    const saved = readSavedDrafts()
+    return {
+      drafts: saved.drafts ?? [
+        { id: 'starter-summer', name: config.campaignName, config: cloneConfig(config) },
+        { id: 'starter-night', name: '夏日夜食 · 默认', config: createNightConfig(config) },
+      ],
+      expiredUrlCount: saved.expiredUrlCount,
+    }
+  })
   const [previewMode, setPreviewMode] = useState(false)
   const [importError, setImportError] = useState('')
+  const [assetNotice, setAssetNotice] = useState(() =>
+    initialDraftState.expiredUrlCount > 0 ? '正在从本地素材库恢复上传文件…' : '',
+  )
+  const [storageError, setStorageError] = useState('')
   const [selectedPageId, setSelectedPageId] = useState('campaign-main')
   const [selectedHeroLayerId, setSelectedHeroLayerId] = useState<string | null>(() => config.heroComposition.layers[0]?.id ?? null)
-  const [activeDraftId, setActiveDraftId] = useState('starter-summer')
-  const [drafts, setDrafts] = useState<DraftEntry[]>(() => readSavedDrafts() ?? [
-    { id: 'starter-summer', name: config.campaignName, config: cloneConfig(config) },
-    { id: 'starter-night', name: '夏日夜食 · 默认', config: createNightConfig(config) },
-  ])
+  const [activeDraftId, setActiveDraftId] = useState(initialDraftState.drafts[0].id)
+  const [drafts, setDrafts] = useState<DraftEntry[]>(initialDraftState.drafts)
   const selectedHeroLayer = config.heroComposition.layers.find((layer) => layer.id === selectedHeroLayerId) ?? null
   const selectedHeroCard = selectedHeroLayer ? config.cards.find((card) => card.id === selectedHeroLayer.cardId) : null
   const heroTransitionLibrary = useMemo(() => {
@@ -295,8 +346,63 @@ export default function SummerSurfEditPanel({ selection, onSelect, config, onCon
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts))
+    let cancelled = false
+    let nextError = ''
+    try {
+      const persisted = drafts.map((draft) => ({
+        ...draft,
+        config: summerSurfConfigForStorage(draft.config),
+      }))
+      window.localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(persisted))
+    } catch (error) {
+      const quotaExceeded = error instanceof DOMException && (
+        error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+      )
+      nextError = quotaExceeded
+        ? '浏览器配置空间已满，当前修改尚未保存到草稿。'
+        : '草稿无法写入浏览器存储，请检查隐私模式或站点权限。'
+    }
+    queueMicrotask(() => {
+      if (!cancelled) setStorageError(nextError)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [drafts])
+
+  useEffect(() => {
+    const referencedIds = collectSummerSurfAssetIds(config)
+    drafts.forEach((draft) => {
+      collectSummerSurfAssetIds(draft.config).forEach((assetId) => referencedIds.add(assetId))
+    })
+    void pruneSummerSurfAssets(referencedIds).catch(() => undefined)
+  }, [config, drafts])
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all(
+      initialDraftState.drafts.map(async (draft) => {
+        const hydrated = await hydrateSummerSurfConfigAssets(draft.config)
+        return { draft: { ...draft, config: hydrated.config }, missing: hydrated.missingAssetIds }
+      }),
+    )
+      .then((results) => {
+        if (cancelled) return
+        setDrafts(results.map((result) => result.draft))
+        const missingCount = new Set(results.flatMap((result) => result.missing)).size
+        setAssetNotice(missingCount > 0
+          ? `${missingCount} 个本地素材未找到，已留空；请在对应位置重新上传。`
+          : '')
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAssetNotice('无法读取本地素材库；上传文件将仅在本次会话可用，请勿刷新页面。')
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [initialDraftState])
 
   const updateConfig = <K extends keyof SummerSurfEditConfig>(key: K, value: SummerSurfEditConfig[K]) => {
     const next = { ...config, [key]: value }
@@ -358,21 +464,26 @@ export default function SummerSurfEditPanel({ selection, onSelect, config, onCon
     event.target.value = ''
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
-        const imported = JSON.parse(String(reader.result)) as Partial<SummerSurfEditConfig> & { content?: Partial<SummerSurfEditConfig>; pack?: { colors?: Partial<SummerSurfEditConfig['colors']>; assets?: Partial<SummerSurfAssetConfig> } }
-        const source = imported.content ? { ...imported, ...imported.content } : imported
-        const next = { ...DEFAULT_SUMMER_SURF_EDIT_CONFIG, ...source, colors: { ...DEFAULT_SUMMER_SURF_EDIT_CONFIG.colors, ...imported.colors, ...imported.pack?.colors }, assets: { ...DEFAULT_SUMMER_SURF_EDIT_CONFIG.assets, ...imported.assets, ...imported.pack?.assets } }
+        const imported = JSON.parse(String(reader.result)) as unknown
+        const validated = parseSummerSurfConfigImport(imported)
+        const hydrated = await hydrateSummerSurfConfigAssets(validated)
+        const next = hydrated.config
+        if (hydrated.missingAssetIds.length > 0) {
+          setAssetNotice(`${hydrated.missingAssetIds.length} 个导入素材未在本机找到，请重新上传。`)
+        }
         const importedDraft = { id: `import-${Date.now()}`, name: next.campaignName, config: cloneConfig(next) }
         setDrafts((current) => [...current, importedDraft])
         setActiveDraftId(importedDraft.id)
         setSelectedHeroLayerId(next.heroComposition.layers[0]?.id ?? null)
         onConfigChange(next)
         setImportError('')
-      } catch {
-        setImportError('JSON 格式不可用')
+      } catch (error) {
+        setImportError(error instanceof Error ? error.message : 'JSON 格式不可用')
       }
     }
+    reader.onerror = () => setImportError('文件读取失败，请重新选择')
     reader.readAsText(file)
   }
   const pickFile = (event: ChangeEvent<HTMLInputElement>) => {
@@ -380,39 +491,73 @@ export default function SummerSurfEditPanel({ selection, onSelect, config, onCon
     event.target.value = ''
     return file
   }
+  const localAsset = (file: File, slot: string) => {
+    const assetId = createSummerSurfAssetId(activeDraftId, slot)
+    const src = createSummerSurfSessionAssetUrl(assetId, file)
+    void persistSummerSurfAsset(assetId, file).catch(() => {
+      setAssetNotice('素材未能写入本地素材库；当前预览仍可用，但刷新后需要重新上传。')
+    })
+    return { assetId, src }
+  }
   const uploadHero = (event: ChangeEvent<HTMLInputElement>) => {
     const file = pickFile(event)
-    if (file) updateHeroMedia({ ...mediaFromFile(file, 'cover'), assetId: `${activeDraftId}:hero:start` })
+    if (file) {
+      const asset = localAsset(file, 'hero-start')
+      updateHeroMedia(mediaFromFile(file, asset.assetId, asset.src, 'cover'))
+    }
   }
   const uploadEndFrame = (event: ChangeEvent<HTMLInputElement>) => {
     const file = pickFile(event)
-    if (file) updateHeroComposition({ finalReference: { ...mediaFromFile(file, 'cover'), assetId: `${activeDraftId}:hero:end` } })
+    if (file) {
+      const asset = localAsset(file, 'hero-end')
+      updateHeroComposition({ finalReference: mediaFromFile(file, asset.assetId, asset.src, 'cover') })
+    }
   }
   const uploadCard = (index: number, event: ChangeEvent<HTMLInputElement>) => {
     const file = pickFile(event)
-    if (file) updateCard(index, { image: URL.createObjectURL(file), imageAssetId: `${activeDraftId}:card:${config.cards[index]?.id ?? index}`, imageWidth: 180, imageHeight: 220 })
+    if (file) {
+      const asset = localAsset(file, `card-${config.cards[index]?.id ?? index}`)
+      updateCard(index, { image: asset.src, imageAssetId: asset.assetId, imageWidth: 180, imageHeight: 220 })
+    }
   }
   const uploadCards = (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? [])
     event.target.value = ''
     if (!files.length) return
-    updateConfig('cards', config.cards.map((card, index) => files[index] ? { ...card, image: URL.createObjectURL(files[index]), imageAssetId: `${activeDraftId}:card:${card.id}`, imageWidth: 180, imageHeight: 220 } : card))
+    updateConfig('cards', config.cards.map((card, index) => {
+      const file = files[index]
+      if (!file) return card
+      const asset = localAsset(file, `card-${card.id}`)
+      return { ...card, image: asset.src, imageAssetId: asset.assetId, imageWidth: 180, imageHeight: 220 }
+    }))
   }
   const uploadTier = (index: number, event: ChangeEvent<HTMLInputElement>) => {
     const file = pickFile(event)
-    if (file) updateTier(index, { image: URL.createObjectURL(file), imageWidth: 132, imageHeight: 90 })
+    if (file) {
+      const asset = localAsset(file, `tier-${config.tiers[index]?.id ?? index}`)
+      updateTier(index, { image: asset.src, imageAssetId: asset.assetId, imageWidth: 132, imageHeight: 90 })
+    }
   }
   const uploadHeroLayer = (layerId: string, event: ChangeEvent<HTMLInputElement>) => {
     const file = pickFile(event)
-    if (file) updateHeroLayer(layerId, { media: { ...mediaFromFile(file), assetId: `${activeDraftId}:hero-layer:${layerId}` } })
+    if (file) {
+      const asset = localAsset(file, `hero-layer-${layerId}`)
+      updateHeroLayer(layerId, { media: mediaFromFile(file, asset.assetId, asset.src) })
+    }
   }
   const uploadTransition = (layerId: string, event: ChangeEvent<HTMLInputElement>) => {
     const file = pickFile(event)
-    if (file) updateHeroLayer(layerId, { transitionMedia: { ...mediaFromFile(file, 'cover'), assetId: `${activeDraftId}:transition:${layerId}` }, presentation: 'video-transition' })
+    if (file) {
+      const asset = localAsset(file, `transition-${layerId}`)
+      updateHeroLayer(layerId, { transitionMedia: mediaFromFile(file, asset.assetId, asset.src, 'cover'), presentation: 'video-transition' })
+    }
   }
   const uploadPoster = (layerId: string, event: ChangeEvent<HTMLInputElement>) => {
     const file = pickFile(event)
-    if (file) updateHeroLayer(layerId, { transitionMedia: { ...(selectedHeroLayer?.transitionMedia ?? { type: 'video', src: '' }), poster: URL.createObjectURL(file), posterAssetId: `${activeDraftId}:transition-poster:${layerId}`, type: 'video' } })
+    if (file) {
+      const asset = localAsset(file, `transition-poster-${layerId}`)
+      updateHeroLayer(layerId, { transitionMedia: { ...(selectedHeroLayer?.transitionMedia ?? { type: 'video', src: '' }), poster: asset.src, posterAssetId: asset.assetId, type: 'video' } })
+    }
   }
   const reuseHeroTransition = (layerId: string, transition: (typeof heroTransitionLibrary)[number]) => {
     updateHeroLayer(layerId, { transitionMedia: { ...transition.media }, presentation: 'video-transition' })
@@ -429,6 +574,8 @@ export default function SummerSurfEditPanel({ selection, onSelect, config, onCon
         <div><small>正在编辑</small><strong>{config.campaignName}</strong></div>
         <span>配置完整</span>
       </header>
+      {assetNotice && <p className="studio-error" role="status">{assetNotice}</p>}
+      {storageError && <p className="studio-error" role="alert">{storageError}</p>}
       <div className="studio-inspector-group studio-project-group" data-testid="inspector-group-project">
         <div className="studio-inspector-group-title"><span>Project</span><strong>页面与方案</strong></div>
         <details open data-setting-id="pages">
@@ -445,7 +592,7 @@ export default function SummerSurfEditPanel({ selection, onSelect, config, onCon
             <div className="studio-inspector-create-row"><button type="button" onClick={() => addDraft('summer')}>新建夏日方案</button><button type="button" onClick={() => addDraft('night')}>新建夜食方案</button></div>
             <div className="studio-inspector-scheme-list" aria-label="主题方案">{drafts.map((draft) => <button key={draft.id} type="button" className={draft.id === activeDraftId ? 'active' : ''} onClick={() => chooseDraft(draft)}><i style={{ background: draft.config.colors.accent }} aria-hidden /><span><strong>{draft.name}</strong><small>{draft.config.activeTheme === 'summer' ? '夏日模板' : '夜食模板'}</small></span><b>{draft.id === activeDraftId ? '当前' : '切换'}</b></button>)}</div>
             <div className="studio-inspector-scheme-actions"><button type="button" onClick={duplicateActive}><Copy size={12} />复制</button><label className="studio-file-button"><Upload size={12} />导入 JSON<input type="file" accept="application/json,.json" onChange={importDraft} /></label><button type="button" className="danger" disabled={drafts.length <= 1} onClick={deleteActive}><Trash2 size={12} />删除</button></div>
-            {importError && <p className="studio-error">导入失败：{importError}</p>}
+            {importError && <p className="studio-error" role="alert">导入失败：{importError}</p>}
           </div>
         </details>
       </div>
@@ -458,7 +605,7 @@ export default function SummerSurfEditPanel({ selection, onSelect, config, onCon
         <div className="studio-inspector-group-title"><span>Modules</span><strong>页面模块</strong></div>
         <details open data-module-id="hero"><SectionSummary index="M1">首焦与主操作</SectionSummary><div className="studio-section-body">
           <ModuleButton label="375 × 500" onClick={() => select('hero', '首焦与主操作')} />
-          <div className="studio-hero-frame-grid"><div className="studio-hero-frame-card"><AssetPreview src={config.heroMedia.src} fallback="Hero" alt="Hero 首帧预览" displaySize="首帧 · 进入活动与抽卡前显示" /><span><strong>首帧</strong><small>上传图片或视频</small><b>上传素材</b></span><input type="file" accept="image/*,video/*" onChange={uploadHero} /></div><div className="studio-hero-frame-card"><AssetPreview src={config.heroComposition.finalReference?.src} fallback="待上传" alt="Hero 尾帧预览" displaySize="尾帧 · 两段过场播放完成后停留" /><span><strong>尾帧</strong><small>过场播放完成后停留</small><b>上传图片</b></span><input type="file" accept="image/*" onChange={uploadEndFrame} /></div></div>
+          <div className="studio-hero-frame-grid"><label className="studio-hero-frame-card"><AssetPreview src={config.heroMedia.src} fallback="Hero" alt="Hero 首帧预览" displaySize="首帧 · 进入活动与抽卡前显示" /><span><strong>首帧</strong><small>上传图片或视频</small><b>上传素材</b></span><input type="file" accept="image/*,video/*" onChange={uploadHero} /></label><label className="studio-hero-frame-card"><AssetPreview src={config.heroComposition.finalReference?.src} fallback="待上传" alt="Hero 尾帧预览" displaySize="尾帧 · 两段过场播放完成后停留" /><span><strong>尾帧</strong><small>过场播放完成后停留</small><b>上传图片</b></span><input type="file" accept="image/*" onChange={uploadEndFrame} /></label></div>
           <Field label="首帧素材地址"><input value={config.heroMedia.src} onChange={(event) => updateHeroMedia({ src: event.target.value })} /></Field>
           <Field label="首帧媒体类型"><select value={config.heroMedia.type} onChange={(event) => updateHeroMedia({ type: event.target.value as SummerSurfHeroMedia['type'] })}><option value="image">图片</option><option value="video">视频</option></select></Field>
           <Field label="尾帧素材地址"><input value={config.heroComposition.finalReference?.src ?? ''} onChange={(event) => updateHeroComposition({ finalReference: event.target.value ? { ...(config.heroComposition.finalReference ?? { type: 'image' }), src: event.target.value } : undefined })} /></Field>

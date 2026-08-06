@@ -47,12 +47,16 @@ KIMI_API_KEY=sk-...                      # 在 https://platform.kimi.com 获取
 KIMI_BASE_URL=https://api.moonshot.cn/v1
 KIMI_MODEL=moonshot-v1-8k
 KIMI_ALLOWED_MODELS=moonshot-v1-8k       # 可选；默认仅允许 KIMI_MODEL
+KIMI_MAX_CONCURRENT_PER_CLIENT=2         # 单一来源并发上限
+KIMI_BODY_TIMEOUT_MS=5000                # 请求体读取时限
 PORT=8787
 ```
 
 > 开发模式下 `/api/chat` 由 Vite 插件在本进程内提供,key 只读于服务端,不会进入前端
 > 产物。代理默认还会限制消息/输出大小、45 秒超时、4 路并发和每 IP 每分钟 15 次请求；
-> 具体可调项见 `.env.example`。访问 `/api/health` 可检查 key 是否配置成功。
+> 单一来源默认最多占用 2 路并发。具体可调项见 `.env.example`。访问 `/api/health`
+> 可检查 key 是否配置成功。POST 默认校验完整的同源 `Origin`（协议、主机和端口）；可信
+> 非浏览器客户端可显式设置 `KIMI_ALLOW_MISSING_ORIGIN=true`，但 Origin 校验不是身份认证。
 > 自托管时只有在前置可信反向代理会覆盖 `X-Forwarded-*` 的前提下，才应设置
 > `TRUST_PROXY_HEADERS=true`，避免客户端伪造 IP 绕过限流。
 
@@ -86,4 +90,6 @@ public/                     # 静态资源(含内嵌 garuda 网页游戏)
 ## 安全
 
 API key 仅存在于服务端(`.env` 已 gitignore;Vercel 走平台环境变量)。浏览器只访问
-同源 `/api/chat`,任何时候都不要把 key 暴露到前端。
+同源 `/api/chat`,任何时候都不要把 key 暴露到前端。当前频率与并发限制保存在单个
+Node/Serverless 实例内，只是进程级保护；公网生产环境仍应增加用户鉴权、共享限流、
+账号配额与费用熔断。

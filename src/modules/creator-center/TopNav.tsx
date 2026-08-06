@@ -2,11 +2,22 @@ import { motion, useReducedMotion } from 'framer-motion'
 import type { ReactNode } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { toast } from 'sonner'
+import TaskStatusIndicator from '@/shared/components/TaskStatusIndicator'
+import {
+  getWorkshopNavTaskStatus,
+  useWorkshopTaskStatus,
+  workshopTaskStatusLabel,
+} from '@/shared/storage/workshop-task-status'
 import { useNavVersion, type NavVersion } from '@/shared/storage/nav-version'
 import AccountSwitcherPanel from './AccountSwitcher'
 import FigmaGlyph from './FigmaGlyph'
 import MaskIcon from './MaskIcon'
 import { CREATOR_PROFILE, PRODUCTS, STARLIGHT, type ProductId } from './data'
+
+type WorkshopNavTaskStatus = Exclude<
+  ReturnType<typeof getWorkshopNavTaskStatus>,
+  null
+>
 
 /** 创作者中心顶栏 — 左 logo、中间产品切换、右侧星光余额 + 头像。
  *  常驻所有产品页之上（包括 AI 工坊），产品入口统一使用 icon + 文字。
@@ -18,6 +29,7 @@ export default function TopNav({
   showLogo = true,
   fused = false,
   leftSlot,
+  workshopTaskStatus: workshopTaskStatusProp,
 }: {
   active: ProductId
   onSelect: (id: ProductId) => void
@@ -26,8 +38,17 @@ export default function TopNav({
   fused?: boolean
   /** 方案 1 全宽三段顶栏的左侧品牌区。 */
   leftSlot?: ReactNode
+  /** 不传时读取全局任务状态；规范/隔离预览可显式传状态，null 表示隐藏。 */
+  workshopTaskStatus?: WorkshopNavTaskStatus | null
 }) {
   const reduceMotion = useReducedMotion()
+  const storedWorkshopTaskStatus = useWorkshopTaskStatus((state) =>
+    getWorkshopNavTaskStatus(state.tasksByProject),
+  )
+  const workshopTaskStatus =
+    workshopTaskStatusProp === undefined
+      ? storedWorkshopTaskStatus
+      : workshopTaskStatusProp
   const centeredNavClass = showLogo
     ? 'md:absolute md:left-1/2 md:ml-0 md:-translate-x-1/2 md:gap-1 md:overflow-visible'
     : 'lg:absolute lg:left-1/2 lg:ml-0 lg:-translate-x-1/2 lg:gap-1 lg:overflow-visible'
@@ -65,11 +86,18 @@ export default function TopNav({
       >
         {PRODUCTS.map((p) => {
           const isActive = p.id === active
+          const productTaskStatus =
+            p.id === 'workshop' ? workshopTaskStatus : null
+          const showProductTaskStatus = Boolean(productTaskStatus && !isActive)
           return (
             <button
               key={p.id}
               type="button"
-              aria-label={p.label}
+              aria-label={
+                showProductTaskStatus && productTaskStatus
+                  ? `${p.label}，${workshopTaskStatusLabel(productTaskStatus)}`
+                  : p.label
+              }
               aria-current={isActive ? 'page' : undefined}
               onClick={() => onSelect(p.id)}
               className={`relative flex h-8 shrink-0 items-center whitespace-nowrap rounded-full px-2 text-[13px] font-medium transition-colors duration-200 md:px-3.5 ${
@@ -84,8 +112,8 @@ export default function TopNav({
                   layoutId="topnav-active-pill"
                   className="absolute inset-0 bg-[#161823]"
                   // borderRadius 放 style 里，framer 在缩放插值时才能实时校正圆角
-                  style={{ borderRadius: 9999 }}
-                  // tween 不过冲：spring 会滑过头再回弹，看起来像晃动
+                  style={{ borderRadius: 10 }}
+                  // tween 不过冲，快速收束时不会产生回弹晃动。
                   transition={{ type: 'tween', duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
                 />
               )}
@@ -95,6 +123,15 @@ export default function TopNav({
                   <MaskIcon url={p.icon} />
                 </span>
                 <span className="hidden md:inline">{p.label}</span>
+                {productTaskStatus && (
+                  <span className={isActive ? 'invisible' : undefined}>
+                    <TaskStatusIndicator
+                      status={productTaskStatus}
+                      subject={p.label}
+                      decorative
+                    />
+                  </span>
+                )}
               </span>
             </button>
           )

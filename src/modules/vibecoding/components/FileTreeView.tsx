@@ -7,8 +7,9 @@ import { getFileIcon } from './file-tree-utils'
 import { useSideNavConfig } from '@/shared/components/side-nav-config'
 import SideNavDisclosureIcon from '@/shared/components/SideNavDisclosureIcon'
 
-/* 树的节奏对齐设计稿（统一导航 249-18701）：
+/* 树的节奏对齐设计稿（统一导航 579-57535）：
  * - 行高 28
+ * - 同级与父子行距 2
  * - 每级缩进 20；箭头在左侧时，缩进 = 箭头槽 16 + 间距 4，
  *   子级箭头列会落到父级图标列。箭头切到右侧后，层级仍由同一缩进表达。
  * - 列表自身左边距 8（挂载容器再给 12，箭头列合计从 20 起步）。 */
@@ -134,7 +135,7 @@ export function FileTreeView({
   // macOS Finder 列表风格：不画连接线，层级只靠缩进 + 披露箭头表达。
   // 每行保留固定箭头槽位；配置切换左右时，叶子空槽也同步换边。
   return (
-    <>
+    <div className="flex flex-col" style={{ gap: cfg.treeRowGap }}>
       {nodes.map((node) => {
         const path = parentPath ? `${parentPath}/${node.name}` : node.name
         // With defaultExpanded the set tracks collapsed paths, so flip it.
@@ -143,8 +144,9 @@ export function FileTreeView({
         // 行高 / 字号 / 列间距一并走配置（见 side-nav-config）
         const rowBase = {
           ...TREE_TOKENS,
-          minHeight: cfg.treeRowHeight,
+          height: cfg.treeRowHeight,
           fontSize: cfg.treeFontSize,
+          lineHeight: `${Math.min(cfg.treeRowHeight, cfg.treeFontSize + 5)}px`,
           gap: cfg.treeGap,
         }
         const rowStyle = rowBleedLeft
@@ -158,16 +160,16 @@ export function FileTreeView({
           const expandable = canExpandDir?.(node, path, depth) ?? showDirChildren
           const canExpand = expandable && Boolean(node.children?.length)
           return (
-            <div key={path}>
+            <div key={path} className="flex flex-col" style={{ gap: cfg.treeRowGap }}>
               {/* 行容器承载 hover 底色：箭头与标题是两个独立按钮
                   （点箭头只展开/收起，点标题还会打开该对象）。 */}
               <div
-                className={`group/row box-border flex w-full items-center py-1 transition-colors ${
+                className={`group/row box-border flex w-full items-center transition-colors ${
                   roundedRows ? 'rounded-[8px]' : ''
                 } ${
                   active
                     ? 'bg-[var(--tree-active)] text-[var(--tree-ink)]'
-                    : 'text-[var(--tree-ink-dim)] hover:bg-[var(--tree-hover)] hover:text-[var(--tree-ink-hover)]'
+                    : 'text-[var(--tree-ink)] hover:bg-[var(--tree-hover)] hover:text-[var(--tree-ink-hover)]'
                 }`}
                 style={rowStyle}
               >
@@ -199,7 +201,7 @@ export function FileTreeView({
                       className="flex shrink-0 items-center justify-center rounded-[4px]"
                       style={{ background: badge.bg, width: cfg.treeIconSize, height: cfg.treeIconSize }}
                     >
-                      <DirIcon size={cfg.treeIconSize - 6} strokeWidth={2.4} style={{ color: badge.fg }} />
+                      <DirIcon size={(cfg.treeIconSize * 4) / 7} strokeWidth={2.4} style={{ color: badge.fg }} />
                     </span>
                   ) : DirIcon ? (
                     // 与文件夹图标共用 16px 宽的一格，文字列才能跨行对齐
@@ -245,12 +247,12 @@ export function FileTreeView({
             type="button"
             aria-current={active ? 'page' : undefined}
             onClick={() => onOpenFile(node.name, path, node)}
-            className={`box-border flex w-full items-center py-1 text-left transition-colors ${
+            className={`box-border flex w-full items-center text-left transition-colors ${
               roundedRows ? 'rounded-[8px]' : ''
             } ${
               active
                 ? 'bg-[var(--tree-active)] text-[var(--tree-ink)]'
-                : 'text-[var(--tree-ink-dim)] hover:bg-[var(--tree-hover)] hover:text-[var(--tree-ink-hover)]'
+                : 'text-[var(--tree-ink)] hover:bg-[var(--tree-hover)] hover:text-[var(--tree-ink-hover)]'
             }`}
             style={rowStyle}
           >
@@ -271,7 +273,7 @@ export function FileTreeView({
                   className="flex shrink-0 items-center justify-center rounded-[4px]"
                   style={{ background: leafBadge.bg, width: cfg.treeIconSize, height: cfg.treeIconSize }}
                 >
-                  <Icon size={cfg.treeIconSize - 6} strokeWidth={2.4} style={{ color: leafBadge.fg }} />
+                  <Icon size={(cfg.treeIconSize * 4) / 7} strokeWidth={2.4} style={{ color: leafBadge.fg }} />
                 </span>
               ) : (
                 // 文件图标比文件夹小 2px，但占同样宽的一格 —— 否则同级的
@@ -288,6 +290,6 @@ export function FileTreeView({
           </button>
         )
       })}
-    </>
+    </div>
   )
 }

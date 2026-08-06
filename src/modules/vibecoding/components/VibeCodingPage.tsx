@@ -5,7 +5,6 @@ import {
   useEffect,
   useCallback,
   useMemo,
-  type CSSProperties,
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
@@ -24,8 +23,15 @@ import {
 } from '@/modules/editor/store/publish-flow-store'
 import { useThemeStore } from '@/shared/storage/theme'
 import { type ChatMessage } from '@/shared/api/chat'
+import { buildChatQueueHistory, isChatQueueTurnActive } from '@/shared/api/chat-queue'
 import { LiveAiReply } from '@/shared/components/LiveAiReply'
 import { ChatEmptyState } from '@/shared/components/ChatEmptyState'
+import TaskStatusIndicator from '@/shared/components/TaskStatusIndicator'
+import {
+  getProjectTaskStatus,
+  useWorkshopTaskStatus,
+  type WorkshopTaskStatus,
+} from '@/shared/storage/workshop-task-status'
 import MiniAppPreview from './MiniAppPreview'
 import TarotInterestCardPreview, {
   type TarotEditSelection,
@@ -46,6 +52,7 @@ import SummerSurfH5Preview, {
   type SummerSurfSelection,
 } from './SummerSurfH5Preview'
 import SummerSurfEditPanel from './SummerSurfEditPanel'
+import { summerSurfConfigForStorage } from './summerSurfLocalAssets'
 import XiahuaH5Preview, {
   activityScreens,
   type XiahuaScreen,
@@ -117,7 +124,6 @@ import ComposerLocalFileButton from '@/shared/components/ComposerLocalFileButton
 import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
 import SideNavSearchToolbar from '@/shared/components/SideNavSearchToolbar'
 import UnifiedToolbar from '@/modules/creator-center/UnifiedToolbar'
-import { AvatarMenu } from '@/modules/creator-center/TopNav'
 import SideNavPanelStateIcon from '@/shared/components/SideNavPanelStateIcon'
 import SideNavIconFooterActions, {
   SideNavCollapseFooterButton,
@@ -138,7 +144,7 @@ import { useResizableSideNavWidth } from '@/shared/hooks/useResizableSideNavWidt
 import { AppWindowLinearIcon } from 'master-icon/react/AppWindowLinearIcon'
 import { ColorPaletteLinearIcon } from 'master-icon/react/ColorPaletteLinearIcon'
 import { FolderCodeLinearIcon } from 'master-icon/react/FolderCodeLinearIcon'
-import { FolderLibraryLinearIcon } from 'master-icon/react/FolderLibraryLinearIcon'
+import { PackageLinearIcon } from 'master-icon/react/PackageLinearIcon'
 import { InboxLinearIcon } from 'master-icon/react/InboxLinearIcon'
 import { LightningLinearIcon } from 'master-icon/react/LightningLinearIcon'
 import { Notebook01LinearIcon } from 'master-icon/react/Notebook01LinearIcon'
@@ -156,8 +162,9 @@ import type { GameSpecDraft } from './GameConfirmCard'
 import AiPersonaChatPreview, { type TriggerSimulation } from './AiPersonaChatPreview'
 import { ProjectObjectView, DatabaseView, type DbContent } from './ProjectObjectViews'
 import { PROJECT_DOCS, ACG_NEW_YEAR_PLAN_MD, XIAHUA_PLAN_MD } from './data/project-docs'
-import { GENERIC_AI_REPLIES, CHAT_EMPTY_SUGGESTIONS, CHAT_SUGGESTIONS_BY_KIND, CHAT_SUGGESTIONS_BY_PROJECT } from './data/chat-suggestions'
+import { CHAT_EMPTY_SUGGESTIONS, CHAT_SUGGESTIONS_BY_KIND, CHAT_SUGGESTIONS_BY_PROJECT } from './data/chat-suggestions'
 import { PROJECT_KINDS, SHAPE_BY_KIND, PROJECT_KIND_LABELS, type OutputShape } from './data/project-kinds'
+import { classifyProjectKind } from './project-kind-classifier'
 import { FlexAlignGlyph, ProductToolbar, ToolbarAction } from './Toolbar'
 import { Disclosure, FileTreeView } from './FileTreeView'
 import { getFileIcon } from './file-tree-utils'
@@ -267,30 +274,6 @@ import { generateAvatarConfig } from './artifact/generate'
 // `ProjectKind` is defined in ./ProjectProductView (shared with the
 // product-view bucketing) and imported above.
 
-/** Heuristic kind classifier — used when the home screen takes a free
- *  prompt and we need to pick a shape before the project is named.
- *  Keyword-based for the demo; real product would route through an AI
- *  classifier with confidence scores + user override.
- */
-function classifyProjectKind(prompt: string): ProjectKind {
-  const p = prompt.toLowerCase()
-  // App keywords beat artifact when both appear (build something is more
-  // specific than describe something).
-  if (
-    /(小程序|mini[-\s]?program|app|分身|avatar|网页|web)/i.test(p)
-  ) {
-    if (/(分身|avatar|persona|chat[-\s]?bot)/i.test(p)) return 'ai-avatar'
-    return 'mini-program'
-  }
-  // Artifact keywords cover most ops-proposal-like cases.
-  if (
-    /(方案|提案|报告|brief|看板|复盘|分析|策略|提案|种草|投放|brief)/i.test(p)
-  ) {
-    return 'ops-proposal'
-  }
-  // Fallback: most VibeCoding traffic builds an app.
-  return 'mini-program'
-}
 import {
   ArrowLeft,
   ArrowUp,
@@ -314,8 +297,6 @@ import {
   Headphones,
   Menu4,
   Save,
-  Search,
-  Sparkles,
   Pencil,
   Play,
   ExternalLink,
@@ -330,39 +311,14 @@ import {
   ThumbsUp,
   Upload,
   X,
-  UserRound,
-  CheckSquare,
-  Telescope,
-  UsersRound,
-  BadgeDollarSign,
-  Archive,
-  Type,
-  MessageSquareText,
   MessageSquarePlus,
-  MessageCircleHeart,
   Gamepad2,
-  FileSearch,
-  Flashlight,
-  Video,
-  Clapperboard,
-  Camera,
-  SquareUser,
-  Brush,
-  MonitorPlay,
-  MessageSquare,
   Image as ImageIcon,
   ShieldCheck,
-  AlertTriangle,
-  MessageSquareWarning,
-  Blocks,
   BookOpen,
-  Gift,
-  PencilLine,
-  Flag,
   WandSparkles,
   Zap,
   AppWindow,
-  BriefcaseBusiness,
   BookmarkPlus,
 } from '@/shared/icons'
 import type { LucideIcon } from '@/shared/icons'
@@ -999,166 +955,6 @@ function PhoneMockup({
   )
 }
 
-/* ─── Platform — 个人空间 dropdown data ─── */
-
-type SpaceTile = { icon: typeof UserRound; label: string }
-const SPACE_SECTIONS: { title: string; color: string; tiles: SpaceTile[] }[] = [
-  {
-    title: '我的',
-    color: '#8b5cf6',
-    tiles: [{ icon: UserRound, label: '个人空间' }],
-  },
-  {
-    title: '平台',
-    color: '#e72e75',
-    tiles: [
-      { icon: CheckSquare, label: '解决方案' },
-      { icon: Telescope, label: '前沿实验室' },
-    ],
-  },
-  {
-    title: '运营',
-    color: '#fa8b14',
-    tiles: [
-      { icon: UsersRound, label: '作者运营' },
-      { icon: BadgeDollarSign, label: '资金结算' },
-      { icon: Archive, label: '版权运营' },
-      { icon: Type, label: '敏感词运营' },
-      { icon: MessageSquareText, label: '群聊' },
-      { icon: Search, label: '抖音搜索' },
-      { icon: MessageCircleHeart, label: '垂类运营' },
-      { icon: Gamepad2, label: '抖音游戏' },
-      { icon: FileSearch, label: '调研中台' },
-      { icon: Flashlight, label: '热点资讯运营' },
-      { icon: Video, label: '抖音直播运营' },
-      { icon: Clapperboard, label: '抖音UGC' },
-      { icon: Camera, label: '社交互动' },
-      { icon: SquareUser, label: '直播用户平台' },
-      { icon: Brush, label: '效果与创作' },
-    ],
-  },
-  {
-    title: '治理',
-    color: '#3b82f6',
-    tiles: [
-      { icon: MonitorPlay, label: '视频治理' },
-      { icon: Video, label: '直播治理' },
-      { icon: SquareUser, label: '账号治理' },
-      { icon: MessageSquare, label: 'IM治理' },
-      { icon: Smartphone, label: '小程序治理' },
-      { icon: ImageIcon, label: 'AIGC治理' },
-      { icon: ShieldCheck, label: '版权治理' },
-      { icon: Clapperboard, label: '短剧治理' },
-      { icon: Gamepad2, label: '游戏治理' },
-      { icon: BadgeDollarSign, label: '资金安全' },
-      { icon: AlertTriangle, label: 'ZL治理' },
-      { icon: MessageSquareWarning, label: '评论治理' },
-      { icon: Blocks, label: '生态治理' },
-      { icon: MessageSquareText, label: '舆情' },
-      { icon: Gift, label: '投稿道具' },
-    ],
-  },
-  {
-    title: '职能',
-    color: '#8b5cf6',
-    tiles: [
-      { icon: Sparkles, label: '开放平台' },
-      { icon: PencilLine, label: '智能标注' },
-      { icon: Flag, label: '数据BP' },
-      { icon: WandSparkles, label: 'MagicX' },
-      { icon: MessageSquare, label: '体验' },
-      { icon: AppWindow, label: '产品研发' },
-      { icon: BriefcaseBusiness, label: '劳动力管理' },
-    ],
-  },
-]
-
-/** Popover shown when the 个人空间 label is clicked — a dense tile grid
- *  grouped by platform/ops/governance sections. Portaled so it escapes
- *  the clipped sidebar wrapper. Selecting a tile routes the label
- *  back to the sidebar button via `onSelect`. */
-function SpaceMenuPopover({
-  pos,
-  active,
-  onSelect,
-  onClose,
-}: {
-  pos: { top: number; left: number }
-  active: string
-  onSelect: (label: string) => void
-  onClose: () => void
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const onDown = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    ref.current?.focus({ preventScroll: true })
-    document.addEventListener('pointerdown', onDown)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', onDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [onClose])
-  return createPortal(
-    <div
-      ref={ref}
-      role="dialog"
-      aria-label="选择个人空间"
-      tabIndex={-1}
-      style={{
-        position: 'fixed',
-        top: pos.top,
-        left: pos.left,
-        zIndex: 70,
-        maxHeight: `calc(100vh - ${pos.top}px - 12px)`,
-      }}
-      className="thin-scroll inline-flex flex-col overflow-y-auto rounded-2xl bg-[var(--color-surface-0)] p-3 shadow-[0_12px_32px_-8px_rgba(16,18,24,0.14),0_0_1px_rgba(16,18,24,0.3)]"
-    >
-      {SPACE_SECTIONS.map((section) => (
-        <div
-          key={section.title}
-          className="flex w-full flex-col rounded-xl p-3"
-        >
-          <p className="mb-2 text-[12px] leading-4 text-[var(--color-ink)]/55">
-            {section.title}
-          </p>
-          <div className="flex w-[576px] flex-wrap items-center gap-2.5">
-            {section.tiles.map(({ icon: Icon, label }) => {
-              const isActive = label === active
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => {
-                    onSelect(label)
-                    onClose()
-                  }}
-                  className={`flex w-[136px] items-center gap-2 rounded-lg border p-3 text-left transition-colors ${
-                    isActive
-                      ? 'border-[var(--color-ink)]/60 bg-[var(--fill-subtle)]'
-                      : 'border-[var(--divider)] bg-[var(--color-surface-0)] hover:bg-[var(--fill-subtle)]'
-                  }`}
-                >
-                  <Icon size={14} style={{ color: section.color }} />
-                  <span className="truncate text-[14px] leading-5 text-[var(--color-ink)]">
-                    {label}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-    </div>,
-    document.body,
-  )
-}
-
 /* ─── Platform layout sidebar ─── */
 
 const AVATAR_SCHEME_TWO_TOOLBAR_ACTIONS = ['layout'] as const
@@ -1168,45 +964,26 @@ const WORKSHOP_SCHEME_TWO_TOOLBAR_ACTIONS = [
   'settings',
   'search',
 ] as const
-const STANDALONE_WORKSHOP_WIDTH = 240
 /* 收展曲线：侧栏宽度与正文左偏移共用同一时长与缓动，全部走 CSS 过渡，
    免得两条动画各跑各的时钟、一个到位一个还在路上。 */
 const STANDALONE_WORKSHOP_MOTION_DURATION = 0.24
 const STANDALONE_WORKSHOP_MOTION_CSS_EASE = 'cubic-bezier(0.32,0.72,0,1)'
-const STANDALONE_WORKSHOP_SHORTCUTS = [
-  { label: '天气查询', Icon: Terminal },
-  { label: '热点事件研判报道智能体', Icon: Zap },
-  { label: '视频创作cot生产', Icon: Video },
-] as const
 const STANDALONE_WORKSHOP_NAV_ITEMS: SideNavItem[] = [
   { key: 'Skills', label: '技能库', Icon: FolderCodeLinearIcon },
   { key: '资产中心', label: '资产中心', Icon: ColorPaletteLinearIcon },
-  { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
+  {
+    key: '资源库',
+    label: '资源库',
+    Icon: InboxLinearIcon,
+    dividerAfter: true,
+  },
   {
     key: '项目库',
     label: '项目库',
-    Icon: FolderLibraryLinearIcon,
-    dividerBefore: true,
+    Icon: PackageLinearIcon,
+    dividerAfter: true,
   },
-  ...STANDALONE_WORKSHOP_SHORTCUTS.map(({ label, Icon }) => ({
-    key: label,
-    label,
-    Icon,
-  })),
 ]
-const STANDALONE_WORKSHOP_SIDE_NAV_STYLE = {
-  background: 'transparent',
-  '--sn-top': '0px',
-  '--sn-px': '12px',
-  '--sn-rh': '28px',
-  '--sn-rr': '10px',
-  '--sn-rpx': '8px',
-  '--sn-rip': '10px',
-  '--sn-rgap': '8px',
-  '--sn-rsp': '0px',
-  '--sn-rfs': '13px',
-} as CSSProperties
-
 function StandaloneWorkshopRail({
   activeNav,
   onExpand,
@@ -1215,7 +992,6 @@ function StandaloneWorkshopRail({
   onOpenResourceLibrary,
   onOpenSkills,
   onOpenCreativeSquare,
-  onOpenPlaceholder,
 }: {
   activeNav: string | null
   onExpand: () => void
@@ -1224,7 +1000,6 @@ function StandaloneWorkshopRail({
   onOpenResourceLibrary: () => void
   onOpenSkills: () => void
   onOpenCreativeSquare: () => void
-  onOpenPlaceholder?: (label: string) => void
 }) {
   return (
     <SideNav
@@ -1241,55 +1016,41 @@ function StandaloneWorkshopRail({
         else if (key === '资源库') onOpenResourceLibrary()
         else if (key === 'Skills') onOpenSkills()
         else if (key === '项目库') onOpenCreativeSquare()
-        else onOpenPlaceholder?.(key)
       }}
-      style={STANDALONE_WORKSHOP_SIDE_NAV_STYLE}
       header={
-        <div className="px-3 pb-3 pt-6">
-          <button
-            type="button"
-            onClick={onExpand}
-            aria-label="展开导航"
-            title="展开导航"
-            /* h-6 与展开态的品牌行等高 —— 高一档会把 logo 压低 4px、
-               把下面整组菜单顶下去 8px，收展时看着就是「跳一下」。 */
-            className="group relative mx-auto mb-2 flex size-6 items-center justify-center rounded-md text-[#565A60] hover:bg-black/[0.04] hover:text-[#161823]"
-          >
-            <img
-              src="/assets/logo2.svg"
-              alt=""
-              aria-hidden
-              className="size-[18px] shrink-0 object-contain transition-opacity duration-150 group-hover:opacity-0 motion-reduce:transition-none"
-            />
-            <SideNavPanelStateIcon
-              collapsed
-              className="absolute size-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 motion-reduce:transition-none"
-            />
-          </button>
-          <SideNavActionButton
-            aria-label="新建项目"
+        <>
+          <SideNavProductHeader
+            leadingText="开启创作"
+            bottomGap={0}
             collapsed
-            onClick={onNewProject}
-            className="ring-inset"
-            /* 高度不在这里覆写 —— 走组件统一的 buttonHeight。
-               左内距与展开态一致，别用居中：15px 的 + 在按钮里居中会偏 0.5px。 */
-            style={{
-              borderRadius: 10,
-              fontWeight: 500,
-              justifyContent: 'flex-start',
-              paddingLeft: 10,
-            }}
-          >
-            <Plus size={15} strokeWidth={1.8} className="shrink-0" />
-          </SideNavActionButton>
-        </div>
+            onToggle={onExpand}
+          />
+          <div className="px-[var(--sn-px)] pb-3 pt-1">
+            <SideNavActionButton
+              aria-label="新建项目"
+              collapsed
+              onClick={onNewProject}
+            >
+              <Plus size={16} strokeWidth={1.8} className="shrink-0" />
+            </SideNavActionButton>
+          </div>
+        </>
       }
       footer={
-        <div className="px-3 pb-2 pt-1">
-          {/* h-8 对齐展开态带用户名的那一行，否则底部头像会差 4px */}
-          <div className="flex h-8 items-center justify-center">
-            <AvatarMenu compact />
-          </div>
+        <div className="px-[var(--sn-px)] pb-2">
+          <button
+            type="button"
+            onClick={() => toast('我的草稿（演示）')}
+            aria-label="我的草稿 23"
+            title="我的草稿 23"
+            className="relative flex h-8 w-full items-center justify-center rounded-lg px-2 text-[12px] font-medium leading-4 text-[#252632]/80 transition-colors hover:bg-black/[0.03]"
+          >
+            <InboxLinearIcon size={16} className="shrink-0" />
+            <span
+              aria-hidden
+              className="absolute left-1/2 top-1/2 ml-1 mt-1 size-1 rounded-full bg-[#FE2C55]"
+            />
+          </button>
         </div>
       }
     />
@@ -1415,7 +1176,10 @@ function PlatformSidebar({
 }) {
   /* Inline-rename state for the 项目列表 rows. */
   const [renamingProject, setRenamingProject] = useState<string | null>(null)
+  const projectTasks = useWorkshopTaskStatus((state) => state.tasksByProject)
   const navVersion = useNavVersion((state) => state.version)
+  const treeRowGap = useSideNavConfig((state) => state.config.treeRowGap)
+  const sideNavBackground = useSideNavConfig((state) => state.config.bg)
   const searchToolbarLayout = usesSearchToolbarLayout(navVersion)
   const standaloneWorkshopLayout =
     variant === 'workshop' && usesStandaloneWorkshopLayout(navVersion)
@@ -1435,16 +1199,6 @@ function PlatformSidebar({
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [moreMenuProject])
   const projName = (n: string) => projectDisplayNames[n]?.trim() || n
-  const [spaceMenuPos, setSpaceMenuPos] = useState<{
-    top: number
-    left: number
-  } | null>(null)
-  const [activeSpace, setActiveSpace] = useState('个人空间')
-  const spaceMenuTriggerRef = useRef<HTMLButtonElement>(null)
-  const closeSpaceMenu = useCallback(() => {
-    setSpaceMenuPos(null)
-    spaceMenuTriggerRef.current?.focus({ preventScroll: true })
-  }, [])
   // The project list is master/detail. The list shows every project's
   // plain-language 产物视图; drilling into a project (`drilledProject`)
   // swaps the panel for that one project's full file-view directory,
@@ -1528,7 +1282,7 @@ function PlatformSidebar({
             { key: '资产中心', label: '资产中心', Icon: ColorPaletteLinearIcon },
             { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
             // 运营数据已并入创作者中心（顶栏「首页」的数据看板），侧栏不再入口
-            { key: '项目库', label: '项目库', Icon: FolderLibraryLinearIcon },
+            { key: '项目库', label: '项目库', Icon: PackageLinearIcon },
           ]
   const visibleNavItems =
     searchToolbarLayout && normalizedSidebarSearch
@@ -1571,93 +1325,33 @@ function PlatformSidebar({
         else if (key === '项目库') onOpenCreativeSquare()
         else onOpenPlaceholder?.(key)
       }}
-      style={
-        standaloneWorkshopLayout
-          ? STANDALONE_WORKSHOP_SIDE_NAV_STYLE
-          : undefined
-      }
       header={
         /* + 新建项目 — 白底按钮（与首页「发布作品」的黑底区分开）。
            分身变体没有 AI 创作入口；方案 2 / 4 / 6 显示各自顶部工具栏。 */
         standaloneWorkshopLayout ? (
-          <div className="px-3 pb-3 pt-4">
-            {collapsed ? (
-              <button
-                type="button"
-                onClick={() => onCollapseSidebar?.()}
-                aria-label="展开导航"
-                title="展开导航"
-                className="mx-auto mb-2 flex size-8 items-center justify-center rounded-md hover:bg-black/[0.04]"
-              >
-                <img
-                  src="/assets/logo2.svg"
-                  alt=""
-                  aria-hidden
-                  className="size-[18px] shrink-0 object-contain"
-                />
-              </button>
-            ) : (
-              /* gap 收到 6px：240 宽下「抖音 AI 工作台」+ 个人空间 + 收起
-                 三件东西刚好排满，gap-2 会把品牌名 truncate 掉。 */
-              <div className="mb-2 flex h-6 items-center gap-1.5 pl-[9px] pr-0">
-                <img
-                  src="/assets/logo2.svg"
-                  alt=""
-                  aria-hidden
-                  className="size-[18px] shrink-0 object-contain"
-                />
-                <span className="truncate text-[13px] font-semibold text-[#161823]">
-                  抖音 AI 工作台
-                </span>
-                <button
-                  ref={spaceMenuTriggerRef}
-                  type="button"
-                  aria-haspopup="dialog"
-                  aria-expanded={spaceMenuPos !== null}
-                  onClick={(event) => {
-                    const rect = event.currentTarget.getBoundingClientRect()
-                    setSpaceMenuPos((current) =>
-                      current
-                        ? null
-                        : {
-                            top: rect.bottom + 8,
-                            left: Math.min(
-                              Math.max(12, rect.left),
-                              Math.max(12, window.innerWidth - 636),
-                            ),
-                          },
-                    )
-                  }}
-                  className="ml-auto flex h-6 shrink-0 items-center rounded-md px-1 text-[11px] font-medium text-[#565A60] hover:bg-black/[0.04] hover:text-[#161823]"
-                >
-                  {activeSpace}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onCollapseSidebar?.()}
-                  aria-label="收起导航"
-                  title="收起导航"
-                  className="flex size-6 shrink-0 items-center justify-center rounded-md text-[#565A60] hover:bg-black/[0.04] hover:text-[#161823]"
-                >
-                  <SideNavPanelStateIcon className="size-4 shrink-0" />
-                </button>
-              </div>
-            )}
-            <SideNavActionButton
-              aria-label="新建项目"
+          <>
+            <SideNavProductHeader
+              leadingText="开启创作"
+              bottomGap={0}
               collapsed={collapsed}
-              onClick={onNewProject}
-              className="ring-inset"
-              /* 高度走组件统一的 buttonHeight，不在挂载处覆写 */
-              style={{ borderRadius: 10, fontWeight: 500 }}
-            >
-              <Plus size={15} strokeWidth={1.8} className="shrink-0" />
-              {!collapsed && '新建项目'}
-            </SideNavActionButton>
-          </div>
+              onToggle={() => onCollapseSidebar?.()}
+            />
+            <div className="px-[var(--sn-px)] pb-3 pt-1">
+              <SideNavActionButton
+                aria-label="新建项目"
+                collapsed={collapsed}
+                onClick={onNewProject}
+              >
+                <Plus size={16} strokeWidth={1.8} className="shrink-0" />
+                {!collapsed && '新建项目'}
+              </SideNavActionButton>
+            </div>
+          </>
         ) : usesProductHeaderLayout(navVersion) || variant !== 'avatar' ? (
           <div
-            className={`px-[var(--sn-px)] ${
+            className={`${
+              usesSchemeFourLayout(navVersion) ? '' : 'px-[var(--sn-px)]'
+            } ${
               usesProductHeaderLayout(navVersion) && variant === 'avatar' ? '' : 'pb-3'
             }`}
           >
@@ -1730,15 +1424,23 @@ function PlatformSidebar({
                 />
               ))}
             {variant !== 'avatar' && (
-              <SideNavActionButton
-                aria-label="AI 创作"
-                collapsed={collapsed}
-                onClick={onNewProject}
-                className={navVersion === 1 ? 'ring-inset' : undefined}
+              <div
+                className={
+                  usesSchemeFourLayout(navVersion)
+                    ? 'px-[var(--sn-px)] pt-1'
+                    : ''
+                }
               >
-                <Plus size={16} strokeWidth={2} className="shrink-0" />
-                {!collapsed && 'AI 创作'}
-              </SideNavActionButton>
+                <SideNavActionButton
+                  aria-label="AI 创作"
+                  collapsed={collapsed}
+                  onClick={onNewProject}
+                  className={navVersion === 1 ? 'ring-inset' : undefined}
+                >
+                  <Plus size={16} strokeWidth={2} className="shrink-0" />
+                  {!collapsed && 'AI 创作'}
+                </SideNavActionButton>
+              </div>
             )}
           </div>
         ) : undefined
@@ -1746,17 +1448,21 @@ function PlatformSidebar({
       footer={
         /* 方案 1 / 4 工坊底部与百科「我的词条」保持同一位置和行样式。 */
         standaloneWorkshopLayout ? (
-          collapsed ? (
-            <div className="px-3 pb-2 pt-1">
-              <div className="flex h-8 items-center justify-center">
-                <AvatarMenu compact />
-              </div>
-            </div>
-          ) : (
-            <div className="px-3 pb-2 pt-1">
-              <AvatarMenu compact label="kingjaylee" />
-            </div>
-          )
+          <div className="px-[var(--sn-px)] pb-2">
+            <button
+              type="button"
+              onClick={() => toast('我的草稿（演示）')}
+              aria-label="我的草稿 23"
+              title={collapsed ? '我的草稿 23' : undefined}
+              className={`flex h-8 w-full items-center rounded-lg px-2 text-[12px] font-medium leading-4 text-[#252632]/80 transition-colors hover:bg-black/[0.03] ${
+                collapsed ? 'justify-center gap-1' : 'gap-1.5'
+              }`}
+            >
+              <InboxLinearIcon size={16} className="shrink-0" />
+              {!collapsed && <span>我的草稿 23</span>}
+              <span aria-hidden className="size-1 shrink-0 rounded-full bg-[#FE2C55]" />
+            </button>
+          </div>
         ) : navVersion === 3 ? (
           <div className="px-[var(--sn-px)] pb-3">
             <SideNavCollapseFooterButton
@@ -1794,12 +1500,6 @@ function PlatformSidebar({
     >
       {!collapsed && (
         <>
-          {standaloneWorkshopLayout && drilledProject === null && (
-            <div
-              aria-hidden
-              className="mx-3 mt-2 border-t-[0.5px] border-black/[0.06]"
-            />
-          )}
           {drilledProject !== null ? (
             /* ── Detail: one project's full file-view directory ── */
             <>
@@ -1877,11 +1577,25 @@ function PlatformSidebar({
                     <span className="min-w-0 truncate">我的AI分身</span>
                   </button>
                 </div>
+              ) : standaloneWorkshopLayout ? (
+                <div className="mx-[var(--sn-px)] flex h-7 shrink-0 items-center justify-between px-2">
+                  <span className="text-[12px] text-[var(--color-ink)]/60">
+                    我的项目
+                  </span>
+                  <Tooltip label="搜索全部项目文件">
+                    <button
+                      type="button"
+                      aria-label="搜索全部项目文件"
+                      onClick={() => toast('搜索项目（演示）')}
+                      className="flex size-5 items-center justify-center rounded-lg text-[var(--color-ink)]/40 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
+                    >
+                      <Search01LinearIcon size={12} />
+                    </button>
+                  </Tooltip>
+                </div>
               ) : (
                 <div
-                  className={`mt-0 flex shrink-0 items-center justify-between py-1.5 ${
-              standaloneWorkshopLayout ? 'px-4' : 'px-5'
-            }`}
+                  className="mt-0 flex shrink-0 items-center justify-between px-5 py-1.5"
                 >
                   <span className="text-[12px] text-[var(--color-ink)]/55">
                     项目列表
@@ -2000,7 +1714,17 @@ function PlatformSidebar({
                   ))}
                 </div>
               ) : (
-                <div className="thin-scroll flex-1 overflow-y-auto pb-2">
+                <div className="relative min-h-0 flex-1">
+                  <div
+                    className={`thin-scroll h-full overflow-y-auto pb-2 ${
+                      standaloneWorkshopLayout ? 'flex flex-col' : ''
+                    }`}
+                    style={
+                      standaloneWorkshopLayout
+                        ? { gap: treeRowGap }
+                        : undefined
+                    }
+                  >
                   {ALL_PROJECTS.length === 0 && normalizedSidebarSearch && (
                     <div className="px-7 py-4 text-[12px] text-[var(--color-ink)]/45">
                       <p className="text-pretty">未找到相关项目</p>
@@ -2017,17 +1741,28 @@ function PlatformSidebar({
                     const open = openProjects.has(name)
                     const tree = projectTrees[name]
                     const isPinned = pinnedProjects.includes(name)
+                    const taskStatus = getProjectTaskStatus(projectTasks[name])
                     const isActive =
                       name === activeProjectName &&
                       activeNav === null &&
                       !drilledProject
                     return (
-                      <div key={name}>
+                      <div
+                        key={name}
+                        className={
+                          standaloneWorkshopLayout ? 'flex flex-col' : undefined
+                        }
+                        style={
+                          standaloneWorkshopLayout
+                            ? { gap: treeRowGap }
+                            : undefined
+                        }
+                      >
                         <div
-                          className={`group relative mx-[var(--sn-px)] flex min-h-[28px] items-center rounded-md pl-2 pr-2 transition-colors ${
+                          className={`group relative mx-[var(--sn-px)] flex min-h-[28px] items-center rounded-lg pl-2 pr-2 transition-colors ${
                       isActive
-                        ? 'bg-[var(--color-ink)]/[0.06]'
-                        : 'hover:bg-[var(--color-ink)]/[0.04]'
+                        ? 'bg-[var(--sidenav-active,rgba(83,96,143,0.12))]'
+                        : 'hover:bg-[var(--sidenav-hover,rgba(0,0,0,0.03))]'
                     }`}
                         >
                           {/* 项目行也是文件夹，与树里的层级共用同一个披露箭头；
@@ -2070,7 +1805,7 @@ function PlatformSidebar({
                                 else toggleProject(name)
                                 onSwitchProject(name)
                               }}
-                              className={`flex min-w-0 flex-1 items-center py-1 pl-2.5 pr-1 text-[13px] font-medium transition-colors ${
+                              className={`flex min-w-0 flex-1 items-center py-1 pl-2 pr-1 text-[13px] font-medium leading-[18px] transition-colors ${
                           isActive ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]/85'
                         }`}
                             >
@@ -2089,6 +1824,12 @@ function PlatformSidebar({
                                 {projName(name)}
                               </span>
                             </button>
+                          )}
+                          {taskStatus && (
+                            <TaskStatusIndicator
+                              status={taskStatus}
+                              subject={projName(name)}
+                            />
                           )}
                           <div
                             className="relative order-last shrink-0"
@@ -2306,19 +2047,21 @@ function PlatformSidebar({
                       </div>
                     )
                   })}
+                  </div>
+                  {standaloneWorkshopLayout && (
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-5"
+                      style={{
+                        backgroundImage: `linear-gradient(to bottom, transparent, ${sideNavBackground})`,
+                      }}
+                    />
+                  )}
                 </div>
               )}
             </>
           )}
 
-          {spaceMenuPos && (
-            <SpaceMenuPopover
-              pos={spaceMenuPos}
-              active={activeSpace}
-              onSelect={setActiveSpace}
-              onClose={closeSpaceMenu}
-            />
-          )}
         </>
       )}
       {/* 收起态保留当前分身入口：圆形头像可点击直达分身项目 */}
@@ -2548,6 +2291,15 @@ type AssetCenterReturnTarget = {
 }
 /** 工坊首屏落在这夏夯爆了（侧栏默认只展开它，ACG 收起）。 */
 const WORKSHOP_DEFAULT_PROJECT = XIAHUA_PROJECT
+const WORKSHOP_TASK_IDS = {
+  avatarConfig: 'avatar-config',
+  gameGeneration: 'game-generation',
+  needsCollection: 'needs-collection',
+  proposal: 'proposal',
+  publish: 'publish',
+  triggerConfig: 'trigger-config',
+  xiahuaBuild: 'xiahua-build',
+} as const
 
 export default function VibeCodingPage({
   variant = 'workshop',
@@ -2560,6 +2312,31 @@ export default function VibeCodingPage({
   onCanvasModeChange?: (open: boolean) => void
 }) {
   const isAvatarStudio = variant === 'avatar'
+  const setWorkshopTaskStatus = useWorkshopTaskStatus(
+    (state) => state.setTaskStatus,
+  )
+  const clearWorkshopTask = useWorkshopTaskStatus((state) => state.clearTask)
+  const clearWorkshopProject = useWorkshopTaskStatus(
+    (state) => state.clearProject,
+  )
+  const updateWorkshopTaskStatus = useCallback(
+    (
+      projectId: string,
+      taskId: string,
+      status: WorkshopTaskStatus,
+    ) => {
+      if (variant !== 'workshop') return
+      setWorkshopTaskStatus(projectId, taskId, status)
+    },
+    [setWorkshopTaskStatus, variant],
+  )
+  const removeWorkshopTask = useCallback(
+    (projectId: string, taskId: string) => {
+      if (variant !== 'workshop') return
+      clearWorkshopTask(projectId, taskId)
+    },
+    [clearWorkshopTask, variant],
+  )
   const navVersion = useNavVersion((state) => state.version)
   const standaloneWorkshopLayout =
     variant === 'workshop' && usesStandaloneWorkshopLayout(navVersion)
@@ -2816,6 +2593,9 @@ export default function VibeCodingPage({
    * streamed reply render instantly (no re-fetch) when the chat remounts on
    * project switch, and feeds prior turns back as context for the next call. */
   const aiReplyCacheRef = useRef<Map<string, string>>(new Map())
+  // Cache writes happen outside React state. This promotes the next unresolved
+  // turn only after the previous assistant reply has actually completed.
+  const [, setAiReplyRevision] = useState(0)
   /* Platform "home" / new-project landing view — shown whenever the user
    * clicks + 新建项目. AI 工坊默认落在首页（AI 分身用 home 遮住首帧，
    * 随后由 avatar boot effect 打开分身项目）；仅 ?project= / ?page=
@@ -2992,6 +2772,7 @@ export default function VibeCodingPage({
   const publishStep = usePublishFlowStore((s) => s.step)
   const publishMode = usePublishFlowStore((s) => s.mode)
   const publishScenes = usePublishFlowStore((s) => s.scenes)
+  const publishProjectId = usePublishFlowStore((s) => s.projectId)
   const activatePublishProject = usePublishFlowStore((s) => s.activateProject)
   const startPublish = usePublishFlowStore((s) => s.start)
   const resetPublish = usePublishFlowStore((s) => s.reset)
@@ -3036,12 +2817,13 @@ export default function VibeCodingPage({
   const configuredCollapsedSidebarWidth = useSideNavConfig(
     (state) => state.config.collapsedWidth,
   )
+  const configuredSideNavBackground = useSideNavConfig(
+    (state) => state.config.bg,
+  )
   const sidebarExpandButtonRef = useRef<HTMLButtonElement>(null)
   const { width: platformSidebarWidth, setWidth: setPlatformSidebarWidth } =
     useResizableSideNavWidth()
-  const effectivePlatformSidebarWidth = standaloneWorkshopLayout
-    ? STANDALONE_WORKSHOP_WIDTH
-    : platformSidebarWidth
+  const effectivePlatformSidebarWidth = platformSidebarWidth
   const sidebarRailCollapsed =
     sidebarCollapsed &&
     (navVersion === 1 ||
@@ -3085,7 +2867,7 @@ export default function VibeCodingPage({
   useEffect(() => {
     if (sidebarFullyHidden) sidebarExpandButtonRef.current?.focus()
   }, [sidebarFullyHidden])
-  const [platformChatWidth, setPlatformChatWidth] = useState(420)
+  const [platformChatWidth, setPlatformChatWidth] = useState(380)
   const chatDragRef = useRef<{ startX: number; startWidth: number } | null>(
     null,
   )
@@ -3113,7 +2895,7 @@ export default function VibeCodingPage({
   // chat sits at left:20, and there's a 16px gap between chat and the right
   // panel, so body starts at 20 + 347 + 16 = 383px.
   // Platform adds a 230px project sidebar on the far left; chat sits flush
-  // against it, so body offset is 230 + 420 = 650px.
+  // against it, so the default body offset is 230 + 380 = 610px.
   const headerMarginClass = isPlatform
     ? 'ml-[230px]'
     : chatOnLeft
@@ -3273,6 +3055,25 @@ export default function VibeCodingPage({
     return `${base} ${i}`
   }
 
+  /** Stop a replay before its owner loses focus. The original playback flag is
+   * remembered once per owner so returning to that project resumes naturally;
+   * no timer or simulated typing callback may keep mutating the next project. */
+  const pauseXiahuaReplayForProjectChange = (nextProject: string) => {
+    const owner = xiahuaBuildOwner
+    if (!owner || owner === nextProject || xiahuaBuildStep < 0) return
+    if (!xiahuaPlaybackByOwnerRef.current.has(owner)) {
+      xiahuaPlaybackByOwnerRef.current.set(owner, xiahuaBuildPlaying)
+    }
+    setXiahuaBuildPlaying(false)
+    setXiahuaBuildFocused(false)
+    const pendingTyping = xiahuaPendingTypingRef.current
+    if (pendingTyping?.owner === owner) pendingTyping.paused = true
+    xiahuaTypeTimers.current.forEach(window.clearTimeout)
+    xiahuaTypeTimers.current = []
+    setComposerText('')
+    setXiahuaTyping(false)
+  }
+
   /** Called when the user submits a prompt from the home screen (either by
    *  typing + send or by clicking a suggestion pill). Spins up a brand-new
    *  project and routes the prompt into it — instead of dropping the user
@@ -3293,6 +3094,7 @@ export default function VibeCodingPage({
         : [XIAHUA_BUILD_PROJECT, ...prev],
     )
     setPlatformOpenProjects((prev) => new Set(prev).add(XIAHUA_BUILD_PROJECT))
+    pauseXiahuaReplayForProjectChange(XIAHUA_BUILD_PROJECT)
     setProjectTitle(XIAHUA_BUILD_PROJECT)
     projectTitleRef.current = XIAHUA_BUILD_PROJECT
     activatePublishProject(XIAHUA_BUILD_PROJECT)
@@ -3346,6 +3148,7 @@ export default function VibeCodingPage({
         next.add(XIAHUA_CLONE_PROJECT)
         return next
       })
+      pauseXiahuaReplayForProjectChange(XIAHUA_CLONE_PROJECT)
       setProjectTitle(XIAHUA_CLONE_PROJECT)
       projectTitleRef.current = XIAHUA_CLONE_PROJECT
       activatePublishProject(XIAHUA_CLONE_PROJECT)
@@ -3397,6 +3200,7 @@ export default function VibeCodingPage({
       next.add(name)
       return next
     })
+    pauseXiahuaReplayForProjectChange(name)
     setProjectTitle(name)
     projectTitleRef.current = name
     activatePublishProject(name)
@@ -3423,9 +3227,19 @@ export default function VibeCodingPage({
     // 从 0 生成：AI 分身 用对话需求实时生成 config（Kimi → JSON），写入运行时
     // 配置后右侧预览自动打开并显示生成的分身。失败则回退到静态默认（陶白白）。
     if (kind === 'ai-avatar') {
+      updateWorkshopTaskStatus(
+        name,
+        WORKSHOP_TASK_IDS.avatarConfig,
+        'running',
+      )
       generateAvatarConfig(trimmed, name)
         .then((cfg) => {
           setRuntimeConfig(name, cfg)
+          updateWorkshopTaskStatus(
+            name,
+            WORKSHOP_TASK_IDS.avatarConfig,
+            'completed',
+          )
           if (projectTitleRef.current === name) {
             setOpenTabs((prev) =>
               prev.length > 0 ? prev : defaultTabsForKind(name),
@@ -3434,6 +3248,11 @@ export default function VibeCodingPage({
         })
         .catch((err) => {
           console.warn('[generateAvatarConfig]', err)
+          updateWorkshopTaskStatus(
+            name,
+            WORKSHOP_TASK_IDS.avatarConfig,
+            'waiting-confirmation',
+          )
         })
     }
   }
@@ -3451,6 +3270,7 @@ export default function VibeCodingPage({
     const sid = `s-${Date.now()}`
     const sessionName =
       userPrompt.length > 20 ? `${userPrompt.slice(0, 20)}…` : userPrompt
+    pauseXiahuaReplayForProjectChange('射击小游戏')
     setProjectTitle('射击小游戏')
     projectTitleRef.current = '射击小游戏'
     activatePublishProject('射击小游戏')
@@ -3500,6 +3320,11 @@ export default function VibeCodingPage({
       { id: createMessageId(), text: userPrompt, trigger: 'game' },
     ])
     setGameStep('confirming')
+    updateWorkshopTaskStatus(
+      '射击小游戏',
+      WORKSHOP_TASK_IDS.gameGeneration,
+      'waiting-confirmation',
+    )
   }
 
   /** User confirmed the spec card → store the spec for the echo bubble,
@@ -3517,11 +3342,17 @@ export default function VibeCodingPage({
       return next
     })
     setGameStep('analyzing')
+    updateWorkshopTaskStatus(
+      '射击小游戏',
+      WORKSHOP_TASK_IDS.gameGeneration,
+      'running',
+    )
   }
 
   const captureSessionSnapshot = (): SessionChatSnapshot => ({
     sentMessages: sentMessages.map((message) => ({ ...message })),
-    chatDraft,
+    // Scripted replay typing is presentation state, not a user-authored draft.
+    chatDraft: xiahuaTyping ? '' : chatDraft,
     chatCleared,
     needsFlowActive,
     needsThinkingVisible,
@@ -3757,6 +3588,7 @@ export default function VibeCodingPage({
    *  intact, then either replays the target project's prior snapshot or
    *  initialises kind-specific defaults on first visit. */
   const openProject = (name: string) => {
+    pauseXiahuaReplayForProjectChange(name)
     // 活动预览/搭建状态是这一族项目共用的：切回「已上线」那版时归位，免得它
     // 顶着复刻换过的皮，或者停在新建活动搭到一半的状态。
     if (
@@ -3775,7 +3607,9 @@ export default function VibeCodingPage({
           scriptKind: xiahuaScriptKind,
           buildStep: xiahuaBuildStep,
           path: xiahuaPath,
-          playing: xiahuaBuildPlaying,
+          playing:
+            xiahuaPlaybackByOwnerRef.current.get(xiahuaBuildOwner) ??
+            xiahuaBuildPlaying,
           preset: xiahuaPreset,
           gameplay: xiahuaGameplay,
           overrides: xiahuaOverrides,
@@ -3788,6 +3622,7 @@ export default function VibeCodingPage({
           docText: xiahuaDocText,
           cloneUserText: xiahuaCloneUserText,
         }
+        xiahuaPlaybackByOwnerRef.current.delete(xiahuaBuildOwner)
       }
       setXiahuaScriptKind('build')
       setXiahuaPreset(XIAHUA_PRESET)
@@ -3797,6 +3632,7 @@ export default function VibeCodingPage({
       setXiahuaOverrides(createFinalXiahuaOverrides())
       setXiahuaBuildStep(-1)
       setXiahuaBuildPlaying(false)
+      setXiahuaBuildFocused(false)
       setXiahuaBuildOwner(null)
       setXiahuaPath([])
     }
@@ -3820,6 +3656,14 @@ export default function VibeCodingPage({
       setXiahuaPath(replayStash.path)
       setXiahuaBuildStep(replayStash.buildStep)
       setXiahuaBuildPlaying(replayStash.playing)
+      setXiahuaBuildFocused(true)
+    } else if (xiahuaBuildOwner === name) {
+      const resumePlayback = xiahuaPlaybackByOwnerRef.current.get(name)
+      if (resumePlayback !== undefined) {
+        xiahuaPlaybackByOwnerRef.current.delete(name)
+        setXiahuaBuildPlaying(resumePlayback)
+        setXiahuaBuildFocused(true)
+      }
     }
     const focusAcgPreview = name === ACG_NEW_YEAR_PROJECT
     const focusPreview = (tabs: { label: string; closable: boolean }[]) => {
@@ -3912,6 +3756,7 @@ export default function VibeCodingPage({
     const targetProjectId = opts?.projectId ?? projectTitle
     const targetProjectKind = opts?.projectKind ?? kindOf(targetProjectId)
     const targetSessionId = opts?.sessionId ?? activeSessionId
+    const messageId = createMessageId()
     // Any chat the user sends after entering a project counts as engaging with
     // it → reveal the right preview pane (Artifacts-style). The initial
     // home-entry prompt is excluded so the pane stays closed until then.
@@ -3969,6 +3814,25 @@ export default function VibeCodingPage({
       setTagsStep('idle')
       setFormSubmitted(false)
     }
+    const taskId =
+      trigger === 'none'
+        ? `chat:${messageId}`
+        : trigger === 'publish'
+          ? WORKSHOP_TASK_IDS.publish
+          : trigger === 'needs'
+            ? WORKSHOP_TASK_IDS.needsCollection
+            : trigger === 'trigger'
+              ? WORKSHOP_TASK_IDS.triggerConfig
+              : trigger === 'proposal'
+                ? WORKSHOP_TASK_IDS.proposal
+                : WORKSHOP_TASK_IDS.gameGeneration
+    updateWorkshopTaskStatus(
+      targetProjectId,
+      taskId,
+      trigger === 'none' || trigger === 'trigger'
+        ? 'running'
+        : 'waiting-confirmation',
+    )
     // Always enqueue this after project/session initialisation. In React's
     // batched update queue it overrides the fresh project's `true` value.
     setChatCleared(false)
@@ -3987,7 +3851,7 @@ export default function VibeCodingPage({
     )
     setSentMessages((prev) => [
       ...prev,
-      { id: createMessageId(), text, trigger },
+      { id: messageId, text, trigger },
     ])
     // Clear both the state AND the contentEditable DOM (innerText won't
     // auto-reset from setChatDraft since the div is uncontrolled).
@@ -4084,15 +3948,23 @@ export default function VibeCodingPage({
   // editor keeps a separate selection/config model from the seeded H5 demo.
   const [summerSurfSelected, setSummerSurfSelected] =
     useState<SummerSurfSelection | null>(null)
-  const [summerSurfConfig, setSummerSurfConfig] =
-    useState<SummerSurfEditConfig>(() => ({
-      ...getInitialSummerSurfEditConfig(),
-    }))
+  const [summerSurfConfig, setSummerSurfConfig] = useState<SummerSurfEditConfig>(
+    () => ({ ...getInitialSummerSurfEditConfig() }),
+  )
+  const summerSurfStorageWarningShownRef = useRef(false)
   useEffect(() => {
-    window.localStorage.setItem(
-      SUMMER_SURF_CONFIG_STORAGE_KEY,
-      JSON.stringify(summerSurfConfig),
-    )
+    try {
+      window.localStorage.setItem(
+        SUMMER_SURF_CONFIG_STORAGE_KEY,
+        JSON.stringify(summerSurfConfigForStorage(summerSurfConfig)),
+      )
+    } catch {
+      // localStorage unavailable/full: the live config remains in memory.
+      if (!summerSurfStorageWarningShownRef.current) {
+        summerSurfStorageWarningShownRef.current = true
+        toast.error('保存失败，配置仅保留在当前会话')
+      }
+    }
   }, [summerSurfConfig])
   /* 这夏夯爆了编辑态：预览点选的元素 + 面板可回写的运行时属性。 */
   const [xiahuaSelected, setXiahuaSelected] = useState<XiahuaSel | null>(null)
@@ -4148,13 +4020,21 @@ export default function VibeCodingPage({
     docText?: string
     cloneUserText?: string
   } | null>(null)
+  /** Auto-play state captured while its owner project is not active. */
+  const xiahuaPlaybackByOwnerRef = useRef<Map<string, boolean>>(new Map())
   /** 回放自身的状态全部归零 —— 三个入口（0→1 / 模板复刻 / 换模板）都从这里走，
    *  漏掉任何一项都会把上一次回放的分支文案或勾选带进新的一次。 */
   const resetXiahuaReplay = useCallback(() => {
     // 重新开一场就作废暂存的旧场次，避免日后错误恢复
     xiahuaReplayStashRef.current = null
+    xiahuaPlaybackByOwnerRef.current.clear()
+    xiahuaPendingTypingRef.current = null
+    xiahuaTypeTimers.current.forEach(window.clearTimeout)
+    xiahuaTypeTimers.current = []
+    setXiahuaTyping(false)
     setXiahuaBuildStep(-1)
     setXiahuaBuildPlaying(false)
+    setXiahuaBuildFocused(false)
     setXiahuaPath([])
     setXiahuaBuildOwner(null)
     setXiahuaPickTexts({})
@@ -4169,6 +4049,8 @@ export default function VibeCodingPage({
   /* 实际走过的步骤下标（有序）。卡点会跳步，光靠下标区间渲染会把没走的支路也画出来。 */
   const [xiahuaPath, setXiahuaPath] = useState<number[]>([])
   const [xiahuaBuildPlaying, setXiahuaBuildPlaying] = useState(false)
+  /* True only while the replay owner is the visible project. */
+  const [xiahuaBuildFocused, setXiahuaBuildFocused] = useState(false)
   /* 解析出来的活动方案（右侧「文档」态可改）与素材版本选择。 */
   const [xiahuaPlan, setXiahuaPlan] = useState<PlanDoc>(() =>
     defaultPlan(XIAHUA_PRESET),
@@ -4319,27 +4201,52 @@ export default function VibeCodingPage({
   /* 回放里用户说话时，先把字打进输入框再「发送」—— 跟真实使用的路径一致。 */
   const [xiahuaTyping, setXiahuaTyping] = useState(false)
   const xiahuaTypeTimers = useRef<number[]>([])
+  const xiahuaPendingTypingRef = useRef<{
+    owner: string
+    text: string
+    done: () => void
+    paused: boolean
+  } | null>(null)
   const typeIntoComposer = useCallback((text: string, done: () => void) => {
+    const owner = projectTitleRef.current
+    const task = { owner, text, done, paused: false }
+    xiahuaPendingTypingRef.current = task
     xiahuaTypeTimers.current.forEach(window.clearTimeout)
     xiahuaTypeTimers.current = []
     setXiahuaTyping(true)
     const per = Math.max(18, Math.min(45, 900 / Math.max(1, text.length)))
     for (let i = 1; i <= text.length; i++) {
       xiahuaTypeTimers.current.push(
-        window.setTimeout(() => setComposerText(text.slice(0, i)), i * per),
+        window.setTimeout(() => {
+          if (projectTitleRef.current === owner) setComposerText(text.slice(0, i))
+        }, i * per),
       )
     }
     xiahuaTypeTimers.current.push(
-      window.setTimeout(
-        () => {
-          setComposerText('')
-          setXiahuaTyping(false)
-          done()
-        },
-        text.length * per + 380,
-      ),
+      window.setTimeout(() => {
+        if (projectTitleRef.current !== owner) {
+          task.paused = true
+          return
+        }
+        if (xiahuaPendingTypingRef.current === task) {
+          xiahuaPendingTypingRef.current = null
+        }
+        setComposerText('')
+        setXiahuaTyping(false)
+        done()
+      }, text.length * per + 380),
     )
   }, [])
+  useEffect(() => {
+    const pending = xiahuaPendingTypingRef.current
+    if (
+      !xiahuaBuildFocused ||
+      !pending?.paused ||
+      pending.owner !== xiahuaBuildOwner ||
+      pending.owner !== projectTitleRef.current
+    ) return
+    typeIntoComposer(pending.text, pending.done)
+  }, [typeIntoComposer, xiahuaBuildFocused, xiahuaBuildOwner])
   useEffect(
     () => () => {
       xiahuaTypeTimers.current.forEach(window.clearTimeout)
@@ -4363,6 +4270,7 @@ export default function VibeCodingPage({
       if (docName) setXiahuaUploadedDocName(docName)
       resetXiahuaReplay()
       setXiahuaBuildOwner(projectTitleRef.current)
+      setXiahuaBuildFocused(true)
       setXiahuaScriptKind('build')
       setXiahuaGameplay(buildGameplay)
       setXiahuaOverrides({})
@@ -4408,6 +4316,7 @@ export default function VibeCodingPage({
       // 起点就是完整模板：预置这夏夯爆了的成品状态，换皮过程逐步改 preset
       resetXiahuaReplay()
       setXiahuaBuildOwner(projectTitleRef.current)
+      setXiahuaBuildFocused(true)
       setXiahuaScriptKind('clone')
       setXiahuaPreset(XIAHUA_PRESET)
       setXiahuaGameplay(XIAHUA_PRESET.gameplay)
@@ -4457,6 +4366,7 @@ export default function VibeCodingPage({
   /** 跳到某一步并应用它的改动。 */
   const gotoXiahuaStep = useCallback(
     (idx: number) => {
+      if (xiahuaBuildOwner !== projectTitleRef.current) return
       const s = xiahuaScript[idx]
       if (!s) return
       applyXiahuaMutation(s)
@@ -4464,11 +4374,12 @@ export default function VibeCodingPage({
       setXiahuaBuildStep(idx)
       setXiahuaBuildPlaying(!s.gate)
     },
-    [xiahuaScript, applyXiahuaMutation],
+    [xiahuaBuildOwner, xiahuaScript, applyXiahuaMutation],
   )
   /** 卡点上的选择：确认走主路径，「我要改」走支路。 */
   const onXiahuaGate = useCallback(
     (choice: 'confirm' | 'alt' | { to: string; text?: string }) => {
+      if (xiahuaBuildOwner !== projectTitleRef.current) return
       const g = xiahuaScript[xiahuaBuildStep]?.gate
       if (!g) return
       // 确认卡点是已经发出的动作，不走输入框打字动画；同时清掉可能还在收尾的上一段回放。
@@ -4514,20 +4425,20 @@ export default function VibeCodingPage({
       // 回放里的真实用户发言。
       gotoXiahuaStep(idx)
     },
-    [xiahuaBuildStep, xiahuaScript, gotoXiahuaStep],
+    [xiahuaBuildOwner, xiahuaBuildStep, xiahuaScript, gotoXiahuaStep],
   )
   // 回放时对话跟着往下滚，否则新步骤长在视口外面看不见。
   useEffect(() => {
-    if (xiahuaBuildStep < 0) return
+    if (xiahuaBuildStep < 0 || xiahuaBuildOwner !== projectTitleRef.current) return
     const raf = requestAnimationFrame(() => {
       const el = chatScrollRef.current
       if (el) el.scrollTop = el.scrollHeight
     })
     return () => cancelAnimationFrame(raf)
-  }, [xiahuaBuildStep])
+  }, [xiahuaBuildOwner, xiahuaBuildStep])
   // 定时推进，并在推进时应用该步的真实改动；遇到卡点停下等人点。
   useEffect(() => {
-    if (!xiahuaBuildPlaying) return
+    if (!xiahuaBuildPlaying || xiahuaBuildOwner !== projectTitleRef.current) return
     if (xiahuaBuildStep < 0 || xiahuaBuildStep >= xiahuaScript.length - 1) {
       setXiahuaBuildPlaying(false)
       return
@@ -4538,6 +4449,7 @@ export default function VibeCodingPage({
       return
     }
     const advance = () => {
+      if (xiahuaBuildOwner !== projectTitleRef.current) return
       const next = xiahuaScript[xiahuaBuildStep + 1]
       applyXiahuaMutation(next)
       setXiahuaPath((p) => [...p, xiahuaBuildStep + 1])
@@ -4545,19 +4457,14 @@ export default function VibeCodingPage({
       if (next?.gate) setXiahuaBuildPlaying(false)
     }
     const t = window.setTimeout(() => {
+      if (xiahuaBuildOwner !== projectTitleRef.current) return
       // 下一步是用户说话 → 先把字打进输入框，打完再「发出去」
       const next = xiahuaScript[xiahuaBuildStep + 1]
       if (next?.view.kind === 'user') typeIntoComposer(next.view.text, advance)
       else advance()
     }, cur?.hold ?? 1200)
     return () => window.clearTimeout(t)
-  }, [
-    xiahuaBuildPlaying,
-    xiahuaBuildStep,
-    xiahuaScript,
-    applyXiahuaMutation,
-    typeIntoComposer,
-  ])
+  }, [xiahuaBuildOwner, xiahuaBuildPlaying, xiahuaBuildStep, xiahuaScript, applyXiahuaMutation, typeIntoComposer])
   // Quick-edit object selection for the game and interest-card previews.
   // Their right-side fields are derived from these semantic targets.
   const [gameSelectedObject, setGameSelectedObject] =
@@ -5396,17 +5303,20 @@ export default function VibeCodingPage({
     toast('编辑修改已保存')
   }, [persistXiahuaEdits])
   const closeSummerSurfEditor = useCallback(() => {
+    let persisted = true
     try {
       window.localStorage.setItem(
         SUMMER_SURF_CONFIG_STORAGE_KEY,
-        JSON.stringify(summerSurfConfig),
+        JSON.stringify(summerSurfConfigForStorage(summerSurfConfig)),
       )
     } catch {
       // localStorage unavailable: keep the live editor state in memory.
+      persisted = false
+      toast.error('保存失败，配置仅保留在当前会话')
     }
     setEditPanelOpen(false)
     setSummerSurfSelected(null)
-    toast('编辑修改已保存')
+    if (persisted) toast('编辑修改已保存')
   }, [summerSurfConfig])
   /** Canvas editor — web-game images use the asset board; marketing H5 uses
    *  an immersive full-page canvas. Takes over the preview content when open. */
@@ -5477,7 +5387,8 @@ export default function VibeCodingPage({
   }
   /* 回放刚开始只是在聊需求，还没有任何产物 —— 右侧不开，对话独占。
      等解析出方案（第一个产物）才展开。 */
-  const previewCollapsedEff = previewCollapsed || xiahuaBuildPhase === 'none'
+  const previewCollapsedEff =
+    previewCollapsed || (xiahuaBuildFocused && xiahuaBuildPhase === 'none')
   const previewHidden = openTabs.length === 0 || previewCollapsedEff
 
   /* ─── Category-tab helpers ─── */
@@ -5623,6 +5534,7 @@ export default function VibeCodingPage({
       xiahuaPendingTabRef.current = null
       return
     }
+    if (xiahuaBuildOwner !== projectTitleRef.current) return
     const phaseLabel =
       xiahuaArtifactPhase === 'doc'
         ? PROJECT_DOCUMENT_LABEL
@@ -5647,7 +5559,7 @@ export default function VibeCodingPage({
     artifactTabRef.current = label
     focusPreviewTab(label)
     xiahuaPendingTabRef.current = null
-  }, [xiahuaBuildStep, xiahuaArtifactPhase, focusPreviewTab])
+  }, [xiahuaBuildOwner, xiahuaBuildStep, xiahuaArtifactPhase, focusPreviewTab])
 
   const openFileInTab = (filename: string, path?: string) => {
     // 项目文件 — the in-tab code editor (real source tree + code). Added from
@@ -5978,14 +5890,18 @@ export default function VibeCodingPage({
     const sync = () => {
       const params = new URLSearchParams(window.location.search)
       const page = params.get('page')
-      if (page === 'resources' || page === 'assets') {
+      const resourcesOpen =
+        page === 'resources' && !standaloneWorkshopLayout
+      const assetsOpen = page === 'assets' && !standaloneWorkshopLayout
+      setPlatformResourceLibraryOpen(resourcesOpen)
+      setPlatformAssetCenterOpen(assetsOpen)
+      if (resourcesOpen || assetsOpen) {
         setPlatformHomeOpen(false)
         setPlatformSkillsOpen(false)
         setPlatformCreativeSquareOpen(false)
         setPlatformDataOpsOpen(false)
-        setPlatformResourceLibraryOpen(page === 'resources')
-        if (page === 'resources') setPlatformResourceLibraryInitialTab('toolbox')
-        setPlatformAssetCenterOpen(page === 'assets')
+        setPlatformPlaceholderPage(null)
+        if (resourcesOpen) setPlatformResourceLibraryInitialTab('toolbox')
       } else {
         // Browser Back from a deep-linked library returns to the workspace
         // instead of leaving the old secondary surface mounted under a URL
@@ -5998,10 +5914,12 @@ export default function VibeCodingPage({
     window.addEventListener('popstate', sync)
     return () => window.removeEventListener('popstate', sync)
   }, [
+    standaloneWorkshopLayout,
     setPlatformAssetCenterOpen,
     setPlatformCreativeSquareOpen,
     setPlatformDataOpsOpen,
     setPlatformHomeOpen,
+    setPlatformPlaceholderPage,
     setPlatformResourceLibraryOpen,
     setPlatformSkillsOpen,
   ])
@@ -6061,9 +5979,10 @@ export default function VibeCodingPage({
     if (!openTabs[index]?.closable) return
     const next = openTabs.filter((_, i) => i !== index)
     setOpenTabs(next)
-    if (activePreviewTab >= next.length) setActivePreviewTab(next.length - 1)
-    else if (activePreviewTab === index)
-      setActivePreviewTab(Math.max(0, index - 1))
+    const lastIndex = Math.max(0, next.length - 1)
+    if (index < activePreviewTab) setActivePreviewTab(activePreviewTab - 1)
+    else if (activePreviewTab === index) setActivePreviewTab(Math.min(index, lastIndex))
+    else if (activePreviewTab > lastIndex) setActivePreviewTab(lastIndex)
   }
 
   /* ─── Trigger detail tab helpers ─── */
@@ -7656,6 +7575,131 @@ export default function VibeCodingPage({
     activatePublishProject(projectTitle)
   }, [activatePublishProject, projectTitle])
 
+  useEffect(() => {
+    if (gameStep === 'idle') return
+    updateWorkshopTaskStatus(
+      '射击小游戏',
+      WORKSHOP_TASK_IDS.gameGeneration,
+      gameStep === 'confirming'
+        ? 'waiting-confirmation'
+        : gameStep === 'done'
+          ? 'completed'
+          : 'running',
+    )
+  }, [gameStep, updateWorkshopTaskStatus])
+
+  useEffect(() => {
+    if (triggerStep === 'idle') {
+      removeWorkshopTask(projectTitle, WORKSHOP_TASK_IDS.triggerConfig)
+      return
+    }
+    updateWorkshopTaskStatus(
+      projectTitle,
+      WORKSHOP_TASK_IDS.triggerConfig,
+      triggerStep === 'loading'
+        ? 'running'
+        : triggerStep === 'ready'
+          ? 'waiting-confirmation'
+          : 'completed',
+    )
+  }, [
+    projectTitle,
+    removeWorkshopTask,
+    triggerStep,
+    updateWorkshopTaskStatus,
+  ])
+
+  useEffect(() => {
+    if (!needsFlowActive) {
+      removeWorkshopTask(projectTitle, WORKSHOP_TASK_IDS.needsCollection)
+      return
+    }
+    const status: WorkshopTaskStatus = formSubmitted
+      ? 'completed'
+      : needsThinkingVisible ||
+          capabilitiesStep === 'loading' ||
+          tagsStep === 'loading'
+        ? 'running'
+        : 'waiting-confirmation'
+    updateWorkshopTaskStatus(
+      projectTitle,
+      WORKSHOP_TASK_IDS.needsCollection,
+      status,
+    )
+  }, [
+    capabilitiesStep,
+    formSubmitted,
+    needsFlowActive,
+    needsThinkingVisible,
+    projectTitle,
+    removeWorkshopTask,
+    tagsStep,
+    updateWorkshopTaskStatus,
+  ])
+
+  useEffect(() => {
+    if (proposalStep === 'idle') {
+      removeWorkshopTask(projectTitle, WORKSHOP_TASK_IDS.proposal)
+      return
+    }
+    updateWorkshopTaskStatus(
+      projectTitle,
+      WORKSHOP_TASK_IDS.proposal,
+      proposalStep === 'review-ready'
+        ? 'completed'
+        : 'waiting-confirmation',
+    )
+  }, [
+    projectTitle,
+    proposalStep,
+    removeWorkshopTask,
+    updateWorkshopTaskStatus,
+  ])
+
+  useEffect(() => {
+    if (!publishProjectId) return
+    if (publishStep === 'idle') {
+      removeWorkshopTask(publishProjectId, WORKSHOP_TASK_IDS.publish)
+      return
+    }
+    updateWorkshopTaskStatus(
+      publishProjectId,
+      WORKSHOP_TASK_IDS.publish,
+      publishStep === 'confirmed' ? 'completed' : 'waiting-confirmation',
+    )
+  }, [
+    publishProjectId,
+    publishStep,
+    removeWorkshopTask,
+    updateWorkshopTaskStatus,
+  ])
+
+  useEffect(() => {
+    if (!xiahuaBuildOwner || xiahuaBuildStep < 0) return
+    const atLastStep = xiahuaBuildStep >= xiahuaScript.length - 1
+    const status: WorkshopTaskStatus | null = xiahuaGateWaiting
+      ? 'waiting-confirmation'
+      : atLastStep && !xiahuaBuildPlaying && !xiahuaTyping
+        ? 'completed'
+        : xiahuaBuildPlaying || xiahuaTyping
+          ? 'running'
+          : null
+    if (!status) return
+    updateWorkshopTaskStatus(
+      xiahuaBuildOwner,
+      WORKSHOP_TASK_IDS.xiahuaBuild,
+      status,
+    )
+  }, [
+    updateWorkshopTaskStatus,
+    xiahuaBuildOwner,
+    xiahuaBuildPlaying,
+    xiahuaBuildStep,
+    xiahuaGateWaiting,
+    xiahuaScript.length,
+    xiahuaTyping,
+  ])
+
   // The active AI 分身 tree is derived from live trigger state rather than
   // copied into projectTrees in an effect, so session restore stays atomic.
   const projectTreeFor = (name: string): FileNode[] | undefined =>
@@ -8268,6 +8312,7 @@ export default function VibeCodingPage({
   const [deletedProjects, setDeletedProjects] = useState<Set<string>>(new Set())
   const deleteProject = (name: string) => {
     setDeletedProjects((prev) => new Set(prev).add(name))
+    if (variant === 'workshop') clearWorkshopProject(name)
     if (name === projectTitle) {
       if (projectTitle && !platformHomeOpen) {
         projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
@@ -8450,18 +8495,16 @@ export default function VibeCodingPage({
             duration: reduceSideNavMotion ? 0 : SIDE_NAV_MOTION_DURATION,
             ease: 'easeOut',
           }}
-          className={`absolute inset-y-0 left-0 z-40 overflow-hidden ${
-            standaloneWorkshopLayout ? 'bg-[#F2F2F7]' : ''
-          }`}
+          className="absolute inset-y-0 left-0 z-40 overflow-hidden"
           /* 方案 7：外层自己就是那块面板底 —— 宽度收展 + overflow-hidden 把
-             展开层逐帧裁掉，不会有 240px 宽的文字浮在 60px 轨道上。宽度走
+             展开层逐帧裁掉，不会有 220px 宽的文字浮在 60px 轨道上。宽度走
              CSS 过渡而不是 framer：和正文左偏移同一套时钟，主线程卡顿时也
              不会一个到位、一个还在路上。 */
           style={{
             width: standaloneWorkshopLayout
               ? sidebarRailCollapsed
                 ? configuredCollapsedSidebarWidth
-                : STANDALONE_WORKSHOP_WIDTH
+                : effectivePlatformSidebarWidth
               : immersiveCanvasModeOpen
                 ? 0
                 : sidebarFullyHidden && navVersion === 1
@@ -8470,6 +8513,9 @@ export default function VibeCodingPage({
                     ? configuredCollapsedSidebarWidth
                     : effectivePlatformSidebarWidth,
             transition: standaloneWidthTransition,
+            background: standaloneWorkshopLayout
+              ? configuredSideNavBackground
+              : undefined,
             pointerEvents:
               projectSidebarHidden || standaloneWorkshopLayout
                 ? 'none'
@@ -8484,7 +8530,7 @@ export default function VibeCodingPage({
             className="absolute inset-y-0 left-0"
             style={{
               width: standaloneWorkshopLayout
-                ? STANDALONE_WORKSHOP_WIDTH
+                ? effectivePlatformSidebarWidth
                 : sidebarRailCollapsed
                   ? configuredCollapsedSidebarWidth
                   : effectivePlatformSidebarWidth,
@@ -8500,9 +8546,10 @@ export default function VibeCodingPage({
                 <div
                   aria-hidden={sidebarRailCollapsed}
                   inert={sidebarRailCollapsed}
-                  className="absolute inset-y-0 left-0 z-10 bg-[#F2F2F7]"
+                  className="absolute inset-y-0 left-0 z-10"
                   style={{
-                    width: STANDALONE_WORKSHOP_WIDTH,
+                    width: effectivePlatformSidebarWidth,
+                    background: configuredSideNavBackground,
                     opacity: sidebarRailCollapsed ? 0 : 1,
                     transition: standaloneLayerFade,
                     pointerEvents: sidebarRailCollapsed ? 'none' : 'auto',
@@ -8528,7 +8575,6 @@ export default function VibeCodingPage({
                     onOpenResourceLibrary={openResourceLibraryPage}
                     onOpenSkills={openPlatformSkillsPage}
                     onOpenCreativeSquare={openPlatformCreativeSquarePage}
-                    onOpenPlaceholder={openPlatformPlaceholderPage}
                   />
                 </div>
               </>
@@ -9114,6 +9160,12 @@ export default function VibeCodingPage({
                                 )
                           }
                           onExit={() => {
+                            if (xiahuaBuildOwner) {
+                              removeWorkshopTask(
+                                xiahuaBuildOwner,
+                                WORKSHOP_TASK_IDS.xiahuaBuild,
+                              )
+                            }
                             setXiahuaBuildPlaying(false)
                             setXiahuaBuildStep(-1)
                           }}
@@ -9177,12 +9229,19 @@ export default function VibeCodingPage({
                           (() => {
                             const replyKey = `${projectTitle}::${activeSessionId}::${m.id}`
                             const cached = aiReplyCacheRef.current.get(replyKey)
-                            // Build the conversation context: the system framing plus
-                            // every plain user turn up to here, interleaved with the
-                            // assistant replies we've already streamed (cached). The
-                            // current date is injected so 时间类 questions answer correctly,
-                            // and the model is told to route by intent (build vs Q&A) so
-                            // chitchat / 自我介绍 aren't forced into a "搭建需求" framing.
+                            const queueTurns = sentMessages.map((message) => ({
+                              id: message.id,
+                              text: message.text,
+                              includeInAiHistory: message.trigger === 'none',
+                            }))
+                            const active = isChatQueueTurnActive(
+                              queueTurns,
+                              i,
+                              (messageId) =>
+                                aiReplyCacheRef.current.has(
+                                  `${projectTitle}::${activeSessionId}::${messageId}`,
+                                ),
+                            )
                             const nowStr = new Date().toLocaleDateString(
                               'zh-CN',
                               {
@@ -9192,43 +9251,55 @@ export default function VibeCodingPage({
                                 weekday: 'long',
                               },
                             )
-                            const history: ChatMessage[] = [
-                              {
-                                role: 'system',
-                                content: `你是「抖音 AI 工坊」的智能助手。当前日期：${nowStr}。用户当前在「${projectTitle}」(${PROJECT_KIND_LABELS[activeProjectKind]}) 项目下与你对话：如果用户在描述要做的产品或功能，就帮他梳理并推进搭建；如果只是提问、闲聊或让你做自我介绍，就直接正常回答，不要当成搭建需求。请用简体中文，语气专业、简洁、可执行，必要时给出具体步骤或示例。`,
-                              },
-                            ]
-                            for (let k = 0; k <= i; k++) {
-                              if (sentMessages[k]?.trigger !== 'none') continue
-                              history.push({
-                                role: 'user',
-                                content: sentMessages[k].text,
-                              })
-                              if (k < i) {
-                                const previousMessage = sentMessages[k]
-                                const prev = aiReplyCacheRef.current.get(
-                                  `${projectTitle}::${activeSessionId}::${previousMessage.id}`,
-                                )
-                                if (prev)
-                                  history.push({
-                                    role: 'assistant',
-                                    content: prev,
-                                  })
-                              }
+                            const systemMessage: ChatMessage = {
+                              role: 'system',
+                              content: `你是「抖音 AI 工坊」的智能助手。当前日期：${nowStr}。用户当前在「${projectTitle}」(${PROJECT_KIND_LABELS[activeProjectKind]}) 项目下与你对话：如果用户在描述要做的产品或功能，就帮他梳理并推进搭建；如果只是提问、闲聊或让你做自我介绍，就直接正常回答，不要当成搭建需求。请用简体中文，语气专业、简洁、可执行，必要时给出具体步骤或示例。`,
                             }
+                            const history = buildChatQueueHistory(
+                              systemMessage,
+                              queueTurns,
+                              i,
+                              (messageId) =>
+                                aiReplyCacheRef.current.get(
+                                  `${projectTitle}::${activeSessionId}::${messageId}`,
+                                ),
+                            )
                             return (
                               <LiveAiReply
                                 key={replyKey}
                                 messages={history}
                                 cached={cached}
-                                fallback={
-                                  GENERIC_AI_REPLIES[
-                                    i % GENERIC_AI_REPLIES.length
-                                  ]
-                                }
+                                active={active}
                                 onDone={(reply) => {
                                   aiReplyCacheRef.current.set(replyKey, reply)
+                                  updateWorkshopTaskStatus(
+                                    projectTitle,
+                                    `chat:${m.id}`,
+                                    'completed',
+                                  )
+                                  setAiReplyRevision((revision) => revision + 1)
+                                  requestAnimationFrame(() => {
+                                    const chatScroll = chatScrollRef.current
+                                    if (chatScroll) {
+                                      chatScroll.scrollTop =
+                                        chatScroll.scrollHeight
+                                    }
+                                  })
                                 }}
+                                onError={() =>
+                                  updateWorkshopTaskStatus(
+                                    projectTitle,
+                                    `chat:${m.id}`,
+                                    'waiting-confirmation',
+                                  )
+                                }
+                                onRetry={() =>
+                                  updateWorkshopTaskStatus(
+                                    projectTitle,
+                                    `chat:${m.id}`,
+                                    'running',
+                                  )
+                                }
                               />
                             )
                           })()}

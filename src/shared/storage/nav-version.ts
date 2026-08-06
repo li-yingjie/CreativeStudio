@@ -12,8 +12,8 @@ import { createJSONStorage, persist } from 'zustand/middleware'
  *  8 = 全宽顶栏 + icon/文字 tab + 产品侧栏上下文工具条。 */
 export type NavVersion = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 
-/** 默认方案 7「内部抖音 AI 工作台」。 */
-export const DEFAULT_NAV_VERSION: NavVersion = 7
+/** 默认方案 4「文案 Header」。 */
+export const DEFAULT_NAV_VERSION: NavVersion = 4
 
 export function usesSchemeFourLayout(version: NavVersion) {
   return version === 4
@@ -61,11 +61,11 @@ export const useNavVersion = create<NavVersionState>()(
     {
       name: 'creator-center:nav-version',
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 4,
       migrate: (persistedState, persistedVersion) => {
         const state = persistedState as Partial<NavVersionState>
-        // v2/v3：默认方案切换时，旧存档一次性跟着切过去。
-        if (persistedVersion < 3) {
+        // 每次默认方案切换都提升存储版本，让旧预览一次性跟进。
+        if (persistedVersion < 4) {
           return { ...state, version: DEFAULT_NAV_VERSION } as NavVersionState
         }
         return state as NavVersionState

@@ -158,9 +158,8 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   // page leaves (children of 界面) are iconed by path in the consumer.
 }
 
-/** 关键节点的彩色图标底板（设计稿 WoW-26 661-99330）：14px 圆角 4 的
- *  浅色 tint + 同色系饱和图标。只上到产品树的一级节点；子级叶子保持
- *  单色。色值参照 Semi Design 的 light-1 tint 系。 */
+/** 关键节点的彩色图标底板。数据库 / 小程序配置 / 记忆跟随统一导航
+ *  579-57535；其余业务节点继续使用各自的 Semi light-1 tint。 */
 export const PRODUCT_CATEGORY_BADGES: Record<string, { bg: string; fg: string }> = {
   预览: { bg: '#e0ecff', fg: '#3370ff' },
   [PAGE_CONFIG_LABEL]: { bg: '#e0ecff', fg: '#3370ff' },
@@ -176,7 +175,7 @@ export const PRODUCT_CATEGORY_BADGES: Record<string, { bg: string; fg: string }>
   [TRIGGER_CONFIG_LABEL]: { bg: '#feeecf', fg: '#ff8800' },
   [AVATAR_SKILL_LABEL]: { bg: '#fde6f7', fg: '#d939b8' },
   [AVATAR_TRIGGER_LABEL]: { bg: '#feeecf', fg: '#ff8800' },
-  [DATABASE_LABEL]: { bg: '#d9f4f4', fg: '#0e9c9c' },
+  [DATABASE_LABEL]: { bg: '#c4f0e7', fg: '#0eb39c' },
   [INTEREST_CARD_CONFIG_LABEL]: { bg: '#d9f4f4', fg: '#0e9c9c' },
   [DATA_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
   文档: { bg: '#e3e6f7', fg: '#4b55bd' },
@@ -190,8 +189,10 @@ export const PRODUCT_CATEGORY_BADGES: Record<string, { bg: string; fg: string }>
   [H5_GAMEPLAY_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
   [GAME_GAMEPLAY_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
   智能体: { bg: '#d9f4f4', fg: '#0e9c9c' },
-  小程序设置: { bg: '#e8eaed', fg: '#5f6673' },
-  [PROJECT_MEMORY_LABEL]: { bg: '#ece4ff', fg: '#7c4dca' },
+  小程序设置: { bg: '#d0f0d1', fg: '#3eb346' },
+  小程序配置: { bg: '#d0f0d1', fg: '#3eb346' },
+  [PROJECT_MEMORY_LABEL]: { bg: '#dcd4f3', fg: '#6d45c5' },
+  记忆: { bg: '#dcd4f3', fg: '#6d45c5' },
   诊断分析: { bg: '#d7f2ef', fg: '#0d9e8f' },
   达人包: { bg: '#f1e6fe', fg: '#8f47e6' },
   报告: { bg: '#e0ecff', fg: '#3370ff' },

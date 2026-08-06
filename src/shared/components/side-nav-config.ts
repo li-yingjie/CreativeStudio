@@ -30,6 +30,7 @@ export interface SideNavConfig {
   treeDisclosurePosition: TreeDisclosurePosition
   /* 树 */
   treeRowHeight: number
+  treeRowGap: number
   treeIndent: number
   treeSlot: number
   treeGap: number
@@ -63,11 +64,11 @@ export type SideNavColorKey = (typeof COLOR_KEYS)[number]
 /** 导航默认底色跟随宿主 Semi 主题；独立运行时回退到设计稿灰。 */
 export const SIDE_NAV_DEFAULT_BACKGROUND = 'var(--semi-color-nav-bg, #F2F2F7)'
 
-/** 代码默认值 = 设计稿（统一导航 275-22603 / 249-18701）的规格。 */
+/** 代码默认值 = 设计稿（统一导航 579-57535）的规格。 */
 export const SIDE_NAV_DEFAULTS: SideNavConfig = {
   width: 220,
   collapsedWidth: 60,
-  topPadding: 12,
+  topPadding: 0,
   listPaddingX: 12,
   buttonHeight: 36,
   buttonRadius: 8,
@@ -82,6 +83,7 @@ export const SIDE_NAV_DEFAULTS: SideNavConfig = {
   subRowHeight: 32,
   treeDisclosurePosition: 'left',
   treeRowHeight: 28,
+  treeRowGap: 2,
   treeIndent: 20,
   treeSlot: 16,
   treeGap: 4,
@@ -120,6 +122,7 @@ export const SIDE_NAV_NUMERIC_CONSTRAINTS: Record<
   menuIconSize: { min: 12, max: 32, step: 1 },
   subRowHeight: { min: 24, max: 64, step: 1 },
   treeRowHeight: { min: 24, max: 64, step: 1 },
+  treeRowGap: { min: 0, max: 16, step: 1 },
   treeIndent: { min: 8, max: 48, step: 1 },
   treeSlot: { min: 8, max: 32, step: 1 },
   treeGap: { min: 0, max: 24, step: 1 },
@@ -200,6 +203,9 @@ function loadSaved(): SideNavConfig {
     if (parsed.rowSpacing === 4) parsed.rowSpacing = SIDE_NAV_DEFAULTS.rowSpacing
     // 旧版主按钮默认 40px，比菜单行高一档；统一到和行高一样的 36。
     if (parsed.buttonHeight === 40) parsed.buttonHeight = SIDE_NAV_DEFAULTS.buttonHeight
+    // 旧版统一导航默认顶部留白 12px；新规范 Header 从侧栏顶边开始。
+    // 只迁移旧默认值，用户主动保存的其他数值继续保留。
+    if (parsed.topPadding === 12) parsed.topPadding = SIDE_NAV_DEFAULTS.topPadding
     return sanitizeSideNavConfig(parsed)
   } catch {
     return SIDE_NAV_DEFAULTS

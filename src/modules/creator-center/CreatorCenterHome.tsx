@@ -191,7 +191,9 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
       header={
         /* 首页不放产品头 —— 它既不提供收起，也没有可写的业务文案，
            顶部直接就是「发布作品」。 */
-        <div className="px-[var(--sn-px)] pb-3">
+        <div
+          className={`px-[var(--sn-px)] pb-3 ${version === 1 ? '' : 'pt-3'}`}
+        >
           <Popover.Root>
             <Popover.Trigger asChild>
               <SideNavActionButton
@@ -322,7 +324,7 @@ function ProfileHeader({ stats }: { stats: CreatorStats | null }) {
 
 /** 入口卡（设计稿 1-24030）：图标容器 77×84；前卡 60×75，视觉上与入口卡等高。
  *  容器上移 5px 抵消前卡内部偏移，文字从 86px 起排。
- *  hover / focus 变体向下传播，驱动 CardImageIcon 的卡面扇开。 */
+ *  hover / focus 变体只向下传播，驱动 CardImageIcon 的卡面扇开。 */
 function EntryCard({
   icon,
   label,
@@ -349,17 +351,7 @@ function EntryCard({
           ? undefined
           : { y: 0, scale: 0.99, transition: { type: 'tween', duration: 0.07, ease: 'easeOut' } }
       }
-      variants={{
-        rest: {
-          y: 0,
-          transition: { type: 'tween', duration: reduceMotion ? 0 : 0.08, ease: 'easeOut' },
-        },
-        spread: {
-          y: reduceMotion ? 0 : -1,
-          transition: { type: 'tween', duration: reduceMotion ? 0 : 0.11, ease: 'easeOut' },
-        },
-      }}
-      className="relative h-[75px] rounded-2xl border-[0.5px] border-black/5 bg-white py-[16px] pl-[86px] pr-3 text-left shadow-[0_7px_8px_rgba(0,0,0,0.05)]"
+      className="relative h-[75px] rounded-2xl border-[0.5px] border-black/5 bg-white py-[16px] pl-[86px] pr-1 text-left shadow-[0_7px_8px_rgba(0,0,0,0.05)]"
     >
       <span className="pointer-events-none absolute -left-px top-[-5.1px] z-[1] h-[84px] w-[77px]">{icon}</span>
       <div className="min-w-0">
@@ -368,6 +360,11 @@ function EntryCard({
       </div>
     </motion.button>
   )
+}
+
+/** 智能创作图标已在 Figma 内完成前后卡叠放，直接按整组渲染以保持原始几何。 */
+function SmartCreateImageIcon({ src }: { src: string }) {
+  return <img src={src} alt="" className="pointer-events-none block h-full w-full object-contain" />
 }
 
 /** 入口卡图标：正卡（front，设计稿导出的 4x 贴纸）在左，后卡与正卡等大、在右后方
@@ -410,7 +407,7 @@ function CardImageIcon({ front, back }: { front: string; back?: string }) {
           rest: { x: 0, rotate: 0, transition: fanOutTransition },
           spread: {
             x: reduceMotion ? 0 : -5,
-            rotate: reduceMotion ? 0 : -3,
+            rotate: reduceMotion ? 0 : -6,
             transition: fanInTransition,
           },
         }}
@@ -446,10 +443,10 @@ const dimVerdict = (pct: number) =>
       ? '与同类作者水平相当，可在选题和封面上尝试差异化'
       : '低于多数同类作者，建议重点优化这一指标'
 
-function OverviewSection() {
+function OverviewSection({ active }: { active: boolean }) {
   const [range, setRange] = useState<StatsRange>('week')
   const [dimIdx, setDimIdx] = useState(0)
-  const { data, error } = useCreatorStats(range)
+  const { data, error } = useCreatorStats(range, active)
   const dim = data?.overview.dims[dimIdx]
   const days = data?.period.days ?? 7
   return (
@@ -459,9 +456,11 @@ function OverviewSection() {
         <PanelFallback error={error} height={340} />
       ) : (
         <div className="mt-4 grid grid-cols-[minmax(0,460px)_1fr] gap-8">
-          <Suspense fallback={<SectionLoader height={250} />}>
-            <OverviewRadar dims={data.overview.dims} active={dimIdx} onSelect={setDimIdx} />
-          </Suspense>
+          {active && (
+            <Suspense fallback={<SectionLoader height={250} />}>
+              <OverviewRadar dims={data.overview.dims} active={dimIdx} onSelect={setDimIdx} />
+            </Suspense>
+          )}
           <div className="min-w-0">
             <h4 className="text-[14px] font-semibold text-[#252632]">{dim.label}分析</h4>
             <p className="mt-2 rounded-xl bg-[#F7F8FA] p-4 text-[13px] leading-6 text-[#252632]/70">
@@ -590,11 +589,11 @@ function ExportButton() {
   )
 }
 
-function WorksSection() {
+function WorksSection({ active }: { active: boolean }) {
   const [range, setRange] = useState<StatsRange>('week')
   const [tab, setTab] = useState('投稿')
   const [metric, setMetric] = useState(0)
-  const { data, error } = useCreatorStats(range)
+  const { data, error } = useCreatorStats(range, active)
   const def = WORKS_METRIC_DEFS[metric]
   return (
     <section className="bg-white p-5">
@@ -634,15 +633,17 @@ function WorksSection() {
             <MetricTabs defs={WORKS_METRIC_DEFS} data={data} active={metric} onSelect={setMetric} cols={8} />
           </div>
           <div className="mt-4">
-            <Suspense fallback={<SectionLoader height={230} />}>
-              <TrendAreaChart
-                data={data.works.trend}
-                dataKey={def.dataKey}
-                name={def.label}
-                id="works-trend"
-                rich={def.rich}
-              />
-            </Suspense>
+            {active && (
+              <Suspense fallback={<SectionLoader height={230} />}>
+                <TrendAreaChart
+                  data={data.works.trend}
+                  dataKey={def.dataKey}
+                  name={def.label}
+                  id="works-trend"
+                  rich={def.rich}
+                />
+              </Suspense>
+            )}
           </div>
         </>
       )}
@@ -650,10 +651,10 @@ function WorksSection() {
   )
 }
 
-function FansSection() {
+function FansSection({ active }: { active: boolean }) {
   const [range, setRange] = useState<StatsRange>('week')
   const [metric, setMetric] = useState(1)
-  const { data, error } = useCreatorStats(range)
+  const { data, error } = useCreatorStats(range, active)
   const def = FANS_METRIC_DEFS[metric]
   return (
     <section className="bg-white p-5">
@@ -675,9 +676,11 @@ function FansSection() {
             <MetricTabs defs={FANS_METRIC_DEFS} data={data} active={metric} onSelect={setMetric} cols={5} />
           </div>
           <div className="mt-4">
-            <Suspense fallback={<SectionLoader height={230} />}>
-              <TrendAreaChart data={data.fans.trend} dataKey={def.dataKey} name={def.label} id="fans-trend" />
-            </Suspense>
+            {active && (
+              <Suspense fallback={<SectionLoader height={230} />}>
+                <TrendAreaChart data={data.fans.trend} dataKey={def.dataKey} name={def.label} id="fans-trend" />
+              </Suspense>
+            )}
           </div>
         </>
       )}
@@ -694,8 +697,8 @@ function fmtDelta(delta: number, type: 'count' | 'yuan') {
   return `${sign}${type === 'yuan' ? abs.toFixed(0) : fmtCount(abs)}`
 }
 
-function DataOverviewSection({ onViewDetail }: { onViewDetail: () => void }) {
-  const { data, error } = useHomeOverview()
+function DataOverviewSection({ active, onViewDetail }: { active: boolean; onViewDetail: () => void }) {
+  const { data, error } = useHomeOverview(active)
   const [tab, setTab] = useState<'account' | 'recent' | 'live'>('account')
   const trend = tab === 'live' ? data?.liveTrend : data?.accountTrend
   return (
@@ -747,7 +750,7 @@ function DataOverviewSection({ onViewDetail }: { onViewDetail: () => void }) {
               <div className="mt-1 flex items-center justify-end gap-1.5 text-[11px] text-[#252632]/55">
                 <i className="size-1.5 rounded-full bg-[#4E83FD]" />播放量
               </div>
-              {trend && (
+              {active && trend && (
                 <Suspense fallback={<SectionLoader height={118} />}>
                   <SimpleAreaChart data={trend} id={`home-${tab}`} height={118} />
                 </Suspense>
@@ -778,14 +781,14 @@ function DataOverviewSection({ onViewDetail }: { onViewDetail: () => void }) {
 
 /* ─── 数据中心（原首页的数据总览 + 作品数据 + 粉丝数据） ─── */
 
-function DataCenter() {
+function DataCenter({ active }: { active: boolean }) {
   return (
     <main className="min-w-0 flex-1 overflow-y-auto bg-white">
       {/* 无页面级大标题——与内容管理等页一致，标题由各卡片自带（数据总览…） */}
       <div className="space-y-4">
-        <OverviewSection />
-        <WorksSection />
-        <FansSection />
+        <OverviewSection active={active} />
+        <WorksSection active={active} />
+        <FansSection active={active} />
       </div>
     </main>
   )
@@ -883,9 +886,10 @@ export default function CreatorCenterHome({
   // 关闭直播管理开关后若正停在该页，回落到数据看板（渲染期派生）
   if (page === 'live' && !liveEnabled) setPage('data')
   // 资料头的粉丝/获赞用近7天档的响应（任意档都含 profile 快照）
-  const { data: profileData } = useCreatorStats('week')
+  const homePageActive = active && page === 'data'
+  const { data: profileData } = useCreatorStats('week', homePageActive)
   // 首页新板块（互动/变现/活动/快速导航）共用一次 home-overview 拉取
-  const { data: homeData } = useHomeOverview()
+  const { data: homeData } = useHomeOverview(homePageActive)
   const reduceMotion = useReducedMotion()
 
   return (
@@ -907,7 +911,7 @@ export default function CreatorCenterHome({
       ) : page === 'live' ? (
         <LivePage />
       ) : page === 'datacenter' ? (
-        <DataCenter />
+        <DataCenter active={active} />
       ) : page === 'income' ? (
         <IncomePage />
       ) : page === 'service:作品共创' ? (
@@ -952,7 +956,7 @@ export default function CreatorCenterHome({
                   {SMART_CREATE_ENTRIES.map((e) => (
                     <EntryCard
                       key={e.id}
-                      icon={<CardImageIcon front={e.front} back={e.back} />}
+                      icon={<SmartCreateImageIcon src={e.homeIcon} />}
                       label={e.label}
                       desc={e.desc}
                       onClick={() => onOpenProduct(e.id)}
@@ -986,7 +990,7 @@ export default function CreatorCenterHome({
         </div>
 
         <div className="px-4 pb-4">
-          <DataOverviewSection onViewDetail={() => setPage('datacenter')} />
+          <DataOverviewSection active={homePageActive} onViewDetail={() => setPage('datacenter')} />
           <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_292px]">
             <div className="min-w-0 space-y-4">
               {homeData && <InteractionSection data={homeData.interaction} onMore={() => setPage('content')} />}

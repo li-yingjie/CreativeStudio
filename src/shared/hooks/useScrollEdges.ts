@@ -8,29 +8,51 @@ export function useScrollEdges(
   const [edges, setEdges] = useState({ atTop: true, atBottom: true })
 
   useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const update = () => {
-      const atTop = el.scrollTop <= 1
-      const atBottom =
-        Math.abs(el.scrollHeight - el.clientHeight - el.scrollTop) <= 1
-      setEdges((prev) =>
-        prev.atTop === atTop && prev.atBottom === atBottom
-          ? prev
-          : { atTop, atBottom }
-      )
+    let current: HTMLElement | null = null
+    let detachCurrent = () => {}
+
+    const bindCurrent = () => {
+      const el = ref.current
+      if (el === current) return
+      detachCurrent()
+      current = el
+      if (!el) {
+        detachCurrent = () => {}
+        return
+      }
+
+      const update = () => {
+        const atTop = el.scrollTop <= 1
+        const atBottom =
+          Math.abs(el.scrollHeight - el.clientHeight - el.scrollTop) <= 1
+        setEdges((prev) =>
+          prev.atTop === atTop && prev.atBottom === atBottom
+            ? prev
+            : { atTop, atBottom }
+        )
+      }
+      update()
+      el.addEventListener('scroll', update, { passive: true })
+      const ro = new ResizeObserver(update)
+      ro.observe(el)
+      // scrollHeight can grow without the container itself resizing.
+      const contentObserver = new MutationObserver(update)
+      contentObserver.observe(el, { childList: true, subtree: true, characterData: true })
+      detachCurrent = () => {
+        el.removeEventListener('scroll', update)
+        ro.disconnect()
+        contentObserver.disconnect()
+      }
     }
-    update()
-    el.addEventListener('scroll', update, { passive: true })
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    // Also fire when children change — scrollHeight grows without element resize.
-    const mo = new MutationObserver(update)
-    mo.observe(el, { childList: true, subtree: true, characterData: true })
+
+    bindCurrent()
+    // A RefObject assignment does not trigger a render. Watching mount/unmount
+    // mutations lets conditionally-rendered scroll containers bind when ready.
+    const mountObserver = new MutationObserver(bindCurrent)
+    mountObserver.observe(document.documentElement, { childList: true, subtree: true })
     return () => {
-      el.removeEventListener('scroll', update)
-      ro.disconnect()
-      mo.disconnect()
+      mountObserver.disconnect()
+      detachCurrent()
     }
   }, [ref])
 

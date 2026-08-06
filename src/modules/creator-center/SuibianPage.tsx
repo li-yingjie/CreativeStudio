@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Minus, Plus } from '@/shared/icons'
 import ChatComposer from '@/shared/components/ChatComposer'
 import ComposerLocalFileButton from '@/shared/components/ComposerLocalFileButton'
+import PanelResizeHandle from '@/shared/components/PanelResizeHandle'
 import SharedSideNav, {
   SIDE_NAV_MOTION_DURATION,
 } from '@/shared/components/SideNav'
@@ -20,6 +21,7 @@ import {
   usesProductHeaderLayout,
   usesSchemeFourLayout,
   usesSearchToolbarLayout,
+  usesStandaloneWorkshopLayout,
   usesContentToggleLayout,
   usesToolbarHeaderLayout,
 } from '@/shared/storage/nav-version'
@@ -434,6 +436,7 @@ export function SuibianSideNav() {
   const navVersion = useNavVersion((state) => state.version)
   const schemeFourLayout = usesSchemeFourLayout(navVersion)
   const searchToolbarLayout = usesSearchToolbarLayout(navVersion)
+  const workbenchHeaderLayout = usesStandaloneWorkshopLayout(navVersion)
   const sidebarCollapsed = useProductSideNav(
     (state) => state.collapsed.suibian,
   )
@@ -582,9 +585,12 @@ export function SuibianSideNav() {
             background:
               navVersion === 1
                 ? 'transparent'
-                : '#fbfbfc',
+                : workbenchHeaderLayout
+                  ? '#f2f2f7'
+                  : '#fbfbfc',
             borderRightStyle: 'solid',
-            borderRightWidth: navVersion === 1 ? 0 : 0.5,
+            borderRightWidth:
+              navVersion === 1 || workbenchHeaderLayout ? 0 : 0.5,
             borderRightColor:
               navVersion === 1
                 ? 'rgba(0, 0, 0, 0.05)'
@@ -593,10 +599,20 @@ export function SuibianSideNav() {
           }}
           className="flex h-full w-full flex-col overflow-hidden"
         >
-          {usesProductHeaderLayout(navVersion) && (
+          {(schemeFourLayout || workbenchHeaderLayout) ? (
+            <SideNavProductHeader
+              leadingText="开启创作"
+              /* 方案 8 收起入口统一在内容区左上角 */
+              onToggle={
+                usesContentToggleLayout(navVersion)
+                  ? undefined
+                  : () => setSidebarCollapsed('suibian', true)
+              }
+            />
+          ) : usesProductHeaderLayout(navVersion) ? (
             <div
               className={`shrink-0 px-3 ${
-                schemeFourLayout || searchToolbarLayout ? '' : 'pt-3'
+                searchToolbarLayout ? '' : 'pt-3'
               }`}
             >
               {searchToolbarLayout ? (
@@ -621,14 +637,8 @@ export function SuibianSideNav() {
                 />
               ) : (
                 <SideNavProductHeader
-                  {...(
-                    schemeFourLayout
-                      ? { leadingText: '开启创作' }
-                      : {
-                          icon: '/icons/nav-products/suibian.svg',
-                          productLabel: '随变',
-                        }
-                  )}
+                  icon="/icons/nav-products/suibian.svg"
+                  productLabel="随变"
                   /* 方案 8 收起入口统一在内容区左上角 */
                   onToggle={
                     usesContentToggleLayout(navVersion)
@@ -638,7 +648,7 @@ export function SuibianSideNav() {
                 />
               )}
             </div>
-          )}
+          ) : null}
           <div
             className={`thin-scroll-light flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 pb-3 ${
               navVersion === 1 ? 'pt-0' : 'pt-3'
@@ -783,6 +793,7 @@ export function SuibianSideNav() {
 export default function SuibianPage() {
   const [draft, setDraft] = useState('')
   const [zoom, setZoom] = useState(16)
+  const [chatWidth, setChatWidth] = useState(380)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const navVersion = useNavVersion((state) => state.version)
   const sidebarCollapsed = useProductSideNav(
@@ -803,7 +814,10 @@ export default function SuibianPage() {
 
       {/* ── 中：创作对话 ── */}
       {/* 底色取自设计稿像素：对话栏 #f0f0f1（白气泡/白输入框靠它拉开层次） */}
-      <section className="flex w-[440px] shrink-0 flex-col overflow-hidden bg-[#f0f0f1]">
+      <section
+        className="relative flex h-full shrink-0 flex-col overflow-hidden bg-[#f0f0f1]"
+        style={{ width: chatWidth }}
+      >
         {/* 内容区收起方案：入口钉在内容区左上角，正压在这一行上。
             该方案下各产品 Header 统一 40 高、左内距 48，入口和标题
             在所有产品里都落在同一条水平线上。 */}
@@ -914,6 +928,12 @@ export default function SuibianPage() {
             }
           />
         </div>
+        <PanelResizeHandle
+          value={chatWidth}
+          onChange={setChatWidth}
+          edge="right"
+          ariaLabel="调整随变对话区域宽度"
+        />
       </section>
 
       {/* ── 右：画布 ── */}
