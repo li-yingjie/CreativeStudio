@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { toast } from 'sonner'
 import ChatComposer from '@/shared/components/ChatComposer'
 import ComposerLocalFileButton from '@/shared/components/ComposerLocalFileButton'
+import PanelResizeHandle from '@/shared/components/PanelResizeHandle'
 import SharedSideNav, {
   SIDE_NAV_MOTION_DURATION,
 } from '@/shared/components/SideNav'
@@ -18,6 +19,7 @@ import {
   usesProductHeaderLayout,
   usesSchemeFourLayout,
   usesSearchToolbarLayout,
+  usesStandaloneWorkshopLayout,
   usesContentToggleLayout,
   usesToolbarHeaderLayout,
 } from '@/shared/storage/nav-version'
@@ -199,10 +201,8 @@ function WikiSchemeFourHeader({
 }) {
   return (
     <>
-      {/* 产品头与其他产品同一条：左侧业务文案，右侧收起（设计稿 统一导航 583-5262）。 */}
-      <div className="px-[var(--sn-px)]">
-        <SideNavProductHeader leadingText="百科目录" onToggle={onCollapse} />
-      </div>
+      {/* 文字产品头自身承载整条 220px 布局，避免宿主再加内边距后双重缩进。 */}
+      <SideNavProductHeader leadingText="百科目录" onToggle={onCollapse} />
       <div className="flex h-10 items-center px-4">
         <WikiObjectSwitcher
           activeId={activeObjectId}
@@ -279,6 +279,7 @@ export function WikiSideNav({
   const navVersion = useNavVersion((state) => state.version)
   const schemeFourLayout = usesSchemeFourLayout(navVersion)
   const searchToolbarLayout = usesSearchToolbarLayout(navVersion)
+  const workbenchHeaderLayout = usesStandaloneWorkshopLayout(navVersion)
   const reduceSideNavMotion = useReducedMotion() ?? false
   const resolvedObjectId = getWikiObject(activeObjectId ?? localObjectId).id
   const normalizedNavSearch = searchToolbarLayout
@@ -460,8 +461,8 @@ export function WikiSideNav({
         ariaLabel="百科目录"
         layout="fill"
         chrome={navVersion === 1 ? 'plain' : 'panel'}
-        showDivider={navVersion !== 1}
-        flushHeader={schemeFourLayout || searchToolbarLayout || navVersion === 1}
+        showDivider={navVersion !== 1 && !workbenchHeaderLayout}
+        flushHeader={schemeFourLayout || searchToolbarLayout || workbenchHeaderLayout || navVersion === 1}
         items={[]}
         activeKey={null}
         onSelect={() => {}}
@@ -471,6 +472,11 @@ export function WikiSideNav({
               activeObjectId={resolvedObjectId}
               onSelectObject={selectObject}
               onCollapse={onCollapse ?? (() => {})}
+            />
+          ) : workbenchHeaderLayout ? (
+            <SideNavProductHeader
+              leadingText="百科目录"
+              onToggle={onCollapse ?? (() => {})}
             />
           ) : (
             <div className="px-[var(--sn-px)] pb-2">
@@ -638,6 +644,7 @@ export default function WikiEditorPage({
   onExpandSidebar?: () => void
 }) {
   const [draft, setDraft] = useState('')
+  const [chatWidth, setChatWidth] = useState(380)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const navVersion = useNavVersion((state) => state.version)
 
@@ -774,8 +781,17 @@ export default function WikiEditorPage({
       </div>
 
       {/* ── 右：世界书智能体 — 通栏贴边（无外边距），白底 + 左分隔线 ── */}
-      <div className="flex shrink-0">
-        <div className="flex h-full w-[366px] flex-col overflow-hidden border-l border-[#e9e9eb] bg-white">
+      <div
+        className="relative flex h-full shrink-0"
+        style={{ width: chatWidth }}
+      >
+        <PanelResizeHandle
+          value={chatWidth}
+          onChange={setChatWidth}
+          edge="left"
+          ariaLabel="调整百科对话区域宽度"
+        />
+        <div className="flex h-full w-full flex-col overflow-hidden border-l border-[#e9e9eb] bg-white">
           <div className="flex h-10 shrink-0 items-center justify-between pl-4 pr-2">
             <span className="text-[14px] font-semibold text-black">对话</span>
             <div className="flex items-center gap-3">

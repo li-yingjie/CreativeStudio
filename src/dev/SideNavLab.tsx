@@ -1,4 +1,6 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { LayoutGroup } from 'framer-motion'
+import TaskStatusIndicator from '@/shared/components/TaskStatusIndicator'
 import SideNav, {
   SideNavActionButton,
   type SideNavItem,
@@ -7,10 +9,14 @@ import { SIDE_MENU } from '@/modules/creator-center/data'
 import { SuibianSideNav } from '@/modules/creator-center/SuibianPage'
 import { WikiSideNav } from '@/modules/creator-center/WikiEditorPage'
 import { Add01LinearIcon } from 'master-icon/react/Add01LinearIcon'
+import { BulbLinearIcon } from 'master-icon/react/BulbLinearIcon'
+import { Database01LinearIcon } from 'master-icon/react/Database01LinearIcon'
 import { SlideWideAddLinearIcon } from 'master-icon/react/SlideWideAddLinearIcon'
 import { FolderCodeLinearIcon } from 'master-icon/react/FolderCodeLinearIcon'
+import { Folder2LinearIcon } from 'master-icon/react/Folder2LinearIcon'
+import { FolderOpenFrontLinearIcon } from 'master-icon/react/FolderOpenFrontLinearIcon'
 import { InboxLinearIcon } from 'master-icon/react/InboxLinearIcon'
-import { FolderLibraryLinearIcon } from 'master-icon/react/FolderLibraryLinearIcon'
+import { PackageLinearIcon } from 'master-icon/react/PackageLinearIcon'
 import { CircleLinearIcon } from 'master-icon/react/CircleLinearIcon'
 import { SquareLinearIcon } from 'master-icon/react/SquareLinearIcon'
 import { DiamondLinearIcon } from 'master-icon/react/DiamondLinearIcon'
@@ -20,6 +26,7 @@ import { Notebook01LinearIcon } from 'master-icon/react/Notebook01LinearIcon'
 import { HistoryLinearIcon } from 'master-icon/react/HistoryLinearIcon'
 import { ChangesLinearIcon } from 'master-icon/react/ChangesLinearIcon'
 import { Edit01LinearIcon } from 'master-icon/react/Edit01LinearIcon'
+import { Search01LinearIcon } from 'master-icon/react/Search01LinearIcon'
 import TopNav from '@/modules/creator-center/TopNav'
 import type { ProductId } from '@/modules/creator-center/data'
 import { Disclosure, FileTreeView } from '@/modules/vibecoding/components/FileTreeView'
@@ -31,6 +38,7 @@ import {
   SIDE_NAV_NUMERIC_CONSTRAINTS,
   useSideNavConfig,
   type SideNavColorKey,
+  type SideNavConfig,
   type SideNavNumericKey,
 } from '@/shared/components/side-nav-config'
 import {
@@ -38,6 +46,12 @@ import {
   PRODUCT_CATEGORY_ICONS,
   type FileNode,
 } from '@/modules/vibecoding/components/ProjectProductView'
+import {
+  useNavVersion,
+  usesContentToggleLayout,
+  usesSearchToolbarLayout,
+  usesToolbarHeaderLayout,
+} from '@/shared/storage/nav-version'
 
 /* ─── SideNav 规范 / 调试画布 ───
  *
@@ -46,9 +60,9 @@ import {
  * children 注入内容；尺寸与配色不要在挂载处覆写。 */
 
 const WORKSHOP_ITEMS: SideNavItem[] = [
-  { key: 'Skills', label: 'Skills', Icon: FolderCodeLinearIcon },
-  { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
-  { key: '项目库', label: '项目库', Icon: FolderLibraryLinearIcon },
+  { key: 'Skills', label: '技能库', Icon: FolderCodeLinearIcon },
+  { key: '资源库', label: '资源库', Icon: InboxLinearIcon, dividerAfter: true },
+  { key: '项目库', label: '项目库', Icon: PackageLinearIcon, dividerAfter: true },
 ]
 
 const AVATAR_ITEMS: SideNavItem[] = [
@@ -147,7 +161,7 @@ function ActionButton({
   Icon?: typeof Add01LinearIcon
 }) {
   return (
-    <div className="px-[var(--sn-px)] pb-3">
+    <div className="px-[var(--sn-px)] pb-3 pt-3">
       <SideNavActionButton
         aria-label={label}
         variant={variant}
@@ -164,15 +178,29 @@ function ActionButton({
   )
 }
 
-/** 顶部产品头 —— 左侧业务文案，右侧收起入口（设计稿 统一导航 583-5262）。
+/** 顶部产品头 —— 左侧业务文案，右侧收起入口（Figma 579:57535）。
  *  收起入口只有这一处；底部不再放。 */
 const PRODUCT_HEADER_HEIGHT = 40
+const WORKSHOP_HEADER_GAP = 4
+const WORKSHOP_ACTION_GAP = 12
+const WORKSHOP_DIVIDER_HEIGHT = 8
+const WORKSHOP_PROJECT_HEADER_HEIGHT = 28
 
-function ProductHeaderRow({ text, collapsed }: { text: string; collapsed?: boolean }) {
+function ProductHeaderRow({
+  text,
+  collapsed,
+  onToggle,
+}: {
+  text: string
+  collapsed?: boolean
+  onToggle?: () => void
+}) {
   return (
-    <div className="px-[var(--sn-px)]">
-      <SideNavProductHeader leadingText={text} collapsed={collapsed} onToggle={() => {}} />
-    </div>
+    <SideNavProductHeader
+      leadingText={text}
+      collapsed={collapsed}
+      onToggle={onToggle ?? (() => {})}
+    />
   )
 }
 
@@ -196,6 +224,48 @@ function BusinessFooterRow({ collapsed }: { collapsed?: boolean }) {
   )
 }
 
+/** AI 工坊标准样例头：40px 文本 Header → 4px → 36px 新建项目 → 12px。 */
+function WorkshopSpecHeader() {
+  return (
+    <div className="pb-3">
+      <SideNavProductHeader leadingText="开启创作" onToggle={() => {}} />
+      <div className="mt-1 px-[var(--sn-px)]">
+        <SideNavActionButton aria-label="新建项目">
+          <Add01LinearIcon size={16} className="shrink-0" />
+          <span>新建项目</span>
+        </SideNavActionButton>
+      </div>
+    </div>
+  )
+}
+
+/** Figma 579:57535 的 AI 工坊专用底部；其他产品仍注入各自 footer。 */
+function WorkshopDraftFooter({ collapsed = false }: { collapsed?: boolean }) {
+  return (
+    <div className="px-[var(--sn-px)] pb-2">
+      <button
+        type="button"
+        aria-label="我的草稿 23"
+        title={collapsed ? '我的草稿 23' : undefined}
+        className={`relative flex h-8 w-full items-center rounded-lg px-2 text-[12px] font-medium leading-4 text-[#252632]/80 transition-colors hover:bg-black/[0.03] ${
+          collapsed ? 'justify-center' : 'gap-1.5'
+        }`}
+      >
+        <InboxLinearIcon size={16} className="shrink-0" />
+        {!collapsed && <span>我的草稿 23</span>}
+        <span
+          aria-hidden
+          className={
+            collapsed
+              ? 'absolute left-1/2 top-1/2 ml-1 mt-1 size-1 rounded-full bg-[#FE2C55]'
+              : 'size-1 shrink-0 rounded-full bg-[#FE2C55]'
+          }
+        />
+      </button>
+    </div>
+  )
+}
+
 /* ─── 配置面板 —— SideNav / 树的属性抽成可编辑配置：
  *   改动实时写入 useSideNavConfig（画布与全应用即时跟随），
  *   「保存」落 localStorage（刷新后仍生效），「重置」回代码默认值。 ─── */
@@ -204,7 +274,7 @@ const NUM_FIELDS: Array<{ group: string; items: Array<[SideNavNumericKey, string
   { group: '布局', items: [['width', '宽度'], ['collapsedWidth', '收起宽度'], ['topPadding', '上内边距'], ['listPaddingX', '左右内边距']] },
   { group: '主按钮', items: [['buttonHeight', '高度'], ['buttonRadius', '圆角']] },
   { group: '菜单行', items: [['rowHeight', '行高'], ['rowRadius', '圆角'], ['rowPaddingX', '左右内边距'], ['rowGap', '图标→文字'], ['rowSpacing', '行间距'], ['rowFontSize', '字号'], ['menuIconSize', '图标'], ['subRowHeight', '子菜单行高']] },
-  { group: '树', items: [['treeRowHeight', '行高'], ['treeIndent', '每级缩进'], ['treeSlot', '箭头槽'], ['treeGap', '元素间距'], ['treeIconSize', '图标'], ['treeFontSize', '字号'], ['treeBasePl', '基础左边距']] },
+  { group: '树', items: [['treeRowHeight', '行高'], ['treeRowGap', '行间距'], ['treeIndent', '每级缩进'], ['treeSlot', '箭头槽'], ['treeGap', '元素间距'], ['treeIconSize', '图标'], ['treeFontSize', '字号'], ['treeBasePl', '基础左边距']] },
 ]
 
 const COLOR_FIELDS: Array<[SideNavColorKey, string]> = [
@@ -718,6 +788,258 @@ function RulerWidth() {
   )
 }
 
+const WORKSHOP_SPEC_MODULES = [
+  {
+    label: '数据库',
+    Icon: Database01LinearIcon,
+    bg: '#C4F0E7',
+    fg: '#0EB39C',
+  },
+  {
+    label: '小程序配置',
+    Icon: Settings01LinearIcon,
+    bg: '#D0F0D1',
+    fg: '#3EB346',
+  },
+  {
+    label: '记忆',
+    Icon: BulbLinearIcon,
+    bg: '#DCD4F3',
+    fg: '#6D45C5',
+  },
+] as const
+
+function WorkshopProjectRow({
+  label,
+  expanded,
+  onToggle,
+  cfg,
+}: {
+  label: string
+  expanded: boolean
+  onToggle: () => void
+  cfg: SideNavConfig
+}) {
+  return (
+    <div
+      className="flex w-full items-center rounded-lg pr-2 text-[rgba(28,31,35,0.8)] transition-colors hover:bg-black/[0.03]"
+      style={{
+        height: cfg.treeRowHeight,
+        paddingLeft: cfg.treeBasePl,
+        gap: 8,
+        fontSize: cfg.treeFontSize,
+      }}
+    >
+      <Disclosure expanded={expanded} visible label={label} onToggle={onToggle} />
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={onToggle}
+        className="min-w-0 flex-1 truncate text-left font-medium leading-[18px]"
+      >
+        {label}
+      </button>
+    </div>
+  )
+}
+
+function WorkshopFolderRow({
+  level,
+  ariaLabel,
+  expanded,
+  onToggle,
+  cfg,
+}: {
+  level: 0 | 1 | 2
+  ariaLabel: string
+  expanded: boolean
+  onToggle: () => void
+  cfg: SideNavConfig
+}) {
+  const FolderIcon = expanded ? FolderOpenFrontLinearIcon : Folder2LinearIcon
+  const folderBase = cfg.treeBasePl + cfg.treeIndent
+  return (
+    <div
+      className="flex w-full items-center rounded-lg pr-2 text-[#1C1F23] transition-colors hover:bg-black/[0.03]"
+      style={{
+        height: cfg.treeRowHeight,
+        paddingLeft: folderBase + level * cfg.treeIndent,
+        gap: cfg.treeGap,
+        fontSize: cfg.treeFontSize,
+      }}
+    >
+      <Disclosure expanded={expanded} visible label={ariaLabel} onToggle={onToggle} />
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        aria-expanded={expanded}
+        onClick={onToggle}
+        className="flex min-w-0 flex-1 items-center text-left leading-[18px]"
+        style={{ gap: cfg.treeGap }}
+      >
+        <FolderIcon size={cfg.treeIconSize} className="shrink-0 opacity-60" />
+        <span className="min-w-0 truncate">项目文件</span>
+      </button>
+    </div>
+  )
+}
+
+function WorkshopModuleRow({
+  module,
+  active,
+  onPick,
+  cfg,
+}: {
+  module: (typeof WORKSHOP_SPEC_MODULES)[number]
+  active: boolean
+  onPick: () => void
+  cfg: SideNavConfig
+}) {
+  const folderBase = cfg.treeBasePl + cfg.treeIndent
+  const moduleInset = folderBase + cfg.treeSlot + cfg.treeGap
+  return (
+    <button
+      type="button"
+      aria-current={active ? 'page' : undefined}
+      onClick={onPick}
+      className={`flex w-full items-center rounded-lg pr-2 text-left leading-[18px] transition-colors ${
+        active
+          ? 'bg-[var(--sidenav-active,rgba(83,96,143,0.12))] text-[#1C1F23]'
+          : 'text-[#1C1F23] hover:bg-black/[0.03]'
+      }`}
+      style={{
+        height: cfg.treeRowHeight,
+        paddingLeft: moduleInset,
+        gap: cfg.treeGap,
+        fontSize: cfg.treeFontSize,
+      }}
+    >
+      <span
+        className="flex shrink-0 items-center justify-center rounded-[4px]"
+        style={{
+          width: cfg.treeIconSize,
+          height: cfg.treeIconSize,
+          background: module.bg,
+        }}
+      >
+        <module.Icon
+          size={(cfg.treeIconSize * 4) / 7}
+          strokeWidth={2.2}
+          style={{ color: module.fg }}
+        />
+      </span>
+      <span className="min-w-0 truncate">{module.label}</span>
+    </button>
+  )
+}
+
+/** Figma 579:57535 的完整项目树，用扁平可交互行精确表达重复文件夹名。 */
+function WorkshopSpecTree({ picked, onPick }: { picked: string; onPick: (n: string) => void }) {
+  const cfg = useSideNavConfig((s) => s.config)
+  const treeRowGap = cfg.treeRowGap
+  const [openRows, setOpenRows] = useState<Set<string>>(
+    () => new Set(['tarot-project', 'folder-level-1', 'folder-level-2']),
+  )
+  const toggle = (key: string) =>
+    setOpenRows((current) => {
+      const next = new Set(current)
+      if (!next.delete(key)) next.add(key)
+      return next
+    })
+  const tarotOpen = openRows.has('tarot-project')
+  const firstFolderOpen = openRows.has('folder-level-1')
+  const secondFolderOpen = openRows.has('folder-level-2')
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mx-[var(--sn-px)]">
+        <div className="flex h-7 items-center justify-between px-2">
+          <span className="text-[12px] leading-4 text-[rgba(28,31,35,0.6)]">我的项目</span>
+          <button
+            type="button"
+            aria-label="搜索项目"
+            title="搜索项目"
+            className="flex size-5 items-center justify-center rounded text-[rgba(28,31,35,0.45)] transition-colors hover:bg-black/[0.03] hover:text-[#1C1F23]"
+          >
+            <Search01LinearIcon size={12} />
+          </button>
+        </div>
+        <div className="flex flex-col" style={{ gap: treeRowGap }}>
+          <WorkshopProjectRow
+            label="塔罗小程序"
+            expanded={tarotOpen}
+            onToggle={() => toggle('tarot-project')}
+            cfg={cfg}
+          />
+          {tarotOpen && (
+            <>
+              <WorkshopFolderRow
+                level={0}
+                ariaLabel="一级项目文件"
+                expanded={firstFolderOpen}
+                onToggle={() => toggle('folder-level-1')}
+                cfg={cfg}
+              />
+              {firstFolderOpen && (
+                <WorkshopFolderRow
+                  level={1}
+                  ariaLabel="二级项目文件"
+                  expanded={secondFolderOpen}
+                  onToggle={() => toggle('folder-level-2')}
+                  cfg={cfg}
+                />
+              )}
+              {firstFolderOpen && secondFolderOpen && (
+                <>
+                  <WorkshopFolderRow
+                    level={2}
+                    ariaLabel="三级项目文件一"
+                    expanded={openRows.has('folder-leaf-1')}
+                    onToggle={() => toggle('folder-leaf-1')}
+                    cfg={cfg}
+                  />
+                  <WorkshopFolderRow
+                    level={2}
+                    ariaLabel="三级项目文件二"
+                    expanded={openRows.has('folder-leaf-2')}
+                    onToggle={() => toggle('folder-leaf-2')}
+                    cfg={cfg}
+                  />
+                </>
+              )}
+              {WORKSHOP_SPEC_MODULES.map((module) => (
+                <WorkshopModuleRow
+                  key={module.label}
+                  module={module}
+                  active={picked === module.label}
+                  onPick={() => onPick(module.label)}
+                  cfg={cfg}
+                />
+              ))}
+            </>
+          )}
+          <WorkshopProjectRow
+            label="世界杯预测小程序"
+            expanded={openRows.has('world-cup-project')}
+            onToggle={() => toggle('world-cup-project')}
+            cfg={cfg}
+          />
+          <WorkshopProjectRow
+            label="塔罗小程序3"
+            expanded={openRows.has('tarot-project-3')}
+            onToggle={() => toggle('tarot-project-3')}
+            cfg={cfg}
+          />
+        </div>
+      </div>
+      <div
+        aria-hidden
+        className="pointer-events-none sticky bottom-0 z-10 mt-auto h-5 shrink-0 bg-gradient-to-b from-transparent to-[#F2F2F7]"
+      />
+    </div>
+  )
+}
+
 /** 工坊侧栏的 children —— 项目列表 + 项目行 + 展开出的模块（产物树）。
  *  模块用 showDirChildren=false：可选中、不在左侧展开。 */
 function WorkshopTree({ picked, onPick }: { picked: string; onPick: (n: string) => void }) {
@@ -822,17 +1144,19 @@ function AvatarTree({ picked, onPick }: { picked: string; onPick: (n: string) =>
   )
 }
 
-/** 画布上组件的展示高度 —— 主组件与所有场景卡共用这一个值。 */
-const CANVAS_H = 600
+/** 画布上 SideNav 的默认展示高度；短内容卡可按自身内容覆盖。 */
+const CANVAS_H = 900
 
-/** 场景卡片 —— 右侧平铺用；主组件也走它，高度只写这一处。 */
+/** 场景卡片 —— SideNav 默认对齐 900px，树等短内容可自适应。 */
 function VariantCard({
   title,
   width,
+  height,
   children,
 }: {
   title: string
   width?: number
+  height?: CSSProperties['height']
   children: ReactNode
 }) {
   const liveWidth = useSideNavConfig((s) => s.config.width)
@@ -842,7 +1166,7 @@ function VariantCard({
       <div
         // 卡片 ring 就是外框，组件自己的右描边在框内会叠成两层 —— 关掉
         className="mt-2 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-black/10 [&_aside]:border-r-0"
-        style={{ width: width ?? liveWidth, height: CANVAS_H }}
+        style={{ width: width ?? liveWidth, height: height ?? CANVAS_H }}
       >
         {children}
       </div>
@@ -855,10 +1179,14 @@ function GlobalLayoutSideNav({
   ariaLabel,
   selection,
   onSelect,
+  collapsed,
+  onToggle,
 }: {
   ariaLabel: string
   selection: LayoutSelection
   onSelect: (selection: LayoutSelection) => void
+  collapsed: boolean
+  onToggle: () => void
 }) {
   const cfg = useSideNavConfig((s) => s.config)
   return (
@@ -867,41 +1195,45 @@ function GlobalLayoutSideNav({
       items={LAYOUT_ITEMS}
       activeKey={selection.area === 'menu' ? selection.key : null}
       onSelect={(key) => onSelect({ area: 'menu', key })}
+      collapsed={collapsed}
+      resizable
       header={
         <>
-          <ProductHeaderRow text="开启创作" />
-          <ActionButton label="主操作" />
+          <ProductHeaderRow text="开启创作" collapsed={collapsed} onToggle={onToggle} />
+          <ActionButton label="主操作" collapsed={collapsed} />
         </>
       }
-      footer={<BusinessFooterRow />}
+      footer={<BusinessFooterRow collapsed={collapsed} />}
     >
-      <div className="mt-2 flex flex-col">
-        <div className="px-[var(--sn-px)] pb-1 text-[11px] text-[#252632]/70">我的收藏</div>
-        <div className="flex flex-col gap-[var(--sn-rsp)] px-[var(--sn-px)]">
-          {LAYOUT_FAVORITES.map((favorite) => (
-            <button
-              key={favorite.key}
-              type="button"
-              onClick={() => onSelect({ area: 'favorite', key: favorite.key })}
-              className={`flex h-[var(--sn-rh)] w-full items-center gap-[var(--sn-rgap)] rounded-[var(--sn-rr)] px-[var(--sn-rpx)] text-[length:var(--sn-rfs)] font-medium transition-colors ${
-                selection.area === 'favorite' && selection.key === favorite.key
-                  ? 'bg-[var(--sidenav-active)] text-[var(--sidenav-ink)]'
-                  : 'text-[var(--sidenav-ink-dim)] hover:bg-[var(--sidenav-hover)]'
-              }`}
-            >
-              <favorite.Icon
-                size={cfg.menuIconSize}
-                className="shrink-0 text-[var(--sidenav-icon)]"
-              />
-              <span className="truncate">{favorite.label}</span>
-            </button>
-          ))}
+      {!collapsed && (
+        <div className="mt-2 flex flex-col">
+          <div className="px-[var(--sn-px)] pb-1 text-[11px] text-[#252632]/70">我的收藏</div>
+          <div className="flex flex-col gap-[var(--sn-rsp)] px-[var(--sn-px)]">
+            {LAYOUT_FAVORITES.map((favorite) => (
+              <button
+                key={favorite.key}
+                type="button"
+                onClick={() => onSelect({ area: 'favorite', key: favorite.key })}
+                className={`flex h-[var(--sn-rh)] w-full items-center gap-[var(--sn-rgap)] rounded-[var(--sn-rr)] px-[var(--sn-rpx)] text-[length:var(--sn-rfs)] font-medium transition-colors ${
+                  selection.area === 'favorite' && selection.key === favorite.key
+                    ? 'bg-[var(--sidenav-active)] text-[var(--sidenav-ink)]'
+                    : 'text-[var(--sidenav-ink-dim)] hover:bg-[var(--sidenav-hover)]'
+                }`}
+              >
+                <favorite.Icon
+                  size={cfg.menuIconSize}
+                  className="shrink-0 text-[var(--sidenav-icon)]"
+                />
+                <span className="truncate">{favorite.label}</span>
+              </button>
+            ))}
+          </div>
+          <WorkshopTree
+            picked={selection.area === 'tree' ? selection.key : ''}
+            onPick={(key) => onSelect({ area: 'tree', key })}
+          />
         </div>
-        <WorkshopTree
-          picked={selection.area === 'tree' ? selection.key : ''}
-          onPick={(key) => onSelect({ area: 'tree', key })}
-        />
-      </div>
+      )}
     </SideNav>
   )
 }
@@ -942,11 +1274,32 @@ function GlobalLayoutChat({ side }: { side: 'left' | 'right' }) {
 }
 
 /** 内容列保留一级视图栏；右侧对话样式按参考稿默认不展示对象工具条。 */
-function GlobalLayoutContent({ showObjectToolbar }: { showObjectToolbar: boolean }) {
+function GlobalLayoutContent({
+  showObjectToolbar,
+  sidebarCollapsed = false,
+  showSidebarToggle = false,
+  onToggleSidebar,
+}: {
+  showObjectToolbar: boolean
+  sidebarCollapsed?: boolean
+  showSidebarToggle?: boolean
+  onToggleSidebar?: () => void
+}) {
   return (
     <section className="flex min-w-0 flex-1 flex-col" aria-label="内容区">
       <div className="flex h-10 shrink-0 items-center justify-between border-b border-black/[0.06] px-3">
         <div className="flex items-center gap-2 text-[13px]">
+          {showSidebarToggle && onToggleSidebar && (
+            <button
+              type="button"
+              aria-label={sidebarCollapsed ? '展开导航' : '收起导航'}
+              title={sidebarCollapsed ? '展开导航' : '收起导航'}
+              onClick={onToggleSidebar}
+              className="flex size-8 shrink-0 items-center justify-center rounded-md text-[#252632]/55 transition-colors hover:bg-black/[0.05] hover:text-[#161823]"
+            >
+              <SideNavPanelStateIcon collapsed={sidebarCollapsed} />
+            </button>
+          )}
           <span className="text-[#252632]/55">预览</span>
           <span className="rounded-md bg-black/[0.05] px-2 py-1 font-medium text-[#161823]">
             视图名称
@@ -987,8 +1340,135 @@ function GlobalLayoutContent({ showObjectToolbar }: { showObjectToolbar: boolean
       <div className="min-h-0 flex-1 p-4">
         <div className="flex h-full items-center justify-center rounded-lg bg-black/[0.06]">
           <span className="font-mono text-[11px] text-[#252632]/45">
-            内容区 自适应（1440 下 780）· 四周内边距 16
+            内容区 自适应 · 四周内边距 16
           </span>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const TOP_NAV_SPEC_METRICS = [
+  {
+    label: '导航外壳',
+    value: '1440 × 48',
+    detail: '白底 · 底边 black/5 · 桌面左右 24',
+  },
+  {
+    label: '产品入口',
+    value: 'H32 · Icon14 · Text13',
+    detail: '五项绝对居中 · 间距 4 · 图文间距 6',
+  },
+  {
+    label: '激活状态',
+    value: 'R10 · #161823 · 200ms',
+    detail: 'aria-current=page · reduced motion 为 0ms',
+  },
+  {
+    label: '两端区域',
+    value: 'Logo H24 · Right H28',
+    detail: '星光使用等宽数字 · 头像 28 · 右间距 24',
+  },
+] as const
+
+function TopNavSpecSection({
+  active,
+  onSelect,
+}: {
+  active: ProductId
+  onSelect: (product: ProductId) => void
+}) {
+  return (
+    <section aria-label="顶部导航规范" className="mt-12">
+      <h2 className="text-balance text-[18px] font-bold text-[#161823]">TopNav 顶部导航</h2>
+      <p className="mt-2 text-pretty text-[13px] leading-relaxed text-[#252632]/60">
+        组件源码{' '}
+        <code className="rounded bg-black/5 px-1.5 py-0.5 font-mono text-[12px]">
+          src/modules/creator-center/TopNav.tsx
+        </code>
+        。1440px 桌面基准；点击五个产品入口检查唯一激活态，AI 工坊透传“等待确认”状态，右侧余额与账号菜单保留真实交互。
+      </p>
+
+      <div className="mt-6 overflow-x-auto rounded-2xl bg-[#f7f7f8] p-10 ring-1 ring-black/[0.08]">
+        <div className="min-w-max">
+          <div className="text-[12.5px] font-medium text-[#161823]">
+            主组件 · 1440px 桌面态（可交互）
+          </div>
+          <div className="relative ml-16 mt-3 w-[1440px] pt-6">
+            <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-4">
+              <span className="absolute inset-x-0 top-2 border-t border-dashed border-black/30" />
+              <span className="absolute left-0 top-0 h-4 border-l border-black/40" />
+              <span className="absolute right-0 top-0 h-4 border-r border-black/40" />
+              <span className="absolute left-2 top-0 rounded bg-[#161823] px-1.5 font-mono text-[9px] font-semibold leading-4 text-white">
+                1440px
+              </span>
+              <span className="absolute left-1/2 top-0 -translate-x-1/2 rounded bg-[#f7f7f8] px-1.5 font-mono text-[9px] leading-4 text-[#252632]/55">
+                中心轴 720
+              </span>
+            </div>
+
+            <div className="relative overflow-hidden rounded-lg bg-white ring-1 ring-black/10">
+              <LayoutGroup id="top-nav-spec-preview">
+                <TopNav
+                  active={active}
+                  onSelect={onSelect}
+                  workshopTaskStatus="waiting-confirmation"
+                />
+              </LayoutGroup>
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 left-1/2 border-l border-dashed border-black/20"
+              />
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-black/[0.025]"
+              />
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-black/[0.025]"
+              />
+            </div>
+
+            <div aria-hidden className="pointer-events-none absolute -left-7 top-6 h-12 border-l border-black/40">
+              <span className="absolute -left-2 top-0 w-2 border-t border-dashed border-black/30" />
+              <span className="absolute -bottom-px -left-2 w-2 border-t border-dashed border-black/30" />
+              <span className="absolute right-1 top-1/2 -translate-y-1/2 -translate-x-full rounded bg-[#161823] px-1 font-mono text-[9px] font-semibold leading-4 text-white">
+                48px
+              </span>
+            </div>
+
+            <div className="mt-4 grid w-[960px] grid-cols-4 gap-3">
+              {TOP_NAV_SPEC_METRICS.map((metric) => (
+                <div key={metric.label} className="rounded-lg bg-white px-3 py-2.5 ring-1 ring-black/[0.06]">
+                  <div className="text-[10px] font-medium text-[#252632]/45">{metric.label}</div>
+                  <div className="mt-1 font-mono text-[12px] font-semibold tabular-nums text-[#161823]">
+                    {metric.value}
+                  </div>
+                  <div className="mt-1 text-pretty text-[10.5px] leading-4 text-[#252632]/55">
+                    {metric.detail}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex h-9 w-[960px] items-center gap-4 rounded-lg bg-white px-3 ring-1 ring-black/[0.06]">
+              <span className="text-[10px] font-medium text-[#252632]/45">状态透传</span>
+              <span className="flex items-center gap-1 text-[10.5px] text-[#252632]/60">
+                <TaskStatusIndicator status="completed" decorative />
+                已完成
+              </span>
+              <span className="flex items-center gap-1 text-[10.5px] text-[#252632]/60">
+                <TaskStatusIndicator status="waiting-confirmation" decorative />
+                等待确认
+              </span>
+              <span className="ml-auto text-[10.5px] text-[#252632]/45">
+                仅在 AI 工坊未激活时展示；激活后保留占位，避免入口宽度跳动
+              </span>
+            </div>
+            <p className="mt-3 w-[960px] text-pretty text-[11px] leading-4 text-[#252632]/50">
+              响应：小于 md 隐藏产品文字并允许横向滚动。版本：v1 使用融合顶栏；v2/3/4/5/6/8
+              使用标准顶栏；v7 与沉浸画布隐藏顶栏。
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -1002,14 +1482,19 @@ function GlobalLayoutBlueprint({
   activeNav,
   onSelectNav,
   sidebar,
+  contentSidebarToggle = 'none',
 }: {
   title: string
   badge: string
   chatSide: 'left' | 'right'
   activeNav: ProductId
   onSelectNav: (product: ProductId) => void
-  sidebar: ReactNode
+  sidebar: (controls: { collapsed: boolean; onToggle: () => void }) => ReactNode
+  contentSidebarToggle?: 'none' | 'always' | 'collapsed-only'
 }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const toggleSidebar = () => setSidebarCollapsed((collapsed) => !collapsed)
+
   return (
     <section className="flex flex-col" aria-label={title}>
       <div className="mb-3 flex items-center gap-2">
@@ -1022,9 +1507,11 @@ function GlobalLayoutBlueprint({
         className="flex min-w-max flex-col overflow-hidden rounded-lg bg-white ring-1 ring-black/10"
         style={{ width: 1440, height: 900 }}
       >
-        <TopNav active={activeNav} onSelect={onSelectNav} />
+        <LayoutGroup id={`global-layout-${chatSide}`}>
+          <TopNav active={activeNav} onSelect={onSelectNav} />
+        </LayoutGroup>
         <div className="flex min-h-0 flex-1">
-          {sidebar}
+          {sidebar({ collapsed: sidebarCollapsed, onToggle: toggleSidebar })}
           {chatSide === 'left' ? (
             <>
               <GlobalLayoutChat side="left" />
@@ -1032,7 +1519,15 @@ function GlobalLayoutBlueprint({
             </>
           ) : (
             <>
-              <GlobalLayoutContent showObjectToolbar={false} />
+              <GlobalLayoutContent
+                showObjectToolbar={false}
+                sidebarCollapsed={sidebarCollapsed}
+                showSidebarToggle={
+                  contentSidebarToggle === 'always' ||
+                  (contentSidebarToggle === 'collapsed-only' && sidebarCollapsed)
+                }
+                onToggleSidebar={toggleSidebar}
+              />
               <GlobalLayoutChat side="right" />
             </>
           )}
@@ -1047,19 +1542,20 @@ export default function SideNavLab() {
   const [specSelection, setSpecSelection] = useState<{
     area: 'menu' | 'tree'
     key: string
-  }>({ area: 'tree', key: '能力配置' })
+  }>({ area: 'menu', key: '' })
   const [homeActive, setHomeActive] = useState('content')
   const [shopSelection, setShopSelection] = useState<{
     area: 'menu' | 'tree'
     key: string
-  }>({ area: 'menu', key: 'Skills' })
+  }>({ area: 'menu', key: '' })
   const [avatarSelection, setAvatarSelection] = useState<{
     area: 'menu' | 'tree'
     key: string
   }>({ area: 'menu', key: 'Skills' })
-  const [railActive, setRailActive] = useState('datacenter')
+  const [railActive, setRailActive] = useState<string | null>(null)
   const [layoutNav, setLayoutNav] = useState<ProductId>('workshop')
   const [wikiLayoutNav, setWikiLayoutNav] = useState<ProductId>('wiki')
+  const [topNavSpecActive, setTopNavSpecActive] = useState<ProductId>('home')
   const [layoutSelection, setLayoutSelection] = useState<LayoutSelection>({
     area: 'menu',
     key: 'overview',
@@ -1072,39 +1568,131 @@ export default function SideNavLab() {
   const [moduleDirs, setModuleDirs] = useState<Set<string>>(() => new Set(['__m__/项目文件']))
   const [pickedFile, setPickedFile] = useState('')
   const [wikiDoc, setWikiDoc] = useState('未命名设定')
+  const navVersion = useNavVersion((state) => state.version)
+  const wikiSidebarNeedsContentExpand =
+    navVersion !== 1 &&
+    navVersion !== 3 &&
+    !usesToolbarHeaderLayout(navVersion) &&
+    !usesSearchToolbarLayout(navVersion) &&
+    !usesContentToggleLayout(navVersion)
   // 面板改配置时，标注读数与规格表实时跟随
   const liveCfg = useSideNavConfig((s) => s.config)
-  // 主组件标注的几何 —— 全部由配置推导：改配置，标注跟着组件一起动。
-  // 常量 12/30 分别是主按钮外壳的 pb-3、「项目列表」小标题高。
-  // 菜单到项目列表已无额外间距。
+  // 主组件标注的几何 —— Figma 579:57535 以 0–40 Header、
+  // 4px 间距、44–80 主按钮、12px 间距为基线；可配尺寸仍实时跟随。
   const g = (() => {
     const c = liveCfg
-    const navTop = c.topPadding + PRODUCT_HEADER_HEIGHT + c.buttonHeight + 12
-    const menuRow = (i: number) => navTop + i * (c.rowHeight + c.rowSpacing)
-    const projTop = menuRow(2) + c.rowHeight + 30
-    const treeRow = (i: number) => projTop + c.treeRowHeight + i * c.treeRowHeight
+    const treeRowGap = c.treeRowGap
+    const actionTop = PRODUCT_HEADER_HEIGHT + WORKSHOP_HEADER_GAP
+    const navTop = actionTop + c.buttonHeight + WORKSHOP_ACTION_GAP
+    const menuRow = (i: number) => {
+      if (i === 0) return navTop
+      if (i === 1) return navTop + c.rowHeight + c.rowSpacing
+      return (
+        navTop +
+        2 * c.rowHeight +
+        3 * c.rowSpacing +
+        WORKSHOP_DIVIDER_HEIGHT
+      )
+    }
+    const projectHeaderTop =
+      menuRow(2) +
+      c.rowHeight +
+      c.rowSpacing +
+      WORKSHOP_DIVIDER_HEIGHT
+    const treeTop = projectHeaderTop + WORKSHOP_PROJECT_HEADER_HEIGHT
+    const treeRow = (i: number) => treeTop + i * (c.treeRowHeight + treeRowGap)
     const menuIconX = c.listPaddingX + c.rowPaddingX
     const menuTextX = menuIconX + c.menuIconSize + c.rowGap
-    const treeArrowX = (d: number) => c.listPaddingX + c.treeBasePl + d * c.treeIndent
-    const treeIconX =
-      treeArrowX(1) +
-      (c.treeDisclosurePosition === 'left' ? c.treeSlot + c.treeGap : 0)
-    const treeTextX = treeIconX + c.treeIconSize + c.treeGap
-    return { menuRow, treeRow, menuIconX, menuTextX, treeArrowX, treeIconX, treeTextX }
+    const rootArrowX = c.listPaddingX + c.treeBasePl
+    const folderArrowX = (level: number) =>
+      rootArrowX + (level + 1) * c.treeIndent
+    const moduleIconX = folderArrowX(0) + c.treeSlot + c.treeGap
+    const moduleTextX = moduleIconX + c.treeIconSize + c.treeGap
+    return {
+      actionTop,
+      menuRow,
+      projectHeaderTop,
+      treeRow,
+      treeRowGap,
+      menuIconX,
+      menuTextX,
+      folderArrowX,
+      moduleIconX,
+      moduleTextX,
+    }
   })()
 
   return (
     <div className="flex min-h-dvh bg-white font-[var(--font-sans)]">
       <main className="min-w-0 flex-1 px-8 py-10">
-        <h1 className="text-balance text-[22px] font-bold text-[#161823]">SideNav 规范画布</h1>
+        <h1 className="text-balance text-[22px] font-bold text-[#161823]">统一导航规范画布</h1>
         <p className="mt-2 text-pretty text-[13px] leading-relaxed text-[#252632]/60">
-        组件源码 <code className="rounded bg-black/5 px-1.5 py-0.5 font-mono text-[12px]">src/shared/components/SideNav.tsx</code>
-        ，统一宽度 {liveCfg.width}px。所有产品共用同一组件，
-        <b className="font-medium text-[#161823]">只通过 header / footer / children 注入内容</b>
-        ；尺寸与配色不要在挂载处覆写。
+          集中核对全局整体布局、TopNav、SideNav 与 FileTreeView 的桌面基准、状态和交互。
         </p>
 
-      {/* ── 画布一：SideNav，主组件 + 4 个场景并排 ── */}
+      {/* ── 画布一：全局整体布局（统一导航 321-41651，1440×900 基准） ── */}
+      <h2 className="mt-8 text-[18px] font-bold text-[#161823]">全局整体布局</h2>
+      <p className="mt-2 text-[13px] leading-relaxed text-[#252632]/60">
+        1440×900 基准。两种排列共用线上顶部导航、默认 {liveCfg.width}px
+        可收展/拖拽侧栏、440px 对话列与自适应内容区；右侧对话样式默认省略对象工具条。
+      </p>
+      <div className="mt-6 overflow-x-auto rounded-2xl bg-[#f7f7f8] p-10 ring-1 ring-black/[0.08]">
+        <div className="flex min-w-max flex-col gap-10">
+          <GlobalLayoutBlueprint
+            title="样式一｜左侧对话 · 右侧内容"
+            badge="现有"
+            chatSide="left"
+            activeNav={layoutNav}
+            onSelectNav={setLayoutNav}
+            sidebar={({ collapsed, onToggle }) => (
+              <GlobalLayoutSideNav
+                ariaLabel="样式一侧栏"
+                selection={layoutSelection}
+                onSelect={setLayoutSelection}
+                collapsed={collapsed}
+                onToggle={onToggle}
+              />
+            )}
+          />
+          <GlobalLayoutBlueprint
+            title="样式二｜左侧内容 · 右侧对话"
+            badge="百科示例"
+            chatSide="right"
+            activeNav={wikiLayoutNav}
+            onSelectNav={setWikiLayoutNav}
+            contentSidebarToggle={
+              usesContentToggleLayout(navVersion)
+                ? 'always'
+                : wikiSidebarNeedsContentExpand
+                  ? 'collapsed-only'
+                  : 'none'
+            }
+            sidebar={({ collapsed, onToggle }) => (
+              <WikiSideNav
+                activeDoc={wikiDoc}
+                collapsed={collapsed}
+                onPickDoc={setWikiDoc}
+                onCollapse={onToggle}
+              />
+            )}
+          />
+        </div>
+      </div>
+
+      {/* ── 画布二：TopNav 顶部导航 ── */}
+      <TopNavSpecSection active={topNavSpecActive} onSelect={setTopNavSpecActive} />
+
+      {/* ── 画布三：SideNav，主组件 + 4 个场景并排 ── */}
+      <h2 className="mt-12 text-balance text-[18px] font-bold text-[#161823]">SideNav 侧边导航</h2>
+      <p className="mt-2 text-pretty text-[13px] leading-relaxed text-[#252632]/60">
+        组件源码{' '}
+        <code className="rounded bg-black/5 px-1.5 py-0.5 font-mono text-[12px]">
+          src/shared/components/SideNav.tsx
+        </code>
+        ，统一宽度 {liveCfg.width}px。所有产品共用同一组件，
+        <b className="font-medium text-[#161823]">只通过 header / footer / children 注入内容</b>
+        ；AI 工坊标准样例来源 Figma <code className="font-mono text-[12px]">579:57535</code>。
+      </p>
       <div className="mt-6 overflow-x-auto rounded-2xl bg-[#f7f7f8] p-10 ring-1 ring-black/[0.08]">
         <div className="flex min-w-max items-start gap-8">
           {/* 主组件：量度直接画在元素上（F12 高亮盒），右侧只留一点数字位 */}
@@ -1115,49 +1703,53 @@ export default function SideNavLab() {
               <div className="overflow-hidden rounded-lg ring-1 ring-black/10 [&_aside]:border-r-0" style={{ height: CANVAS_H }}>
                 <SideNav
                   ariaLabel="规范标注示例"
+                  flushHeader
                   items={WORKSHOP_ITEMS}
                   activeKey={specSelection.area === 'menu' ? specSelection.key : null}
                   onSelect={(key) => setSpecSelection({ area: 'menu', key })}
-                  header={
-                    <>
-                      <ProductHeaderRow text="开启创作" />
-                      <ActionButton label="AI 创作" />
-                    </>
-                  }
-                  footer={<BusinessFooterRow />}
+                  header={<WorkshopSpecHeader />}
+                  footer={<WorkshopDraftFooter />}
                 >
-                  <WorkshopTree
+                  <WorkshopSpecTree
                     picked={specSelection.area === 'tree' ? specSelection.key : ''}
                     onPick={(key) => setSpecSelection({ area: 'tree', key })}
                   />
                 </SideNav>
               </div>
 
-              {/* 位置全部由配置推导（g.*），改配置时标注跟着组件一起动；
-                  每个读数都可点击就地修改。高度：上内边距 / 主按钮 / 菜单行 /
-                  行间距 / 树行 —— 一个尺寸只标一次 */}
-              <HMeasure top={0} height={liveCfg.topPadding} editKey="topPadding" />
-              {/* 产品头是固定 40px 行（文案 + 收起），不进配置。 */}
-              <HMeasure top={liveCfg.topPadding} height={PRODUCT_HEADER_HEIGHT} />
+              {/* AI 工坊标准样例 flush Header：0–40 / gap 4 / action /
+                  gap 12 / menu 92起；可配读数仍会实时跟随。 */}
+              <HMeasure top={0} height={PRODUCT_HEADER_HEIGHT} />
+              <HMeasure top={PRODUCT_HEADER_HEIGHT} height={WORKSHOP_HEADER_GAP} />
               <HMeasure
-                top={liveCfg.topPadding + PRODUCT_HEADER_HEIGHT}
+                top={g.actionTop}
                 height={liveCfg.buttonHeight}
                 editKey="buttonHeight"
               />
+              <HMeasure
+                top={g.actionTop + liveCfg.buttonHeight}
+                height={WORKSHOP_ACTION_GAP}
+              />
               <HMeasure top={g.menuRow(0)} height={liveCfg.rowHeight} editKey="rowHeight" />
               <HMeasure top={g.menuRow(0) + liveCfg.rowHeight} height={liveCfg.rowSpacing} editKey="rowSpacing" />
+              <HMeasure top={g.projectHeaderTop} height={WORKSHOP_PROJECT_HEADER_HEIGHT} />
               <HMeasure top={g.treeRow(0)} height={liveCfg.treeRowHeight} editKey="treeRowHeight" />
+              <HMeasure
+                top={g.treeRow(0) + liveCfg.treeRowHeight}
+                height={g.treeRowGap}
+                editKey="treeRowGap"
+              />
               {/* 图标→文字：绿色竖带 */}
               <VMeasure left={g.menuIconX + liveCfg.menuIconSize} width={liveCfg.rowGap} top={g.menuRow(1)} height={2 * liveCfg.rowHeight + liveCfg.rowSpacing} chipY={g.menuRow(2) + liveCfg.rowHeight / 2} editKey="rowGap" />
-              {/* 缩进：粉色竖带，一级（项目→模块）与二级（项目文件→子级）各标一次 */}
-              <VMeasure left={g.treeArrowX(0)} width={liveCfg.treeIndent} top={g.treeRow(1)} height={4 * liveCfg.treeRowHeight} color={IND_PINK} chipY={g.treeRow(1) + liveCfg.treeRowHeight / 2} editKey="treeIndent" />
-              <VMeasure left={g.treeArrowX(1)} width={liveCfg.treeIndent} top={g.treeRow(5)} height={2 * liveCfg.treeRowHeight} color={IND_PINK} chipY={g.treeRow(5) + liveCfg.treeRowHeight / 2} editKey="treeIndent" />
+              {/* 文件夹层级每级 20px，在相邻两级各标一次。 */}
+              <VMeasure left={g.folderArrowX(0)} width={liveCfg.treeIndent} top={g.treeRow(2)} height={3 * liveCfg.treeRowHeight + 2 * g.treeRowGap} color={IND_PINK} chipY={g.treeRow(2) + liveCfg.treeRowHeight / 2} editKey="treeIndent" />
+              <VMeasure left={g.folderArrowX(1)} width={liveCfg.treeIndent} top={g.treeRow(3)} height={2 * liveCfg.treeRowHeight + g.treeRowGap} color={IND_PINK} chipY={g.treeRow(3) + liveCfg.treeRowHeight / 2} editKey="treeIndent" />
               {/* 图标本尺寸：虚线框（菜单 / 树） */}
               <IconMeasure left={g.menuIconX} top={g.menuRow(1) + (liveCfg.rowHeight - liveCfg.menuIconSize) / 2} size={liveCfg.menuIconSize} editKey="menuIconSize" />
-              <IconMeasure left={g.treeIconX} top={g.treeRow(0) + (liveCfg.treeRowHeight - liveCfg.treeIconSize) / 2} size={liveCfg.treeIconSize} chipLeft editKey="treeIconSize" />
+              <IconMeasure left={g.moduleIconX} top={g.treeRow(5) + (liveCfg.treeRowHeight - liveCfg.treeIconSize) / 2} size={liveCfg.treeIconSize} chipLeft editKey="treeIconSize" />
               {/* 字号：白框 + 虚线引线，数字可点改 */}
               <Note y={g.menuRow(2) + liveCfg.rowHeight / 2} fromX={g.menuTextX + 3 * liveCfg.rowFontSize + 6} label="字号" value={liveCfg.rowFontSize} editKey="rowFontSize" />
-              <Note y={g.treeRow(0) + liveCfg.treeRowHeight / 2} fromX={g.treeTextX + 4 * liveCfg.treeFontSize + 6} label="字号" value={liveCfg.treeFontSize} editKey="treeFontSize" />
+              <Note y={g.treeRow(5) + liveCfg.treeRowHeight / 2} fromX={g.moduleTextX + 3 * liveCfg.treeFontSize + 6} label="字号" value={liveCfg.treeFontSize} editKey="treeFontSize" />
 
               {/* 宽度标尺放到底部，让主组件上沿与右侧场景卡对齐。 */}
               <div
@@ -1195,18 +1787,14 @@ export default function SideNavLab() {
             <VariantCard title="AI 工坊">
               <SideNav
                 ariaLabel="AI 工坊侧栏"
+                flushHeader
                 items={WORKSHOP_ITEMS}
                 activeKey={shopSelection.area === 'menu' ? shopSelection.key : null}
                 onSelect={(key) => setShopSelection({ area: 'menu', key })}
-                header={
-                  <>
-                    <ProductHeaderRow text="开启创作" />
-                    <ActionButton label="AI 创作" />
-                  </>
-                }
-                footer={<BusinessFooterRow />}
+                header={<WorkshopSpecHeader />}
+                footer={<WorkshopDraftFooter />}
               >
-                <WorkshopTree
+                <WorkshopSpecTree
                   picked={shopSelection.area === 'tree' ? shopSelection.key : ''}
                   onPick={(key) => setShopSelection({ area: 'tree', key })}
                 />
@@ -1245,31 +1833,31 @@ export default function SideNavLab() {
               </div>
             </VariantCard>
 
-          <VariantCard title="收起态 icon rail" width={liveCfg.collapsedWidth}>
+          <VariantCard title="AI 工坊 · 收起态" width={liveCfg.collapsedWidth}>
             <SideNav
-              ariaLabel="收起态"
+              ariaLabel="AI 工坊收起态"
               collapsed
-              items={SIDE_MENU as SideNavItem[]}
+              flushHeader
+              items={WORKSHOP_ITEMS}
               activeKey={railActive}
               onSelect={setRailActive}
               header={
                 <>
                   <ProductHeaderRow text="开启创作" collapsed />
-                  <ActionButton
-                    variant="dark"
-                    label="发布作品"
-                    collapsed
-                    Icon={SlideWideAddLinearIcon}
-                  />
+                  <div className="px-[var(--sn-px)] pb-3 pt-1">
+                    <SideNavActionButton aria-label="新建项目" collapsed>
+                      <Add01LinearIcon size={16} className="shrink-0" />
+                    </SideNavActionButton>
+                  </div>
                 </>
               }
-              footer={<BusinessFooterRow collapsed />}
+              footer={<WorkshopDraftFooter collapsed />}
             />
           </VariantCard>
         </div>
       </div>
 
-      {/* ── 画布二：树组件 ── */}
+      {/* ── 画布四：树组件 ── */}
       <h2 className="mt-12 text-[18px] font-bold text-[#161823]">FileTreeView 树组件</h2>
       <p className="mt-2 text-[13px] leading-relaxed text-[#252632]/60">
         组件源码 <code className="rounded bg-black/5 px-1.5 py-0.5 font-mono text-[12px]">src/modules/vibecoding/components/FileTreeView.tsx</code>
@@ -1307,7 +1895,7 @@ export default function SideNavLab() {
           </div>
 
           {/* 模块列表（产物树） */}
-          <VariantCard title="模块（产物树）">
+          <VariantCard title="模块（产物树）" height="auto">
             <div className="px-3 py-2">
               <FileTreeView
                 nodes={MODULE_TREE}
@@ -1334,7 +1922,7 @@ export default function SideNavLab() {
           </VariantCard>
 
           {/* 文件夹树（项目文件） */}
-          <VariantCard title="文件夹（项目文件）">
+          <VariantCard title="文件夹（项目文件）" height="auto">
             <div className="px-3 py-2">
               <FileTreeView
                 nodes={FOLDER_TREE}
@@ -1357,38 +1945,6 @@ export default function SideNavLab() {
         </div>
       </div>
 
-      {/* ── 画布三：全局整体布局（统一导航 321-41651，1440×900 基准） ── */}
-      <h2 className="mt-12 text-[18px] font-bold text-[#161823]">全局整体布局</h2>
-      <p className="mt-2 text-[13px] leading-relaxed text-[#252632]/60">
-        1440×900 基准。两种排列共用线上顶部导航、{liveCfg.width}px 侧栏、440px
-        对话列与自适应内容区；右侧对话样式默认省略对象工具条。
-      </p>
-      <div className="mt-6 overflow-x-auto rounded-2xl bg-[#f7f7f8] p-10 ring-1 ring-black/[0.08]">
-        <div className="flex min-w-max flex-col gap-10">
-          <GlobalLayoutBlueprint
-            title="样式一｜左侧对话 · 右侧内容"
-            badge="现有"
-            chatSide="left"
-            activeNav={layoutNav}
-            onSelectNav={setLayoutNav}
-            sidebar={
-              <GlobalLayoutSideNav
-                ariaLabel="样式一侧栏"
-                selection={layoutSelection}
-                onSelect={setLayoutSelection}
-              />
-            }
-          />
-          <GlobalLayoutBlueprint
-            title="样式二｜左侧内容 · 右侧对话"
-            badge="百科示例"
-            chatSide="right"
-            activeNav={wikiLayoutNav}
-            onSelectNav={setWikiLayoutNav}
-            sidebar={<WikiSideNav activeDoc={wikiDoc} onPickDoc={setWikiDoc} />}
-          />
-        </div>
-      </div>
       </main>
       {configPanelOpen ? (
         <ConfigPanel onCollapse={() => setConfigPanelOpen(false)} />

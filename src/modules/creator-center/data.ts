@@ -30,40 +30,45 @@ export const PRODUCTS: ProductEntry[] = [
 /** 星光余额（创作激励计量单位，顶栏右侧展示）。 */
 export const STARLIGHT = 276
 
-/** 首页「智能创作」入口卡。图标为设计稿导出的 4x 贴纸卡：front 为正卡，back 为斜置
- *  后卡（潮流单品，仅百科/随变有）；AI工坊 front 已是手持手机+应用截图的合成图。 */
+/** 首页「智能创作」入口卡。homeIcon 是设计稿整组 4x 导出的合成图；front/back
+ *  保留给产品占位页使用，避免首页素材更新波及其它页面。 */
 export const SMART_CREATE_ENTRIES: {
   id: Exclude<ProductId, 'home'>
   label: string
   desc: string
+  homeIcon: string
   front: string
   back?: string
 }[] = [
   {
     id: 'ai-avatar',
     label: 'AI分身',
-    desc: '全天候代你处理粉丝互动',
+    desc: '创造陪伴用户的另一个“你”',
+    homeIcon: '/icons/creator-center/smart-create-ai-avatar.png',
     front: '/icons/creator-center/entry-ai-avatar-front.png',
     back: '/icons/creator-center/entry-ai-avatar-back.png',
   },
   {
     id: 'wiki',
     label: '百科',
-    desc: '轻松构建书写你的奇思妙想',
+    desc: '汇聚创作构想搭建专属世界',
+    homeIcon: '/icons/creator-center/smart-create-wiki.png',
     front: '/icons/creator-center/entry-wiki-front.png',
     back: '/icons/creator-center/entry-wiki-back.png',
   },
   {
     id: 'suibian',
     label: '随变',
-    desc: '一键生成百变创意短片',
+    desc: '自由角色创作，专业 Agent 成片',
+    homeIcon: '/icons/creator-center/smart-create-suibian.png',
     front: '/icons/creator-center/entry-suibian-front.png',
     back: '/icons/creator-center/entry-suibian-back.png',
   },
   {
     id: 'workshop',
     label: 'AI工坊',
-    desc: '零代码搭建互动应用',
+    desc: '把好想法变成好玩法',
+    homeIcon: '/icons/creator-center/smart-create-workshop.png',
     front: '/icons/creator-center/entry-workshop.png',
   },
 ]

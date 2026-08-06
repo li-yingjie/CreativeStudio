@@ -191,7 +191,9 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
       header={
         /* 首页不放产品头 —— 它既不提供收起，也没有可写的业务文案，
            顶部直接就是「发布作品」。 */
-        <div className="px-[var(--sn-px)] pb-3">
+        <div
+          className={`px-[var(--sn-px)] pb-3 ${version === 1 ? '' : 'pt-3'}`}
+        >
           <Popover.Root>
             <Popover.Trigger asChild>
               <SideNavActionButton
@@ -322,7 +324,7 @@ function ProfileHeader({ stats }: { stats: CreatorStats | null }) {
 
 /** 入口卡（设计稿 1-24030）：图标容器 77×84；前卡 60×75，视觉上与入口卡等高。
  *  容器上移 5px 抵消前卡内部偏移，文字从 86px 起排。
- *  hover / focus 变体向下传播，驱动 CardImageIcon 的卡面扇开。 */
+ *  hover / focus 变体只向下传播，驱动 CardImageIcon 的卡面扇开。 */
 function EntryCard({
   icon,
   label,
@@ -349,17 +351,7 @@ function EntryCard({
           ? undefined
           : { y: 0, scale: 0.99, transition: { type: 'tween', duration: 0.07, ease: 'easeOut' } }
       }
-      variants={{
-        rest: {
-          y: 0,
-          transition: { type: 'tween', duration: reduceMotion ? 0 : 0.08, ease: 'easeOut' },
-        },
-        spread: {
-          y: reduceMotion ? 0 : -1,
-          transition: { type: 'tween', duration: reduceMotion ? 0 : 0.11, ease: 'easeOut' },
-        },
-      }}
-      className="relative h-[75px] rounded-2xl border-[0.5px] border-black/5 bg-white py-[16px] pl-[86px] pr-3 text-left shadow-[0_7px_8px_rgba(0,0,0,0.05)]"
+      className="relative h-[75px] rounded-2xl border-[0.5px] border-black/5 bg-white py-[16px] pl-[86px] pr-1 text-left shadow-[0_7px_8px_rgba(0,0,0,0.05)]"
     >
       <span className="pointer-events-none absolute -left-px top-[-5.1px] z-[1] h-[84px] w-[77px]">{icon}</span>
       <div className="min-w-0">
@@ -368,6 +360,11 @@ function EntryCard({
       </div>
     </motion.button>
   )
+}
+
+/** 智能创作图标已在 Figma 内完成前后卡叠放，直接按整组渲染以保持原始几何。 */
+function SmartCreateImageIcon({ src }: { src: string }) {
+  return <img src={src} alt="" className="pointer-events-none block h-full w-full object-contain" />
 }
 
 /** 入口卡图标：正卡（front，设计稿导出的 4x 贴纸）在左，后卡与正卡等大、在右后方
@@ -410,7 +407,7 @@ function CardImageIcon({ front, back }: { front: string; back?: string }) {
           rest: { x: 0, rotate: 0, transition: fanOutTransition },
           spread: {
             x: reduceMotion ? 0 : -5,
-            rotate: reduceMotion ? 0 : -3,
+            rotate: reduceMotion ? 0 : -6,
             transition: fanInTransition,
           },
         }}
@@ -959,7 +956,7 @@ export default function CreatorCenterHome({
                   {SMART_CREATE_ENTRIES.map((e) => (
                     <EntryCard
                       key={e.id}
-                      icon={<CardImageIcon front={e.front} back={e.back} />}
+                      icon={<SmartCreateImageIcon src={e.homeIcon} />}
                       label={e.label}
                       desc={e.desc}
                       onClick={() => onOpenProduct(e.id)}

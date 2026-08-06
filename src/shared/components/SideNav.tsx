@@ -38,6 +38,8 @@ export interface SideNavItem {
   children?: string[]
   /** 在该项之前插入一条分组分隔线。 */
   dividerBefore?: boolean
+  /** 在该项之后插入一条分组分隔线。 */
+  dividerAfter?: boolean
 }
 
 /** 菜单图标 — MasterIcon 组件或 mask 着色的 SVG。
@@ -75,32 +77,28 @@ export const SideNavActionButton = forwardRef<
   ComponentProps<'button'> & { collapsed?: boolean; variant?: 'light' | 'dark' }
 >(function SideNavActionButton({ collapsed = false, variant = 'light', className = '', children, style, ...rest }, ref) {
   // 几何（高度 / 圆角 / 字号 / 内边距）两种变体完全一致，默认值取自设计稿
-  // 统一导航 275-22603，可在 /sidebar 的配置面板运行时调整；variant 只切换
+  // 统一导航 579-57535，可在 /sidebar 的配置面板运行时调整；variant 只切换
   // 配色：dark = 首页「发布作品」，light = 工坊「AI 创作」。
   const cfg = useSideNavConfig((s) => s.config)
-  const expandedIconPadding = Math.max(
-    0,
-    (cfg.collapsedWidth - cfg.menuIconSize) / 2 - cfg.listPaddingX,
-  )
   const tone =
     variant === 'dark'
       ? 'bg-[#1c1f23] text-white hover:bg-[#2b2e33]'
-      : 'bg-white text-[#161823] ring-1 ring-black/10 transition-shadow hover:shadow-sm'
+      : 'bg-white text-[#1c1f23]'
   return (
     <button
       ref={ref}
       type="button"
       {...rest}
-      className={`relative flex w-full items-center gap-[var(--sn-rgap,8px)] font-semibold ${tone} ${
+      className={`relative flex w-full items-center gap-[var(--sn-rgap,8px)] font-medium leading-5 ${tone} ${
         collapsed ? 'justify-center' : ''
       } ${className}`}
       style={{
         // 收展保持同高，避免按钮下方整组菜单产生纵向跳动。
         height: cfg.buttonHeight,
         borderRadius: cfg.buttonRadius,
-        // 顶部操作与下方菜单共享 13px 字号和横向对齐基线。
-        fontSize: 13,
-        paddingLeft: collapsed ? 0 : expandedIconPadding,
+        // 顶部操作与下方菜单共享字号和 8px 横向基线。
+        fontSize: cfg.buttonFontSize,
+        paddingLeft: collapsed ? 0 : cfg.rowPaddingX,
         paddingRight: collapsed ? 0 : cfg.rowPaddingX,
         ...style,
       }}
@@ -125,7 +123,7 @@ export default function SideNav({
   resizable = false,
   flushHeader = false,
   chrome = 'panel',
-  showDivider = true,
+  showDivider = false,
   style,
 }: {
   ariaLabel: string
@@ -207,15 +205,15 @@ export default function SideNav({
   const topPaddingClass = flushHeader ? 'pt-0' : 'pt-[var(--sn-top)]'
 
   const rowClass = (active: boolean) =>
-    `flex h-[var(--sn-rh)] w-full items-center gap-[var(--sn-rgap)] rounded-[var(--sn-rr)] text-[length:var(--sn-rfs)] font-medium transition-colors ${
+    `flex h-[var(--sn-rh)] w-full items-center gap-[var(--sn-rgap)] rounded-[var(--sn-rr)] text-[length:var(--sn-rfs)] font-medium leading-5 transition-colors ${
       collapsed
         ? // 收起态用和展开态同一个 --sn-rip 左内距（该值本就等于「图标在
           // 收起宽度里居中」），而不是 justify-center —— 后者会被滚动条
           // 占位挤偏，导致收展时图标横向跳 3px。
           'pl-[var(--sn-rip)] pr-0'
         : responsive
-          ? 'justify-center px-0 lg:justify-start lg:pl-[var(--sn-rip)] lg:pr-[var(--sn-rpx)]'
-          : 'pl-[var(--sn-rip)] pr-[var(--sn-rpx)]'
+          ? 'justify-center px-0 lg:justify-start lg:px-[var(--sn-rpx)]'
+          : 'px-[var(--sn-rpx)]'
     } ${
       active
         ? 'bg-[var(--sidenav-active,rgba(83,96,143,0.12))] text-[var(--sidenav-ink,#1c1f23)]'
@@ -223,7 +221,7 @@ export default function SideNav({
     }`
 
   const subRowClass = (active: boolean) =>
-    `flex h-[var(--sn-srh)] w-full items-center rounded-[var(--sn-rr)] pl-8 text-[length:var(--sn-rfs)] transition-colors ${
+    `flex h-[var(--sn-srh)] w-full items-center rounded-[var(--sn-rr)] pl-8 text-[length:var(--sn-rfs)] leading-5 transition-colors ${
       active
         ? 'bg-[var(--sidenav-active,rgba(83,96,143,0.12))] text-[var(--sidenav-ink,#1c1f23)]'
         : 'text-[var(--sidenav-ink-dim,rgba(28,31,35,0.65))] hover:bg-[var(--sidenav-hover,rgba(0,0,0,0.03))] hover:text-[var(--sidenav-ink-hover,#1c1f23)]'
@@ -291,7 +289,9 @@ export default function SideNav({
       data-side-nav-surface
       data-state={collapsed ? 'collapsed' : 'expanded'}
       style={resolvedStyle}
-      className={`relative flex h-full min-h-0 shrink-0 flex-col ${widthClass} ${chromeClass} ${topPaddingClass}`}
+      className={`relative flex h-full min-h-0 shrink-0 flex-col ${
+        resizable && !collapsed && layout === 'fixed' ? 'overflow-visible' : 'overflow-hidden'
+      } ${widthClass} ${chromeClass} ${topPaddingClass}`}
     >
       <motion.div
         initial={false}
@@ -300,7 +300,7 @@ export default function SideNav({
           duration: reduceMotion ? 0 : SIDE_NAV_MOTION_DURATION,
           ease: 'easeOut',
         }}
-        className="flex min-h-0 min-w-0 flex-1 flex-col"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
       >
         {header && <div className="shrink-0">{header}</div>}
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -311,16 +311,20 @@ export default function SideNav({
             >
               {items.map((m, itemIndex) => {
               const active = itemActive(m)
-              const divider = m.dividerBefore ? (
-                <div aria-hidden className="my-2 border-t-[0.5px] border-black/[0.06]" />
-              ) : null
+              const divider = (key: string) => (
+                <div key={key} aria-hidden className="relative h-2 w-full shrink-0">
+                  <span className="absolute left-1.5 right-2 top-[3.5px] h-[0.5px] bg-[#2d426b1f]" />
+                </div>
+              )
+              const dividerBefore = m.dividerBefore ? divider(`${m.key}-divider-before`) : null
+              const dividerAfter = m.dividerAfter ? divider(`${m.key}-divider-after`) : null
 
               if (m.children?.length) {
                 const subOpen = openSub === m.key
                 const subId = `${subIdPrefix}-sub-${itemIndex}`
                 return (
                   <Fragment key={m.key}>
-                  {divider}
+                  {dividerBefore}
                   <div>
                     {/* 收缩态（icon rail）下子菜单走 Popover，保证窄屏可达 */}
                     {(responsive || collapsed) && (
@@ -394,13 +398,14 @@ export default function SideNav({
                       </div>
                     )}
                   </div>
+                  {dividerAfter}
                   </Fragment>
                 )
               }
 
               return (
                 <Fragment key={m.key}>
-                  {divider}
+                  {dividerBefore}
                   <button
                     type="button"
                     title={m.label}
@@ -412,6 +417,7 @@ export default function SideNav({
                     <ItemGlyph item={m} size={cfg.menuIconSize} />
                     <span className={collapsed ? 'hidden' : responsive ? 'hidden lg:inline' : ''}>{m.label}</span>
                   </button>
+                  {dividerAfter}
                 </Fragment>
               )
               })}

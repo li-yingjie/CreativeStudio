@@ -26,7 +26,7 @@ type SideNavProductHeaderProps = {
 )
 
 /** 方案 2 的侧栏顶部行：产品自有 logo（左）+ 收起/展开 icon（右）。
- *  logo 来自 Figma「统一导航」380-27227；方案 4 用产品对应的
+ *  logo / 文本头几何对齐 Figma「统一导航」579-57535；方案 4 用产品对应的
  *  文本标题替代左侧标识。 */
 export default function SideNavProductHeader(props: SideNavProductHeaderProps) {
   const { bottomGap = 12, collapsed = false, onToggle } = props
@@ -70,6 +70,27 @@ export default function SideNavProductHeader(props: SideNavProductHeaderProps) {
           <span className="flex size-8 shrink-0 items-center justify-center">
             {iconGlyph}
           </span>
+        )}
+      </div>
+    )
+  }
+
+  if (isTextHeader && !collapsed) {
+    return (
+      <div className="flex h-10 w-full items-center justify-between pl-5 pr-2">
+        <span className="min-w-0 truncate text-[13px] font-medium leading-[18px] text-[#1c1f2399]">
+          {props.leadingText}
+        </span>
+        {onToggle && (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label="收起导航"
+            title="收起导航"
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-[#1c1f2359] transition-colors hover:bg-black/[0.03] hover:text-[#1c1f2399]"
+          >
+            <SideNavPanelStateIcon className="size-4 shrink-0" />
+          </button>
         )}
       </div>
     )
