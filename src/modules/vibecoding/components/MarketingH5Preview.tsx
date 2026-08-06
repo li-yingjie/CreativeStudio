@@ -36,7 +36,7 @@ const ELEMENTS = {
     kind: 'image',
     label: '头图.png',
     value: ASSETS.heroBase,
-    prompt: '春节游戏主题活动头图，红色新春舞台、灯笼、中国结与烟花，多款热门游戏角色组成热闹群像，中心突出“抖音 ACG 游戏新春会”标题，红金高亮，竖版 H5 顶部主视觉，高细节商业活动 KV。',
+    prompt: '春节 ACG 主题活动头图，暖橙红跨次元场景、节日装置与轨道，多款游戏和二次元角色组成热闹群像，中心突出“2026 抖音 ACG 新春会”标题，竖版活动页顶部主视觉，高细节商业活动 KV。',
   },
   statusBar: {
     layer: 'hero',
@@ -185,7 +185,7 @@ export default function MarketingH5Preview({
             className="z-[1]"
             style={{ left: 0, top: 0, width: '100%', height: '19.3424%' }}
           >
-            <ExactImage src={ASSETS.heroBase} alt="抖音 ACG 游戏新春会主视觉" />
+            <ExactImage src={ASSETS.heroBase} alt="2026 抖音 ACG 新春会主视觉" />
             <ExactImage
               src={ASSETS.statusBar}
               alt=""
@@ -619,7 +619,7 @@ function LayerVisual({ kind }: { kind: H5CanvasNode['kind'] }) {
   if (kind === 'hero') {
     return (
       <>
-        <ExactImage src={ASSETS.heroBase} alt="抖音 ACG 游戏新春会主视觉" />
+        <ExactImage src={ASSETS.heroBase} alt="2026 抖音 ACG 新春会主视觉" />
         <ExactImage src={ASSETS.statusBar} alt="" className="absolute inset-x-0 top-0" />
         <ExactImage src={ASSETS.titleBar} alt="" className="absolute inset-x-0 top-[18%]" />
         <Hotspot

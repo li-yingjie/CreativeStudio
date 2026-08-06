@@ -1,5 +1,6 @@
 # 玩法拆解与配置说明
 
+> 产品与工程边界以 [抖音 AI 工作台产品架构基线](./product-architecture.md) 为准。
 > 示例来源：[这夏夯爆了 · 暑期生活服务 UGC 活动方案](https://bytedance.larkoffice.com/docx/N3dmdaAj8o9tQoxt6CncSd1Xn7d)  
 > 老平台参考：[线上玩法内容与配置项](https://bytedance.larkoffice.com/docx/FrKsd229joEZBDxVnzTcAg0Cnlh)  
 > 本说明只解释玩法模型与配置口径，不修改原策划文档。

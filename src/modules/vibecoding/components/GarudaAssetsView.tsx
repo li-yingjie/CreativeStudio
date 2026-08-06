@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- asset schema and selectors are shared with the project toolbar */
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import {
   ArrowLeft,
   ArrowUp,
@@ -11,18 +12,22 @@ import {
   FolderTree,
   Image as ImageIcon,
   LayoutGrid,
+  Layers,
   ListCollapse,
   Music2,
   Plus,
   Upload,
 } from '@/shared/icons'
 import ImageCanvasEditor, { ImageQuickTools } from './ImageCanvasEditor'
+import LayeredAssetEditor from './LayeredAssetEditor'
+import { resolveLayerManifest } from './AssetLayerManifest'
 import {
   GARUDA_ASSET_GROUPS,
   resolveAssetPrompt,
   type AssetGroup,
   type AssetItem,
   type AssetKind,
+  type AssetLayerManifest,
 } from './ProjectAssetCatalog'
 import { resolveMarketingKingAssetUrl } from './marketingKingAssetCache'
 import XiahuaMascot3DStudio from './XiahuaMascot3DStudio'
@@ -159,6 +164,23 @@ export const KIND_META: Record<AssetKind, { label: string; icon: typeof ImageIco
 
 type AssetViewMode = 'grid' | 'list' | 'usage'
 
+const LAYERED_ASSET_VERSIONS_STORAGE_KEY = 'creative-studio.project-layered-assets.v1'
+
+type LayeredAssetVersion = {
+  manifest: AssetLayerManifest
+  version: number
+}
+
+function readLayeredAssetVersions(): Record<string, LayeredAssetVersion> {
+  if (typeof window === 'undefined') return {}
+  try {
+    const value = window.localStorage.getItem(LAYERED_ASSET_VERSIONS_STORAGE_KEY)
+    return value ? JSON.parse(value) as Record<string, LayeredAssetVersion> : {}
+  } catch {
+    return {}
+  }
+}
+
 const VIEW_MODE_META: Array<{
   value: AssetViewMode
   label: string
@@ -225,10 +247,12 @@ export default function GarudaAssetsView({
   const [internalKind, setInternalKind] = useState<AssetKind>('image')
   const [internalSel, setInternalSel] = useState<AssetItem | null>(null)
   const [canvasOpen, setCanvasOpen] = useState(false)
+  const [layerEditorItem, setLayerEditorItem] = useState<AssetItem | null>(null)
   const [viewMode, setViewMode] = useState<AssetViewMode>('grid')
   const [uploadedAssets, setUploadedAssets] = useState<AssetItem[]>([])
   const [promptDrafts, setPromptDrafts] = useState<Record<string, string>>({})
   const [versionPicks, setVersionPicks] = useState<Record<string, number>>({})
+  const [layeredAssetVersions, setLayeredAssetVersions] = useState(readLayeredAssetVersions)
   const gridUploadInputRef = useRef<HTMLInputElement>(null)
   // Controlled when the parent (toolbar) drives the kind selection.
   const controlled = controlledKind !== undefined
@@ -325,7 +349,29 @@ export default function GarudaAssetsView({
     }
   }, [sourceGroups])
 
-  const displayGroups = resolvedGroups
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        LAYERED_ASSET_VERSIONS_STORAGE_KEY,
+        JSON.stringify(layeredAssetVersions),
+      )
+    } catch {
+      // Local persistence is best-effort in the prototype; the active session remains editable.
+    }
+  }, [layeredAssetVersions])
+
+  const displayGroups = useMemo(
+    () => resolvedGroups.map((group) => ({
+      ...group,
+      items: group.items.map((item) => {
+        const saved = layeredAssetVersions[assetKey(item)]
+        return saved
+          ? { ...item, layerManifest: saved.manifest, version: saved.version }
+          : item
+      }),
+    })),
+    [layeredAssetVersions, resolvedGroups],
+  )
 
   // Which kinds actually have assets — only those get a tab.
   const kindCounts = displayGroups.reduce(
@@ -380,6 +426,33 @@ export default function GarudaAssetsView({
     )
   }
 
+  if (layerEditorItem) {
+    const saved = layeredAssetVersions[assetKey(layerEditorItem)]
+    const editorItem = saved
+      ? { ...layerEditorItem, layerManifest: saved.manifest, version: saved.version }
+      : layerEditorItem
+    return (
+      <LayeredAssetEditor
+        item={editorItem}
+        initialManifest={resolveLayerManifest(editorItem)}
+        onBack={() => setLayerEditorItem(null)}
+        onSave={async (manifest) => {
+          const version = (saved?.version ?? editorItem.version ?? 1) + 1
+          const next = { ...editorItem, layerManifest: manifest, version }
+          setLayeredAssetVersions((current) => ({
+            ...current,
+            [assetKey(editorItem)]: { manifest, version },
+          }))
+          setSelected(next)
+          setLayerEditorItem(null)
+          toast.success(`已保存为 v${version}`, {
+            description: '扁平交付图与图层清单已同步生成。',
+          })
+        }}
+      />
+    )
+  }
+
   // Asset opened → show the inline Prompt detail (not a fullscreen overlay).
   if (selected) {
     if (selected.modelSrc) {
@@ -391,22 +464,27 @@ export default function GarudaAssetsView({
         />
       )
     }
-    const assetKey = selected.id ?? selected.src
+    const selectedKey = selected.id ?? selected.src
+    const saved = layeredAssetVersions[selectedKey]
+    const detailItem = saved
+      ? { ...selected, layerManifest: saved.manifest, version: saved.version }
+      : selected
     const resolvedPrompt = resolveAssetPrompt(selected)
     return (
       <AssetPromptDetail
-        key={assetKey}
-        item={selected}
+        key={selectedKey}
+        item={detailItem}
         assets={visibleAssets}
-        prompt={promptDrafts[assetKey] ?? resolvedPrompt.text}
+        prompt={promptDrafts[selectedKey] ?? resolvedPrompt.text}
         promptTag={resolvedPrompt.skillLabel}
         model={resolvedPrompt.model}
         onPromptChange={(next) =>
-          setPromptDrafts((current) => ({ ...current, [assetKey]: next }))
+          setPromptDrafts((current) => ({ ...current, [selectedKey]: next }))
         }
         onSelect={openAsset}
         onSelectVersion={(asset, version) => selectVersion(asset, version)}
-        onCanvasEdit={() => setCanvasOpen(true)}
+        layerManifest={resolveLayerManifest(detailItem)}
+        onLayerEdit={() => setLayerEditorItem(detailItem)}
         onBack={() => setSelected(null)}
       />
     )
@@ -560,7 +638,11 @@ export default function GarudaAssetsView({
                       {sourceGroup}
                     </span>
                     <span className="text-[11.5px] text-[var(--color-ink)]/45">
-                      {item.modelSrc ? '3D 模型' : KIND_META[kindValue].label}
+                      {item.modelSrc
+                        ? '3D 模型'
+                        : kindValue === 'image' && (item.layerManifest?.layers.length ?? 1) > 1
+                          ? `图像 · ${item.layerManifest?.layers.length} 层`
+                          : KIND_META[kindValue].label}
                     </span>
                     <span className="truncate text-[11.5px] text-[var(--color-ink)]/45">
                       {promptMeta.model}
@@ -646,7 +728,8 @@ function AssetPromptDetail({
   onPromptChange,
   onSelect,
   onSelectVersion,
-  onCanvasEdit,
+  layerManifest,
+  onLayerEdit,
   onBack,
 }: {
   item: AssetItem
@@ -657,7 +740,8 @@ function AssetPromptDetail({
   onPromptChange: (next: string) => void
   onSelect: (item: AssetItem) => void
   onSelectVersion: (item: AssetItem, version: number) => void
-  onCanvasEdit: () => void
+  layerManifest: AssetLayerManifest
+  onLayerEdit: () => void
   onBack: () => void
 }) {
   const kind = item.kind ?? 'image'
@@ -714,10 +798,26 @@ function AssetPromptDetail({
           </span>
         )}
         {kind === 'image' && (
+          <span className="ml-auto inline-flex h-6 items-center gap-1 rounded-md bg-[var(--fill-subtle)] px-2 text-[10px] font-medium text-[var(--color-ink)]/55">
+            <Layers className="size-3" strokeWidth={1.8} />
+            {layerManifest.layers.length === 1 ? '单图编辑源' : `${layerManifest.layers.length} 个图层`}
+          </span>
+        )}
+        {kind === 'image' && (
+          <button
+            type="button"
+            onClick={onLayerEdit}
+            className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--divider-soft)] px-2 text-[12px] font-medium text-[var(--color-ink)]/68 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+          >
+            <Layers className="size-3.5" strokeWidth={1.8} />
+            编辑图层
+          </button>
+        )}
+        {kind === 'image' && (
           <button
             type="button"
             onClick={openUpload}
-            className="ml-auto flex h-7 items-center gap-1.5 rounded-lg px-2 text-[12px] text-[var(--color-ink)]/65 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+            className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[12px] text-[var(--color-ink)]/65 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
           >
             <Upload className="size-3.5" strokeWidth={1.8} />
             上传
@@ -824,7 +924,8 @@ function AssetPromptDetail({
                   <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                     <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-visible rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]">
                       <ImageQuickTools
-                        onCanvasEdit={onCanvasEdit}
+                        canvasLabel="编辑图层"
+                        onCanvasEdit={onLayerEdit}
                         onUpload={openUpload}
                       />
                     </div>
@@ -875,6 +976,29 @@ function AssetPromptDetail({
               )}
             </div>
           </section>
+
+          {kind === 'image' && (
+            <section className="flex min-h-12 shrink-0 items-center gap-3 rounded-xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-3 py-2">
+              <span className={`flex size-7 shrink-0 items-center justify-center rounded-lg ${layerManifest.layers.length > 1 ? 'bg-[#EAF3FF] text-[#175CD3]' : 'bg-[var(--fill-subtle)] text-[var(--color-ink)]/45'}`}>
+                <Layers className="size-3.5" strokeWidth={1.8} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold text-[var(--color-ink)]/68">
+                  {layerManifest.layers.length > 1
+                    ? `已保留 ${layerManifest.layers.length} 个可编辑图层`
+                    : '当前是单图编辑源'}
+                </p>
+                <p className="mt-0.5 truncate text-[9px] text-[var(--color-ink)]/38">
+                  {layerManifest.templateRef
+                    ? `绑定：${layerManifest.templateRef.name} v${layerManifest.templateRef.version}`
+                    : item.layeringHint?.reason ?? '可先分析高置信文字、Logo 与行动按钮，再决定是否拆分。'}
+                </p>
+              </div>
+              <button type="button" onClick={onLayerEdit} className="h-7 shrink-0 rounded-lg px-2.5 text-[10px] font-medium text-[#175CD3] hover:bg-[#EAF3FF]">
+                {layerManifest.layers.length > 1 ? '查看分层' : '分析与编辑'}
+              </button>
+            </section>
+          )}
 
           <section
             aria-label={`${item.label} Prompt`}
@@ -1084,6 +1208,11 @@ function AssetThumb({
           {item.frames && (
             <span className="absolute right-1 top-1 rounded-md bg-black/65 px-1.5 py-0.5 font-mono text-[9.5px] text-white/80">
               {item.frames}f
+            </span>
+          )}
+          {kind === 'image' && (item.layerManifest?.layers.length ?? 1) > 1 && (
+            <span className="absolute left-1 top-1 flex items-center gap-0.5 rounded-md bg-[#175CD3]/90 px-1.5 py-0.5 text-[9.5px] font-medium text-white">
+              <Layers className="size-2.5" strokeWidth={2} /> {item.layerManifest?.layers.length} 层
             </span>
           )}
           {item.modelSrc && (

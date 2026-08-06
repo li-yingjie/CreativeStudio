@@ -126,6 +126,8 @@ export default function XiahuaAssetBoard({
           src: generated[0] ?? item.src ?? '',
           variants: generated.slice(1),
           label: item.name,
+          layerManifest: catalogItem?.layerManifest,
+          layeringHint: catalogItem?.layeringHint,
           prompt: catalogItem
             ? resolveAssetPrompt(catalogItem)
             : {

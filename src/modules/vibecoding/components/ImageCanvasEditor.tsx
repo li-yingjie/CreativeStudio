@@ -389,9 +389,11 @@ function SelectionToolbar({
 export function ImageQuickTools({
   onCanvasEdit,
   onUpload,
+  canvasLabel = '画布编辑',
 }: {
   onCanvasEdit?: () => void
   onUpload?: () => void
+  canvasLabel?: string
 }) {
   const [moreOpen, setMoreOpen] = useState(false)
   const moreTools = [
@@ -404,19 +406,21 @@ export function ImageQuickTools({
 
   return (
     <>
-      {/* 与素材页外部入口共用同一枚画布 icon。 */}
-      <button
-        type="button"
-        onClick={onCanvasEdit}
-        className="flex h-8 shrink-0 items-center gap-1.5 rounded-xl px-2 text-[13px] font-medium text-[var(--color-ink)] transition-colors hover:bg-[var(--fill-hover)]"
-      >
-        <span className="flex h-5 w-5 items-center justify-center text-[var(--color-ink)]/65">
-          <LayoutGrid size={13} strokeWidth={1.8} />
-        </span>
-        画布编辑
-      </button>
-
-      <Divider />
+      {onCanvasEdit ? (
+        <>
+          <button
+            type="button"
+            onClick={onCanvasEdit}
+            className="flex h-8 shrink-0 items-center gap-1.5 rounded-xl px-2 text-[13px] font-medium text-[var(--color-ink)] transition-colors hover:bg-[var(--fill-hover)]"
+          >
+            <span className="flex h-5 w-5 items-center justify-center text-[var(--color-ink)]/65">
+              <LayoutGrid size={13} strokeWidth={1.8} />
+            </span>
+            {canvasLabel}
+          </button>
+          <Divider />
+        </>
+      ) : null}
 
       <ToolBtn
         icon={<Upload size={15} strokeWidth={1.7} />}

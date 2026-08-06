@@ -39,7 +39,7 @@ export interface MarketingH5PreviewConfig {
   footer: { searchTag: string; keyword: string; disclaimer: string }
 }
 
-/** Default = the seeded 抖音 ACG 游戏新春会, so the renderer shows a complete
+/** Default = the seeded 2026 抖音 ACG 新春会, so the renderer shows a complete
  *  page for any marketing-h5 even without a config. */
 export const DEFAULT_MARKETING_H5_PREVIEW: MarketingH5PreviewConfig = {
   heroImage: '/assets/acg-new-year/hero.jpg',
@@ -108,7 +108,7 @@ export const DEFAULT_MARKETING_H5_PREVIEW: MarketingH5PreviewConfig = {
 
 /** Per-project mock configs, keyed by project name. */
 export const MARKETING_H5_CONFIGS: Record<string, MarketingH5PreviewConfig> = {
-  '抖音 ACG 游戏新春会': DEFAULT_MARKETING_H5_PREVIEW,
+  '2026 抖音 ACG 新春会': DEFAULT_MARKETING_H5_PREVIEW,
 }
 
 /** Look up the preview config for a project, if it is a marketing-h5. */

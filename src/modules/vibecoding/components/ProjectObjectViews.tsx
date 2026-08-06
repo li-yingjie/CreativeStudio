@@ -4,7 +4,6 @@ import {
   DATABASE_LABEL,
   GAME_GAMEPLAY_CONFIG_LABEL,
   GAMEPLAY_CONFIG_LABEL,
-  H5_GAMEPLAY_CONFIG_LABEL,
   INTEREST_CARD_CONFIG_LABEL,
   PROJECT_MEMORY_LABEL,
   type ProjectKind,
@@ -246,48 +245,48 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
     },
   },
 
-  /* ── 抖音 ACG 游戏新春会（marketing-h5）── */
-  '抖音 ACG 游戏新春会': {
+  /* ── 2026 抖音 ACG 新春会（marketing-h5）── */
+  '2026 抖音 ACG 新春会': {
     基础信息: {
       type: 'info',
-      summary: '聚合热门游戏与高燃创作的抖音 ACG 新春活动 H5，主打视频会场、内容榜单与助力互动。',
-      tags: ['游戏营销', 'ACG', '新春会'],
+      summary: '以游戏/二次元双会场组织内容榜单与助力互动，并覆盖 Lynx 主会场、H5 分会场、站内资源位、节目单和结算战报。',
+      tags: ['节点大会场', '双会场', 'ACG', '多端交付'],
       groups: [
         {
           title: '活动信息',
           rows: [
-            ['活动名称', '抖音 ACG 游戏新春会'],
-            ['活动类型', '游戏内容营销 H5'],
-            ['关联品牌', '抖音游戏'],
-            ['状态', '待发布'],
+            ['活动名称', '2026 抖音 ACG 新春会'],
+            ['活动模板', 'IP 联名 · 双会场 · 节点大会场 v1.0.0'],
+            ['主 Brand Kit', '抖音 ACG 新春会 v1.0.0'],
+            ['状态', '交付完善中'],
           ],
         },
         {
           title: '投放',
           rows: [
             ['投放端', '抖音'],
-            ['场景', '非直播 / 直播'],
-            ['活动时间', '2026-02-01 ~ 2026-02-24'],
+            ['交付端', 'Lynx / H5 / 站内资源位 / 图片'],
+            ['活动时间', '2026-01-09 ~ 2026-01-16'],
           ],
         },
         {
-          title: '数据目标',
+          title: '交付范围',
           rows: [
-            ['目标 UV', '300 万'],
-            ['目标互动率', '22%'],
-            ['视频播放量', '1,000 万'],
+            ['页面', '1 个 Lynx 主会场 · 2 个 H5 内容路由'],
+            ['状态', '分会场 5 个展示状态'],
+            ['传播物料', '资源位 / 节目单 / 宣发图 / 战报'],
           ],
         },
       ],
     },
     [GAMEPLAY_CONFIG_LABEL]: {
       type: 'cards',
-      note: '新春会主会场的内容分发与互动玩法。',
+      note: '这里只配置挂载在活动主流程上的玩法组件实例。入口、分流、参与、回流与结算顺序，请在「项目文档 · 活动主流程」查看。',
       items: [
-        { icon: '🎮', title: '游戏会场', desc: '按地下城与勇士、蛋仔派对、王者荣耀等游戏切换专题内容。', meta: '多游戏' },
-        { icon: '▶️', title: '主会场视频', desc: '承载新春特别节目与游戏厂商高燃内容，支持播放和静音控制。', meta: '视频' },
-        { icon: '🔥', title: '开年高燃', desc: '以马力值聚合热门作品，展示创作者、封面和实时互动热度。', meta: '内容榜单' },
-        { icon: '🐴', title: '加马互动', desc: '用户可选择「放你一马」或「好活加马」为喜欢的作品助力。', meta: '轻互动' },
+        { icon: '🔥', title: '内容榜单', desc: '游戏与二次元内容池分别计算热门/新锐榜单，并提供空态、延迟和封禁降级。', meta: '必填槽位' },
+        { icon: '🐴', title: '双动作助力', desc: '用户通过「放你一马 / 好活加马」为作品助力，行为与榜单口径实时关联。', meta: '已启用' },
+        { icon: '🃏', title: '集卡', desc: '提供大卡、小卡、任务卡与玩法主页视觉；卡池、任务和奖励仍由玩法包配置。', meta: '可选槽位' },
+        { icon: '🎮', title: '跃马攀峰', desc: '轻量场景玩法，以 166×166 入口小卡和多状态主页接入主会场。', meta: '可选槽位' },
       ],
     },
     [DATA_CONFIG_LABEL]: {
@@ -561,7 +560,6 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
 
 const OBJECT_LABEL_ALIASES: Record<string, string> = {
   [DATABASE_LABEL]: DATA_CONFIG_LABEL,
-  [H5_GAMEPLAY_CONFIG_LABEL]: GAMEPLAY_CONFIG_LABEL,
   [GAME_GAMEPLAY_CONFIG_LABEL]: GAMEPLAY_CONFIG_LABEL,
   [INTEREST_CARD_CONFIG_LABEL]: DATA_CONFIG_LABEL,
 }

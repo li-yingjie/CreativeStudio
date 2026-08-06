@@ -1,8 +1,8 @@
 // Project brief markdown docs + per-project lookup. Pure data extracted
 // from VibeCodingPage to keep that file smaller.
 
-/* ─── 抖音 ACG 游戏新春会 H5 活动方案文档 ─── */
-export const ACG_NEW_YEAR_PLAN_MD = `# 抖音 ACG 游戏新春会 · H5 活动方案
+/* ─── 2026 抖音 ACG 新春会活动方案文档 ─── */
+export const ACG_NEW_YEAR_PLAN_MD = `# 2026 抖音 ACG 新春会 · 活动方案
 
 ## 一、项目定位
 
@@ -14,7 +14,7 @@ export const ACG_NEW_YEAR_PLAN_MD = `# 抖音 ACG 游戏新春会 · H5 活动�
 ### 1. 新春主视觉
 
 - 红金新春氛围与 ACG 游戏角色大集合
-- 展示「抖音 ACG 游戏新春会」活动字标
+- 展示「2026 抖音 ACG 新春会」活动字标
 - 保留返回、分享与抖音游戏品牌入口
 
 ### 2. 游戏会场切换
@@ -340,7 +340,7 @@ export const PROJECT_DOCS: Record<string, string> = {
   '抖音 AI 工坊设计探索': PORTFOLIO_DOC_MD,
   '射击小游戏': GARUDA_DOC_MD,
   '沪上火锅·五一种草提案': HOTPOT_PROPOSAL_DOC_MD,
-  '抖音 ACG 游戏新春会': ACG_NEW_YEAR_PLAN_MD,
+  '2026 抖音 ACG 新春会': ACG_NEW_YEAR_PLAN_MD,
   '夏日冲浪 · 顺风顺水': `# 夏日冲浪 · 顺风顺水 · 项目文档
 
 ## 一、生成基线

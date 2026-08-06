@@ -66,7 +66,8 @@ export const GAMEPLAY_CONFIG_LABEL = '玩法配置'
 export const TRIGGER_CONFIG_LABEL = '触发器配置'
 export const ASSET_LIBRARY_LABEL = '素材库'
 export const DATABASE_LABEL = '数据库'
-export const H5_GAMEPLAY_CONFIG_LABEL = '活动玩法配置'
+export const ACTIVITY_ASSETS_LABEL = '活动资产'
+export const H5_GAMEPLAY_CONFIG_LABEL = '玩法配置'
 export const GAME_GAMEPLAY_CONFIG_LABEL = '游戏玩法配置'
 export const INTEREST_CARD_CONFIG_LABEL = '兴趣卡配置'
 export const PROJECT_MEMORY_LABEL = '项目记忆'
@@ -124,6 +125,7 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   预览: EyeOpenLinearIcon,
   素材: Image01LinearIcon,
   [ASSET_LIBRARY_LABEL]: Image01LinearIcon,
+  [ACTIVITY_ASSETS_LABEL]: LayoutGrid1LinearIcon,
   代码: FileCodeLinearIcon,
   // 「项目文件」是四级分类里唯一的「文件夹」，不给分类图标 —— 交给
   // FileTreeView 兜底成文件夹图标（展开/收起两态），与内部目录一致。
@@ -131,7 +133,6 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   [INTEREST_CARD_CONFIG_LABEL]: Database01LinearIcon,
   [DATA_CONFIG_LABEL]: Database01LinearIcon,
   玩法: GameController01LinearIcon,
-  [GAMEPLAY_CONFIG_LABEL]: GameController01LinearIcon,
   [H5_GAMEPLAY_CONFIG_LABEL]: Settings01LinearIcon,
   [GAME_GAMEPLAY_CONFIG_LABEL]: Settings01LinearIcon,
   能力技能: MagicWand01LinearIcon,
@@ -182,10 +183,10 @@ export const PRODUCT_CATEGORY_BADGES: Record<string, { bg: string; fg: string }>
   项目文档: { bg: '#e3e6f7', fg: '#4b55bd' },
   素材: { bg: '#fde6f7', fg: '#d939b8' },
   [ASSET_LIBRARY_LABEL]: { bg: '#fde6f7', fg: '#d939b8' },
+  [ACTIVITY_ASSETS_LABEL]: { bg: '#e0ecff', fg: '#3370ff' },
   代码: { bg: '#d1d6f0', fg: '#4b55bd' },
   // 「项目文件」走文件夹图标，不加彩色底板（见 PRODUCT_CATEGORY_ICONS）
   玩法: { bg: '#fde2e2', fg: '#e5484d' },
-  [GAMEPLAY_CONFIG_LABEL]: { bg: '#fde2e2', fg: '#e5484d' },
   [H5_GAMEPLAY_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
   [GAME_GAMEPLAY_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
   智能体: { bg: '#d9f4f4', fg: '#0e9c9c' },
@@ -305,16 +306,28 @@ export function buildProductView(
       return webAppView(tree)
     case 'web-game':
       return gameView(tree)
-    case 'marketing-h5':
-      // H5 活动页: 项目文档（含基础信息）/ 素材库 /
-      // 活动玩法配置 / 数据库 / 项目文件。
+    case 'marketing-h5': {
+      // 营销活动按运营真实对象组织：活动资产 / 项目文档 / 玩法配置 /
+      // 素材库。数据库与代码仍存在于开发者入口，不占用运营一级导航。
+      const deliverables = childrenAt(tree, ['deliverables'])
       return [
+        {
+          name: ACTIVITY_ASSETS_LABEL,
+          type: 'dir',
+          children: deliverables.length > 0
+            ? deliverables
+            : [
+                { name: '交付总览', type: 'file' },
+                { name: 'Lynx · 活动主会场', type: 'file' },
+                { name: 'H5 · 互动页面', type: 'file' },
+                { name: '资源位 · 活动 Banner', type: 'file' },
+              ],
+        },
         { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
-        { name: ASSET_LIBRARY_LABEL, type: 'file' },
         { name: H5_GAMEPLAY_CONFIG_LABEL, type: 'file' },
-        { name: DATABASE_LABEL, type: 'file' },
-        { name: '项目文件', type: 'dir', children: tree },
+        { name: ASSET_LIBRARY_LABEL, type: 'file' },
       ]
+    }
     case 'ai-avatar':
       return aiAvatarView(tree)
     case 'ops-proposal':

@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
-import { ChevronDown, CircleHelp, Gift, Layers, ListChecks, Plus, Save, Sparkles, ThumbsUp } from '@/shared/icons'
+import { CheckCircle2, ChevronDown, CircleHelp, ExternalLink, Gift, Layers, ListChecks, Plus, Save, Sparkles, ThumbsUp, WandSparkles } from '@/shared/icons'
 import type { LucideIcon } from '@/shared/icons'
 import type { ActivityPreset } from './ActivityPreset'
 import {
@@ -20,6 +20,14 @@ import {
   VoteCandidatePanel,
 } from './XiahuaGameplayDataPanels'
 import { ToolbarAction } from './Toolbar'
+import { XIAHUA_GENERATION_BASIS } from '../assets/assetCatalog'
+import {
+  applyLotteryPatchBatch,
+  compileLotteryEditor,
+  type CompiledLotteryField,
+  type LotteryPatch,
+  type LotteryPatchPath,
+} from '../gameplay/lotteryPackage'
 
 type GameplayKind = XiahuaGameplayModuleKind
 
@@ -406,20 +414,157 @@ function EditorHeader({
   )
 }
 
+function GenerationBasisPanel({
+  revision,
+  operatorOwnedCount,
+  onOpenAssetCenter,
+  onOpenKnowledge,
+  onRegenerate,
+  onReleaseOwnership,
+}: {
+  revision: number
+  operatorOwnedCount: number
+  onOpenAssetCenter: () => void
+  onOpenKnowledge: () => void
+  onRegenerate: () => void
+  onReleaseOwnership: () => void
+}) {
+  return (
+    <section className="rounded-xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-4 py-3.5">
+      <div className="flex flex-wrap items-start gap-3">
+        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-700">
+          <WandSparkles className="size-4" strokeWidth={1.8} />
+        </span>
+        <div className="min-w-[220px] flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-[12px] font-semibold text-[var(--color-ink)]/82">本次生成依据</h3>
+            <span className="rounded-md bg-[var(--fill-subtle)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--color-ink)]/42">revision {revision}</span>
+            {operatorOwnedCount ? (
+              <button type="button" onClick={onReleaseOwnership} className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[9px] font-medium text-amber-700 hover:bg-amber-100" title="点击后允许 Agent 再次优化这些字段">
+                {operatorOwnedCount} 项保持人工设置 · 允许 Agent 再次优化
+              </button>
+            ) : (
+              <span className="text-[9px] text-[var(--color-ink)]/34">参数可继续由 Agent 优化</span>
+            )}
+          </div>
+          <p className="mt-1 text-[10px] leading-4 text-[var(--color-ink)]/42">Agent 只在玩法包允许的字段内生成；你手动改过的参数会自动保留。</p>
+        </div>
+        <div className="flex shrink-0 gap-1.5">
+          <button type="button" onClick={onRegenerate} className="flex h-7 items-center gap-1 rounded-md border border-[var(--divider-soft)] px-2 text-[10px] font-medium text-[var(--color-ink)]/58 hover:bg-[var(--fill-subtle)]">
+            <Sparkles className="size-3" /> 按目标重新建议
+          </button>
+          <button type="button" onClick={onOpenAssetCenter} className="flex h-7 items-center gap-1 rounded-md px-2 text-[10px] font-medium text-[var(--color-ink)]/52 hover:bg-[var(--fill-subtle)]">
+            资产中心 <ExternalLink className="size-3" />
+          </button>
+        </div>
+      </div>
+      <div className="mt-3 grid gap-px overflow-hidden rounded-lg border border-[var(--divider-soft)] bg-[var(--divider-soft)] @[620px]:grid-cols-2">
+        {XIAHUA_GENERATION_BASIS.map((item) => (
+          <button key={item.id} type="button" onClick={item.domain === 'knowledge' ? onOpenKnowledge : onOpenAssetCenter} className="flex min-w-0 items-center gap-2 bg-[var(--color-surface-1)] px-3 py-2 text-left hover:bg-[var(--fill-subtle)]">
+            <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
+            <span className="min-w-0 flex-1">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="truncate text-[10px] font-medium text-[var(--color-ink)]/68">{item.name}</span>
+                <span className="shrink-0 font-mono text-[9px] text-[var(--color-ink)]/30">v{item.version}</span>
+              </span>
+              <span className="mt-0.5 block truncate text-[9px] text-[var(--color-ink)]/34">{item.kind} · {item.inheritedFrom}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function CompiledFieldControl({
+  field,
+  revision,
+  onPatch,
+  onReleaseOwnership,
+}: {
+  field: CompiledLotteryField
+  revision: number
+  onPatch: (patch: LotteryPatch) => void
+  onReleaseOwnership: (path: LotteryPatchPath) => void
+}) {
+  const setValue = (next: string | number | boolean) =>
+    onPatch({
+      op: 'replace',
+      path: field.path,
+      value: next,
+      actor: 'operator',
+      reason: '运营在玩法配置台手动调整',
+      baseRevision: revision,
+    })
+  const ownership = field.owner === 'operator' ? (
+    <button type="button" onClick={() => onReleaseOwnership(field.path)} className="shrink-0 rounded bg-amber-50 px-1.5 py-0.5 text-[9px] font-medium text-amber-700 hover:bg-amber-100" title="当前值不变；下一次 Agent 优化可以调整该字段">
+      保持人工设置
+    </button>
+  ) : null
+
+  if (field.control === 'switch') {
+    return (
+      <div className="flex items-center gap-4 py-2.5">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="text-[12px] font-medium text-[var(--color-ink)]/70">{field.label}</p>
+            {ownership}
+          </div>
+          {field.description ? <p className="mt-0.5 text-[10px] leading-4 text-[var(--color-ink)]/38">{field.description}</p> : null}
+        </div>
+        <Switch checked={Boolean(field.value)} label={field.label} onChange={setValue} />
+      </div>
+    )
+  }
+
+  return (
+    <label className="block min-w-0">
+      <span className="mb-1.5 flex min-w-0 items-center justify-between gap-2">
+        <span className="truncate text-[10px] text-[var(--color-ink)]/42">{field.label}</span>
+        {ownership}
+      </span>
+      {field.control === 'slider' ? (
+        <>
+          <span className="mb-1.5 flex justify-end font-mono text-[10px] text-[var(--color-ink)]/52">{String(field.value)}{field.suffix}</span>
+          <input type="range" min={field.min} max={field.max} step={field.step} value={Number(field.value)} aria-label={field.label} onChange={(event) => setValue(Number(event.target.value))} className="block h-1 w-full cursor-ew-resize appearance-none rounded-full bg-[var(--fill-subtle)] accent-[#357ef8]" />
+        </>
+      ) : field.control === 'select' ? (
+        <select className={INPUT} value={String(field.value)} disabled={field.disabled} onChange={(event) => setValue(event.target.value)}>
+          {field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      ) : (
+        <div className="relative">
+          <input type="number" min={field.min} max={field.max} step={field.step} className={`${INPUT} ${field.suffix ? 'pr-9' : ''}`} value={Number(field.value)} onChange={(event) => setValue(Math.max(field.min ?? Number.NEGATIVE_INFINITY, Number(event.target.value) || 0))} />
+          {field.suffix ? <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-[var(--color-ink)]/30">{field.suffix.trim()}</span> : null}
+        </div>
+      )}
+      {field.description ? <span className="mt-1.5 block text-[9px] leading-4 text-[var(--color-ink)]/34">{field.description}</span> : null}
+    </label>
+  )
+}
+
 function LotteryEditor({
   value,
-  onChange,
   preset,
   onOpenAssetLibrary,
+  revision,
+  operatorOwnedPaths,
+  onPatch,
+  onReleaseOwnership,
 }: {
   value: XiahuaGameplay
-  onChange: (next: XiahuaGameplay) => void
   preset: ActivityPreset
   onOpenAssetLibrary: () => void
+  revision: number
+  operatorOwnedPaths: ReadonlySet<LotteryPatchPath>
+  onPatch: (patch: LotteryPatch) => void
+  onReleaseOwnership: (path: LotteryPatchPath) => void
 }) {
   const [simulated, setSimulated] = useState({ newCards: 88, repeats: 12 })
-  const modules = value.modules ?? DEFAULT_XIAHUA_GAMEPLAY_MODULES
-  const { dailyLimit, pityAfter, costPerDraw } = modules.lottery
+  const editor = useMemo(
+    () => compileLotteryEditor(value, operatorOwnedPaths),
+    [operatorOwnedPaths, value],
+  )
   const newCardPercent = Math.round(value.draw.newCardBias * 100)
 
   const simulate = () => {
@@ -431,304 +576,147 @@ function LotteryEditor({
     toast.success('已按当前参数模拟 100 次')
   }
 
-  const setLottery = (patch: Partial<typeof modules.lottery>) =>
-    onChange({
-      ...value,
-      modules: { ...modules, lottery: { ...modules.lottery, ...patch } },
-    })
-
   return (
     <div className="space-y-7">
-      <ConfigGroup
-        title="抽取内容"
-        description="先确定一次抽奖会返回什么内容，再配置这些内容之间的出奖规则。"
-      >
-        <ContentPoolPanel
-          value={value}
-          onChange={onChange}
-          preset={preset}
-          onOpenAssetLibrary={onOpenAssetLibrary}
-          context="lottery"
-        />
-      </ConfigGroup>
-
-      <ConfigGroup
-        title="出奖规则"
-        description="控制新卡与重复卡的比例，以及连续未出新卡时的保底。"
-      >
-        <Panel
-        title="新卡与重复卡"
-        summary={`新卡优先 ${newCardPercent}% · 重复卡 ${100 - newCardPercent}% · 支持抽样模拟`}
-        description="横向拖动新内容倾斜，直接决定用户抽到新卡与重复卡的相对概率。"
-        trailing={
-          <button
-            type="button"
-            onClick={simulate}
-            className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-[var(--divider-soft)] px-2 text-[10px] text-[var(--color-ink)]/58 transition-colors hover:bg-[var(--fill-subtle)]"
-          >
-            <Sparkles className="size-3" /> 模拟 100 次
-          </button>
-        }
-      >
-        <div className="rounded-lg bg-[var(--color-surface-1)] p-3.5">
-          <div className="mb-2 flex items-baseline justify-between text-[11px]">
-            <span className="font-medium text-sky-700">优先新卡 {newCardPercent}%</span>
-            <span className="text-[var(--color-ink)]/42">允许重复 {100 - newCardPercent}%</span>
-          </div>
-          <div className="flex h-2 overflow-hidden rounded-full bg-[var(--fill-subtle)]">
-            <span className="bg-[#357ef8] transition-[width]" style={{ width: `${newCardPercent}%` }} />
-            <span className="flex-1 bg-[var(--color-ink)]/12" />
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={newCardPercent}
-            aria-label="新卡概率"
-            onChange={(event) =>
-              onChange({
-                ...value,
-                draw: {
-                  ...value.draw,
-                  newCardBias: Number(event.target.value) / 100,
-                },
-              })
-            }
-            className="mt-3 block h-1 w-full cursor-ew-resize appearance-none rounded-full bg-[var(--fill-subtle)] accent-[#357ef8]"
-          />
-          <div className="mt-3 grid grid-cols-2 divide-x divide-[var(--divider-soft)] border-t border-[var(--divider-soft)] pt-3 text-center">
-            <div>
-              <p className="font-mono text-[16px] font-semibold text-[var(--color-ink)]">{simulated.newCards}</p>
-              <p className="text-[10px] text-[var(--color-ink)]/38">模拟抽中新卡</p>
-            </div>
-            <div>
-              <p className="font-mono text-[16px] font-semibold text-[var(--color-ink)]">{simulated.repeats}</p>
-              <p className="text-[10px] text-[var(--color-ink)]/38">模拟抽到重复</p>
-            </div>
-          </div>
-        </div>
-      </Panel>
-
-        <Panel
-          title="重复卡保底"
-          summary={`${modules.lottery.allowDuplicate ? '允许抽到重复卡' : '不允许重复卡'} · 连续 ${pityAfter} 抽未出新卡时保底`}
-          description="保底只影响用户已经拥有部分卡片之后的抽取结果。"
+      {editor.sections.map((section) => (
+        <ConfigGroup
+          key={section.id}
+          title={section.title}
+          description={section.description}
         >
-          <div className="grid gap-5 @[560px]:grid-cols-2 @[560px]:items-center">
-            <SliderField
-              label="连续重复保底"
-              value={pityAfter}
-              min={2}
-              max={12}
-              suffix=" 抽"
-              description={`连续 ${pityAfter} 抽没有新卡时，下一抽必出未获得卡。`}
-              onChange={(next) => setLottery({ pityAfter: next })}
-            />
-            <ToggleRow
-              label="允许抽到重复卡"
-              description="关闭后所有抽取都只会从未拥有卡片中产生。"
-              value={modules.lottery.allowDuplicate}
-              onChange={(allowDuplicate) => setLottery({ allowDuplicate })}
-            />
-          </div>
-        </Panel>
-      </ConfigGroup>
+          {section.panels.map((panel) => {
+            if (panel.id === 'content-pool') {
+              return (
+                <ContentPoolPanel
+                  key={panel.id}
+                  value={value}
+                  onChange={(next) =>
+                    onPatch({
+                      op: 'replace',
+                      path: 'cards',
+                      value: next.cards,
+                      actor: 'operator',
+                      reason: '运营调整抽取内容与卡片素材',
+                      baseRevision: revision,
+                    })
+                  }
+                  preset={preset}
+                  onOpenAssetLibrary={onOpenAssetLibrary}
+                  context="lottery"
+                />
+              )
+            }
 
-      <ConfigGroup
-        title="参与规则"
-        description="配置用户如何进入抽奖、每次消耗多少，以及每天最多参与多少次。"
-      >
+            if (panel.id === 'probability') {
+              const probabilityOwned = operatorOwnedPaths.has('draw.newCardBias')
+              return (
+                <Panel
+                  key={panel.id}
+                  title={panel.title}
+                  summary={panel.summary}
+                  description={panel.description}
+                  defaultOpen={panel.defaultOpen}
+                  trailing={
+                    <button
+                      type="button"
+                      onClick={simulate}
+                      className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-[var(--divider-soft)] px-2 text-[10px] text-[var(--color-ink)]/58 transition-colors hover:bg-[var(--fill-subtle)]"
+                    >
+                      <Sparkles className="size-3" /> 模拟 100 次
+                    </button>
+                  }
+                >
+                  <div className="rounded-lg bg-[var(--color-surface-1)] p-3.5">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                      <span className="font-medium text-sky-700">优先新卡 {newCardPercent}%</span>
+                      <span className="flex items-center gap-2 text-[var(--color-ink)]/42">
+                        允许重复 {100 - newCardPercent}%
+                        {probabilityOwned ? (
+                          <button
+                            type="button"
+                            onClick={() => onReleaseOwnership('draw.newCardBias')}
+                            className="rounded bg-amber-50 px-1.5 py-0.5 text-[9px] font-medium text-amber-700 hover:bg-amber-100"
+                            title="当前值不变；下一次 Agent 优化可以调整该字段"
+                          >
+                            保持人工设置
+                          </button>
+                        ) : null}
+                      </span>
+                    </div>
+                    <div className="flex h-2 overflow-hidden rounded-full bg-[var(--fill-subtle)]">
+                      <span
+                        className="bg-[#357ef8] transition-[width]"
+                        style={{ width: String(newCardPercent) + '%' }}
+                      />
+                      <span className="flex-1 bg-[var(--color-ink)]/12" />
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={newCardPercent}
+                      aria-label="新卡概率"
+                      onChange={(event) =>
+                        onPatch({
+                          op: 'replace',
+                          path: 'draw.newCardBias',
+                          value: Number(event.target.value) / 100,
+                          actor: 'operator',
+                          reason: '运营调整新卡与重复卡分池倾斜',
+                          baseRevision: revision,
+                        })
+                      }
+                      className="mt-3 block h-1 w-full cursor-ew-resize appearance-none rounded-full bg-[var(--fill-subtle)] accent-[#357ef8]"
+                    />
+                    <p className="mt-2 text-[9px] leading-4 text-[var(--color-ink)]/36">
+                      先按用户持有状态进入新卡或重复卡分池，再按下方卡片权重计算最终结果。
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 divide-x divide-[var(--divider-soft)] border-t border-[var(--divider-soft)] pt-3 text-center">
+                      <div>
+                        <p className="font-mono text-[16px] font-semibold text-[var(--color-ink)]">{simulated.newCards}</p>
+                        <p className="text-[10px] text-[var(--color-ink)]/38">模拟抽中新卡</p>
+                      </div>
+                      <div>
+                        <p className="font-mono text-[16px] font-semibold text-[var(--color-ink)]">{simulated.repeats}</p>
+                        <p className="text-[10px] text-[var(--color-ink)]/38">模拟抽到重复</p>
+                      </div>
+                    </div>
+                  </div>
+                </Panel>
+              )
+            }
 
-      <Panel
-        title="抽取次数"
-        summary={`首次赠送 ${value.draw.initialChances} 次 · 每抽消耗 ${costPerDraw} 次机会 · 每日最多 ${dailyLimit} 抽`}
-        description="控制用户的初始资源、单次成本和每日业务上限。"
-      >
-        <div className="grid gap-5 @[560px]:grid-cols-3">
-          <SliderField
-            label="初始抽奖次数"
-            value={value.draw.initialChances}
-            min={0}
-            max={30}
-            suffix=" 次"
-            onChange={(initialChances) => onChange({ ...value, draw: { ...value.draw, initialChances } })}
-          />
-          <SliderField
-            label="每日抽奖上限"
-            value={dailyLimit}
-            min={1}
-            max={50}
-            suffix=" 次"
-            onChange={(next) => setLottery({ dailyLimit: next })}
-          />
-          <SliderField
-            label="单次消耗"
-            value={costPerDraw}
-            min={1}
-            max={5}
-            suffix=" 机会"
-            onChange={(next) => setLottery({ costPerDraw: next })}
-          />
-        </div>
-      </Panel>
+            const gridClass =
+              panel.id === 'draw-limits' || panel.id === 'entry'
+                ? 'grid gap-5 @[560px]:grid-cols-3'
+                : panel.id === 'risk'
+                  ? 'grid gap-4 @[520px]:grid-cols-2 @[760px]:grid-cols-4'
+                  : 'grid gap-5 @[560px]:grid-cols-2 @[560px]:items-center'
 
-      <Panel
-        title="参与方式"
-        summary={`抽卡形态 · 完成活动任务获得机会 · 每人最多中奖 ${modules.lottery.maxWinsPerUser} 次`}
-        description="确定用户看到哪种抽奖形态、如何获得抽奖机会，以及活动期中奖上限。"
-      >
-        <div className="grid gap-3 @[520px]:grid-cols-2 @[760px]:grid-cols-4">
-          <label>
-            <span className="mb-1 block text-[10px] text-[var(--color-ink)]/42">交互模板</span>
-            <select
-              className={INPUT}
-              value={modules.lottery.template}
-              onChange={(event) =>
-                setLottery({
-                  template: event.target.value as typeof modules.lottery.template,
-                })
-              }
-            >
-              <option value="card">抽卡</option>
-              <option value="grid">九宫格</option>
-              <option value="wheel">转盘</option>
-              <option value="list">通用列表</option>
-            </select>
-          </label>
-          <label>
-            <span className="mb-1 block text-[10px] text-[var(--color-ink)]/42">入场方式</span>
-            <select
-              className={INPUT}
-              value={modules.lottery.entryMode}
-              onChange={(event) =>
-                setLottery({
-                  entryMode: event.target.value as typeof modules.lottery.entryMode,
-                })
-              }
-            >
-              <option value="free">免费</option>
-              <option value="chance">抽奖机会</option>
-              <option value="token">代币</option>
-              <option value="points">积分</option>
-            </select>
-          </label>
-          <label>
-            <span className="mb-1 block text-[10px] text-[var(--color-ink)]/42">抽奖机会来源</span>
-            <select
-              className={INPUT}
-              value={modules.lottery.resourceId}
-              onChange={(event) => setLottery({ resourceId: event.target.value })}
-              disabled={modules.lottery.entryMode === 'free'}
-            >
-              <option value="draw_chance_night_food">完成活动任务获得</option>
-              <option value="activity_initial_chance">仅使用首次赠送次数</option>
-              <option value="activity_points">消耗活动积分兑换</option>
-            </select>
-          </label>
-          <label>
-            <span className="mb-1 block text-[10px] text-[var(--color-ink)]/42">每人最多中奖</span>
-            <input
-              type="number"
-              min={1}
-              className={INPUT}
-              value={modules.lottery.maxWinsPerUser}
-              onChange={(event) =>
-                setLottery({
-                  maxWinsPerUser: Math.max(1, Number(event.target.value) || 1),
-                })
-              }
-            />
-          </label>
-        </div>
-      </Panel>
-      </ConfigGroup>
-
-      <ConfigGroup
-        title="风险控制"
-        description="业务次数之外的账号、设备和网络频控，仅在异常参与时生效。"
-      >
-
-      <Panel
-        title="频控与风险阈值"
-        summary={`账号 ${modules.lottery.accountDailyLimit} 次/日 · 设备 ${modules.lottery.deviceDailyLimit} 次/日 · IP ${modules.lottery.ipHourlyLimit} 次/小时`}
-        description="业务次数和风险频控分开计算；命中任一上限即拒绝发奖。"
-        defaultOpen={false}
-      >
-        <div className="grid gap-3 @[520px]:grid-cols-2 @[760px]:grid-cols-4">
-          <label>
-            <span className="mb-1 block text-[10px] text-[var(--color-ink)]/42">次数重置</span>
-            <select
-              className={INPUT}
-              value={modules.lottery.resetCycle}
-              onChange={(event) =>
-                setLottery({
-                  resetCycle: event.target.value as 'daily' | 'activity',
-                })
-              }
-            >
-              <option value="daily">每日重置</option>
-              <option value="activity">活动期累计</option>
-            </select>
-          </label>
-          <label>
-            <span className="mb-1 block text-[10px] text-[var(--color-ink)]/42">抽奖冷却（秒）</span>
-            <input
-              type="number"
-              min={0}
-              className={INPUT}
-              value={modules.lottery.cooldownSeconds}
-              onChange={(event) =>
-                setLottery({
-                  cooldownSeconds: Math.max(0, Number(event.target.value) || 0),
-                })
-              }
-            />
-          </label>
-          <label>
-            <span className="mb-1 block text-[10px] text-[var(--color-ink)]/42">账号日上限</span>
-            <input
-              type="number"
-              min={1}
-              className={INPUT}
-              value={modules.lottery.accountDailyLimit}
-              onChange={(event) =>
-                setLottery({
-                  accountDailyLimit: Math.max(1, Number(event.target.value) || 1),
-                })
-              }
-            />
-          </label>
-          <label>
-            <span className="mb-1 block text-[10px] text-[var(--color-ink)]/42">设备日上限</span>
-            <input
-              type="number"
-              min={1}
-              className={INPUT}
-              value={modules.lottery.deviceDailyLimit}
-              onChange={(event) =>
-                setLottery({
-                  deviceDailyLimit: Math.max(1, Number(event.target.value) || 1),
-                })
-              }
-            />
-          </label>
-          <label>
-            <span className="mb-1 block text-[10px] text-[var(--color-ink)]/42">IP 小时上限</span>
-            <input
-              type="number"
-              min={1}
-              className={INPUT}
-              value={modules.lottery.ipHourlyLimit}
-              onChange={(event) =>
-                setLottery({
-                  ipHourlyLimit: Math.max(1, Number(event.target.value) || 1),
-                })
-              }
-            />
-          </label>
-        </div>
-      </Panel>
-      </ConfigGroup>
+            return (
+              <Panel
+                key={panel.id}
+                title={panel.title}
+                summary={panel.summary}
+                description={panel.description}
+                defaultOpen={panel.defaultOpen}
+              >
+                <div className={gridClass}>
+                  {panel.fields.map((field) => (
+                    <CompiledFieldControl
+                      key={field.path}
+                      field={field}
+                      revision={revision}
+                      onPatch={onPatch}
+                      onReleaseOwnership={onReleaseOwnership}
+                    />
+                  ))}
+                </div>
+              </Panel>
+            )
+          })}
+        </ConfigGroup>
+      ))}
     </div>
   )
 }
@@ -1150,15 +1138,27 @@ export default function XiahuaGameplayWorkspace({
   onChange,
   preset,
   onOpenAssetLibrary,
+  onOpenAssetCenter,
+  onOpenKnowledge,
 }: {
   value: XiahuaGameplay
   onChange: (next: XiahuaGameplay) => void
   preset: ActivityPreset
   onOpenAssetLibrary: () => void
+  onOpenAssetCenter: () => void
+  onOpenKnowledge: () => void
 }) {
   const [activeKind, setActiveKind] = useState<GameplayKind>('lottery')
   const [dirty, setDirty] = useState(false)
   const [scopeOpen, setScopeOpen] = useState(false)
+  const revision = value.meta?.revision ?? 12
+  const operatorOwnedPaths = useMemo(
+    () =>
+      new Set<LotteryPatchPath>(
+        (value.meta?.operatorOwnedPaths ?? []) as LotteryPatchPath[],
+      ),
+    [value.meta?.operatorOwnedPaths],
+  )
   const modules = value.modules ?? DEFAULT_XIAHUA_GAMEPLAY_MODULES
   const enabledKinds = modules.enabled
   const activeDefinition = useMemo(
@@ -1167,9 +1167,105 @@ export default function XiahuaGameplayWorkspace({
   )
   const enabled = enabledKinds.includes(activeKind)
 
+  const withSpecMeta = (
+    next: XiahuaGameplay,
+    nextRevision: number,
+    ownedPaths: ReadonlySet<LotteryPatchPath>,
+  ): XiahuaGameplay => ({
+    ...next,
+    meta: {
+      revision: nextRevision,
+      source: value.meta?.source ?? '活动策划文档 rev.12',
+      generatedAt: new Date().toISOString(),
+      generationBasisIds:
+        value.meta?.generationBasisIds ??
+        XIAHUA_GENERATION_BASIS.map((item) => item.id),
+      operatorOwnedPaths: [...ownedPaths],
+    },
+  })
+
   const updateGameplay = (next: XiahuaGameplay) => {
-    onChange(next)
+    onChange(withSpecMeta(next, revision + 1, operatorOwnedPaths))
     setDirty(true)
+  }
+
+  const applyLotteryOperatorPatch = (patch: LotteryPatch) => {
+    const result = applyLotteryPatchBatch(
+      value,
+      [patch],
+      revision,
+      operatorOwnedPaths,
+    )
+    if (result.reason === 'stale_revision') {
+      toast.error('配置版本已变化，请重试本次修改')
+      return
+    }
+    if (result.reason === 'validation_failed') {
+      toast.error('该修改无法应用', {
+        description: result.issues.find((issue) => issue.severity === 'error')?.message,
+      })
+      return
+    }
+    const nextOwnedPaths = new Set(operatorOwnedPaths).add(patch.path)
+    onChange(withSpecMeta(result.value, result.revision, nextOwnedPaths))
+    setDirty(true)
+  }
+
+  const releaseOwnership = (path?: LotteryPatchPath) => {
+    const nextOwnedPaths = new Set(operatorOwnedPaths)
+    if (path) nextOwnedPaths.delete(path)
+    else nextOwnedPaths.clear()
+    onChange(withSpecMeta(value, revision + 1, nextOwnedPaths))
+    setDirty(true)
+    toast.success(path ? '已允许 Agent 再次优化该参数' : '已允许 Agent 再次优化全部参数', {
+      description: '当前值保持不变，将在下一次生成建议时参与更新。',
+    })
+  }
+
+  const regenerateLotterySuggestion = () => {
+    const patches: LotteryPatch[] = [
+      {
+        op: 'replace',
+        path: 'draw.newCardBias',
+        value: 0.84,
+        actor: 'agent',
+        reason: '结合当前 9 张卡与活动频次，降低后段集齐过快风险',
+        baseRevision: revision,
+      },
+      {
+        op: 'replace',
+        path: 'modules.lottery.pityAfter',
+        value: 5,
+        actor: 'agent',
+        reason: '在新卡倾斜降低后提前一抽触发体验保底',
+        baseRevision: revision,
+      },
+      {
+        op: 'replace',
+        path: 'modules.lottery.dailyLimit',
+        value: 18,
+        actor: 'agent',
+        reason: '按当前任务每日供给量收敛业务上限',
+        baseRevision: revision,
+      },
+    ]
+    const result = applyLotteryPatchBatch(
+      value,
+      patches,
+      revision,
+      operatorOwnedPaths,
+    )
+    if (result.reason) {
+      toast.error(
+        result.reason === 'stale_revision' ? '配置版本已变化，建议未应用' : '生成建议未通过玩法校验',
+      )
+      return
+    }
+    onChange(withSpecMeta(result.value, result.revision, operatorOwnedPaths))
+    if (result.applied.length > 0) setDirty(true)
+    toast.success('已按当前活动目标更新建议', {
+      description: `应用 ${result.applied.length} 项${result.skipped.length ? `，保留 ${result.skipped.length} 项人工设置` : ''}`,
+    })
   }
 
   const addGameplay = () => {
@@ -1186,6 +1282,22 @@ export default function XiahuaGameplayWorkspace({
   }
 
   const save = () => {
+    if (activeKind === 'lottery') {
+      const issues = compileLotteryEditor(value, operatorOwnedPaths).issues
+      const blocking = issues.find((issue) => issue.severity === 'error')
+      if (blocking) {
+        toast.error('玩法配置暂不能保存', { description: blocking.message })
+        return
+      }
+      const warningCount = issues.filter((issue) => issue.severity === 'warning').length
+      setDirty(false)
+      toast.success('玩法配置已保存', {
+        description: warningCount
+          ? `已同步至试玩，另有 ${warningCount} 项非阻断提醒会在发布时再次确认。`
+          : '已同步至试玩。',
+      })
+      return
+    }
     setDirty(false)
     toast.success('玩法配置已保存', { description: '试玩将使用最新参数。' })
   }
@@ -1223,11 +1335,24 @@ export default function XiahuaGameplayWorkspace({
               />
               {scopeOpen ? <ParticipationPolicyPanel value={value} onChange={updateGameplay} /> : null}
               {activeKind === 'lottery' ? (
+                <GenerationBasisPanel
+                  revision={revision}
+                  operatorOwnedCount={operatorOwnedPaths.size}
+                  onOpenAssetCenter={onOpenAssetCenter}
+                  onOpenKnowledge={onOpenKnowledge}
+                  onRegenerate={regenerateLotterySuggestion}
+                  onReleaseOwnership={() => releaseOwnership()}
+                />
+              ) : null}
+              {activeKind === 'lottery' ? (
                 <LotteryEditor
                   value={value}
-                  onChange={updateGameplay}
                   preset={preset}
                   onOpenAssetLibrary={onOpenAssetLibrary}
+                  revision={revision}
+                  operatorOwnedPaths={operatorOwnedPaths}
+                  onPatch={applyLotteryOperatorPatch}
+                  onReleaseOwnership={releaseOwnership}
                 />
               ) : null}
               {activeKind === 'collection' ? (

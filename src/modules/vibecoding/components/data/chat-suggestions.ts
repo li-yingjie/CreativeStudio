@@ -82,6 +82,6 @@ export const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
     '加一个每日签到',
   ],
   '射击小游戏': CHAT_SUGGESTIONS_BY_KIND['web-game'],
-  '抖音 ACG 游戏新春会': CHAT_SUGGESTIONS_BY_KIND['marketing-h5'],
+  '2026 抖音 ACG 新春会': CHAT_SUGGESTIONS_BY_KIND['marketing-h5'],
   '沪上火锅·五一种草提案': CHAT_SUGGESTIONS_BY_KIND['ops-proposal'],
 }

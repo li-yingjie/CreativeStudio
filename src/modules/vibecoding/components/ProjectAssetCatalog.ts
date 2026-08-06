@@ -1,5 +1,44 @@
 export type AssetKind = 'image' | 'audio' | 'video'
 
+export type AssetLayerType = 'raster' | 'text' | 'vector' | 'upload'
+
+export type AssetLayerRenderer =
+  | 'image-model'
+  | 'raster-art'
+  | 'true-text'
+  | 'brand-asset'
+  | 'source-asset'
+
+export interface AssetLayer {
+  id: string
+  name: string
+  type: AssetLayerType
+  renderer: AssetLayerRenderer
+  x: number
+  y: number
+  width: number
+  height: number
+  z: number
+  visible: boolean
+  locked: boolean
+  opacity?: number
+  src?: string
+  text?: string
+  fontRef?: { id: string; version: string; family: string }
+}
+
+export interface AssetLayerManifest {
+  canvas: { width: number; height: number }
+  templateRef?: { id: string; version: string; name: string }
+  styleBibleRef?: { id: string; version: string; name: string }
+  layers: AssetLayer[]
+}
+
+export interface AssetLayeringHint {
+  recommendation: 'keep-flat' | 'consider-layering'
+  reason: string
+}
+
 export interface AssetPrompt {
   text: string
   skillLabel: string
@@ -24,6 +63,11 @@ export interface AssetItem {
   frames?: number
   kind?: AssetKind
   prompt?: AssetPrompt
+  /** Every image version resolves to a manifest. Legacy items without one
+   *  are lazily represented as a single full-canvas raster layer. */
+  layerManifest?: AssetLayerManifest
+  /** Transient authoring advice, never a persisted lifecycle state. */
+  layeringHint?: AssetLayeringHint
 }
 
 export interface AssetGroup {
@@ -225,13 +269,13 @@ function h5Asset(
 export const ACG_NEW_YEAR_ASSET_GROUPS: AssetGroup[] = [
   {
     title: '活动素材',
-    desc: '抖音 ACG 游戏新春会 · 12 项独立生成素材',
+    desc: '2026 抖音 ACG 新春会 · 12 项独立生成素材',
     items: [
       h5Asset(
         'acg-01-hero',
         '01-activity-hero.png',
         '01 / 活动主视觉',
-        '春节游戏主题活动主视觉，红色新春舞台背景，悬挂灯笼、中国结与烟花，集合多款热门游戏角色形成热闹群像。画面中心下方预留“抖音 ACG 游戏新春会”主标题，红金高亮、节庆氛围浓郁，16:9 横版商业活动 KV，高细节。',
+        '春节 ACG 主题活动主视觉，红色新春舞台背景，悬挂灯笼、中国结与烟花，集合多款热门游戏与二次元角色形成热闹群像。画面中心下方预留“2026 抖音 ACG 新春会”主标题，红金高亮、节庆氛围浓郁，16:9 横版商业活动 KV，高细节。',
       ),
       h5Asset(
         'acg-02-corgi',
@@ -485,18 +529,47 @@ export const XIAHUA_ASSET_GROUPS: AssetGroup[] = [
     title: '主视觉与品牌',
     desc: '活动头图、标题字与 IP —— 定调深夜食堂 × 小马的整体气质',
     items: [
-      xiahuaAsset(
-        'xh-kv-head',
-        'head-kv.png',
-        '主视觉 / 深夜食堂 KV',
-        `${XIAHUA_ART_DIRECTION}。深夜居酒屋俯视场景：戴白色小鸡帽的红色小马 IP 坐在木桌前，桌上摆满小龙虾、烤串、火锅、卤味等夜宵，窗外是紫蓝色霓虹街景，暖黄吊灯打光，右侧一只红色小龙虾角色挥手互动。竖版活动头图，顶部预留标题区，高细节 3D 渲染。`,
-      ),
-      xiahuaAsset(
-        'xh-title',
-        'title.png',
-        '活动标题字 / 这夏夯爆了',
-        '中文书法涂鸦字「这夏夯爆了」，白色主字 + 荧光绿高亮「夏」「夯」，笔锋带喷漆滴落与飞白，右上角小字档期「7.20-8.31」，副标题「集夏夜美食 赢黄金汉堡喵喵！」。透明背景，横版排布，潮流手绘字体设计。',
-      ),
+      {
+        ...xiahuaAsset(
+          'xh-kv-head',
+          'head-kv.png',
+          '主视觉 / 深夜食堂 KV',
+          `${XIAHUA_ART_DIRECTION}。深夜居酒屋俯视场景：戴白色小鸡帽的红色小马 IP 坐在木桌前，桌上摆满小龙虾、烤串、火锅、卤味等夜宵，窗外是紫蓝色霓虹街景，暖黄吊灯打光，右侧一只红色小龙虾角色挥手互动。竖版活动头图，顶部预留标题区，高细节 3D 渲染。`,
+        ),
+        layerManifest: {
+          canvas: { width: 375, height: 494 },
+          templateRef: {
+            id: 'template.campaign-kv-layered',
+            version: '1.2.0',
+            name: '活动主视觉分层模板',
+          },
+          styleBibleRef: {
+            id: 'style.night-food-3d',
+            version: '2.3.1',
+            name: '夜食 3D 烟火感',
+          },
+          layers: [
+            { id: 'kv-base', name: '底景 · 深夜食堂', type: 'raster', renderer: 'image-model', src: '/assets/xiahua/kv/base.png', x: 0, y: 0, width: 375, height: 494, z: 0, visible: true, locked: true },
+            { id: 'kv-mascot', name: '主角 · 小马 IP', type: 'upload', renderer: 'source-asset', src: '/assets/xiahua/kv/mascot.png', x: 17, y: 131, width: 285, height: 283, z: 1, visible: true, locked: false },
+            { id: 'kv-food', name: '前景 · 火锅', type: 'upload', renderer: 'source-asset', src: '/assets/xiahua/kv/huoguo.png', x: 216, y: 230, width: 93, height: 126, z: 2, visible: true, locked: false },
+            { id: 'kv-accent', name: '装饰 · 小龙虾', type: 'upload', renderer: 'source-asset', src: '/assets/xiahua/kv/longxia.png', x: 268, y: 122, width: 67, height: 80, z: 3, visible: true, locked: false },
+            { id: 'kv-title', name: '艺术字 · 这夏夯爆了', type: 'raster', renderer: 'raster-art', src: '/assets/xiahua/title.png', x: 64, y: 24, width: 247, height: 68, z: 4, visible: true, locked: false },
+            { id: 'kv-logo', name: '品牌 · 抖音生活服务', type: 'vector', renderer: 'brand-asset', src: '/assets/xiahua/footer-logo.png', x: 127, y: 452, width: 121, height: 32, z: 5, visible: true, locked: true },
+          ],
+        } satisfies AssetLayerManifest,
+      },
+      {
+        ...xiahuaAsset(
+          'xh-title',
+          'title.png',
+          '活动标题字 / 这夏夯爆了',
+          '中文书法涂鸦字「这夏夯爆了」，白色主字 + 荧光绿高亮「夏」「夯」，笔锋带喷漆滴落与飞白，右上角小字档期「7.20-8.31」，副标题「集夏夜美食 赢黄金汉堡喵喵！」。透明背景，横版排布，潮流手绘字体设计。',
+        ),
+        layeringHint: {
+          recommendation: 'keep-flat',
+          reason: '艺术字的笔触、飞白和多色叠加是整体视觉，默认保持单图。',
+        } satisfies AssetLayeringHint,
+      },
       xiahuaAsset(
         'xh-result-title',
         'result-title.png',
@@ -561,7 +634,13 @@ export const XIAHUA_ASSET_GROUPS: AssetGroup[] = [
       xiahuaAsset('xh-btn-my-cards', 'btn-my-cards.png', '侧入口 / 我的夜食', `${XIAHUA_ART_DIRECTION}。左侧半圆浮层入口，棕红色底衬白色两行小字「我的夜食」，右半贴合屏幕边缘。透明背景，UI 切图。`),
       xiahuaAsset('xh-btn-my-prizes', 'btn-my-prizes.png', '侧入口 / 我的奖品', `${XIAHUA_ART_DIRECTION}。右侧半圆浮层入口，棕红色底衬白色两行小字「我的奖品」，左半贴合屏幕边缘。透明背景，UI 切图。`),
       xiahuaAsset('xh-panel-bg', 'panel-bg.png', '集卡面板底', `${XIAHUA_ART_DIRECTION}。集卡进度面板底衬：深棕渐变圆角矩形，左上角内凹形成标题区，边缘带一圈浅棕描边。纯色 UI 底图，无文字。`),
-      xiahuaAsset('xh-bean-bar', 'bean-bar.png', '金豆入口条', `${XIAHUA_ART_DIRECTION}。横条形入口：左侧端着托盘的厨师小马 IP，中间白色文案「烹饪得金豆，好礼兑不停」与金豆计数，右侧红色圆形「冲！」按钮带角标。深棕底圆角长条，横版 UI 切图。`),
+      {
+        ...xiahuaAsset('xh-bean-bar', 'bean-bar.png', '金豆入口条', `${XIAHUA_ART_DIRECTION}。横条形入口：左侧端着托盘的厨师小马 IP，中间白色文案「烹饪得金豆，好礼兑不停」与金豆计数，右侧红色圆形「冲！」按钮带角标。深棕底圆角长条，横版 UI 切图。`),
+        layeringHint: {
+          recommendation: 'consider-layering',
+          reason: '金豆数字、行动文案和按钮需经常更新，适合保留真文字层。',
+        } satisfies AssetLayeringHint,
+      },
     ],
   },
   {
@@ -570,7 +649,13 @@ export const XIAHUA_ASSET_GROUPS: AssetGroup[] = [
     items: [
       xiahuaAsset('xh-sec-tasks', 'sec-tasks.png', '任务区 / 玩一夏 赚更多', `${XIAHUA_ART_DIRECTION}。任务列表区块：顶部橙色标题「（玩一夏 赚更多。）」带「每天0点刷新」角标，下方「抽夜食!!／攒体力」双页签与多张米色任务卡（带定位投稿、赠送美食卡、浏览活动页），每张右侧红色行动按钮。竖版整段 UI 长图。`),
       xiahuaAsset('xh-sec-topics', 'sec-topics.png', '话题区 / 暑期灵感话题', `${XIAHUA_ART_DIRECTION}。内容话题区块：标题「暑期（灵感话题）」，下方两行胶囊话题标签，再下方横向滑动的美食内容卡片（配图 + 话题名 + 箭头）。深棕底，竖版整段 UI 长图。`),
-      xiahuaAsset('xh-sec-banner', 'sec-banner.png', '底部 banner / 更多精彩活动', `${XIAHUA_ART_DIRECTION}。底部推广区块：居中胶囊按钮「更多精彩活动」，下方一张浅色活动 banner 占位卡。深棕底，横版整段 UI 切图。`),
+      {
+        ...xiahuaAsset('xh-sec-banner', 'sec-banner.png', '底部 banner / 更多精彩活动', `${XIAHUA_ART_DIRECTION}。底部推广区块：居中胶囊按钮「更多精彩活动」，下方一张浅色活动 banner 占位卡。深棕底，横版整段 UI 切图。`),
+        layeringHint: {
+          recommendation: 'consider-layering',
+          reason: 'Banner 主题、按钮文案和品牌标识可复用，其余区域可保持整图背景。',
+        } satisfies AssetLayeringHint,
+      },
     ],
   },
 ].map((group) => ({

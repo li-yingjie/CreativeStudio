@@ -727,8 +727,12 @@ function TriggerPane() {
 
 /* ── 壳层 ── */
 
-export default function ResourceLibraryPage() {
-  const [tab, setTab] = useState<ResourceTabKey>('toolbox')
+export default function ResourceLibraryPage({
+  initialTab = 'toolbox',
+}: {
+  initialTab?: ResourceTabKey
+}) {
+  const [tab, setTab] = useState<ResourceTabKey>(initialTab)
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-white">
