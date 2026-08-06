@@ -205,7 +205,7 @@ function WikiDocumentTabs({
     <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
       <nav
         aria-label="已打开的百科对象"
-        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex min-w-0 w-fit max-w-[calc(100%_-_2.25rem)] items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {openDocs.map((doc) => (
           <button

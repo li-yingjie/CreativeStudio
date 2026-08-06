@@ -1,3 +1,5 @@
+import { useReducedMotion } from 'framer-motion'
+
 /** Animated logo — spins the whole ring clockwise 360° once on mount. */
 
 const DOT_PATHS = [
@@ -25,6 +27,8 @@ export default function LogoIconSpinOnce({
   className?: string
   duration?: number
 }) {
+  const reduceMotion = useReducedMotion() ?? false
+
   return (
     <svg
       viewBox="24 0 21 22"
@@ -35,8 +39,12 @@ export default function LogoIconSpinOnce({
       <style>{KEYFRAMES}</style>
       <g
         style={{
-          transformOrigin: '34.5px 11px',
-          animation: `logo-spin-once ${duration}s cubic-bezier(0.4, 0, 0.2, 1) forwards`,
+          // 围绕点阵自身的视觉中心旋转，避免画布中心偏差造成轻微绕圈。
+          transformBox: 'fill-box',
+          transformOrigin: 'center',
+          animation: reduceMotion
+            ? undefined
+            : `logo-spin-once ${duration}s cubic-bezier(0.4, 0, 0.2, 1) forwards`,
           animationIterationCount: 1,
         }}
       >
