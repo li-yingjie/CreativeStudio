@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import * as Popover from '@radix-ui/react-popover'
 import { motion, useReducedMotion } from 'framer-motion'
 import { toast } from 'sonner'
 import ChatComposer from '@/shared/components/ChatComposer'
@@ -187,6 +188,93 @@ function ToolButton({
     >
       <FigmaGlyph src={icon} inset={inset} />
     </button>
+  )
+}
+
+/** 已打开文档页签与目录对象选择器共用同一套打开逻辑。 */
+function WikiDocumentTabs({
+  activeDoc,
+  openDocs,
+  onOpenDoc,
+}: {
+  activeDoc: string
+  openDocs: string[]
+  onOpenDoc: (doc: string) => void
+}) {
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+      <nav
+        aria-label="已打开的百科对象"
+        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {openDocs.map((doc) => (
+          <button
+            key={doc}
+            type="button"
+            aria-current={activeDoc === doc ? 'page' : undefined}
+            data-state={activeDoc === doc ? 'active' : 'inactive'}
+            onClick={() => onOpenDoc(doc)}
+            className="flex h-8 shrink-0 items-center gap-1 rounded-[30px] px-2.5 text-[#17171f] transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15 data-[state=active]:bg-black/[0.04]"
+          >
+            <FigmaGlyph src={`${ICON}/tab-doc.svg`} inset="6.4% 15.5% 5.6% 12.7%" size={18} />
+            <span className="max-w-28 truncate text-[13px] font-medium leading-[18px]">{doc}</span>
+          </button>
+        ))}
+      </nav>
+
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <button
+            type="button"
+            title="从目录添加对象"
+            aria-label="从目录添加对象"
+            className="flex size-8 shrink-0 items-center justify-center rounded p-1 text-[#17171f] transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
+          >
+            <FigmaGlyph src={`${ICON}/add.svg`} inset="11.67%" />
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            side="bottom"
+            align="start"
+            sideOffset={6}
+            collisionPadding={8}
+            role="dialog"
+            aria-label="添加目录对象"
+            className="z-[80] w-56 rounded-xl border border-black/5 bg-white p-1.5 shadow-lg focus:outline-none"
+          >
+            <div className="px-2 pb-1.5 pt-1">
+              <p className="text-balance text-[13px] font-medium text-[#17171f]">从目录添加</p>
+              <p className="mt-0.5 text-pretty text-[11px] text-[#252632]/50">选择对象后会在顶部打开</p>
+            </div>
+            <div className="flex flex-col gap-1">
+              {NAV_GROUPS.map((group) => (
+                <div key={group.key}>
+                  <p className="px-2 py-1 text-[11px] font-medium text-[#252632]/45">{group.label}</p>
+                  {group.children.map((doc) => {
+                    const opened = openDocs.includes(doc)
+                    return (
+                      <Popover.Close asChild key={doc}>
+                        <button
+                          type="button"
+                          aria-label={`${doc}${opened ? '，已打开' : ''}`}
+                          onClick={() => onOpenDoc(doc)}
+                          className="flex h-9 w-full items-center gap-2 rounded-lg px-2 text-left text-[13px] text-[#252632] transition-colors hover:bg-[rgba(83,96,143,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
+                        >
+                          <FigmaGlyph src={`${ICON}/doc-leaf.svg`} inset="6.44% 12.7% 6.5% 12.7%" size={16} />
+                          <span className="min-w-0 flex-1 truncate">{doc}</span>
+                          {opened && <span className="shrink-0 text-[11px] text-[#252632]/45">已打开</span>}
+                        </button>
+                      </Popover.Close>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+    </div>
   )
 }
 
@@ -583,14 +671,10 @@ export function WikiSideNav({
                 />
                 {open &&
                   g.children.map((c) => {
-                    const displayLabel =
-                      schemeFourLayout && g.key === '剧情事件'
-                        ? '未命名设定'
-                        : c
                     return (
                       <NavRow
                         key={c}
-                        label={displayLabel}
+                        label={c}
                         icon={`${ICON}/doc-leaf.svg`}
                         inset="6.44% 12.7% 6.5% 12.7%"
                         depth={1}
@@ -634,11 +718,15 @@ export function WikiSideNav({
 
 export default function WikiEditorPage({
   activeDoc,
+  openDocs,
+  onOpenDoc,
   activeObjectTitle = '灵笼',
   sidebarCollapsed = false,
   onExpandSidebar,
 }: {
   activeDoc: string
+  openDocs: string[]
+  onOpenDoc: (doc: string) => void
   activeObjectTitle?: string
   sidebarCollapsed?: boolean
   onExpandSidebar?: () => void
@@ -671,7 +759,7 @@ export default function WikiEditorPage({
             usesContentToggleLayout(navVersion) ? 'pl-12' : 'pl-3'
           }`}
         >
-          <div className="flex items-center gap-1">
+          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
             {sidebarCollapsed &&
               navVersion !== 1 &&
               !usesToolbarHeaderLayout(navVersion) &&
@@ -688,24 +776,11 @@ export default function WikiEditorPage({
                 <SideNavPanelStateIcon collapsed />
               </button>
             )}
-            {/* 当前文档页签 */}
-            <div className="flex h-8 items-center gap-1 rounded-[30px] bg-black/[0.04] px-2.5">
-              <FigmaGlyph src={`${ICON}/tab-doc.svg`} inset="6.4% 15.5% 5.6% 12.7%" size={18} />
-              <span className="text-[13px] font-medium leading-[18px] text-[#17171f]">{activeDoc}</span>
-            </div>
-            <button
-              type="button"
-              title="新建文档"
-              aria-label="新建文档"
-              onClick={() => toast('新建文档（演示）')}
-              className="flex size-8 items-center justify-center rounded p-1 text-[#17171f] transition-colors hover:bg-black/[0.04]"
-            >
-              <FigmaGlyph src={`${ICON}/add.svg`} inset="11.67%" />
-            </button>
+            <WikiDocumentTabs activeDoc={activeDoc} openDocs={openDocs} onOpenDoc={onOpenDoc} />
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 opacity-50">
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="hidden items-center gap-3 opacity-50 xl:flex">
               <div className="flex items-center overflow-hidden rounded-[15px] bg-black/[0.04]">
                 <ToolButton icon={`${ICON}/undo.svg`} inset="14.53% 10.09% 18.24% 14.98%" label="撤销" />
                 <ToolButton icon={`${ICON}/undo.svg`} inset="14.52% 10.6% 18.24% 14.47%" label="重做" className="[&>span]:-scale-x-100" />
