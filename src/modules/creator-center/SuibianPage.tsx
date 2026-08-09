@@ -18,6 +18,7 @@ import SideNavIconFooterActions, {
 } from '@/shared/components/SideNavIconFooterActions'
 import {
   useNavVersion,
+  usesIconRailCollapse,
   usesProductHeaderLayout,
   usesSchemeFourLayout,
   usesSearchToolbarLayout,
@@ -464,14 +465,7 @@ export function SuibianSideNav() {
     visibleRoleLibrary.length > 0 ||
     visibleWorldBooks.length > 0
 
-  if (
-    sidebarCollapsed &&
-    (navVersion === 1 ||
-      usesToolbarHeaderLayout(navVersion) ||
-      navVersion === 3 ||
-      searchToolbarLayout ||
-      usesContentToggleLayout(navVersion))
-  ) {
+  if (sidebarCollapsed && usesIconRailCollapse(navVersion)) {
     return (
       <motion.div
         key="suibian-collapsed"
@@ -524,6 +518,12 @@ export function SuibianSideNav() {
                   onAction={() => setSidebarCollapsed('suibian', false)}
                 />
               </div>
+            ) : schemeFourLayout ? (
+              <SideNavProductHeader
+                leadingText="开启创作"
+                collapsed
+                onToggle={() => setSidebarCollapsed('suibian', false)}
+              />
             ) : undefined
           }
           footer={
@@ -828,11 +828,7 @@ export default function SuibianPage() {
         >
           <div className="flex min-w-0 items-center gap-1.5">
             {sidebarCollapsed &&
-              navVersion !== 1 &&
-              !usesToolbarHeaderLayout(navVersion) &&
-              navVersion !== 3 &&
-              navVersion !== 6 &&
-              !usesContentToggleLayout(navVersion) && (
+              !usesIconRailCollapse(navVersion) && (
               <button
                 type="button"
                 title="展开导航"

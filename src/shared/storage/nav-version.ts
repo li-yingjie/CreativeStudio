@@ -9,14 +9,28 @@ import { createJSONStorage, persist } from 'zustand/middleware'
  *  5 = 沿用方案 3，底部使用 icon-only 收起与项目设置入口；
  *  6 = 沿用方案 8 的骨架，但各产品侧栏顶部统一为搜索工具栏（首页除外）；
  *  7 = 内部抖音 AI 工作台，无全局顶栏，使用工作台原生项目导航；
- *  8 = 全宽顶栏 + icon/文字 tab + 产品侧栏上下文工具条。 */
-export type NavVersion = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+ *  8 = 全宽顶栏 + icon/文字 tab + 产品侧栏上下文工具条；
+ *  9 = 沿用方案 4 的文案 Header，侧栏收起时保留 icon rail。 */
+export type NavVersion = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
 /** 默认方案 4「文案 Header」。 */
 export const DEFAULT_NAV_VERSION: NavVersion = 4
 
 export function usesSchemeFourLayout(version: NavVersion) {
-  return version === 4
+  return version === 4 || version === 9
+}
+
+/** 各方案的收起形态集中在这里，避免工坊 / 百科 / 随变各维护一份列表。 */
+export function usesIconRailCollapse(version: NavVersion) {
+  return (
+    version === 1 ||
+    version === 2 ||
+    version === 3 ||
+    version === 6 ||
+    version === 7 ||
+    version === 8 ||
+    version === 9
+  )
 }
 
 export function usesSearchToolbarLayout(version: NavVersion) {

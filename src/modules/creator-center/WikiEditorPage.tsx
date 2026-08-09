@@ -17,6 +17,7 @@ import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
 import SideNavSearchToolbar from '@/shared/components/SideNavSearchToolbar'
 import {
   useNavVersion,
+  usesIconRailCollapse,
   usesProductHeaderLayout,
   usesSchemeFourLayout,
   usesSearchToolbarLayout,
@@ -410,14 +411,7 @@ export function WikiSideNav({
     }
   }
 
-  if (
-    collapsed &&
-    (navVersion === 1 ||
-      usesToolbarHeaderLayout(navVersion) ||
-      navVersion === 3 ||
-      searchToolbarLayout ||
-      usesContentToggleLayout(navVersion))
-  ) {
+  if (collapsed && usesIconRailCollapse(navVersion)) {
     return (
       <motion.div
         key="wiki-collapsed"
@@ -477,6 +471,12 @@ export function WikiSideNav({
                     onAction={() => onCollapse?.()}
                   />
                 </div>
+              ) : schemeFourLayout ? (
+                <SideNavProductHeader
+                  leadingText="百科目录"
+                  collapsed
+                  onToggle={onCollapse ?? (() => {})}
+                />
               ) : null}
               {/* 收起态保留百科对象切换：展示当前封面，点击弹出切换列表 */}
               <div className="flex justify-center pb-2">
@@ -761,11 +761,7 @@ export default function WikiEditorPage({
         >
           <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
             {sidebarCollapsed &&
-              navVersion !== 1 &&
-              !usesToolbarHeaderLayout(navVersion) &&
-              navVersion !== 3 &&
-              navVersion !== 6 &&
-              !usesContentToggleLayout(navVersion) && (
+              !usesIconRailCollapse(navVersion) && (
               <button
                 type="button"
                 title="展开导航"

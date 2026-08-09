@@ -167,7 +167,7 @@ export default function TopNav({
 const menuRow =
   'flex w-full items-center gap-2 rounded-md px-2 py-2 text-[14px] leading-5 text-[#1c1f23] transition-colors hover:bg-[rgba(83,96,143,0.07)]'
 
-const AVATAR_NAV_VERSIONS = [1, 4, 7] as const satisfies readonly NavVersion[]
+const AVATAR_NAV_VERSIONS = [1, 4, 9, 7] as const satisfies readonly NavVersion[]
 const NAV_VERSION_NAMES: Record<NavVersion, string> = {
   1: 'L 型',
   2: '内容区收起',
@@ -177,6 +177,7 @@ const NAV_VERSION_NAMES: Record<NavVersion, string> = {
   6: '搜索工具栏',
   7: '内部抖音 AI 工作台',
   8: '顶部工具栏',
+  9: '文案 Header · 图标收起',
 }
 
 /** 头像下拉：账号菜单 + 导航方案。带 label 时整行都作为触发区。 */

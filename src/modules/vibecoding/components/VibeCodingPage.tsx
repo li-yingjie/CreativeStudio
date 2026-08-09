@@ -128,6 +128,7 @@ import SideNavIconFooterActions, {
 import { useSideNavConfig } from '@/shared/components/side-nav-config'
 import {
   useNavVersion,
+  usesIconRailCollapse,
   usesProductHeaderLayout,
   usesSchemeFourLayout,
   usesSearchToolbarLayout,
@@ -2681,9 +2682,8 @@ export default function VibeCodingPage({
   const isPlatform = layout === 'platform'
   const chatOnLeft = layout === 'code' || isPlatform
   const reduceSideNavMotion = useReducedMotion() ?? false
-  /* Platform-only: sidebar + chat widths are both user-draggable. Schemes
-   * 1 / 2 / 3 / 6 / 7 retain the shared icon rail when collapsed; the remaining
-   * schemes keep the legacy fully-hidden layout. */
+  /* Platform-only: sidebar + chat widths are both user-draggable. The selected
+   * navigation scheme owns whether collapse keeps the shared icon rail. */
   const sideNavProductId: ProductSideNavId =
     variant === 'avatar' ? 'ai-avatar' : 'workshop'
   const sidebarCollapsed = useProductSideNav(
@@ -2708,13 +2708,7 @@ export default function VibeCodingPage({
     useResizableSideNavWidth()
   const effectivePlatformSidebarWidth = platformSidebarWidth
   const sidebarRailCollapsed =
-    sidebarCollapsed &&
-    (navVersion === 1 ||
-      navVersion === 2 ||
-      navVersion === 3 ||
-      navVersion === 6 ||
-      navVersion === 7 ||
-      navVersion === 8)
+    sidebarCollapsed && usesIconRailCollapse(navVersion)
   const sidebarFullyHidden = sidebarCollapsed && !sidebarRailCollapsed
   const fullyHiddenSidebarWidth = navVersion === 1 ? 0 : 12
   const baseEffectiveSidebarWidth = sidebarCollapsed
