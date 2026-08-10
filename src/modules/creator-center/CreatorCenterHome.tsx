@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, useMotionTemplate, useMotionValue, useReducedMotion, useSpring } from 'framer-motion'
 import { toast } from 'sonner'
 import {
   ChevronDown,
@@ -322,6 +322,14 @@ function ProfileHeader({ stats }: { stats: CreatorStats | null }) {
 
 /* ─── 入口卡 ─── */
 
+/** 规则矩阵中的每个点独立闪烁；互质周期让节奏看起来随机但点位保持稳定。 */
+const MATRIX_DOTS = Array.from({ length: 42 * 9 }, (_, index) => ({
+  left: `${(index % 42) * 8.5 + 3.25}px`,
+  top: `${Math.floor(index / 42) * 8.5 + 3.25}px`,
+  delay: `${-((index * 17) % 31) / 10}s`,
+  duration: `${0.9 + ((index * 11) % 19) / 10}s`,
+}))
+
 /** 入口卡（设计稿 1-24030）：图标容器 77×84；前卡 60×75，视觉上与入口卡等高。
  *  容器上移 5px 抵消前卡内部偏移，文字从 86px 起排。
  *  hover / focus 变体只向下传播，驱动 CardImageIcon 的卡面扇开。 */
@@ -329,19 +337,64 @@ function EntryCard({
   icon,
   label,
   desc,
+  actionLabel,
+  accent,
   onClick,
 }: {
   icon: React.ReactNode
   label: string
   desc: string
+  actionLabel?: string
+  accent?: string
   onClick?: () => void
 }) {
   const reduceMotion = useReducedMotion()
+  const cardRef = useRef<HTMLButtonElement>(null)
+  const isEnhancedEntry = Boolean(accent)
+  const hasActionSwap = Boolean(actionLabel && accent)
+  const pointerX = useMotionValue(104)
+  const pointerY = useMotionValue(38)
+  const trailNearX = useSpring(pointerX, { stiffness: 270, damping: 28, mass: 0.45 })
+  const trailNearY = useSpring(pointerY, { stiffness: 270, damping: 28, mass: 0.45 })
+  const trailFarX = useSpring(pointerX, { stiffness: 125, damping: 22, mass: 0.8 })
+  const trailFarY = useSpring(pointerY, { stiffness: 125, damping: 22, mass: 0.8 })
+  const spotlightBackground = useMotionTemplate`
+    radial-gradient(150px circle at ${pointerX}px ${pointerY}px, color-mix(in srgb, var(--entry-accent) 9%, transparent), transparent 72%),
+    radial-gradient(150px circle at ${trailNearX}px ${trailNearY}px, color-mix(in srgb, var(--entry-accent) 5%, transparent), transparent 72%),
+    radial-gradient(150px circle at ${trailFarX}px ${trailFarY}px, color-mix(in srgb, var(--entry-accent) 3%, transparent), transparent 72%)
+  `
+  const gridMask = useMotionTemplate`radial-gradient(105px circle at ${trailNearX}px ${trailNearY}px, black 0%, rgba(0,0,0,0.72) 48%, transparent 82%)`
+
+  const updateSpotlight = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isEnhancedEntry || reduceMotion) return
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const localX = event.clientX - bounds.left
+    const localY = event.clientY - bounds.top
+    const normalizedX = (localX / bounds.width - 0.5) * 2
+    const normalizedY = (localY / bounds.height - 0.5) * 2
+    pointerX.set(localX)
+    pointerY.set(localY)
+    cardRef.current?.style.setProperty('--back-shift-x', `${normalizedX * 0.8}px`)
+    cardRef.current?.style.setProperty('--back-shift-y', `${normalizedY * 0.35}px`)
+    cardRef.current?.style.setProperty('--front-shift-x', `${normalizedX * -0.55}px`)
+    cardRef.current?.style.setProperty('--front-shift-y', `${normalizedY * -0.4}px`)
+    cardRef.current?.style.setProperty('--shine-x', `${Math.min(120, Math.max(-20, -20 + localX / bounds.width * 140))}%`)
+  }
+
+  const resetIconDirection = () => {
+    cardRef.current?.style.setProperty('--back-shift-x', '0px')
+    cardRef.current?.style.setProperty('--back-shift-y', '0px')
+    cardRef.current?.style.setProperty('--front-shift-x', '0px')
+    cardRef.current?.style.setProperty('--front-shift-y', '0px')
+  }
 
   return (
     <motion.button
+      ref={cardRef}
       type="button"
       onClick={onClick}
+      onPointerMove={updateSpotlight}
+      onPointerLeave={resetIconDirection}
       initial="rest"
       animate="rest"
       whileHover="spread"
@@ -351,12 +404,123 @@ function EntryCard({
           ? undefined
           : { y: 0, scale: 0.99, transition: { type: 'tween', duration: 0.07, ease: 'easeOut' } }
       }
-      className="relative h-[75px] rounded-2xl border-[0.5px] border-black/5 bg-white py-[16px] pl-[86px] pr-1 text-left shadow-[0_7px_8px_rgba(0,0,0,0.05)]"
+      style={isEnhancedEntry ? ({ '--entry-accent': accent } as React.CSSProperties) : undefined}
+      className={`group relative h-[75px] overflow-visible rounded-2xl border-[0.5px] bg-white py-[16px] pl-[86px] pr-3 text-left outline-none transition-[border-color,box-shadow,background-color] duration-200 focus-visible:ring-2 focus-visible:ring-[#1769C2]/35 focus-visible:ring-offset-2 ${
+        isEnhancedEntry
+          ? 'border-black/5 shadow-[0_5px_8px_rgba(0,0,0,0.05)] hover:border-[color:var(--entry-accent)]/24 hover:shadow-[0_10px_24px_rgba(28,38,64,0.11)]'
+          : 'border-black/5 shadow-[0_5px_8px_rgba(0,0,0,0.05)]'
+      }`}
     >
+      {isEnhancedEntry && (
+        <>
+          <motion.span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
+            style={{ background: spotlightBackground }}
+            variants={{
+              rest: {
+                opacity: 0,
+                filter: 'hue-rotate(0deg) saturate(100%)',
+                transition: { opacity: { duration: reduceMotion ? 0 : 0.16 } },
+              },
+              spread: {
+                opacity: 1,
+                filter: reduceMotion
+                  ? 'hue-rotate(0deg) saturate(100%)'
+                  : [
+                      'hue-rotate(-22deg) saturate(112%) brightness(100%)',
+                      'hue-rotate(24deg) saturate(155%) brightness(112%)',
+                      'hue-rotate(-22deg) saturate(112%) brightness(100%)',
+                    ],
+                transition: {
+                  opacity: { duration: reduceMotion ? 0 : 0.18 },
+                  filter: { duration: 2.8, ease: 'easeInOut', repeat: Infinity },
+                },
+              },
+            }}
+          />
+          <motion.span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
+            style={{
+              maskImage: gridMask,
+              WebkitMaskImage: gridMask,
+            }}
+            variants={{
+              rest: { opacity: 0, transition: { duration: reduceMotion ? 0 : 0.12 } },
+              spread: { opacity: reduceMotion ? 0 : 1, transition: { delay: 0.04, duration: 0.22 } },
+            }}
+          >
+            {MATRIX_DOTS.map((dot, index) => (
+              <span
+                key={index}
+                className="creator-matrix-dot absolute h-[2px] w-[2px] rounded-full bg-white"
+                style={{
+                  left: dot.left,
+                  top: dot.top,
+                  animationDelay: dot.delay,
+                  animationDuration: dot.duration,
+                }}
+              />
+            ))}
+          </motion.span>
+        </>
+      )}
       <span className="pointer-events-none absolute -left-px top-[-5.1px] z-[1] h-[84px] w-[77px]">{icon}</span>
-      <div className="min-w-0">
-        <div className="truncate text-[14px] font-semibold text-[#252632]">{label}</div>
-        <div className="mt-1 truncate text-[12px] text-[#252632]/50">{desc}</div>
+      <div className="relative min-w-0">
+        <div className={`truncate text-[14px] font-semibold text-[#252632] transition-colors duration-200 ${isEnhancedEntry ? 'group-hover:text-[color:var(--entry-accent)] group-focus-visible:text-[color:var(--entry-accent)]' : ''}`}>{label}</div>
+        <div className="relative mt-1 h-[18px] overflow-visible text-[12px] leading-[18px]">
+          <motion.span
+            className="block text-[#252632]/50"
+            variants={hasActionSwap ? {
+              rest: {
+                x: 0,
+                opacity: 1,
+                filter: 'blur(0px)',
+                transition: {
+                  delay: reduceMotion ? 0 : 0.156,
+                  duration: reduceMotion ? 0 : 0.26,
+                  ease: [0.16, 1, 0.3, 1],
+                },
+              },
+              spread: {
+                x: reduceMotion ? 0 : 6,
+                opacity: 0,
+                filter: reduceMotion ? 'blur(0px)' : 'blur(2px)',
+                transition: { duration: reduceMotion ? 0 : 0.14, ease: [0.7, 0, 0.84, 0] },
+              },
+            } : undefined}
+          >
+            <span className="block truncate">{desc}</span>
+          </motion.span>
+          {hasActionSwap && (
+            <motion.span
+              className="absolute inset-0 flex items-center gap-0.5 whitespace-nowrap font-medium text-[color:var(--entry-accent)]"
+              style={{ willChange: 'transform, opacity, filter' }}
+              variants={{
+                rest: {
+                  x: reduceMotion ? 0 : -5,
+                  opacity: 0,
+                  filter: reduceMotion ? 'blur(0px)' : 'blur(3px)',
+                  transition: { duration: reduceMotion ? 0 : 0.12, ease: [0.7, 0, 0.84, 0] },
+                },
+                spread: {
+                  x: 0,
+                  opacity: 1,
+                  filter: 'blur(0px)',
+                  transition: {
+                    delay: reduceMotion ? 0 : 0.1,
+                    duration: reduceMotion ? 0 : 0.28,
+                    ease: [0.22, 1, 0.36, 1],
+                  },
+                },
+              }}
+            >
+              {actionLabel}
+              <ChevronRight size={13} strokeWidth={2} className="transition-transform duration-200 group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5" />
+            </motion.span>
+          )}
+        </div>
       </div>
     </motion.button>
   )
@@ -365,48 +529,154 @@ function EntryCard({
 /** 入口卡图标：正卡（front，设计稿导出的 4x 贴纸）在左，后卡与正卡等大、在右后方
  *  斜置探出（有 back 图则铺图，否则用中性浅色底板——对应设计里作品发布/工坊的白底后卡）。
  *  默认几何与 hover 增量分层：后卡绕左下角右扇，正卡同时向左展开。 */
-function CardImageIcon({ front, back }: { front: string; back?: string }) {
+function CardImageIcon({
+  front,
+  back,
+  refined = false,
+  outlineBack = false,
+}: {
+  front: string
+  back?: string
+  refined?: boolean
+  outlineBack?: boolean
+}) {
   const reduceMotion = useReducedMotion()
   const fanInTransition = { type: 'tween' as const, duration: reduceMotion ? 0 : 0.11, ease: 'easeOut' as const }
   const fanOutTransition = { type: 'tween' as const, duration: reduceMotion ? 0 : 0.08, ease: 'easeOut' as const }
+  const liftInTransition = reduceMotion
+    ? { duration: 0 }
+    : { type: 'spring' as const, stiffness: 380, damping: 28, mass: 0.55 }
+  const liftOutTransition = reduceMotion
+    ? { duration: 0 }
+    : { type: 'spring' as const, stiffness: 430, damping: 32, mass: 0.5 }
 
   return (
     <span className="relative block h-full w-full">
+      {refined && (
+        <motion.span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-[3px] left-[7px] h-[54px] w-[58px] rounded-full bg-[color:var(--entry-accent)] blur-xl"
+          variants={{
+            rest: { opacity: 0, scale: 0.78 },
+            spread: { opacity: reduceMotion ? 0 : 0.13, scale: 1, transition: fanInTransition },
+          }}
+        />
+      )}
       {/* 后卡：设计稿 x=17.936, y=0, 60×75, rotate=10°, skewX=-1.54° */}
       <motion.span
         className="pointer-events-none absolute left-[17.94px] top-0 h-[75px] w-[60px]"
         style={{ transformOrigin: '0% 100%' }}
         variants={{
-          rest: { x: 0, rotate: 0, transition: fanOutTransition },
+          rest: {
+            x: 0,
+            y: 0,
+            rotate: 0,
+            filter: 'drop-shadow(0 0 0 rgba(0,0,0,0))',
+            transition: refined ? liftOutTransition : fanOutTransition,
+          },
           spread: {
             x: reduceMotion ? 0 : 2,
-            rotate: reduceMotion ? 0 : 4,
-            transition: fanInTransition,
+            y: 0,
+            rotate: reduceMotion ? 0 : refined ? 3.5 : 4,
+            filter: refined && !reduceMotion
+              ? 'drop-shadow(0 5px 8px rgba(42,48,68,0.08))'
+              : 'drop-shadow(0 0 0 rgba(0,0,0,0))',
+            transition: refined ? liftInTransition : fanInTransition,
           },
         }}
       >
         <span
-          className="absolute inset-0 overflow-hidden rounded-xl border border-white/80 bg-gradient-to-b from-[#f2f3f5] to-[#e0e3e9] shadow-[0_5px_10px_rgba(0,0,0,0.12)]"
-          style={{ transform: 'rotate(10deg) skewX(-1.54deg)', transformOrigin: '0% 0%' }}
+          className="absolute inset-0 transition-transform duration-100 ease-out"
+          style={{ transform: refined ? 'translate3d(var(--back-shift-x, 0px), var(--back-shift-y, 0px), 0)' : undefined }}
         >
-          {back && <img src={back} alt="" className="h-full w-full object-cover" />}
+          <span
+            className={`absolute inset-0 overflow-hidden rounded-xl bg-gradient-to-b from-[#f2f3f5] to-[#e0e3e9] shadow-[0_5px_10px_rgba(0,0,0,0.12)] ${!back || outlineBack ? 'border border-white/80' : ''}`}
+            style={{ transform: 'rotate(10deg) skewX(-1.54deg)', transformOrigin: '0% 0%' }}
+          >
+            {back && <img src={back} alt="" className="h-full w-full object-cover" />}
+          </span>
         </span>
       </motion.span>
       {/* 正卡在左，压住后卡 */}
-      <motion.img
-        src={front}
-        alt=""
+      <motion.span
         className="pointer-events-none absolute left-0 top-[5.1px] h-[75px] w-[60px] object-cover"
         style={{ transformOrigin: '100% 100%' }}
         variants={{
-          rest: { x: 0, rotate: 0, transition: fanOutTransition },
+          rest: {
+            x: 0,
+            y: 0,
+            rotate: 0,
+            scale: 1,
+            transition: refined ? liftOutTransition : fanOutTransition,
+          },
           spread: {
-            x: reduceMotion ? 0 : -5,
-            rotate: reduceMotion ? 0 : -6,
-            transition: fanInTransition,
+            x: reduceMotion ? 0 : refined ? 0 : -5,
+            y: 0,
+            rotate: reduceMotion || refined ? 0 : -6,
+            scale: 1,
+            transition: refined ? liftInTransition : fanInTransition,
           },
         }}
-      />
+      >
+        {refined ? (
+          <>
+            {/* 原生 4x 图层直接承担缩放与旋转，避免先压成 60×75 再放大。 */}
+            <motion.img
+              src={front}
+              alt=""
+              className="absolute left-[-90px] top-[-112.5px] h-[300px] w-[240px] max-w-none object-cover"
+              style={{
+                transformOrigin: '50% 50%',
+                translate: 'var(--front-shift-x, 0px) var(--front-shift-y, 0px)',
+              }}
+              variants={{
+                rest: {
+                  scale: 0.25,
+                  rotate: 0,
+                  transition: liftOutTransition,
+                },
+                spread: {
+                  scale: reduceMotion ? 0.25 : 0.26,
+                  rotate: reduceMotion ? 0 : -1.4,
+                  transition: liftInTransition,
+                },
+              }}
+            />
+            <motion.span
+              aria-hidden="true"
+              className="absolute inset-0 overflow-hidden rounded-xl shadow-[0_0_0_rgba(35,42,61,0)] group-hover:shadow-[0_7px_9px_rgba(35,42,61,0.14)] group-focus-visible:shadow-[0_7px_9px_rgba(35,42,61,0.14)]"
+              style={{
+                transformOrigin: '50% 50%',
+                translate: 'var(--front-shift-x, 0px) var(--front-shift-y, 0px)',
+              }}
+              variants={{
+                rest: { scale: 1, rotate: 0, transition: liftOutTransition },
+                spread: {
+                  scale: reduceMotion ? 1 : 1.04,
+                  rotate: reduceMotion ? 0 : -1.4,
+                  transition: liftInTransition,
+                },
+              }}
+            >
+              <motion.span
+                aria-hidden="true"
+                className="absolute inset-0 rounded-xl"
+                style={{
+                  background:
+                    'radial-gradient(46px 104px at var(--shine-x, 35%) 38%, #fff, rgba(255,255,255,0.26) 42%, transparent 76%)',
+                  transform: 'rotate(16deg) scale(1.2)',
+                }}
+                variants={{
+                  rest: { opacity: 0, transition: { duration: reduceMotion ? 0 : 0.12 } },
+                  spread: { opacity: reduceMotion ? 0 : 0.5, transition: { duration: 0.18 } },
+                }}
+              />
+            </motion.span>
+          </>
+        ) : (
+          <img src={front} alt="" className="h-full w-full object-cover" />
+        )}
+      </motion.span>
     </span>
   )
 }
@@ -951,9 +1221,28 @@ export default function CreatorCenterHome({
                   {SMART_CREATE_ENTRIES.map((e) => (
                     <EntryCard
                       key={e.id}
-                      icon={<CardImageIcon front={e.homeFront} back={e.homeBack} />}
+                      icon={(
+                        <CardImageIcon
+                          front={e.homeFront}
+                          back={e.homeBack}
+                          refined
+                          outlineBack={e.id === 'ai-avatar' || e.id === 'wiki'}
+                        />
+                      )}
                       label={e.label}
                       desc={e.desc}
+                      actionLabel={{
+                        'ai-avatar': '创建我的 AI 分身',
+                        wiki: '开始搭建百科',
+                        suibian: '开始角色创作',
+                        workshop: '把想法变成产品',
+                      }[e.id]}
+                      accent={{
+                        'ai-avatar': '#3478D4',
+                        wiki: '#6157D9',
+                        suibian: '#C28A00',
+                        workshop: '#D76026',
+                      }[e.id]}
                       onClick={() => onOpenProduct(e.id)}
                     />
                   ))}
@@ -972,9 +1261,15 @@ export default function CreatorCenterHome({
                   {PUBLISH_ENTRIES.map((e) => (
                     <EntryCard
                       key={e.label}
-                      icon={<CardImageIcon front={e.img} />}
+                      icon={<CardImageIcon front={e.img} refined />}
                       label={e.label}
                       desc={e.desc}
+                      accent={{
+                        video: '#E54867',
+                        image: '#258AF4',
+                        panorama: '#6952E8',
+                        article: '#C58A00',
+                      }[e.id]}
                       onClick={() => setPage(publishPageKey(e.id))}
                     />
                   ))}
