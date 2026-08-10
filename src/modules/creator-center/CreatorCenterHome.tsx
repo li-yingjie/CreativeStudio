@@ -337,21 +337,20 @@ function EntryCard({
   icon,
   label,
   desc,
-  actionLabel,
+  hoverArrow = false,
   accent,
   onClick,
 }: {
   icon: React.ReactNode
   label: string
   desc: string
-  actionLabel?: string
+  hoverArrow?: boolean
   accent?: string
   onClick?: () => void
 }) {
   const reduceMotion = useReducedMotion()
   const cardRef = useRef<HTMLButtonElement>(null)
   const isEnhancedEntry = Boolean(accent)
-  const hasActionSwap = Boolean(actionLabel && accent)
   const pointerX = useMotionValue(104)
   const pointerY = useMotionValue(38)
   const trailNearX = useSpring(pointerX, { stiffness: 270, damping: 28, mass: 0.45 })
@@ -469,55 +468,30 @@ function EntryCard({
       <span className="pointer-events-none absolute -left-px top-[-5.1px] z-[1] h-[84px] w-[77px]">{icon}</span>
       <div className="relative min-w-0">
         <div className={`truncate text-[14px] font-semibold text-[#252632] transition-colors duration-200 ${isEnhancedEntry ? 'group-hover:text-[color:var(--entry-accent)] group-focus-visible:text-[color:var(--entry-accent)]' : ''}`}>{label}</div>
-        <div className="relative mt-1 h-[18px] overflow-visible text-[12px] leading-[18px]">
-          <motion.span
-            className="block text-[#252632]/50"
-            variants={hasActionSwap ? {
-              rest: {
-                x: 0,
-                opacity: 1,
-                filter: 'blur(0px)',
-                transition: {
-                  delay: reduceMotion ? 0 : 0.156,
-                  duration: reduceMotion ? 0 : 0.26,
-                  ease: [0.16, 1, 0.3, 1],
-                },
-              },
-              spread: {
-                x: reduceMotion ? 0 : 6,
-                opacity: 0,
-                filter: reduceMotion ? 'blur(0px)' : 'blur(2px)',
-                transition: { duration: reduceMotion ? 0 : 0.14, ease: [0.7, 0, 0.84, 0] },
-              },
-            } : undefined}
-          >
-            <span className="block truncate">{desc}</span>
-          </motion.span>
-          {hasActionSwap && (
+        <div className={`relative mt-1 h-[18px] overflow-hidden whitespace-nowrap text-[12px] leading-[18px] text-[#252632]/50 transition-colors duration-200 ${
+          hoverArrow
+            ? 'group-hover:text-[color:color-mix(in_srgb,var(--entry-accent)_44%,#8b8c94_56%)] group-focus-visible:text-[color:color-mix(in_srgb,var(--entry-accent)_44%,#8b8c94_56%)]'
+            : ''
+        }`}>
+          <span>{desc}</span>
+          {hoverArrow && (
             <motion.span
-              className="absolute inset-0 flex items-center gap-0.5 whitespace-nowrap font-medium text-[color:var(--entry-accent)]"
-              style={{ willChange: 'transform, opacity, filter' }}
+              aria-hidden="true"
+              className="ml-0.5 inline-flex h-[18px] align-top items-center text-[color:var(--entry-accent)]"
               variants={{
                 rest: {
-                  x: reduceMotion ? 0 : -5,
+                  x: reduceMotion ? 0 : -3,
                   opacity: 0,
-                  filter: reduceMotion ? 'blur(0px)' : 'blur(3px)',
-                  transition: { duration: reduceMotion ? 0 : 0.12, ease: [0.7, 0, 0.84, 0] },
+                  transition: { duration: reduceMotion ? 0 : 0.12, ease: 'easeOut' },
                 },
                 spread: {
                   x: 0,
                   opacity: 1,
-                  filter: 'blur(0px)',
-                  transition: {
-                    delay: reduceMotion ? 0 : 0.1,
-                    duration: reduceMotion ? 0 : 0.28,
-                    ease: [0.22, 1, 0.36, 1],
-                  },
+                  transition: { delay: reduceMotion ? 0 : 0.06, duration: reduceMotion ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] },
                 },
               }}
             >
-              {actionLabel}
-              <ChevronRight size={13} strokeWidth={2} className="transition-transform duration-200 group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5" />
+              <ChevronRight size={13} strokeWidth={2} />
             </motion.span>
           )}
         </div>
@@ -590,7 +564,7 @@ function CardImageIcon({
           style={{ transform: refined ? 'translate3d(var(--back-shift-x, 0px), var(--back-shift-y, 0px), 0)' : undefined }}
         >
           <span
-            className={`absolute inset-0 overflow-hidden rounded-xl bg-gradient-to-b from-[#f2f3f5] to-[#e0e3e9] shadow-[0_5px_10px_rgba(0,0,0,0.12)] ${!back || outlineBack ? 'border border-white/80' : ''}`}
+            className={`absolute inset-0 overflow-hidden rounded-[12px] bg-gradient-to-b from-[#f2f3f5] to-[#e0e3e9] ${!back || outlineBack ? 'border border-white/80' : ''}`}
             style={{ transform: 'rotate(10deg) skewX(-1.54deg)', transformOrigin: '0% 0%' }}
           >
             {back && <img src={back} alt="" className="h-full w-full object-cover" />}
@@ -624,7 +598,7 @@ function CardImageIcon({
             <motion.img
               src={front}
               alt=""
-              className="absolute left-[-90px] top-[-112.5px] h-[300px] w-[240px] max-w-none object-cover"
+              className="absolute left-[-90px] top-[-112.5px] h-[300px] w-[240px] max-w-none rounded-[50px] object-cover"
               style={{
                 transformOrigin: '50% 50%',
                 translate: 'var(--front-shift-x, 0px) var(--front-shift-y, 0px)',
@@ -644,7 +618,7 @@ function CardImageIcon({
             />
             <motion.span
               aria-hidden="true"
-              className="absolute inset-0 overflow-hidden rounded-xl shadow-[0_0_0_rgba(35,42,61,0)] group-hover:shadow-[0_7px_9px_rgba(35,42,61,0.14)] group-focus-visible:shadow-[0_7px_9px_rgba(35,42,61,0.14)]"
+              className="absolute inset-0 overflow-hidden rounded-[12.5px] shadow-[0_0_0_rgba(35,42,61,0)] group-hover:shadow-[0_7px_9px_rgba(35,42,61,0.14)] group-focus-visible:shadow-[0_7px_9px_rgba(35,42,61,0.14)]"
               style={{
                 transformOrigin: '50% 50%',
                 translate: 'var(--front-shift-x, 0px) var(--front-shift-y, 0px)',
@@ -660,7 +634,7 @@ function CardImageIcon({
             >
               <motion.span
                 aria-hidden="true"
-                className="absolute inset-0 rounded-xl"
+                className="absolute inset-0 rounded-[12.5px]"
                 style={{
                   background:
                     'radial-gradient(46px 104px at var(--shine-x, 35%) 38%, #fff, rgba(255,255,255,0.26) 42%, transparent 76%)',
@@ -674,7 +648,7 @@ function CardImageIcon({
             </motion.span>
           </>
         ) : (
-          <img src={front} alt="" className="h-full w-full object-cover" />
+          <img src={front} alt="" className="h-full w-full rounded-[12.5px] object-cover" />
         )}
       </motion.span>
     </span>
@@ -1226,17 +1200,12 @@ export default function CreatorCenterHome({
                           front={e.homeFront}
                           back={e.homeBack}
                           refined
-                          outlineBack={e.id === 'ai-avatar' || e.id === 'wiki'}
+                          outlineBack={e.id === 'ai-avatar' || e.id === 'wiki' || e.id === 'workshop'}
                         />
                       )}
                       label={e.label}
                       desc={e.desc}
-                      actionLabel={{
-                        'ai-avatar': '创建我的 AI 分身',
-                        wiki: '开始搭建百科',
-                        suibian: '开始角色创作',
-                        workshop: '把想法变成产品',
-                      }[e.id]}
+                      hoverArrow
                       accent={{
                         'ai-avatar': '#3478D4',
                         wiki: '#6157D9',
