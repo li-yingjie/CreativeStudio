@@ -182,6 +182,7 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
       ariaLabel="创作者中心侧栏"
       chrome={version === 1 ? 'plain' : 'panel'}
       showDivider={version !== 1}
+      style={{ paddingTop: 'var(--cc-top)' }}
       collapsed={collapsed}
       resizable
       flushHeader={version === 1}
@@ -358,9 +359,9 @@ function EntryCard({
   const trailFarX = useSpring(pointerX, { stiffness: 125, damping: 22, mass: 0.8 })
   const trailFarY = useSpring(pointerY, { stiffness: 125, damping: 22, mass: 0.8 })
   const spotlightBackground = useMotionTemplate`
-    radial-gradient(150px circle at ${pointerX}px ${pointerY}px, color-mix(in srgb, var(--entry-accent) 9%, transparent), transparent 72%),
-    radial-gradient(150px circle at ${trailNearX}px ${trailNearY}px, color-mix(in srgb, var(--entry-accent) 5%, transparent), transparent 72%),
-    radial-gradient(150px circle at ${trailFarX}px ${trailFarY}px, color-mix(in srgb, var(--entry-accent) 3%, transparent), transparent 72%)
+    radial-gradient(150px circle at ${pointerX}px ${pointerY}px, rgba(92, 112, 134, 0.055), transparent 72%),
+    radial-gradient(150px circle at ${trailNearX}px ${trailNearY}px, rgba(102, 122, 144, 0.032), transparent 72%),
+    radial-gradient(150px circle at ${trailFarX}px ${trailFarY}px, rgba(112, 132, 154, 0.018), transparent 72%)
   `
   const gridMask = useMotionTemplate`radial-gradient(105px circle at ${trailNearX}px ${trailNearY}px, black 0%, rgba(0,0,0,0.72) 48%, transparent 82%)`
 
@@ -406,7 +407,7 @@ function EntryCard({
       style={isEnhancedEntry ? ({ '--entry-accent': accent } as React.CSSProperties) : undefined}
       className={`group relative h-[75px] overflow-visible rounded-2xl border-[0.5px] bg-white py-[16px] pl-[86px] pr-3 text-left outline-none transition-[border-color,box-shadow,background-color] duration-200 focus-visible:ring-2 focus-visible:ring-[#1769C2]/35 focus-visible:ring-offset-2 ${
         isEnhancedEntry
-          ? 'border-black/5 shadow-[0_5px_8px_rgba(0,0,0,0.05)] hover:border-[color:var(--entry-accent)]/24 hover:shadow-[0_10px_24px_rgba(28,38,64,0.11)]'
+          ? 'border-black/5 shadow-[0_5px_8px_rgba(0,0,0,0.05)] hover:border-[#8d9cad]/20 hover:shadow-[0_10px_24px_rgba(28,38,64,0.11)]'
           : 'border-black/5 shadow-[0_5px_8px_rgba(0,0,0,0.05)]'
       }`}
     >
@@ -419,22 +420,11 @@ function EntryCard({
             variants={{
               rest: {
                 opacity: 0,
-                filter: 'hue-rotate(0deg) saturate(100%)',
                 transition: { opacity: { duration: reduceMotion ? 0 : 0.16 } },
               },
               spread: {
                 opacity: 1,
-                filter: reduceMotion
-                  ? 'hue-rotate(0deg) saturate(100%)'
-                  : [
-                      'hue-rotate(-22deg) saturate(112%) brightness(100%)',
-                      'hue-rotate(24deg) saturate(155%) brightness(112%)',
-                      'hue-rotate(-22deg) saturate(112%) brightness(100%)',
-                    ],
-                transition: {
-                  opacity: { duration: reduceMotion ? 0 : 0.18 },
-                  filter: { duration: 2.8, ease: 'easeInOut', repeat: Infinity },
-                },
+                transition: { opacity: { duration: reduceMotion ? 0 : 0.18 } },
               },
             }}
           />
@@ -470,7 +460,7 @@ function EntryCard({
         <div className={`truncate text-[14px] font-semibold text-[#252632] transition-colors duration-200 ${isEnhancedEntry ? 'group-hover:text-[color:var(--entry-accent)] group-focus-visible:text-[color:var(--entry-accent)]' : ''}`}>{label}</div>
         <div className={`relative mt-1 h-[18px] overflow-hidden whitespace-nowrap text-[12px] leading-[18px] text-[#252632]/50 transition-colors duration-200 ${
           hoverArrow
-            ? 'group-hover:text-[color:color-mix(in_srgb,var(--entry-accent)_44%,#8b8c94_56%)] group-focus-visible:text-[color:color-mix(in_srgb,var(--entry-accent)_44%,#8b8c94_56%)]'
+            ? 'group-hover:text-[color:color-mix(in_srgb,var(--entry-accent)_62%,white_38%)] group-focus-visible:text-[color:color-mix(in_srgb,var(--entry-accent)_62%,white_38%)]'
             : ''
         }`}>
           <span>{desc}</span>
@@ -1114,9 +1104,11 @@ function AmbientBackgroundVideo({
 export default function CreatorCenterHome({
   active,
   onOpenProduct,
+  onScrollStateChange,
 }: {
   active: boolean
   onOpenProduct: (id: ProductId) => void
+  onScrollStateChange?: (scrolled: boolean) => void
 }) {
   // 左侧栏当前页：data=数据看板 content=内容管理 其余为建设中占位
   const [page, setPage] = useState('data')
@@ -1130,6 +1122,10 @@ export default function CreatorCenterHome({
   // 首页新板块（互动/变现/活动/快速导航）共用一次 home-overview 拉取
   const { data: homeData } = useHomeOverview(homePageActive)
   const reduceMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (!active || page !== 'data') onScrollStateChange?.(false)
+  }, [active, onScrollStateChange, page])
 
   return (
     <div className={`flex h-full min-h-0 ${navVersion === 1 ? 'bg-transparent' : 'bg-[#F5F6F8]'}`}>
@@ -1172,6 +1168,7 @@ export default function CreatorCenterHome({
         </main>
       ) : (
       <main
+        onScroll={(event) => onScrollStateChange?.(event.currentTarget.scrollTop > 8)}
         className={`min-w-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
           navVersion === 1 ? 'bg-white' : ''
         }`}
@@ -1179,7 +1176,7 @@ export default function CreatorCenterHome({
         {/* 完整 ASCII 动画靠底取景；遮罩不跟随视频放大，确保在内容区
             底边完全落到页面底色，避免残留画面形成一条硬接缝。 */}
         <div
-          className={`relative overflow-hidden ${
+          className={`relative overflow-hidden pt-[var(--cc-top)] ${
             navVersion === 1 ? 'bg-white' : 'bg-[#F5F6F8]'
           }`}
         >
@@ -1209,7 +1206,7 @@ export default function CreatorCenterHome({
                       accent={{
                         'ai-avatar': '#3478D4',
                         wiki: '#6157D9',
-                        suibian: '#C28A00',
+                        suibian: '#C58A00',
                         workshop: '#D76026',
                       }[e.id]}
                       onClick={() => onOpenProduct(e.id)}

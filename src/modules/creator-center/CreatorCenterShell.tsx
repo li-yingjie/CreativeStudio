@@ -287,6 +287,7 @@ export default function CreatorCenterShell() {
   // AI 分身默认视为已开通（开通落地页暂时隐藏），进入即分身版工坊界面；
   // 与工坊同样首次进入后保持挂载，切走再切回不丢状态。
   const [avatarMounted, setAvatarMounted] = useState(false)
+  const [homeScrolled, setHomeScrolled] = useState(false)
   const handleWorkshopCanvasModeChange = useCallback((open: boolean) => {
     setWorkshopCanvasMode(open)
   }, [])
@@ -313,7 +314,7 @@ export default function CreatorCenterShell() {
   return (
     <div
       data-nav-version={navVersion}
-      className="flex h-dvh flex-col"
+      className="relative flex h-dvh flex-col"
       style={{
         '--cc-top': topNavHidden ? '0px' : NAV_H,
         '--l-shaped-background-image': L_SHAPED_BACKGROUND,
@@ -327,6 +328,9 @@ export default function CreatorCenterShell() {
             onSelect={selectProduct}
             showLogo={false}
             fused
+            overlay={active === 'home'}
+            scrolled={active === 'home' && homeScrolled}
+            glassLeftInset={visualSideNavWidth}
             leftSlot={(
               <SideNavBrandHeader
                 width={visualSideNavWidth}
@@ -337,7 +341,13 @@ export default function CreatorCenterShell() {
             )}
           />
         ) : (
-          <TopNav active={active} onSelect={selectProduct} />
+          <TopNav
+            active={active}
+            onSelect={selectProduct}
+            overlay={active === 'home'}
+            scrolled={active === 'home' && homeScrolled}
+            glassLeftInset={configuredSideNavWidth}
+          />
         )
       )}
       {/* overflow-hidden：产品层的轻位移不外溢成文档滚动条（避免顶栏抖动）。 */}
@@ -354,6 +364,7 @@ export default function CreatorCenterShell() {
               <CreatorCenterHome
                 active={active === 'home'}
                 onOpenProduct={selectProduct}
+                onScrollStateChange={setHomeScrolled}
               />
             </Suspense>
           </ProductSurface>

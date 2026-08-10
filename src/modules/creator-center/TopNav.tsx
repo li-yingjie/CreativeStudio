@@ -28,6 +28,9 @@ export default function TopNav({
   onSelect,
   showLogo = true,
   fused = false,
+  overlay = false,
+  scrolled = false,
+  glassLeftInset = 0,
   leftSlot,
   workshopTaskStatus: workshopTaskStatusProp,
 }: {
@@ -36,6 +39,12 @@ export default function TopNav({
   showLogo?: boolean
   /** 方案 1：与左上品牌区、产品侧栏共用同一导航底板。 */
   fused?: boolean
+  /** 首页通天内容结构：顶栏覆盖在滚动视口之上，不占据独立布局行。 */
+  overlay?: boolean
+  /** 覆盖态内容进入顶栏下方后，启用半透明玻璃效果。 */
+  scrolled?: boolean
+  /** 玻璃层从侧栏右边缘开始，避免影响左侧导航区域。 */
+  glassLeftInset?: number
   /** 方案 1 全宽三段顶栏的左侧品牌区。 */
   leftSlot?: ReactNode
   /** 不传时读取全局任务状态；规范/隔离预览可显式传状态，null 表示隐藏。 */
@@ -56,12 +65,41 @@ export default function TopNav({
   return (
     <header
       data-fused-nav={fused || undefined}
-      className={`relative z-[70] flex h-12 shrink-0 items-center ${
+      className={`${overlay ? 'absolute inset-x-0 top-0' : 'relative'} isolate z-[70] flex h-12 shrink-0 items-center transition-[background-color,border-color,box-shadow] duration-200 ${
         fused
-          ? 'gap-8 bg-transparent px-4 backdrop-blur-[22px]'
-          : 'border-b border-black/5 bg-white px-3 sm:px-4 lg:px-6'
+          ? `gap-8 px-4 ${scrolled && !overlay ? 'bg-white/92 backdrop-blur-[22px] shadow-[0_1px_0_rgba(22,24,35,0.035)]' : 'bg-transparent'}`
+          : `border-b px-3 backdrop-blur-[18px] backdrop-saturate-150 sm:px-4 lg:px-6 ${
+              scrolled
+                ? overlay
+                  ? 'border-white/50 bg-transparent shadow-[0_1px_0_rgba(22,24,35,0.035)]'
+                  : 'border-white/50 bg-white/92 shadow-[0_1px_0_rgba(22,24,35,0.035)]'
+                : 'border-black/5 bg-white'
+            }`
       }`}
     >
+      {overlay && scrolled && (
+        <>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 z-[-1] bg-white"
+            style={{ width: glassLeftInset }}
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 z-[-1] bg-white/92 backdrop-blur-[18px] backdrop-saturate-150"
+            style={{ left: glassLeftInset }}
+          />
+        </>
+      )}
+      {overlay && (
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute right-0 top-full h-14 bg-gradient-to-b from-[#F5F6F8]/78 via-[#F5F6F8]/34 to-transparent backdrop-blur-[5px] [mask-image:linear-gradient(to_bottom,black,transparent)] transition-opacity duration-200 ${
+            scrolled ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{ left: glassLeftInset }}
+        />
+      )}
       {fused && (
         <div className="flex min-w-0 flex-1 items-center overflow-hidden">
           {leftSlot}
