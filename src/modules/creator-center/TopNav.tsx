@@ -184,12 +184,21 @@ const NAV_VERSION_NAMES: Record<NavVersion, string> = {
 export function AvatarMenu({
   compact = false,
   label,
+  placement = 'header',
 }: {
   compact?: boolean
   label?: string
+  placement?: 'header' | 'sidebar'
 }) {
   const navVersion = useNavVersion((s) => s.version)
   const selectNavVersion = useNavVersion((s) => s.setVersion)
+  const placedInSidebar = placement === 'sidebar'
+  const contentOverflowClass = placedInSidebar
+    ? 'overflow-visible'
+    : 'overflow-y-auto'
+  const accountSwitcherPositionClass = placedInSidebar
+    ? 'absolute left-full top-0 hidden pl-2 group-hover:block group-focus-within:block'
+    : 'absolute right-full top-0 hidden pr-2 group-hover:block group-focus-within:block'
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
@@ -214,11 +223,11 @@ export function AvatarMenu({
         {/* 设计稿 创作者中心26.7 788-20791：身份认证 / 通知中心 /
             切换账号 / 退出登录；切换账号 hover 出二级账号面板。 */}
         <Popover.Content
-          side="bottom"
-          align="end"
+          side={placedInSidebar ? 'top' : 'bottom'}
+          align={placedInSidebar ? 'start' : 'end'}
           sideOffset={8}
           aria-label="账号菜单"
-          className="z-[90] max-h-[var(--radix-popover-content-available-height)] w-[232px] overflow-y-auto rounded-lg bg-white p-2 shadow-[0_4px_7px_rgba(0,0,0,0.1),0_0_0.5px_rgba(0,0,0,0.3)]"
+          className={`z-[90] max-h-[var(--radix-popover-content-available-height)] w-[232px] rounded-lg bg-white p-2 shadow-[0_4px_7px_rgba(0,0,0,0.1),0_0_0.5px_rgba(0,0,0,0.3)] ${contentOverflowClass}`}
         >
           <button type="button" onClick={() => toast('身份认证（演示）')} className={menuRow}>
             <FigmaGlyph src="/icons/account-menu/certificate.svg" inset="3.57%" />
@@ -232,13 +241,13 @@ export function AvatarMenu({
             </span>
           </button>
           <div className="group relative">
-            <button type="button" className={menuRow}>
+            <button type="button" aria-haspopup="menu" className={menuRow}>
               <FigmaGlyph src="/icons/account-menu/switch.svg" inset="8.33% 12.5%" />
               <span className="flex-1 text-left">切换账号</span>
               <FigmaGlyph src="/icons/account-menu/chevron-right.svg" inset="20.83% 33.33%" className="text-[#1c1f23]/60" />
             </button>
-            {/* 二级账号面板 — 悬停展开,pr 作为鼠标移动的悬停桥 */}
-            <div className="absolute right-full top-0 hidden pr-2 group-hover:block">
+            {/* 二级账号面板跟随头像入口所在边缘向内展开，间距同时作为悬停桥。 */}
+            <div className={accountSwitcherPositionClass}>
               <AccountSwitcherPanel />
             </div>
           </div>

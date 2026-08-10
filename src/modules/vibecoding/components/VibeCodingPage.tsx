@@ -121,6 +121,8 @@ import ComposerLocalFileButton from '@/shared/components/ComposerLocalFileButton
 import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
 import SideNavSearchToolbar from '@/shared/components/SideNavSearchToolbar'
 import UnifiedToolbar from '@/modules/creator-center/UnifiedToolbar'
+import { AvatarMenu } from '@/modules/creator-center/TopNav'
+import { CREATOR_PROFILE } from '@/modules/creator-center/data'
 import SideNavPanelStateIcon from '@/shared/components/SideNavPanelStateIcon'
 import SideNavIconFooterActions, {
   SideNavCollapseFooterButton,
@@ -965,6 +967,21 @@ const STANDALONE_WORKSHOP_NAV_ITEMS: SideNavItem[] = [
     dividerAfter: true,
   },
 ]
+
+function StandaloneWorkshopAccountMenu({ collapsed }: { collapsed: boolean }) {
+  return (
+    <div className="px-[var(--sn-px)] pb-2">
+      <div className="flex h-8 items-center justify-center">
+        <AvatarMenu
+          compact={collapsed}
+          label={collapsed ? undefined : CREATOR_PROFILE.name}
+          placement="sidebar"
+        />
+      </div>
+    </div>
+  )
+}
+
 function StandaloneWorkshopRail({
   activeNav,
   onExpand,
@@ -1014,23 +1031,7 @@ function StandaloneWorkshopRail({
           </div>
         </>
       }
-      footer={
-        <div className="px-[var(--sn-px)] pb-2">
-          <button
-            type="button"
-            onClick={() => toast('我的草稿（演示）')}
-            aria-label="我的草稿 23"
-            title="我的草稿 23"
-            className="relative flex h-8 w-full items-center justify-center rounded-lg px-2 text-[12px] font-medium leading-4 text-[#252632]/80 transition-colors hover:bg-black/[0.03]"
-          >
-            <InboxLinearIcon size={16} className="shrink-0" />
-            <span
-              aria-hidden
-              className="absolute left-1/2 top-1/2 ml-1 mt-1 size-1 rounded-full bg-[#FE2C55]"
-            />
-          </button>
-        </div>
-      }
+      footer={<StandaloneWorkshopAccountMenu collapsed />}
     />
   )
 }
@@ -1418,23 +1419,9 @@ function PlatformSidebar({
         ) : undefined
       }
       footer={
-        /* 方案 1 / 4 工坊底部与百科「我的词条」保持同一位置和行样式。 */
+        /* 独立工作台始终保留账号菜单，避免隐藏顶栏后失去导航方案入口。 */
         standaloneWorkshopLayout ? (
-          <div className="px-[var(--sn-px)] pb-2">
-            <button
-              type="button"
-              onClick={() => toast('我的草稿（演示）')}
-              aria-label="我的草稿 23"
-              title={collapsed ? '我的草稿 23' : undefined}
-              className={`flex h-8 w-full items-center rounded-lg px-2 text-[12px] font-medium leading-4 text-[#252632]/80 transition-colors hover:bg-black/[0.03] ${
-                collapsed ? 'justify-center gap-1' : 'gap-1.5'
-              }`}
-            >
-              <InboxLinearIcon size={16} className="shrink-0" />
-              {!collapsed && <span>我的草稿 23</span>}
-              <span aria-hidden className="size-1 shrink-0 rounded-full bg-[#FE2C55]" />
-            </button>
-          </div>
+          <StandaloneWorkshopAccountMenu collapsed={collapsed} />
         ) : navVersion === 3 ? (
           <div className="px-[var(--sn-px)] pb-3">
             <SideNavCollapseFooterButton

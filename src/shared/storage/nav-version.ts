@@ -75,11 +75,11 @@ export const useNavVersion = create<NavVersionState>()(
     {
       name: 'creator-center:nav-version',
       storage: createJSONStorage(() => localStorage),
-      version: 4,
+      version: 5,
       migrate: (persistedState, persistedVersion) => {
         const state = persistedState as Partial<NavVersionState>
-        // 每次默认方案切换都提升存储版本，让旧预览一次性跟进。
-        if (persistedVersion < 4) {
+        // 提升存储版本时让线上旧偏好一次性跟进当前默认方案。
+        if (persistedVersion < 5) {
           return { ...state, version: DEFAULT_NAV_VERSION } as NavVersionState
         }
         return state as NavVersionState
