@@ -65,7 +65,7 @@ export default function TopNav({
   return (
     <header
       data-fused-nav={fused || undefined}
-      className={`${overlay ? 'absolute inset-x-0 top-0' : 'relative'} isolate z-[70] flex h-12 shrink-0 items-center transition-[background-color,border-color,box-shadow] duration-200 ${
+      className={`${overlay ? 'absolute inset-x-0 top-0 transition-[border-color,box-shadow]' : 'relative transition-[background-color,border-color,box-shadow]'} isolate z-[70] flex h-12 shrink-0 items-center duration-200 ${
         fused
           ? `gap-8 px-4 ${scrolled && !overlay ? 'bg-white/92 backdrop-blur-[22px] shadow-[0_1px_0_rgba(22,24,35,0.035)]' : 'bg-transparent'}`
           : `border-b px-3 backdrop-blur-[18px] backdrop-saturate-150 sm:px-4 lg:px-6 ${
@@ -94,8 +94,8 @@ export default function TopNav({
       {overlay && (
         <span
           aria-hidden="true"
-          className={`pointer-events-none absolute right-0 top-full h-14 bg-gradient-to-b from-[#F5F6F8]/78 via-[#F5F6F8]/34 to-transparent backdrop-blur-[5px] [mask-image:linear-gradient(to_bottom,black,transparent)] transition-opacity duration-200 ${
-            scrolled ? 'opacity-100' : 'opacity-0'
+          className={`pointer-events-none absolute right-0 top-full h-14 bg-gradient-to-b from-white/52 via-white/18 to-transparent transition-opacity duration-200 ${
+            scrolled ? 'opacity-0' : 'opacity-100'
           }`}
           style={{ left: glassLeftInset }}
         />
