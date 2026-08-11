@@ -323,10 +323,10 @@ function ProfileHeader({ stats }: { stats: CreatorStats | null }) {
 
 /* ─── 入口卡 ─── */
 
-/** 规则矩阵中的每个点独立闪烁；互质周期让节奏看起来随机但点位保持稳定。 */
-const MATRIX_DOTS = Array.from({ length: 42 * 9 }, (_, index) => ({
-  left: `${(index % 42) * 8.5 + 3.25}px`,
-  top: `${Math.floor(index / 42) * 8.5 + 3.25}px`,
+/** 规则矩阵中的每个点独立闪烁；不再跟随鼠标，仅提供克制的空间层次。 */
+const MATRIX_DOTS = Array.from({ length: 48 * 10 }, (_, index) => ({
+  left: `${(index % 48) * 7.5 + 3}px`,
+  top: `${Math.floor(index / 48) * 7.5 + 3}px`,
   delay: `${-((index * 17) % 31) / 10}s`,
   duration: `${0.9 + ((index * 11) % 19) / 10}s`,
 }))
@@ -354,18 +354,11 @@ function EntryCard({
   const isEnhancedEntry = Boolean(accent)
   const pointerX = useMotionValue(104)
   const pointerY = useMotionValue(38)
-  const trailNearX = useSpring(pointerX, { stiffness: 270, damping: 28, mass: 0.45 })
-  const trailNearY = useSpring(pointerY, { stiffness: 270, damping: 28, mass: 0.45 })
-  const trailFarX = useSpring(pointerX, { stiffness: 125, damping: 22, mass: 0.8 })
-  const trailFarY = useSpring(pointerY, { stiffness: 125, damping: 22, mass: 0.8 })
-  const spotlightBackground = useMotionTemplate`
-    radial-gradient(150px circle at ${pointerX}px ${pointerY}px, rgba(92, 112, 134, 0.055), transparent 72%),
-    radial-gradient(150px circle at ${trailNearX}px ${trailNearY}px, rgba(102, 122, 144, 0.032), transparent 72%),
-    radial-gradient(150px circle at ${trailFarX}px ${trailFarY}px, rgba(112, 132, 154, 0.018), transparent 72%)
-  `
-  const gridMask = useMotionTemplate`radial-gradient(105px circle at ${trailNearX}px ${trailNearY}px, black 0%, rgba(0,0,0,0.72) 48%, transparent 82%)`
+  const matrixX = useSpring(pointerX, { stiffness: 270, damping: 28, mass: 0.45 })
+  const matrixY = useSpring(pointerY, { stiffness: 270, damping: 28, mass: 0.45 })
+  const matrixMask = useMotionTemplate`radial-gradient(112px circle at ${matrixX}px ${matrixY}px, black 0%, rgba(0,0,0,0.72) 52%, transparent 84%)`
 
-  const updateSpotlight = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const updateIconDirection = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!isEnhancedEntry || reduceMotion) return
     const bounds = event.currentTarget.getBoundingClientRect()
     const localX = event.clientX - bounds.left
@@ -393,7 +386,7 @@ function EntryCard({
       ref={cardRef}
       type="button"
       onClick={onClick}
-      onPointerMove={updateSpotlight}
+      onPointerMove={updateIconDirection}
       onPointerLeave={resetIconDirection}
       initial="rest"
       animate="rest"
@@ -405,69 +398,45 @@ function EntryCard({
           : { y: 0, scale: 0.99, transition: { type: 'tween', duration: 0.07, ease: 'easeOut' } }
       }
       style={isEnhancedEntry ? ({ '--entry-accent': accent } as React.CSSProperties) : undefined}
-      className={`group relative h-[75px] overflow-visible rounded-2xl border-[0.5px] bg-white py-[16px] pl-[86px] pr-3 text-left outline-none transition-[border-color,box-shadow,background-color] duration-200 focus-visible:ring-2 focus-visible:ring-[#1769C2]/35 focus-visible:ring-offset-2 ${
+      className={`group relative h-[75px] overflow-visible rounded-2xl border-[0.5px] bg-white py-[16px] pl-[86px] pr-3 text-left outline-none transition-[border-color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-[#1769C2]/35 focus-visible:ring-offset-2 ${
         isEnhancedEntry
-          ? 'border-black/5 shadow-[0_5px_8px_rgba(0,0,0,0.05)] hover:border-[#8d9cad]/20 hover:shadow-[0_10px_24px_rgba(28,38,64,0.11)]'
+          ? 'border-black/5 shadow-[0_5px_8px_rgba(0,0,0,0.05)] hover:border-black/[0.07] hover:shadow-[0_10px_24px_rgba(28,38,64,0.11)]'
           : 'border-black/5 shadow-[0_5px_8px_rgba(0,0,0,0.05)]'
       }`}
     >
       {isEnhancedEntry && (
-        <>
-          <motion.span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
-            style={{ background: spotlightBackground }}
-            variants={{
-              rest: {
-                opacity: 0,
-                transition: { opacity: { duration: reduceMotion ? 0 : 0.16 } },
-              },
-              spread: {
-                opacity: 1,
-                transition: { opacity: { duration: reduceMotion ? 0 : 0.18 } },
-              },
-            }}
-          />
-          <motion.span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
-            style={{
-              maskImage: gridMask,
-              WebkitMaskImage: gridMask,
-            }}
-            variants={{
-              rest: { opacity: 0, transition: { duration: reduceMotion ? 0 : 0.12 } },
-              spread: { opacity: reduceMotion ? 0 : 1, transition: { delay: 0.04, duration: 0.22 } },
-            }}
-          >
-            {MATRIX_DOTS.map((dot, index) => (
-              <span
-                key={index}
-                className="creator-matrix-dot absolute h-[2px] w-[2px] rounded-full bg-white"
-                style={{
-                  left: dot.left,
-                  top: dot.top,
-                  animationDelay: dot.delay,
-                  animationDuration: dot.duration,
-                }}
-              />
-            ))}
-          </motion.span>
-        </>
+        <motion.span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
+          style={{ maskImage: matrixMask, WebkitMaskImage: matrixMask }}
+          variants={{
+            rest: { opacity: 0, transition: { duration: reduceMotion ? 0 : 0.12 } },
+            spread: { opacity: reduceMotion ? 0 : 1, transition: { delay: 0.04, duration: 0.2 } },
+          }}
+        >
+          {MATRIX_DOTS.map((dot, index) => (
+            <span
+              key={index}
+              className="creator-matrix-dot absolute h-[2px] w-[2px] rounded-full bg-[#CED9E3]"
+              style={{
+                left: dot.left,
+                top: dot.top,
+                animationDelay: dot.delay,
+                animationDuration: dot.duration,
+              }}
+            />
+          ))}
+        </motion.span>
       )}
       <span className="pointer-events-none absolute -left-px top-[-5.1px] z-[1] h-[84px] w-[77px]">{icon}</span>
       <div className="relative min-w-0">
-        <div className={`truncate text-[14px] font-semibold text-[#252632] transition-colors duration-200 ${isEnhancedEntry ? 'group-hover:text-[color:var(--entry-accent)] group-focus-visible:text-[color:var(--entry-accent)]' : ''}`}>{label}</div>
-        <div className={`relative mt-1 h-[18px] overflow-hidden whitespace-nowrap text-[12px] leading-[18px] text-[#252632]/50 transition-colors duration-200 ${
-          hoverArrow
-            ? 'group-hover:text-[color:color-mix(in_srgb,var(--entry-accent)_62%,white_38%)] group-focus-visible:text-[color:color-mix(in_srgb,var(--entry-accent)_62%,white_38%)]'
-            : ''
-        }`}>
+        <div className="truncate text-[14px] font-semibold text-[#252632]">{label}</div>
+        <div className="relative mt-1 h-[18px] overflow-hidden whitespace-nowrap text-[12px] leading-[18px] text-[#252632]/50">
           <span>{desc}</span>
           {hoverArrow && (
             <motion.span
               aria-hidden="true"
-              className="ml-0.5 inline-flex h-[18px] align-top items-center text-[color:var(--entry-accent)]"
+              className="ml-0.5 inline-flex h-[18px] align-top items-center text-[#252632]/45"
               variants={{
                 rest: {
                   x: reduceMotion ? 0 : -3,
@@ -632,7 +601,7 @@ function CardImageIcon({
                 }}
                 variants={{
                   rest: { opacity: 0, transition: { duration: reduceMotion ? 0 : 0.12 } },
-                  spread: { opacity: reduceMotion ? 0 : 0.5, transition: { duration: 0.18 } },
+                  spread: { opacity: reduceMotion ? 0 : 0.35, transition: { duration: 0.18 } },
                 }}
               />
             </motion.span>
