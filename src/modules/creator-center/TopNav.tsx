@@ -94,7 +94,7 @@ export default function TopNav({
       {overlay && (
         <span
           aria-hidden="true"
-          className={`pointer-events-none absolute right-0 top-full h-14 bg-gradient-to-b from-white/52 via-white/18 to-transparent transition-opacity duration-200 ${
+          className={`pointer-events-none absolute right-0 top-full h-[88px] bg-gradient-to-b from-white/68 via-white/28 to-transparent transition-opacity duration-200 ${
             scrolled ? 'opacity-0' : 'opacity-100'
           }`}
           style={{ left: glassLeftInset }}
