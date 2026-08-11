@@ -307,12 +307,12 @@ export function buildProductView(
     case 'web-game':
       return gameView(tree)
     case 'marketing-h5':
-      // H5 活动页: 项目文档（含基础信息）/ 素材库 /
-      // 活动玩法配置 / 数据库 / 项目文件。
+      // H5 活动页: 项目文档（含基础信息）/ 活动玩法配置 /
+      // 素材库 / 数据库 / 项目文件。
       return [
         { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
-        { name: ASSET_LIBRARY_LABEL, type: 'file' },
         { name: H5_GAMEPLAY_CONFIG_LABEL, type: 'file' },
+        { name: ASSET_LIBRARY_LABEL, type: 'file' },
         { name: DATABASE_LABEL, type: 'file' },
         { name: '项目文件', type: 'dir', children: tree },
       ]

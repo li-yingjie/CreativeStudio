@@ -1,32 +1,49 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import * as Popover from '@radix-ui/react-popover'
+import { motion, useReducedMotion } from 'framer-motion'
 import { toast } from 'sonner'
 import {
+  AppWindow,
   ArrowUpRight,
   Bot,
+  Brush,
   Check,
   ChevronDown,
+  CreditCard,
   FileText,
   FolderCode,
   Gamepad2,
+  Globe,
   Image as ImageIcon,
+  Layers,
+  LayoutGrid,
   LayoutTemplate,
+  Megaphone,
   MoreHorizontal,
   Palette,
   Plus,
   Presentation,
   Puzzle,
+  Search,
   Smartphone,
   Sparkles,
+  SquareUser,
   Star,
+  Type,
+  UserRound,
   X,
 } from '@/shared/icons'
 import ChatComposer from '@/shared/components/ChatComposer'
+import { WORKSHOP_SKILLS } from '@/modules/editor/data/skills-library'
+import {
+  useNavVersion,
+  usesStandaloneWorkshopLayout,
+} from '@/shared/storage/nav-version'
 import AsciiTexture from './AsciiTexture'
 import InterestCardShowcase from './InterestCardShowcase'
 import { XIAHUA_TEMPLATE_TOKEN } from './XiahuaBuildScript'
 
-/* ─── AI 工坊首页 — 按 Figma 探索 151:12832「首页入口（方案2）」实现 ───
+/* ─── AI 工坊首页 — 方案 7 按 Figma 探索 490:13302 实现 ───
  *
  * 结构：hero 椭圆图片簇 + 标题 → 输入框 → 灵感需求 chips
  * → 分类 tab → 灵感作品网格（hover 出「做同款」）。 */
@@ -44,6 +61,7 @@ const PLACEHOLDER = '说说你想做什么，例如：生成一套炉石风格�
 /** 选中态主色（抖音蓝）。 */
 const BLUE = '#1664FF'
 const INTEREST_CARD_ICON = '/assets/workshop/xinquka.svg'
+const SCENE_TRANSITION = { duration: 0.16, ease: 'easeOut' as const }
 
 /** 快捷入口。选中后工具条只留这枚蓝色入口，后面跟该类型的下拉槽位
  *  （豆包那套交互）：第一个槽是做什么，后面是参数。 */
@@ -180,6 +198,619 @@ const TABS = [
   '兴趣卡模板',
 ]
 
+type StandaloneSceneKey = 'marketing' | 'game' | 'creative'
+
+interface StandaloneToolbarParam {
+  label: string
+  options: readonly string[]
+}
+
+interface StandaloneSubscene {
+  key: string
+  label: string
+  Icon?: typeof LayoutTemplate
+  iconSrc?: string
+  iconClassName?: string
+  prompt: string
+  placeholder: string
+  commands: readonly string[]
+  toolbarParams?: readonly StandaloneToolbarParam[]
+}
+
+interface H5InstructionSlots {
+  theme: string
+  audience: string
+  submission: string
+  gameplay: string
+}
+
+interface CreativePosterInstructionSlots {
+  styleImage: string
+  sourceDocument: string
+}
+
+interface PlanningInstructionSlots {
+  documentLink: string
+  activityBrief: string
+  requirements: string
+}
+
+interface ResourceSlotInstructionSlots {
+  referenceImage: string
+  deliverables: string
+}
+
+type SlotInstructionKey =
+  | 'h5'
+  | 'creative-poster'
+  | 'planning'
+  | 'resource-slot'
+
+type HomeLayoutVariant = 'scheme-1' | 'scheme-2'
+
+const DEFAULT_H5_INSTRUCTION_SLOTS: H5InstructionSlots = {
+  theme: '美妆相关',
+  audience: '女性用户',
+  submission: '美妆教学',
+  gameplay:
+    '消耗积分抽奖，1% 概率获得 iPhone 手机，10% 概率获得活动红包奖励，19% 概率获得迪奥口红实体奖励；单层非晋级榜单玩法设置两个榜单规则，tab1 名称为「开播上榜」，完成直播间开播时长 1 分钟获得 1 积分，积分上限为 99，tab2 名称为「获粉上榜」，每新增 2 个粉丝增加 1 积分，积分上限为 99',
+}
+
+const H5_SLOT_COMMAND = '生成美妆 H5 活动页'
+const CREATIVE_POSTER_SLOT_COMMAND = '参考素材生成创意海报'
+const PLANNING_SLOT_COMMAND = '参考文档生成活动策划'
+const RESOURCE_SLOT_COMMAND = '基于参考图生成资源位'
+
+const DEFAULT_CREATIVE_POSTER_INSTRUCTION_SLOTS: CreativePosterInstructionSlots = {
+  styleImage: '',
+  sourceDocument: '',
+}
+
+const DEFAULT_PLANNING_INSTRUCTION_SLOTS: PlanningInstructionSlots = {
+  documentLink: '',
+  activityBrief: '语音厅 1 月 29 日—2 月 2 日开展的全主播层级刺激营收活动',
+  requirements:
+    '需要根据营收划分 3 个赛道。需要注意有主播玩法及用户嘉宾玩法。针对嘉宾有礼物收集的牵引。活动特点：活动周期会有平台上线的马年专属 IP 线上礼物。我们想要耦合这个打赏礼物，进行特定礼物收集。如果可以请你给我一些其他输入，关于活动语音厅玩法结合的、功能结合的，或者是丰富赛制的（例如：晋级、任务、多层榜单）。',
+}
+
+const DEFAULT_RESOURCE_SLOT_INSTRUCTION_SLOTS: ResourceSlotInstructionSlots = {
+  referenceImage: '图 1',
+  deliverables:
+    '竖版 KV、横版 KV、原生活动页头图、话题 Banner、话题头图、话题背景图',
+}
+
+function valueOrPlaceholder(value: string, placeholder: string) {
+  return value.trim() || `「${placeholder}」`
+}
+
+function buildH5Instruction(slots: H5InstructionSlots) {
+  return `生成一个${slots.theme}的 H5 活动页，针对${slots.audience}，投稿内容为${slots.submission}，需要包含玩法：${slots.gameplay}`
+}
+
+function buildCreativePosterInstruction(slots: CreativePosterInstructionSlots) {
+  return `参考这个海报${valueOrPlaceholder(slots.styleImage, '插入图像')}的风格，生成这个文档${valueOrPlaceholder(slots.sourceDocument, '插入文档')}的创意海报`
+}
+
+function buildPlanningInstruction(slots: PlanningInstructionSlots) {
+  return `请参考文档${valueOrPlaceholder(slots.documentLink, '粘贴文档 link')}逻辑，帮我生成一个${slots.activityBrief}策划文档。其他需遵循信息：${slots.requirements}`
+}
+
+function buildResourceSlotInstruction(slots: ResourceSlotInstructionSlots) {
+  return `基于${valueOrPlaceholder(slots.referenceImage, '插入图像')}生成${slots.deliverables}`
+}
+
+/** Figma 490:13321 的六个运营子场景；选中后原位进入对应快捷指令。 */
+const STANDALONE_SUBSCENES: readonly StandaloneSubscene[] = [
+  {
+    key: 'lynx',
+    label: 'Lynx 互动活动',
+    iconSrc: '/assets/workshop/quick-commands/wallet-05.svg',
+    iconClassName: 'left-[0.64px] top-[0.75px] h-[10.25px] w-[10.72px]',
+    prompt: 'Lynx 互动活动',
+    placeholder: '请描述你想搭建的 Lynx 互动活动',
+    commands: [
+      '集卡抽奖',
+      '节日会场',
+      '直播互动',
+      '测评答题',
+      '榜单投票',
+      '年度盘点',
+      '体育赛事',
+    ],
+  },
+  {
+    key: 'h5',
+    label: 'H5 活动',
+    iconSrc: '/assets/workshop/quick-commands/phone-02.svg',
+    iconClassName: 'left-[2px] top-[0.5px] h-[11px] w-[8px]',
+    prompt: 'H5 活动',
+    placeholder: '请描述你想制作的 H5 活动',
+    toolbarParams: [
+      { label: '页面结构', options: ['单页', '多页面'] },
+      { label: '画面方向', options: ['竖屏', '横屏'] },
+    ],
+    commands: [
+      H5_SLOT_COMMAND,
+      '生成品牌集卡活动页',
+      '搭建限时签到任务页',
+      '设计新品预约活动 H5',
+    ],
+  },
+  {
+    key: 'native',
+    label: '原生化活动',
+    iconSrc: '/assets/workshop/quick-commands/flag-02.svg',
+    iconClassName: 'left-[1.5px] top-[0.5px] h-[11px] w-[9px]',
+    prompt: '原生化活动',
+    placeholder: '请描述你想搭建的原生化活动',
+    toolbarParams: [
+      { label: '页面结构', options: ['单页', '多页面'] },
+      { label: '登录方式', options: ['需登录', '免登录'] },
+    ],
+    commands: [
+      '搭建热点事件互动会场',
+      '生成站内任务激励活动',
+      '制作内容征集活动页',
+      '设计粉丝等级成长活动',
+    ],
+  },
+  {
+    key: 'planning',
+    label: '活动灵感策划',
+    iconSrc: '/assets/workshop/quick-commands/lightbulb-02.svg',
+    iconClassName: 'left-[0.5px] top-[0.5px] size-[11px]',
+    prompt: '活动灵感策划',
+    placeholder: '请描述你想策划的活动方向',
+    commands: [
+      PLANNING_SLOT_COMMAND,
+      '生成一套粉丝增长玩法',
+      '设计品牌联动创意',
+      '输出完整互动活动方案',
+    ],
+  },
+  {
+    key: 'report',
+    label: '活动战报',
+    iconSrc: '/assets/workshop/quick-commands/certificate-02.svg',
+    iconClassName: 'left-[1px] top-[0.5px] h-[11px] w-[10px]',
+    prompt: '活动战报',
+    placeholder: '请描述你需要的活动战报',
+    toolbarParams: [
+      { label: '活动阶段', options: ['实时', '阶段', '收官'] },
+      { label: '交付形式', options: ['长图', 'PPT'] },
+    ],
+    commands: [
+      '生成活动数据战报',
+      '制作阶段成果海报',
+      '输出获奖名单战报',
+      '生成活动收官战报',
+    ],
+  },
+  {
+    key: 'insights',
+    label: '活动洞察看板',
+    iconSrc: '/assets/workshop/quick-commands/chart-breakout-circle.svg',
+    iconClassName: 'left-[0.5px] top-[0.5px] size-[11px]',
+    prompt: '活动洞察看板',
+    placeholder: '请描述你想分析的活动数据',
+    toolbarParams: [
+      { label: '数据周期', options: ['近 7 天', '近 30 天', '活动全周期'] },
+      { label: '分析维度', options: ['转化', '留存', '人群'] },
+    ],
+    commands: [
+      '分析活动核心指标',
+      '生成实时数据看板',
+      '诊断用户转化漏斗',
+      '总结活动复盘洞察',
+    ],
+  },
+]
+
+interface StandaloneSceneCase {
+  id: string
+  title: string
+  description: string
+  cover: string
+  author: string
+  avatar: string
+  views: number
+  prompt: string
+}
+
+interface StandaloneScene {
+  key: StandaloneSceneKey
+  label: string
+  description: string
+  Icon: typeof LayoutTemplate
+  hero: string
+  heroDetails: readonly [string, string, string]
+  heroEffects: readonly [string, string, string]
+  placeholder: string
+  cases: readonly StandaloneSceneCase[]
+}
+
+/** 三枚主视觉原图在 Figma 945 × 272 Hero 画布中的精确位置。 */
+const STANDALONE_HERO_DETAIL_FRAMES = [
+  'left-[276.85px] top-[55.06px] h-[131.07px] w-[131.06px]',
+  'left-[408.5px] top-[12px] size-[128px]',
+  'left-[548.8px] top-[65.82px] size-[107.94px]',
+] as const
+
+const STANDALONE_HERO_EFFECT_FRAMES = [
+  'left-[273.93px] top-[52.09px] size-[137.27px]',
+  'left-[413.35px] top-[17.59px] h-[120.02px] w-[119.32px]',
+  'left-[548.47px] top-[65.74px] size-[108.53px]',
+] as const
+
+/** 方案 7 的首页只围绕三类核心场景组织；入口、输入和案例共用同一份配置。 */
+const STANDALONE_SCENES: readonly StandaloneScene[] = [
+  {
+    key: 'marketing',
+    label: '运营活动',
+    description: '活动策划与互动落地',
+    Icon: Megaphone,
+    hero: '/assets/workshop/figma-scenes/hero-marketing.png?v=2',
+    heroDetails: [
+      '/assets/workshop/figma-scenes/details/hero-marketing-doll.png',
+      '/assets/workshop/figma-scenes/details/hero-marketing-music.png',
+      '/assets/workshop/figma-scenes/details/hero-marketing-cyber.png',
+    ],
+    heroEffects: [
+      '/assets/workshop/figma-scenes/details/hero-marketing-doll-glow.svg',
+      '/assets/workshop/figma-scenes/details/hero-marketing-music-glow.svg',
+      '/assets/workshop/figma-scenes/details/hero-marketing-cyber-glow.svg',
+    ],
+    placeholder: '请描述你的需求',
+    cases: [
+      {
+        id: 'marketing-star-plan',
+        title: '[Magicx]星芒欢颜计划',
+        description: '活动主视觉与任务玩法一体化方案',
+        cover: '/assets/workshop/figma-scenes/marketing-star-plan.png?v=2',
+        author: '雒文谕',
+        avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-marketing-magicx.png',
+        views: 26,
+        prompt: '参考 [Magicx]星芒欢颜计划，帮我生成一套同类型活动',
+      },
+      {
+        id: 'marketing-butterfly',
+        title: '夏日蝶影季',
+        description: '夏日主题积分任务与抽奖活动',
+        cover: '/assets/workshop/figma-scenes/marketing-butterfly.png?v=2',
+        author: '雒文谕',
+        avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-marketing-butterfly.png',
+        views: 5,
+        prompt: '参考夏日蝶影季，帮我生成一套夏日主题互动活动',
+      },
+      {
+        id: 'marketing-host-mission',
+        title: '主播专属任务榜单',
+        description: '主播任务激励与实时榜单活动',
+        cover: '/assets/workshop/figma-scenes/marketing-host-mission.png?v=2',
+        author: '杜彦霖',
+        avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-marketing-host.png',
+        views: 0,
+        prompt: '参考主播专属任务榜单，帮我设计一套主播激励活动',
+      },
+      {
+        id: 'marketing-musician',
+        title: '商演乐手开播计划',
+        description: '音乐人开播招募与任务激励活动',
+        cover: '/assets/workshop/figma-scenes/marketing-musician.png?v=2',
+        author: '王熠彤',
+        avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-marketing-musician.png',
+        views: 1,
+        prompt: '参考商演乐手开播计划，帮我生成一套音乐人招募活动',
+      },
+    ],
+  },
+  {
+    key: 'game',
+    label: '互动游戏',
+    description: '玩法、页面与游戏素材',
+    Icon: Gamepad2,
+    hero: '/assets/workshop/figma-scenes/hero-game.png?v=2',
+    heroDetails: [
+      '/assets/workshop/figma-scenes/details/hero-game-app.png',
+      '/assets/workshop/figma-scenes/details/hero-game-card.png',
+      '/assets/workshop/figma-scenes/details/hero-game-face.png',
+    ],
+    heroEffects: [
+      '/assets/workshop/figma-scenes/details/hero-game-app-glow.svg',
+      '/assets/workshop/figma-scenes/details/hero-game-card-glow.svg',
+      '/assets/workshop/figma-scenes/details/hero-game-face-glow.svg',
+    ],
+    placeholder: '请描述你想做的互动游戏',
+    cases: [
+      {
+        id: 'game-tarot',
+        title: '动态卡牌-塔罗牌',
+        description: '神秘幻想风动态塔罗卡牌',
+        cover: '/assets/workshop/figma-scenes/game-tarot.png?v=2',
+        author: '官方案例',
+        avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-game-tarot.png',
+        views: 13,
+        prompt: '参考动态塔罗牌，帮我生成一套同风格游戏卡牌',
+      },
+      {
+        id: 'game-shuihu',
+        title: '动态卡牌-水浒杀',
+        description: '水浒英雄主题动态卡牌',
+        cover: '/assets/workshop/figma-scenes/game-shuihu.png?v=2',
+        author: '官方案例',
+        avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-game-shuihu.png',
+        views: 23,
+        prompt: '参考动态水浒杀卡牌，帮我生成一套东方英雄卡牌',
+      },
+      {
+        id: 'game-hearthstone',
+        title: '动态卡牌-炉石传说',
+        description: '暗黑奇幻风动态英雄卡牌',
+        cover: '/assets/workshop/figma-scenes/game-hearthstone.png?v=2',
+        author: '官方案例',
+        avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-game-hearthstone.png',
+        views: 16,
+        prompt: '参考动态炉石传说卡牌，帮我生成一套奇幻英雄卡牌',
+      },
+      {
+        id: 'game-sanguo',
+        title: '动态卡牌-三国杀',
+        description: '三国武将主题动态卡牌',
+        cover: '/assets/workshop/figma-scenes/game-sanguo.png?v=2',
+        author: '官方案例',
+        avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-game-sanguo.png',
+        views: 6,
+        prompt: '参考动态三国杀卡牌，帮我生成一套三国武将卡牌',
+      },
+    ],
+  },
+  {
+    key: 'creative',
+    label: '设计素材',
+    description: 'KV、海报与资源位',
+    Icon: Palette,
+    hero: '/assets/workshop/figma-scenes/hero-creative.png?v=2',
+    heroDetails: [
+      '/assets/workshop/figma-scenes/details/hero-creative-avatar.png',
+      '/assets/workshop/figma-scenes/details/hero-creative-star.png',
+      '/assets/workshop/figma-scenes/details/hero-creative-fashion.png',
+    ],
+    heroEffects: [
+      '/assets/workshop/figma-scenes/details/hero-creative-avatar-glow.svg',
+      '/assets/workshop/figma-scenes/details/hero-creative-star-glow.svg',
+      '/assets/workshop/figma-scenes/details/hero-creative-fashion-glow.svg',
+    ],
+    placeholder: '请描述你需要的设计素材',
+    cases: [
+      {
+        id: 'creative-spring',
+        title: '早春岩彩国风图',
+        description: '早春花枝与岩彩质感国风视觉',
+        cover: '/assets/workshop/figma-scenes/creative-spring.png?v=2',
+        author: '徐梦迪',
+        avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-creative-spring.png',
+        views: 15,
+        prompt: '参考早春岩彩国风图，帮我生成一张同风格资源位图片',
+      },
+      {
+        id: 'creative-gold',
+        title: '鎏金闪耀动效',
+        description: '鎏金光效与流动质感动态海报',
+        cover: '/assets/workshop/figma-scenes/creative-gold.png?v=2',
+        author: '徐梦迪',
+        avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-creative-gold.png',
+        views: 17,
+        prompt: '参考鎏金闪耀动效，帮我生成一张同风格动态海报',
+      },
+      {
+        id: 'creative-lantern',
+        title: '古风元宵节直播间背景',
+        description: '元宵灯笼与古风人物直播背景',
+        cover: '/assets/workshop/figma-scenes/creative-lantern.png?v=2',
+        author: '徐梦迪',
+        avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-creative-lantern.png',
+        views: 7,
+        prompt: '参考古风元宵节直播间背景，帮我生成一张节日直播背景',
+      },
+      {
+        id: 'creative-diamond',
+        title: '星星钻石微闪动图',
+        description: '钻石星光与微闪粒子动效',
+        cover: '/assets/workshop/figma-scenes/creative-diamond.png?v=2',
+        author: '徐梦迪',
+        avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-creative-diamond.png',
+        views: 4,
+        prompt: '参考星星钻石微闪动图，帮我生成一张同风格动效素材',
+      },
+    ],
+  },
+]
+
+/** 子场景使用统一图标库，按内容语义逐项匹配，避免通用占位图标。 */
+const STANDALONE_SCENE_SUGGESTIONS: Record<
+  Exclude<StandaloneSceneKey, 'marketing'>,
+  readonly StandaloneSubscene[]
+> = {
+  game: [
+    {
+      key: 'game-world',
+      label: '游戏世界观',
+      Icon: Globe,
+      prompt: '游戏世界观',
+      placeholder: '请描述你想构建的游戏世界观',
+      commands: ['构建奇幻世界观', '设计阵营与势力', '编写世界历史', '梳理核心冲突'],
+    },
+    {
+      key: 'game-scene',
+      label: '游戏场景',
+      Icon: ImageIcon,
+      prompt: '游戏场景',
+      placeholder: '请描述你想制作的游戏场景',
+      commands: ['生成主城场景', '设计战斗地图', '制作副本场景', '绘制关卡概念图'],
+      toolbarParams: [
+        { label: '画幅', options: ['16:9', '9:16', '1:1'] },
+        { label: '画风', options: ['二次元', '国风', '像素', '写实'] },
+      ],
+    },
+    {
+      key: 'game-character',
+      label: '游戏角色',
+      Icon: UserRound,
+      prompt: '游戏角色',
+      placeholder: '请描述你想设计的游戏角色',
+      commands: ['设计主角阵容', '生成 NPC 设定', '创建反派角色', '输出角色关系'],
+      toolbarParams: [
+        { label: '画风', options: ['二次元', '国风', '像素', '写实'] },
+        { label: '数量', options: ['×1', '×4', '整组'] },
+      ],
+    },
+    {
+      key: 'character-art',
+      label: '角色立绘',
+      Icon: Brush,
+      prompt: '角色立绘',
+      placeholder: '请描述你需要的角色立绘',
+      commands: ['生成二次元立绘', '制作国风角色立绘', '设计像素角色', '输出角色三视图'],
+      toolbarParams: [
+        { label: '画风', options: ['二次元', '国风', '像素', '写实'] },
+        { label: '视图', options: ['单视图', '三视图'] },
+      ],
+    },
+    {
+      key: 'game-effects',
+      label: '特效素材',
+      Icon: Sparkles,
+      prompt: '特效素材',
+      placeholder: '请描述你需要的游戏特效素材',
+      commands: ['生成技能特效', '制作爆炸序列帧', '设计粒子光效', '输出透明底特效'],
+      toolbarParams: [
+        { label: '帧数', options: ['8 帧', '12 帧', '24 帧'] },
+        { label: '交付', options: ['透明底', '黑底预览', '序列帧'] },
+      ],
+    },
+    {
+      key: 'game-ui',
+      label: '游戏 UI',
+      Icon: AppWindow,
+      prompt: '游戏 UI',
+      placeholder: '请描述你需要的游戏 UI',
+      commands: ['设计主界面 UI', '生成战斗 HUD', '制作背包界面', '设计按钮图标'],
+      toolbarParams: [
+        { label: '端型', options: ['竖屏', '横屏', '响应式'] },
+        { label: '风格', options: ['二次元', '国风', '像素', '写实'] },
+      ],
+    },
+    {
+      key: 'game-card',
+      label: '游戏卡牌',
+      Icon: CreditCard,
+      prompt: '游戏卡牌',
+      placeholder: '请描述你想制作的游戏卡牌',
+      commands: ['生成塔罗卡牌', '制作三国武将卡', '设计炉石风卡牌', '输出整套卡背'],
+      toolbarParams: [
+        { label: '比例', options: ['2:3', '3:4', '1:1'] },
+        { label: '数量', options: ['×1', '×4', '整套'] },
+      ],
+    },
+  ],
+  creative: [
+    {
+      key: 'ip-design',
+      label: 'IP 设计',
+      Icon: Brush,
+      prompt: 'IP 设计',
+      placeholder: '请描述你想设计的 IP 形象',
+      commands: ['设计品牌 IP 形象', '生成 IP 三视图', '制作 IP 表情包', '输出 IP 延展方案'],
+      toolbarParams: [
+        { label: '画风', options: ['卡通', '潮玩', '国风', '写实'] },
+        { label: '视图', options: ['单视图', '三视图'] },
+      ],
+    },
+    {
+      key: 'logo-generation',
+      label: 'Logo 生成',
+      Icon: Type,
+      prompt: 'Logo 生成',
+      placeholder: '请描述你想生成的 Logo',
+      commands: ['生成品牌 Logo', '设计文字标志', '制作图形标志', '输出 Logo 组合规范'],
+      toolbarParams: [
+        { label: '标志类型', options: ['图形标', '文字标', '组合标'] },
+        { label: '色彩', options: ['彩色', '单色', '黑白'] },
+      ],
+    },
+    {
+      key: 'portrait-poster',
+      label: '人像海报',
+      Icon: SquareUser,
+      prompt: '人像海报',
+      placeholder: '请描述你想制作的人像海报',
+      commands: ['生成时尚人像海报', '制作国风人物海报', '设计杂志封面', '生成艺人宣传图'],
+      toolbarParams: [
+        { label: '比例', options: ['3:4', '9:16', '1:1'] },
+        { label: '风格', options: ['时尚', '国风', '杂志', '电影感'] },
+      ],
+    },
+    {
+      key: 'creative-poster',
+      label: '创意海报',
+      Icon: Palette,
+      prompt: '创意海报',
+      placeholder: '请描述你想制作的创意海报',
+      commands: [
+        CREATIVE_POSTER_SLOT_COMMAND,
+        '设计鎏金动效海报',
+        '制作活动主视觉',
+        '输出系列海报',
+      ],
+      toolbarParams: [
+        { label: '比例', options: ['3:4', '9:16', '1:1'] },
+        { label: '风格', options: ['通用', '国风', '赛博', '手绘'] },
+      ],
+    },
+    {
+      key: 'header-banner',
+      label: '头图 Banner',
+      Icon: LayoutTemplate,
+      prompt: '头图 Banner',
+      placeholder: '请描述你需要的头图 Banner',
+      commands: ['生成活动头图', '设计直播间 Banner', '制作品牌横幅', '输出多尺寸头图'],
+      toolbarParams: [
+        { label: '比例', options: ['16:9', '3:1', '2:1'] },
+        { label: '数量', options: ['×1', '×2', '×4'] },
+      ],
+    },
+    {
+      key: 'resource-slot',
+      label: '资源位图',
+      Icon: LayoutGrid,
+      prompt: '资源位图',
+      placeholder: '请描述你需要的资源位图片',
+      commands: [
+        RESOURCE_SLOT_COMMAND,
+        '设计频道焦点图',
+        '制作运营入口图',
+        '输出多规格资源位',
+      ],
+      toolbarParams: [
+        { label: '比例', options: ['1:1', '3:4', '16:9', '9:16'] },
+        { label: '数量', options: ['×1', '×2', '×4'] },
+      ],
+    },
+    {
+      key: 'card-background',
+      label: '卡片背景',
+      Icon: Layers,
+      prompt: '卡片背景',
+      placeholder: '请描述你需要的卡片背景',
+      commands: ['生成星空卡片背景', '设计国风卡片底图', '制作玻璃质感背景', '输出系列卡面背景'],
+      toolbarParams: [
+        { label: '比例', options: ['2:3', '3:4', '1:1'] },
+        { label: '风格', options: ['星空', '国风', '玻璃', '极简'] },
+      ],
+    },
+  ],
+}
+
 interface Work {
   id: string
   img: string
@@ -204,6 +835,594 @@ const WORKS: Work[] = [
 ]
 
 const AUTHOR_AVATAR = `${INSPIRE}/author.webp`
+
+function StandaloneSceneSwitcher({
+  activeScene,
+  onChange,
+  reduceMotion,
+}: {
+  activeScene: StandaloneSceneKey
+  onChange: (scene: StandaloneSceneKey) => void
+  reduceMotion: boolean
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="创作场景"
+      className="inline-flex items-center gap-2 rounded-[24px] bg-[rgba(83,96,143,0.07)] p-1"
+    >
+      {STANDALONE_SCENES.map((scene) => {
+        const active = scene.key === activeScene
+        return (
+          <button
+            key={scene.key}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(scene.key)}
+            className={`relative flex h-9 w-[112px] items-center justify-center gap-2 rounded-full px-4 text-[14px] font-semibold transition-colors ${
+              active
+                ? 'text-white'
+                : 'text-[#1c1f23] hover:bg-white/70'
+            }`}
+          >
+            {active && (
+              <motion.span
+                aria-hidden
+                layoutId="standalone-scene-indicator"
+                className="absolute inset-0 rounded-full bg-[rgba(28,31,35,0.9)]"
+                transition={reduceMotion ? { duration: 0 } : SCENE_TRANSITION}
+              />
+            )}
+            <scene.Icon className="relative z-10" size={16} strokeWidth={1.8} />
+            <span className="relative z-10">{scene.label}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function StandaloneSubsceneIcon({
+  subscene,
+  selected = false,
+}: {
+  subscene: StandaloneSubscene
+  selected?: boolean
+}) {
+  const colorClassName = selected
+    ? 'text-[#2e90fa]'
+    : 'text-[#1c1f23]/55'
+
+  if (subscene.Icon) {
+    const Icon = subscene.Icon
+    return (
+      <Icon
+        aria-hidden
+        size={12}
+        strokeWidth={1.8}
+        className={`shrink-0 ${colorClassName}`}
+      />
+    )
+  }
+
+  if (!subscene.iconSrc || !subscene.iconClassName) return null
+
+  return (
+    <span
+      aria-hidden
+      className={`relative size-3 shrink-0 overflow-hidden ${colorClassName}`}
+    >
+      <span
+        className={`absolute bg-current ${subscene.iconClassName}`}
+        style={{
+          WebkitMaskImage: `url(${subscene.iconSrc})`,
+          WebkitMaskPosition: 'center',
+          WebkitMaskRepeat: 'no-repeat',
+          WebkitMaskSize: '100% 100%',
+          maskImage: `url(${subscene.iconSrc})`,
+          maskPosition: 'center',
+          maskRepeat: 'no-repeat',
+          maskSize: '100% 100%',
+        }}
+      />
+    </span>
+  )
+}
+
+function InstructionSkillTags({
+  subscene,
+  selectedSkill,
+  onRemoveSubscene,
+  onRemoveSkill,
+}: {
+  subscene: StandaloneSubscene
+  selectedSkill: { title: string } | null
+  onRemoveSubscene: () => void
+  onRemoveSkill: () => void
+}) {
+  return (
+    <>
+      <span className="mr-1 inline-flex h-6 shrink-0 items-center gap-1.5 rounded-[8px] bg-[#d5ebfe] px-2 text-[12px] text-[#2e90fa]">
+        <StandaloneSubsceneIcon subscene={subscene} selected />
+        <span>{subscene.label}</span>
+        <button
+          type="button"
+          aria-label={`移除${subscene.label}技能`}
+          onClick={onRemoveSubscene}
+          className="relative size-3 shrink-0 overflow-hidden"
+        >
+          <img
+            src="/assets/workshop/quick-commands/x-close-primary.svg"
+            alt=""
+            className="absolute left-[2.5px] top-[2.5px] size-[7px] max-w-none"
+          />
+        </button>
+      </span>
+      {selectedSkill && (
+        <span className="mr-1 inline-flex h-6 shrink-0 items-center gap-1.5 rounded-[8px] bg-[#d5ebfe] px-2 text-[12px] text-[#2e90fa]">
+          <FolderCode size={12} strokeWidth={1.8} />
+          <span className="max-w-[140px] truncate">{selectedSkill.title}</span>
+          <button
+            type="button"
+            aria-label={`移除${selectedSkill.title}技能`}
+            onClick={onRemoveSkill}
+            className="relative size-3 shrink-0 overflow-hidden"
+          >
+            <img
+              src="/assets/workshop/quick-commands/x-close-primary.svg"
+              alt=""
+              className="absolute left-[2.5px] top-[2.5px] size-[7px] max-w-none"
+            />
+          </button>
+        </span>
+      )}
+    </>
+  )
+}
+
+function H5InstructionEditor({
+  subscene,
+  slots,
+  selectedSkill,
+  onSlotChange,
+  onRemoveSubscene,
+  onRemoveSkill,
+}: {
+  subscene: StandaloneSubscene
+  slots: H5InstructionSlots
+  selectedSkill: { title: string } | null
+  onSlotChange: (key: keyof H5InstructionSlots, value: string) => void
+  onRemoveSubscene: () => void
+  onRemoveSkill: () => void
+}) {
+  const shortSlotClassName =
+    'mx-1 h-7 rounded-[6px] border border-dashed border-[#b9c0ca] bg-[#f8fafc] px-2 text-[13px] leading-5 text-[#5f6670] outline-none focus:border-[#2e90fa]'
+
+  return (
+    <div className="h-full overflow-y-auto px-3 pt-1 text-[13px] leading-[22px] text-[#4f5661]">
+      <div className="flex flex-wrap items-center gap-y-1">
+        <InstructionSkillTags
+          subscene={subscene}
+          selectedSkill={selectedSkill}
+          onRemoveSubscene={onRemoveSubscene}
+          onRemoveSkill={onRemoveSkill}
+        />
+        <span>生成一个</span>
+        <input
+          aria-label="H5 活动主题槽位"
+          value={slots.theme}
+          onChange={(event) => onSlotChange('theme', event.target.value)}
+          className={`${shortSlotClassName} w-[92px]`}
+        />
+        <span>的 H5 活动页，针对</span>
+        <input
+          aria-label="H5 目标用户槽位"
+          value={slots.audience}
+          onChange={(event) => onSlotChange('audience', event.target.value)}
+          className={`${shortSlotClassName} w-[92px]`}
+        />
+        <span>，投稿内容为</span>
+        <input
+          aria-label="H5 投稿内容槽位"
+          value={slots.submission}
+          onChange={(event) => onSlotChange('submission', event.target.value)}
+          className={`${shortSlotClassName} w-[92px]`}
+        />
+        <span>，需要包含玩法：</span>
+      </div>
+      <textarea
+        aria-label="H5 玩法槽位"
+        value={slots.gameplay}
+        onChange={(event) => onSlotChange('gameplay', event.target.value)}
+        className="mt-1 min-h-[44px] w-full resize-none rounded-[6px] border border-dashed border-[#b9c0ca] bg-[#f8fafc] px-2 py-1 text-[13px] leading-5 text-[#5f6670] outline-none focus:border-[#2e90fa]"
+      />
+    </div>
+  )
+}
+
+function CreativePosterInstructionEditor({
+  subscene,
+  slots,
+  selectedSkill,
+  onSlotChange,
+  onRemoveSubscene,
+  onRemoveSkill,
+}: {
+  subscene: StandaloneSubscene
+  slots: CreativePosterInstructionSlots
+  selectedSkill: { title: string } | null
+  onSlotChange: (key: keyof CreativePosterInstructionSlots, value: string) => void
+  onRemoveSubscene: () => void
+  onRemoveSkill: () => void
+}) {
+  const slotClassName =
+    'mx-1 h-7 rounded-[6px] border border-dashed border-[#b9c0ca] bg-[#f8fafc] px-2 text-[13px] leading-5 text-[#5f6670] outline-none placeholder:text-[#a0a7b1] focus:border-[#2e90fa]'
+
+  return (
+    <div className="h-full overflow-y-auto px-3 pt-1 text-[13px] leading-[22px] text-[#4f5661]">
+      <div className="flex flex-wrap items-center gap-y-1">
+        <InstructionSkillTags
+          subscene={subscene}
+          selectedSkill={selectedSkill}
+          onRemoveSubscene={onRemoveSubscene}
+          onRemoveSkill={onRemoveSkill}
+        />
+        <span>参考这个海报</span>
+        <input
+          aria-label="创意海报参考图槽位"
+          value={slots.styleImage}
+          placeholder="「插入图像」"
+          onChange={(event) => onSlotChange('styleImage', event.target.value)}
+          className={`${slotClassName} w-[118px]`}
+        />
+        <span>的风格，生成这个文档</span>
+        <input
+          aria-label="创意海报参考文档槽位"
+          value={slots.sourceDocument}
+          placeholder="「插入文档」"
+          onChange={(event) => onSlotChange('sourceDocument', event.target.value)}
+          className={`${slotClassName} w-[118px]`}
+        />
+        <span>的创意海报</span>
+      </div>
+    </div>
+  )
+}
+
+function PlanningInstructionEditor({
+  subscene,
+  slots,
+  selectedSkill,
+  onSlotChange,
+  onRemoveSubscene,
+  onRemoveSkill,
+}: {
+  subscene: StandaloneSubscene
+  slots: PlanningInstructionSlots
+  selectedSkill: { title: string } | null
+  onSlotChange: (key: keyof PlanningInstructionSlots, value: string) => void
+  onRemoveSubscene: () => void
+  onRemoveSkill: () => void
+}) {
+  const slotClassName =
+    'mx-1 h-7 rounded-[6px] border border-dashed border-[#b9c0ca] bg-[#f8fafc] px-2 text-[13px] leading-5 text-[#5f6670] outline-none placeholder:text-[#a0a7b1] focus:border-[#2e90fa]'
+
+  return (
+    <div className="h-full overflow-y-auto px-3 pt-1 text-[13px] leading-[22px] text-[#4f5661]">
+      <div className="flex flex-wrap items-center gap-y-1">
+        <InstructionSkillTags
+          subscene={subscene}
+          selectedSkill={selectedSkill}
+          onRemoveSubscene={onRemoveSubscene}
+          onRemoveSkill={onRemoveSkill}
+        />
+        <span>请参考文档</span>
+        <input
+          aria-label="灵感策划参考文档链接槽位"
+          value={slots.documentLink}
+          placeholder="粘贴文档 link"
+          onChange={(event) => onSlotChange('documentLink', event.target.value)}
+          className={`${slotClassName} w-[128px]`}
+        />
+        <span>逻辑，帮我生成一个</span>
+        <input
+          aria-label="灵感策划活动描述槽位"
+          value={slots.activityBrief}
+          onChange={(event) => onSlotChange('activityBrief', event.target.value)}
+          className={`${slotClassName} min-w-[260px] flex-1`}
+        />
+        <span>策划文档。其他需遵循信息：</span>
+      </div>
+      <textarea
+        aria-label="灵感策划补充要求槽位"
+        value={slots.requirements}
+        onChange={(event) => onSlotChange('requirements', event.target.value)}
+        className="mt-1 min-h-[44px] w-full resize-none rounded-[6px] border border-dashed border-[#b9c0ca] bg-[#f8fafc] px-2 py-1 text-[13px] leading-5 text-[#5f6670] outline-none focus:border-[#2e90fa]"
+      />
+    </div>
+  )
+}
+
+function ResourceSlotInstructionEditor({
+  subscene,
+  slots,
+  selectedSkill,
+  onSlotChange,
+  onRemoveSubscene,
+  onRemoveSkill,
+}: {
+  subscene: StandaloneSubscene
+  slots: ResourceSlotInstructionSlots
+  selectedSkill: { title: string } | null
+  onSlotChange: (key: keyof ResourceSlotInstructionSlots, value: string) => void
+  onRemoveSubscene: () => void
+  onRemoveSkill: () => void
+}) {
+  const slotClassName =
+    'mx-1 h-7 rounded-[6px] border border-dashed border-[#b9c0ca] bg-[#f8fafc] px-2 text-[13px] leading-5 text-[#5f6670] outline-none placeholder:text-[#a0a7b1] focus:border-[#2e90fa]'
+
+  return (
+    <div className="h-full overflow-y-auto px-3 pt-1 text-[13px] leading-[22px] text-[#4f5661]">
+      <div className="flex flex-wrap items-center gap-y-1">
+        <InstructionSkillTags
+          subscene={subscene}
+          selectedSkill={selectedSkill}
+          onRemoveSubscene={onRemoveSubscene}
+          onRemoveSkill={onRemoveSkill}
+        />
+        <span>基于</span>
+        <input
+          aria-label="资源位参考图槽位"
+          value={slots.referenceImage}
+          placeholder="「插入图像」"
+          onChange={(event) => onSlotChange('referenceImage', event.target.value)}
+          className={`${slotClassName} w-[96px]`}
+        />
+        <span>生成</span>
+        <input
+          aria-label="资源位交付物槽位"
+          value={slots.deliverables}
+          onChange={(event) => onSlotChange('deliverables', event.target.value)}
+          className={`${slotClassName} min-w-[320px] flex-1`}
+        />
+      </div>
+    </div>
+  )
+}
+
+function StandaloneSubsceneCommands({
+  label,
+  options,
+  selected,
+  onSelect,
+  onCommand,
+}: {
+  label: string
+  options: readonly StandaloneSubscene[]
+  selected: StandaloneSubscene | null
+  onSelect: (subscene: StandaloneSubscene) => void
+  onCommand: (prompt: string) => void
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={selected ? `${selected.label}快捷指令` : `${label}子场景`}
+      className="flex w-full max-w-[816px] items-center gap-3 overflow-x-auto"
+    >
+      {selected ? (
+        selected.commands.map((command) => (
+          <button
+            key={command}
+            type="button"
+            onClick={() => onCommand(command)}
+            className="flex h-9 shrink-0 items-center gap-2 rounded-[10px] bg-[rgba(83,96,143,0.07)] px-3 text-[14px] leading-5 text-[#1c1f23] transition-colors hover:bg-[rgba(83,96,143,0.12)]"
+          >
+            {command}
+            <span
+              aria-hidden
+              className="relative size-3 shrink-0 overflow-hidden"
+            >
+              <img
+                src="/assets/workshop/quick-commands/trend-down-02.svg"
+                alt=""
+                className="absolute left-[3px] top-[3px] size-[6px] max-w-none"
+              />
+            </span>
+          </button>
+        ))
+      ) : (
+        options.map((subscene) => (
+          <button
+            key={subscene.key}
+            type="button"
+            onClick={() => onSelect(subscene)}
+            className="flex h-9 shrink-0 items-center gap-2 rounded-[10px] bg-[rgba(83,96,143,0.07)] px-3 text-[14px] leading-5 text-[#1c1f23] transition-colors hover:bg-[rgba(83,96,143,0.12)]"
+          >
+            <StandaloneSubsceneIcon subscene={subscene} />
+            {subscene.label}
+          </button>
+        ))
+      )}
+    </div>
+  )
+}
+
+function StandaloneSubsceneSkillRow({
+  label,
+  options,
+  selected,
+  onSelect,
+}: {
+  label: string
+  options: readonly StandaloneSubscene[]
+  selected: StandaloneSubscene | null
+  onSelect: (subscene: StandaloneSubscene) => void
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={`${label}场景 Skill`}
+      className="w-full overflow-x-auto"
+    >
+      <div className="flex w-max min-w-full items-center justify-center gap-3">
+        {options.map((subscene) => {
+          const active = selected?.key === subscene.key
+          return (
+            <button
+              key={subscene.key}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onSelect(subscene)}
+              style={{
+                backgroundColor: '#ffffff',
+              }}
+              className={`flex h-9 shrink-0 items-center gap-2 rounded-[10px] px-3 text-[14px] leading-5 transition-colors ${
+                active
+                  ? 'text-[#2e90fa]'
+                  : 'text-[#1c1f23]'
+              }`}
+            >
+              <StandaloneSubsceneIcon subscene={subscene} selected={active} />
+              {subscene.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function StandaloneSubsceneCasePrompts({
+  subscene,
+  cases,
+  onPick,
+}: {
+  subscene: StandaloneSubscene
+  cases: readonly StandaloneSceneCase[]
+  onPick: (prompt: string) => void
+}) {
+  return (
+    <section
+      className="relative z-10 mt-4 w-full"
+      aria-label={`${subscene.label}模板`}
+    >
+      <div className="mb-2 flex items-center gap-1.5 text-[13px] leading-5 text-[#1c1f23]/55">
+        <Sparkles size={14} strokeWidth={1.8} />
+        选择一个 {subscene.label} 模板
+      </div>
+      <div className="grid grid-cols-4 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+        {cases.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            aria-label={`使用${item.title}模板`}
+            onClick={() => onPick(item.prompt)}
+            className="group min-w-0 rounded-[12px] border border-black/5 bg-white p-1.5 text-left shadow-sm transition-colors hover:border-black/10"
+          >
+            <span className="block h-[132px] w-full overflow-hidden rounded-[8px] bg-[#f2f3f5]">
+              <img
+                src={item.cover}
+                alt=""
+                loading="lazy"
+                className="size-full object-cover object-top"
+              />
+            </span>
+            <span className="block px-1 pb-1 pt-2">
+              <span className="block truncate text-[13px] font-medium leading-5 text-[#1c1f23]">
+                {item.title}
+              </span>
+              <span className="mt-1 flex min-w-0 items-center gap-1.5">
+                <img
+                  src={item.avatar}
+                  alt=""
+                  loading="lazy"
+                  className="size-4 shrink-0 rounded-full object-cover"
+                />
+                <span className="truncate text-[11px] leading-4 text-[#1c1f23]/45">
+                  {item.author}
+                </span>
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function StandaloneSceneCases({
+  scene,
+  onPick,
+}: {
+  scene: StandaloneScene
+  onPick: (prompt: string) => void
+}) {
+  return (
+    <section
+      className={`mt-[160px] w-full ${
+        scene.key === 'creative' ? 'max-w-[996px]' : 'max-w-[1008px]'
+      }`}
+      aria-label={`${scene.label}案例`}
+    >
+      <div className="grid grid-cols-4 justify-items-center gap-3 max-xl:grid-cols-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+        {scene.cases.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onPick(item.prompt)}
+            aria-label={`参考${item.title}做同款，作者${item.author}`}
+            className={`group relative flex w-full min-w-0 flex-col overflow-hidden rounded-[10px] bg-[#f9fafb] px-[10px] pb-4 pt-[10px] text-left ${
+              scene.key === 'creative'
+                ? 'h-[488px] max-w-[240px]'
+                : 'h-[455px] max-w-[243px]'
+            }`}
+          >
+            <span
+              className={`relative w-full shrink-0 overflow-hidden rounded-[8px] ${
+                scene.key === 'creative' ? 'h-[396px]' : 'h-[363px]'
+              }`}
+            >
+              <img
+                src={item.cover}
+                alt=""
+                className="size-full object-cover object-top transition-transform duration-150 group-hover:scale-[1.01] motion-reduce:transition-none"
+              />
+              <span className="absolute inset-x-3 bottom-3 flex h-9 translate-y-2 items-center justify-center gap-2 rounded-full bg-[#1c1f23] text-[13px] font-medium text-white opacity-0 transition-[transform,opacity] duration-150 group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none">
+                <Sparkles size={14} strokeWidth={1.8} />
+                做同款
+              </span>
+            </span>
+            <span className="flex h-[66px] w-full shrink-0 flex-col pt-3">
+              <span className="h-[22px] w-full truncate text-[14px] font-medium leading-[22px] text-[#1e1c23]">
+                {item.title}
+              </span>
+              <span className="flex h-8 w-full items-end justify-between pt-3">
+                <span className="flex min-w-0 items-center gap-2">
+                  <img
+                    src={item.avatar}
+                    alt=""
+                    className="size-[18px] shrink-0 rounded-full border border-[#e5e6eb] object-cover"
+                  />
+                  <span className="truncate text-[12px] leading-5 text-[#86909c]">
+                    {item.author}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium leading-5 tabular-nums text-[#949494]">
+                  <img
+                    src="/assets/workshop/figma-scenes/people/view-count.png"
+                    alt=""
+                    className="size-3"
+                  />
+                  {item.views}
+                </span>
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
 
 function ToolIcon({ tool }: { tool: Tool }) {
   if ('iconSrc' in tool) {
@@ -263,17 +1482,223 @@ function usePopover() {
 const POPOVER =
   'absolute bottom-full left-0 z-30 mb-2 min-w-[132px] rounded-[12px] border border-black/5 bg-white p-1 shadow-[0_8px_28px_rgba(30,31,35,0.14)]'
 
+const APPROVAL_MODES = [
+  { value: 'ask', label: '手动审批' },
+  { value: 'auto', label: '自动执行' },
+] as const
+
+type ApprovalMode = (typeof APPROVAL_MODES)[number]['value']
+type HomeSkill = (typeof WORKSHOP_SKILLS)[number]
+
+function ApprovalModeSelect({
+  value,
+  onChange,
+}: {
+  value: ApprovalMode
+  onChange: (value: ApprovalMode) => void
+}) {
+  const { open, setOpen, ref } = usePopover()
+  const selected = APPROVAL_MODES.find((mode) => mode.value === value) ?? APPROVAL_MODES[0]
+  const iconSrc =
+    value === 'ask'
+      ? '/assets/workshop/quick-commands/hand.svg'
+      : '/assets/workshop/quick-commands/star-04.svg'
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        aria-label="审批方式"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className={`flex h-9 items-center gap-1 rounded-full px-4 text-[14px] font-semibold text-[#1c1f23]/80 transition-colors hover:bg-black/5 hover:text-[#1c1f23] ${
+          open ? 'bg-black/5' : ''
+        }`}
+      >
+        <span aria-hidden className="relative size-4 shrink-0 overflow-hidden">
+          <img
+            src={iconSrc}
+            alt=""
+            className={
+              value === 'ask'
+                ? 'absolute left-[1.67px] top-[0.67px] h-[14.67px] w-[12.67px] max-w-none'
+                : 'absolute left-[0.67px] top-[0.67px] size-[14.67px] max-w-none'
+            }
+          />
+        </span>
+        {selected.label}
+        <ChevronDown size={16} strokeWidth={1.8} />
+      </button>
+      {open && (
+        <div role="menu" aria-label="选择审批方式" className={POPOVER}>
+          {APPROVAL_MODES.map((mode) => (
+            <button
+              key={mode.value}
+              type="button"
+              role="menuitemradio"
+              aria-checked={mode.value === value}
+              onClick={() => {
+                onChange(mode.value)
+                setOpen(false)
+              }}
+              className="flex w-full items-center justify-between gap-4 whitespace-nowrap rounded-[8px] px-2 py-1.5 text-[13px] text-[#1c1f23] transition-colors hover:bg-black/5"
+            >
+              {mode.label}
+              {mode.value === value && <Check size={14} strokeWidth={2.2} style={{ color: BLUE }} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HomeSkillSelect({
+  selected,
+  onChange,
+}: {
+  selected: HomeSkill | null
+  onChange: (skill: HomeSkill | null) => void
+}) {
+  const { open, setOpen, ref } = usePopover()
+  const [query, setQuery] = useState('')
+  const [panelMaxHeight, setPanelMaxHeight] = useState(420)
+  const normalizedQuery = query.trim().toLocaleLowerCase()
+  const filteredSkills = normalizedQuery
+    ? WORKSHOP_SKILLS.filter((skill) =>
+        [skill.title, skill.content, ...(skill.tags ?? [])]
+          .join(' ')
+          .toLocaleLowerCase()
+          .includes(normalizedQuery),
+      )
+    : WORKSHOP_SKILLS
+
+  useEffect(() => {
+    if (!open) return
+
+    const updatePanelHeight = () => {
+      const triggerBottom = ref.current?.getBoundingClientRect().bottom ?? 0
+      const availableHeight = Math.max(0, window.innerHeight - triggerBottom - 16)
+      setPanelMaxHeight(Math.min(568, availableHeight))
+    }
+
+    const ensureDownwardSpace = () => {
+      const triggerBottom = ref.current?.getBoundingClientRect().bottom ?? 0
+      if (window.innerHeight - triggerBottom < 360) {
+        ref.current?.scrollIntoView({ block: 'center', inline: 'nearest' })
+      }
+      requestAnimationFrame(updatePanelHeight)
+    }
+
+    const frame = requestAnimationFrame(ensureDownwardSpace)
+    window.addEventListener('resize', updatePanelHeight)
+    document.addEventListener('scroll', updatePanelHeight, true)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('resize', updatePanelHeight)
+      document.removeEventListener('scroll', updatePanelHeight, true)
+    }
+  }, [open, ref])
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        aria-label="选择技能"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className={`flex h-9 items-center gap-1 rounded-full px-4 text-[14px] font-semibold text-[#1c1f23]/80 transition-colors hover:bg-black/5 hover:text-[#1c1f23] ${
+          open ? 'bg-black/5' : ''
+        }`}
+      >
+        <FolderCode size={16} strokeWidth={1.8} />
+        技能
+      </button>
+      {open && (
+        <div
+          className="absolute left-0 top-full z-50 mt-2 w-[min(360px,calc(100vw-32px))] overflow-hidden rounded-[12px] border border-black/5 bg-white p-1.5 shadow-[0_8px_28px_rgba(30,31,35,0.14)]"
+          style={{ maxHeight: panelMaxHeight }}
+        >
+          <div className="flex h-9 items-center gap-2 rounded-[8px] bg-black/[0.035] px-2.5 text-[#1c1f23]/45">
+            <Search size={15} strokeWidth={1.8} className="shrink-0" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              aria-label="搜索技能"
+              placeholder="搜索技能"
+              className="min-w-0 flex-1 bg-transparent text-[13px] text-[#1c1f23] outline-none placeholder:text-[#1c1f23]/35"
+            />
+          </div>
+          <div
+            role="menu"
+            aria-label="技能列表"
+            className="mt-1 overscroll-contain overflow-y-auto"
+            style={{ maxHeight: Math.max(0, panelMaxHeight - 48) }}
+          >
+            {filteredSkills.length > 0 ? (
+              filteredSkills.map((skill) => (
+                <button
+                  key={skill.id}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={selected?.id === skill.id}
+                  onClick={() => {
+                    onChange(skill)
+                    setOpen(false)
+                    setQuery('')
+                  }}
+                  className="flex w-full items-start gap-2.5 rounded-[8px] px-2.5 py-2 text-left transition-colors hover:bg-black/5"
+                >
+                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-[#2e90fa]/10 text-[#2e90fa]">
+                    <FolderCode size={14} strokeWidth={1.8} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-medium leading-[18px] text-[#1c1f23]">
+                      {skill.title}
+                    </span>
+                    <span className="block truncate text-[11px] leading-[16px] text-[#1c1f23]/45">
+                      {skill.content}
+                    </span>
+                  </span>
+                  {selected?.id === skill.id && (
+                    <Check size={14} strokeWidth={2.2} className="mt-1 shrink-0 text-[#2e90fa]" />
+                  )}
+                </button>
+              ))
+            ) : (
+              <div className="flex flex-col items-center px-4 py-6 text-center">
+                <span className="text-[13px] text-[#1c1f23]/55">没有匹配的技能</span>
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  className="mt-2 text-[12px] text-[#2e90fa]"
+                >
+                  清除搜索
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** 参数下拉 —— 收起时只显示当前值，工具条才放得下四个。 */
 function ParamSelect({
   label,
   options,
   value,
   onChange,
+  toolbarStyle = false,
 }: {
   label: string
   options: readonly string[]
   value: string
   onChange: (v: string) => void
+  toolbarStyle?: boolean
 }) {
   const { open, setOpen, ref } = usePopover()
 
@@ -284,12 +1709,20 @@ function ParamSelect({
         aria-label={label}
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className={`flex h-8 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[13px] transition-colors ${
-          open ? 'bg-black/5 text-[#1C1F23]' : 'text-[#1C1F23]/70 hover:bg-black/5 hover:text-[#1C1F23]'
+        className={`flex items-center gap-1 whitespace-nowrap rounded-full transition-colors ${
+          toolbarStyle
+            ? 'h-9 px-3 text-[14px] font-semibold'
+            : 'h-8 px-2.5 text-[13px]'
+        } ${
+          open
+            ? 'bg-black/5 text-[#1C1F23]'
+            : toolbarStyle
+              ? 'text-[#1C1F23]/80 hover:bg-black/5 hover:text-[#1C1F23]'
+              : 'text-[#1C1F23]/70 hover:bg-black/5 hover:text-[#1C1F23]'
         }`}
       >
         {value}
-        <ChevronDown size={14} strokeWidth={1.8} />
+        <ChevronDown size={toolbarStyle ? 16 : 14} strokeWidth={1.8} />
       </button>
       {open && (
         <div className={POPOVER}>
@@ -368,6 +1801,43 @@ export default function PlatformHome({
   ) => void
   onOpenResourceLibrary: () => void
 }) {
+  const navVersion = useNavVersion((state) => state.version)
+  const standaloneWorkshopLayout = usesStandaloneWorkshopLayout(navVersion)
+  const reduceMotion = useReducedMotion() ?? false
+  const [homeLayoutVariant, setHomeLayoutVariant] =
+    useState<HomeLayoutVariant>('scheme-1')
+  const schemeTwo = homeLayoutVariant === 'scheme-2'
+  const [activeScene, setActiveScene] =
+    useState<StandaloneSceneKey>('marketing')
+  const [selectedSubscene, setSelectedSubscene] =
+    useState<StandaloneSubscene | null>(null)
+  const [activeSlotInstruction, setActiveSlotInstruction] =
+    useState<SlotInstructionKey | null>(null)
+  const [h5InstructionSlots, setH5InstructionSlots] =
+    useState<H5InstructionSlots>(() => ({ ...DEFAULT_H5_INSTRUCTION_SLOTS }))
+  const [creativePosterInstructionSlots, setCreativePosterInstructionSlots] =
+    useState<CreativePosterInstructionSlots>(() => ({
+      ...DEFAULT_CREATIVE_POSTER_INSTRUCTION_SLOTS,
+    }))
+  const [planningInstructionSlots, setPlanningInstructionSlots] =
+    useState<PlanningInstructionSlots>(() => ({
+      ...DEFAULT_PLANNING_INSTRUCTION_SLOTS,
+    }))
+  const [resourceSlotInstructionSlots, setResourceSlotInstructionSlots] =
+    useState<ResourceSlotInstructionSlots>(() => ({
+      ...DEFAULT_RESOURCE_SLOT_INSTRUCTION_SLOTS,
+    }))
+  const [selectedHomeSkill, setSelectedHomeSkill] = useState<HomeSkill | null>(null)
+  const [approvalMode, setApprovalMode] = useState<ApprovalMode>('ask')
+  const activeSceneConfig =
+    STANDALONE_SCENES.find((scene) => scene.key === activeScene) ??
+    STANDALONE_SCENES[0]
+  const activeSubscenes =
+    activeScene === 'marketing'
+      ? STANDALONE_SUBSCENES
+      : STANDALONE_SCENE_SUGGESTIONS[activeScene]
+  const showsComposerPrefix =
+    (!schemeTwo && Boolean(selectedSubscene)) || Boolean(selectedHomeSkill)
   const [activeTab, setActiveTab] = useState('游戏卡牌')
   /* 快捷入口：选中一个类型后，右侧换成它自己的下拉槽位。 */
   const [tool, setTool] = useState<Tool | null>(null)
@@ -377,6 +1847,7 @@ export default function PlatformHome({
       TOOLS.flatMap((t) => t.params.map((p) => [`${t.key}.${p.label}`, p.options[0]])),
     ),
   )
+  const [subsceneParams, setSubsceneParams] = useState<Record<string, string>>({})
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   /* 输入 @ 弹出模板引用：选中后 token 进输入框，提交时由工坊识别并复刻。 */
@@ -394,6 +1865,144 @@ export default function PlatformHome({
     document.addEventListener('pointerdown', close)
     return () => document.removeEventListener('pointerdown', close)
   }, [mentionOpen])
+
+  const removeSelectedSubscene = () => {
+    setSelectedSubscene(null)
+    setActiveSlotInstruction(null)
+  }
+
+  const selectSubscene = (subscene: StandaloneSubscene) => {
+    setSelectedSubscene(subscene)
+    setActiveSlotInstruction(null)
+  }
+
+  const pickSubsceneCommand = (command: string) => {
+    if (selectedSubscene?.key === 'h5' && command === H5_SLOT_COMMAND) {
+      const slots = { ...DEFAULT_H5_INSTRUCTION_SLOTS }
+      setH5InstructionSlots(slots)
+      setActiveSlotInstruction('h5')
+      setDraft(buildH5Instruction(slots))
+      return
+    }
+
+    if (
+      selectedSubscene?.key === 'creative-poster' &&
+      command === CREATIVE_POSTER_SLOT_COMMAND
+    ) {
+      const slots = { ...DEFAULT_CREATIVE_POSTER_INSTRUCTION_SLOTS }
+      setCreativePosterInstructionSlots(slots)
+      setActiveSlotInstruction('creative-poster')
+      setDraft(buildCreativePosterInstruction(slots))
+      return
+    }
+
+    if (
+      selectedSubscene?.key === 'planning' &&
+      command === PLANNING_SLOT_COMMAND
+    ) {
+      const slots = { ...DEFAULT_PLANNING_INSTRUCTION_SLOTS }
+      setPlanningInstructionSlots(slots)
+      setActiveSlotInstruction('planning')
+      setDraft(buildPlanningInstruction(slots))
+      return
+    }
+
+    if (
+      selectedSubscene?.key === 'resource-slot' &&
+      command === RESOURCE_SLOT_COMMAND
+    ) {
+      const slots = { ...DEFAULT_RESOURCE_SLOT_INSTRUCTION_SLOTS }
+      setResourceSlotInstructionSlots(slots)
+      setActiveSlotInstruction('resource-slot')
+      setDraft(buildResourceSlotInstruction(slots))
+      return
+    }
+
+    setActiveSlotInstruction(null)
+    setDraft(command)
+  }
+
+  const updateH5InstructionSlot = (
+    key: keyof H5InstructionSlots,
+    value: string,
+  ) => {
+    const slots = { ...h5InstructionSlots, [key]: value }
+    setH5InstructionSlots(slots)
+    setDraft(buildH5Instruction(slots))
+  }
+
+  const updateCreativePosterInstructionSlot = (
+    key: keyof CreativePosterInstructionSlots,
+    value: string,
+  ) => {
+    const slots = { ...creativePosterInstructionSlots, [key]: value }
+    setCreativePosterInstructionSlots(slots)
+    setDraft(buildCreativePosterInstruction(slots))
+  }
+
+  const updatePlanningInstructionSlot = (
+    key: keyof PlanningInstructionSlots,
+    value: string,
+  ) => {
+    const slots = { ...planningInstructionSlots, [key]: value }
+    setPlanningInstructionSlots(slots)
+    setDraft(buildPlanningInstruction(slots))
+  }
+
+  const updateResourceSlotInstructionSlot = (
+    key: keyof ResourceSlotInstructionSlots,
+    value: string,
+  ) => {
+    const slots = { ...resourceSlotInstructionSlots, [key]: value }
+    setResourceSlotInstructionSlots(slots)
+    setDraft(buildResourceSlotInstruction(slots))
+  }
+
+  const slotInstructionEditor = selectedSubscene ? (
+    activeSlotInstruction === 'h5' ? (
+      <H5InstructionEditor
+        subscene={selectedSubscene}
+        slots={h5InstructionSlots}
+        selectedSkill={selectedHomeSkill}
+        onSlotChange={updateH5InstructionSlot}
+        onRemoveSubscene={removeSelectedSubscene}
+        onRemoveSkill={() => setSelectedHomeSkill(null)}
+      />
+    ) : activeSlotInstruction === 'creative-poster' ? (
+      <CreativePosterInstructionEditor
+        subscene={selectedSubscene}
+        slots={creativePosterInstructionSlots}
+        selectedSkill={selectedHomeSkill}
+        onSlotChange={updateCreativePosterInstructionSlot}
+        onRemoveSubscene={removeSelectedSubscene}
+        onRemoveSkill={() => setSelectedHomeSkill(null)}
+      />
+    ) : activeSlotInstruction === 'planning' ? (
+      <PlanningInstructionEditor
+        subscene={selectedSubscene}
+        slots={planningInstructionSlots}
+        selectedSkill={selectedHomeSkill}
+        onSlotChange={updatePlanningInstructionSlot}
+        onRemoveSubscene={removeSelectedSubscene}
+        onRemoveSkill={() => setSelectedHomeSkill(null)}
+      />
+    ) : activeSlotInstruction === 'resource-slot' ? (
+      <ResourceSlotInstructionEditor
+        subscene={selectedSubscene}
+        slots={resourceSlotInstructionSlots}
+        selectedSkill={selectedHomeSkill}
+        onSlotChange={updateResourceSlotInstructionSlot}
+        onRemoveSubscene={removeSelectedSubscene}
+        onRemoveSkill={() => setSelectedHomeSkill(null)}
+      />
+    ) : undefined
+  ) : undefined
+
+  const selectHomeLayoutVariant = (variant: HomeLayoutVariant) => {
+    setHomeLayoutVariant(variant)
+    setSelectedSubscene(null)
+    setActiveSlotInstruction(null)
+  }
 
   /* 「H5活动页」这一栏把存好的活动模板排在最前面。 */
   const works = useMemo(
@@ -422,6 +2031,21 @@ export default function PlatformHome({
       ? { name: attachedFile.name, size: attachedFile.size, type: attachedFile.type }
       : undefined
     setAttachedFile(null)
+    if (standaloneWorkshopLayout) {
+      const selectedParamValues = selectedSubscene?.toolbarParams?.map(
+        (param) =>
+          subsceneParams[`${selectedSubscene.key}.${param.label}`] ??
+          param.options[0],
+      )
+      const paramScope = selectedParamValues?.length
+        ? `｜${selectedParamValues.join(' / ')}`
+        : ''
+      const scope = `${selectedSubscene?.label ?? activeSceneConfig.label}${paramScope}`
+      const selectedSkillScope = selectedHomeSkill
+        ? `｜技能：${selectedHomeSkill.title}`
+        : ''
+      return onSubmit(`【${scope}${selectedSkillScope}】${request}`, attachment)
+    }
     if (!tool) return onSubmit(request, attachment)
     const picked = tool.params.map((p) => params[`${tool.key}.${p.label}`])
     // 选了活动模板 = 引用它复刻：把 token 带进 prompt，工坊按模板拆替换清单
@@ -435,50 +2059,176 @@ export default function PlatformHome({
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.22, ease: 'easeOut' }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.18, ease: 'easeOut' }}
       /* isolate 不能少 —— ASCII 底纹是 z-[-2] 的 canvas，只有本层自己成为
          层叠上下文，它才会画在这层背景之上、内容之下；否则会被祖先的
          背景盖掉（AI 平台那边同样靠 .page 的 isolation: isolate）。 */
       className="relative isolate min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
-      style={{
-        backgroundImage:
-          'linear-gradient(90deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.9) 100%), linear-gradient(180deg, #F2F2F7 0%, #F5F5F5 100%)',
-      }}
+      style={
+        standaloneWorkshopLayout
+          ? { backgroundColor: '#fff' }
+          : {
+              backgroundImage:
+                'linear-gradient(90deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.9) 100%), linear-gradient(180deg, #F2F2F7 0%, #F5F5F5 100%)',
+            }
+      }
     >
       {/* ASCII 底纹 —— 与 AI 平台同一套 canvas 实现（原来是一张静态贴图） */}
       <AsciiTexture />
+
+      {standaloneWorkshopLayout && (
+        <div className="absolute right-6 top-6 z-30">
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <button
+                type="button"
+                aria-label={`切换首页方案，当前为${schemeTwo ? '方案 2' : '方案 1'}`}
+                style={{ outline: 'none' }}
+                className="inline-flex items-center gap-0.5 text-[10px] font-medium text-[#1c1f23]/55 outline-none transition-colors hover:text-[#1c1f23] focus-visible:underline focus-visible:underline-offset-2"
+              >
+                {schemeTwo ? '方案 2' : '方案 1'}
+                <ChevronDown aria-hidden size={10} strokeWidth={1.8} />
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                align="end"
+                sideOffset={4}
+                className="z-50 w-[112px] rounded-[8px] bg-white p-1 outline-none"
+              >
+                {([
+                  ['scheme-1', '方案 1'],
+                  ['scheme-2', '方案 2'],
+                ] as const).map(([value, label]) => (
+                  <Popover.Close asChild key={value}>
+                    <button
+                      type="button"
+                      aria-pressed={homeLayoutVariant === value}
+                      onClick={() => selectHomeLayoutVariant(value)}
+                      className="flex h-7 w-full items-center justify-between rounded-[6px] px-2 text-left text-[11px] text-[#1c1f23]/70 outline-none transition-colors hover:bg-black/5 hover:text-[#1c1f23] focus-visible:bg-black/5"
+                    >
+                      {label}
+                      {homeLayoutVariant === value && (
+                        <Check aria-hidden size={12} strokeWidth={2} />
+                      )}
+                    </button>
+                  </Popover.Close>
+                ))}
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
+        </div>
+      )}
 
       <div className="relative mx-auto flex w-full max-w-[1308px] flex-col items-center px-6 pb-20">
         {/* ── Hero ──
              纵向节奏全部按内容面板（Figma 151:12862）的绝对坐标还原：
              椭圆簇 top 89.6（538×260，居中），标题组 top 274（=48 顶部内距
              + 226），输入框 top 368 —— 所以簇底 349.6 到输入框正好 18。 */}
-        <div className="relative flex h-[350px] w-full flex-col items-center">
+        <div
+          className={`relative flex w-full flex-col items-center ${
+            standaloneWorkshopLayout ? 'h-[381px]' : 'h-[350px]'
+          }`}
+        >
           <img
             aria-hidden
-            src={HERO_RING}
+            src={standaloneWorkshopLayout ? activeSceneConfig.hero : HERO_RING}
             alt=""
-            className="pointer-events-none absolute top-[-24px] z-0 w-[945px] max-w-none select-none"
+            className={`pointer-events-none absolute z-0 w-[945px] max-w-none select-none ${
+              standaloneWorkshopLayout ? 'top-[92px]' : 'top-[-24px]'
+            }`}
           />
-          <div className="relative z-10 flex flex-col items-center gap-4 pt-[274px]">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[24px] font-bold leading-none text-[#1C1F23]">创所未见</span>
-              <span aria-hidden className="size-1 rounded-full bg-[#1C1F23]" />
-              <span className="text-[24px] font-bold leading-none text-[#1C1F23]">AI工坊</span>
+          {standaloneWorkshopLayout && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute top-[92px] z-[1] h-[272px] w-[945px] max-w-none select-none"
+            >
+              {activeSceneConfig.heroDetails.map((src, index) => (
+                <img
+                  key={src}
+                  src={src}
+                  alt=""
+                  className={`absolute max-w-none ${STANDALONE_HERO_DETAIL_FRAMES[index]}`}
+                />
+              ))}
+              {activeSceneConfig.heroEffects.map((src, index) => (
+                <img
+                  key={src}
+                  src={src}
+                  alt=""
+                  className={`absolute max-w-none ${STANDALONE_HERO_EFFECT_FRAMES[index]}`}
+                />
+              ))}
             </div>
-            <p className="flex items-center gap-1 text-[16px] tracking-[0.32px] text-[#1C1F23]/60">
-              把好想法变成好玩法 <span aria-hidden>💡</span>
-            </p>
+          )}
+          <div
+            className={`relative z-10 flex flex-col items-center ${
+              standaloneWorkshopLayout ? 'gap-6 pt-[284px]' : 'gap-4 pt-[274px]'
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="text-balance text-[24px] font-bold leading-[29px] text-[#1C1F23]">
+                {standaloneWorkshopLayout ? '激发创造' : '创所未见'}
+              </span>
+              <span aria-hidden className="size-1 rounded-full bg-[#1C1F23]" />
+              <span className="text-balance text-[24px] font-bold leading-[29px] text-[#1C1F23]">
+                {standaloneWorkshopLayout ? '创意工坊' : 'AI工坊'}
+              </span>
+            </div>
+            {standaloneWorkshopLayout && (
+              <StandaloneSceneSwitcher
+                activeScene={activeScene}
+                reduceMotion={reduceMotion}
+                onChange={(scene) => {
+                  setActiveScene(scene)
+                  setSelectedSubscene(null)
+                  setActiveSlotInstruction(null)
+                  setTool(null)
+                }}
+              />
+            )}
+            {!standaloneWorkshopLayout && (
+              <p className="flex items-center gap-1 text-[16px] tracking-[0.32px] text-[#1C1F23]/60">
+                把好想法变成好玩法 <span aria-hidden>💡</span>
+              </p>
+            )}
           </div>
         </div>
 
         {/* ── 输入框 ── */}
-        <div className="relative mt-[18px] w-full max-w-[800px]">
+        <div
+          className={`relative z-20 w-full ${
+            standaloneWorkshopLayout
+              ? `${schemeTwo ? 'mt-4' : 'mt-12'} max-w-[816px]`
+              : 'mt-[18px] max-w-[800px]'
+          }`}
+        >
+          {standaloneWorkshopLayout && !schemeTwo && (
+            <motion.div
+              key={activeScene}
+              initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={reduceMotion ? { duration: 0 } : SCENE_TRANSITION}
+              className="w-full"
+            >
+              <StandaloneSubsceneCommands
+                label={activeSceneConfig.label}
+                options={activeSubscenes}
+                selected={selectedSubscene}
+                onSelect={selectSubscene}
+                onCommand={pickSubsceneCommand}
+              />
+            </motion.div>
+          )}
           {/* 设计稿：输入框背后的深色光晕。用 box-shadow 而不是模糊方块——
               外阴影会被裁在 border-box 之外，不会从磨砂输入框里透出来。 */}
-          <div className="relative rounded-[32px] border-[0.5px] border-[rgba(16,17,18,0.05)] shadow-[0_4px_64px_rgba(30,31,35,0.02),0_28px_88px_-28px_rgba(27,48,81,0.45)]">
+          <div
+            className={`relative z-0 border-[0.5px] border-[rgba(16,17,18,0.05)] shadow-[0_4px_64px_rgba(30,31,35,0.02),0_28px_88px_-28px_rgba(27,48,81,0.45)] ${
+              standaloneWorkshopLayout ? 'mt-2 max-w-[800px] rounded-[20px]' : 'rounded-[32px]'
+            }`}
+          >
             {/* @模板 引用弹层 —— 输入 @ 时贴在输入框上方 */}
             {mentionOpen && (
               <div
@@ -516,45 +2266,112 @@ export default function PlatformHome({
             )}
             <ChatComposer
               /* 传附件不撑高 —— 附件卡挤占输入区，输入框整体高度不动。 */
-              height={166}
+              height={standaloneWorkshopLayout ? 134 : 166}
               value={draft}
               onChange={(v) => {
                 setDraft(v)
                 setMentionOpen(v.endsWith('@'))
               }}
               onSend={() => submit(draft)}
-              placeholder={tool?.placeholder ?? PLACEHOLDER}
+              placeholder={
+                standaloneWorkshopLayout
+                  ? !schemeTwo && selectedSubscene?.key === 'lynx'
+                    ? '从想法到可玩活动，帮你生成可交付的运营活动'
+                    : !schemeTwo
+                      ? selectedSubscene?.placeholder ?? activeSceneConfig.placeholder
+                      : activeScene === 'marketing'
+                        ? '从想法到可玩活动，帮你生成可交付的运营活动'
+                        : activeSceneConfig.placeholder
+                  : tool?.placeholder ?? PLACEHOLDER
+              }
               ariaLabel="输入你的创作想法"
               sendDisabled={!draft.trim() && !attachedFile}
-              skinClassName="rounded-[32px] border border-white bg-gradient-to-b from-[rgba(251,251,251,0.6)] to-white backdrop-blur-[12px]"
-              inputClassName="platform-home-composer-input px-3 pt-2 text-[14px] leading-[20px] text-[#1C1F23] placeholder:text-[#1C1F23]/35"
-              sendButtonClassName="size-9 bg-[#1C1F23] text-white transition-all hover:-translate-y-[1px] hover:opacity-90"
+              skinClassName={`border border-white bg-gradient-to-b from-[rgba(251,251,251,0.6)] to-white backdrop-blur-[12px] ${
+                standaloneWorkshopLayout ? 'rounded-[20px]' : 'rounded-[32px]'
+              }`}
+              inputClassName={`platform-home-composer-input text-[14px] text-[#1C1F23] placeholder:text-[#1C1F23]/35 ${
+                showsComposerPrefix
+                  ? 'px-0 pt-[11px] leading-[22px]'
+                  : 'px-3 pt-2 leading-[20px]'
+              }`}
+              sendButtonClassName={`size-9 bg-[#1C1F23] text-white transition-all hover:-translate-y-[1px] hover:opacity-90 ${
+                standaloneWorkshopLayout ? 'disabled:!opacity-100' : ''
+              }`}
+              inputContent={schemeTwo ? undefined : slotInstructionEditor}
+              inputPrefix={
+                !activeSlotInstruction &&
+                ((!schemeTwo && selectedSubscene) || selectedHomeSkill) && (
+                  <span className="ml-3 mt-2 inline-flex shrink-0 items-center gap-1">
+                    {!schemeTwo && selectedSubscene && (
+                      <span className="inline-flex h-7 shrink-0 items-center gap-2 rounded-[10px] bg-[#d5ebfe] px-2 text-[14px] font-normal leading-5 text-[#2e90fa]">
+                        <StandaloneSubsceneIcon
+                          subscene={selectedSubscene}
+                          selected
+                        />
+                        <span>{selectedSubscene.label}</span>
+                        <button
+                          type="button"
+                          aria-label={`移除${selectedSubscene.label}技能`}
+                          onClick={removeSelectedSubscene}
+                          className="relative size-3 shrink-0 overflow-hidden"
+                        >
+                          <img
+                            src="/assets/workshop/quick-commands/x-close-primary.svg"
+                            alt=""
+                            className="absolute left-[2.5px] top-[2.5px] size-[7px] max-w-none"
+                          />
+                        </button>
+                      </span>
+                    )}
+                    {selectedHomeSkill && (
+                      <span className="inline-flex h-7 shrink-0 items-center gap-2 rounded-[10px] bg-[#d5ebfe] px-2 text-[14px] font-normal leading-5 text-[#2e90fa]">
+                        <FolderCode size={12} strokeWidth={1.8} />
+                        <span className="max-w-[140px] truncate">{selectedHomeSkill.title}</span>
+                        <button
+                          type="button"
+                          aria-label={`移除${selectedHomeSkill.title}技能`}
+                          onClick={() => setSelectedHomeSkill(null)}
+                          className="relative size-3 shrink-0 overflow-hidden"
+                        >
+                          <img
+                            src="/assets/workshop/quick-commands/x-close-primary.svg"
+                            alt=""
+                            className="absolute left-[2.5px] top-[2.5px] size-[7px] max-w-none"
+                          />
+                        </button>
+                      </span>
+                    )}
+                  </span>
+                )
+              }
               attachments={
                 attachedFile && (
-                  // 上传的文档回显在输入区顶部（豆包式附件卡），不挤工具行
-                  <div className="mx-1 mt-1 flex w-fit max-w-[320px] items-center gap-2.5 rounded-[12px] border border-black/5 bg-white px-2.5 py-2 shadow-[0_1px_4px_rgba(30,31,35,0.06)]">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-[8px] bg-[#3370FF]/10 text-[#3370FF]">
-                      <FileText size={18} strokeWidth={1.8} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] leading-[18px] text-[#1C1F23]" title={attachedFile.name}>
-                        {attachedFile.name}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* 上传文档继续独立回显，不占用技能标签的行内位置。 */}
+                    <div className="flex w-fit max-w-[320px] items-center gap-2.5 rounded-[12px] border border-black/5 bg-white px-2.5 py-2 shadow-[0_1px_4px_rgba(30,31,35,0.06)]">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-[8px] bg-[#3370FF]/10 text-[#3370FF]">
+                        <FileText size={18} strokeWidth={1.8} />
                       </span>
-                      <span className="block text-[11px] leading-[16px] text-[#1C1F23]/45">
-                        {attachedFile.name.split('.').pop()?.toUpperCase()} ·{' '}
-                        {attachedFile.size >= 1024 * 1024
-                          ? `${(attachedFile.size / 1024 / 1024).toFixed(1)} MB`
-                          : `${Math.max(1, Math.round(attachedFile.size / 1024))} KB`}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] leading-[18px] text-[#1C1F23]" title={attachedFile.name}>
+                          {attachedFile.name}
+                        </span>
+                        <span className="block text-[11px] leading-[16px] text-[#1C1F23]/45">
+                          {attachedFile.name.split('.').pop()?.toUpperCase()} ·{' '}
+                          {attachedFile.size >= 1024 * 1024
+                            ? `${(attachedFile.size / 1024 / 1024).toFixed(1)} MB`
+                            : `${Math.max(1, Math.round(attachedFile.size / 1024))} KB`}
+                        </span>
                       </span>
-                    </span>
-                    <button
-                      type="button"
-                      aria-label="移除上传文档"
-                      onClick={() => setAttachedFile(null)}
-                      className="flex size-5 shrink-0 items-center justify-center rounded-full text-[#1C1F23]/50 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
-                    >
-                      <X size={13} strokeWidth={2} />
-                    </button>
+                      <button
+                        type="button"
+                        aria-label="移除上传文档"
+                        onClick={() => setAttachedFile(null)}
+                        className="flex size-5 shrink-0 items-center justify-center rounded-full text-[#1C1F23]/50 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
+                      >
+                        <X size={13} strokeWidth={2} />
+                      </button>
+                    </div>
                   </div>
                 )
               }
@@ -579,71 +2396,135 @@ export default function PlatformHome({
                   >
                     <Plus size={16} strokeWidth={1.8} />
                   </button>
-                  <span aria-hidden className="h-4 w-px bg-black/10" />
-                  {tool ? (
+                  {standaloneWorkshopLayout && (
                     <>
-                      {/* 选中的入口：蓝色，带 ✕ 退回默认工具条 */}
-                      <span
-                        className="flex h-8 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-1.5 text-[14px]"
-                        style={{ color: BLUE, backgroundColor: 'rgba(22,100,255,0.08)' }}
-                      >
-                        <ToolIcon tool={tool} />
-                        {tool.label}
-                        <button
-                          type="button"
-                          aria-label={`退出${tool.label}`}
-                          onClick={() => setTool(null)}
-                          className="flex size-5 items-center justify-center rounded-full transition-colors hover:bg-[rgba(22,100,255,0.14)]"
-                        >
-                          <X size={13} strokeWidth={2.2} />
-                        </button>
-                      </span>
-                      {/* 下拉槽位紧跟在入口后面左对齐，别甩到右边留一大段空 */}
-                      {tool.key === 'card' ? (
-                        <button
-                          type="button"
-                          onClick={onOpenResourceLibrary}
-                          className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-black/10 px-3 text-[13px] font-medium text-[#1C1F23]/70 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
-                        >
-                          <FolderCode size={14} strokeWidth={1.8} />
-                          扩展
-                        </button>
-                      ) : (
-                        tool.params.map((p) => (
+                      <HomeSkillSelect
+                        selected={selectedHomeSkill}
+                        onChange={setSelectedHomeSkill}
+                      />
+                      <ApprovalModeSelect
+                        value={approvalMode}
+                        onChange={setApprovalMode}
+                      />
+                      {schemeTwo && selectedSubscene && (
+                        <span className="ml-1 flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#d5ebfe] pl-2.5 pr-1.5 text-[13px] text-[#2e90fa]">
+                          <StandaloneSubsceneIcon
+                            subscene={selectedSubscene}
+                            selected
+                          />
+                          <span>{selectedSubscene.label}</span>
+                          <button
+                            type="button"
+                            aria-label={`移除${selectedSubscene.label}技能`}
+                            onClick={removeSelectedSubscene}
+                            className="flex size-5 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[#2e90fa]/10"
+                          >
+                            <X aria-hidden size={12} strokeWidth={2} />
+                          </button>
+                        </span>
+                      )}
+                      {!schemeTwo && selectedSubscene?.toolbarParams?.map((param) => {
+                        const paramKey = `${selectedSubscene.key}.${param.label}`
+                        return (
                           <ParamSelect
-                            key={p.label}
-                            label={p.label}
-                            options={p.options}
-                            value={params[`${tool.key}.${p.label}`]}
-                            onChange={(v) =>
-                              setParams((cur) => ({ ...cur, [`${tool.key}.${p.label}`]: v }))
+                            key={param.label}
+                            label={param.label}
+                            options={param.options}
+                            value={subsceneParams[paramKey] ?? param.options[0]}
+                            toolbarStyle
+                            onChange={(value) =>
+                              setSubsceneParams((current) => ({
+                                ...current,
+                                [paramKey]: value,
+                              }))
                             }
                           />
-                        ))
-                      )}
+                        )
+                      })}
                     </>
-                  ) : (
+                  )}
+                  {!standaloneWorkshopLayout && (
                     <>
-                      {PRIMARY_TOOLS.map((t) => (
-                        <ToolChip
-                          key={t.key}
-                          tool={t}
-                          onClick={() => setTool(t)}
-                        />
-                      ))}
-                      <MoreTools onPick={setTool} />
+                      <span aria-hidden className="h-4 w-px bg-black/10" />
+                      {tool ? (
+                        <>
+                          {/* 选中的入口：蓝色，带 ✕ 退回默认工具条 */}
+                          <span
+                            className="flex h-8 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-1.5 text-[14px]"
+                            style={{ color: BLUE, backgroundColor: 'rgba(22,100,255,0.08)' }}
+                          >
+                            <ToolIcon tool={tool} />
+                            {tool.label}
+                            <button
+                              type="button"
+                              aria-label={`退出${tool.label}`}
+                              onClick={() => setTool(null)}
+                              className="flex size-5 items-center justify-center rounded-full transition-colors hover:bg-[rgba(22,100,255,0.14)]"
+                            >
+                              <X size={13} strokeWidth={2.2} />
+                            </button>
+                          </span>
+                          {/* 下拉槽位紧跟在入口后面左对齐，别甩到右边留一大段空 */}
+                          {tool.key === 'card' ? (
+                            <button
+                              type="button"
+                              onClick={onOpenResourceLibrary}
+                              className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-black/10 px-3 text-[13px] font-medium text-[#1C1F23]/70 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
+                            >
+                              <FolderCode size={14} strokeWidth={1.8} />
+                              扩展
+                            </button>
+                          ) : (
+                            tool.params.map((p) => (
+                              <ParamSelect
+                                key={p.label}
+                                label={p.label}
+                                options={p.options}
+                                value={params[`${tool.key}.${p.label}`]}
+                                onChange={(v) =>
+                                  setParams((cur) => ({ ...cur, [`${tool.key}.${p.label}`]: v }))
+                                }
+                              />
+                            ))
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {PRIMARY_TOOLS.map((t) => (
+                            <ToolChip
+                              key={t.key}
+                              tool={t}
+                              onClick={() => setTool(t)}
+                            />
+                          ))}
+                          <MoreTools onPick={setTool} />
+                        </>
+                      )}
                     </>
                   )}
                 </>
               }
+              footerLeftClassName={standaloneWorkshopLayout ? 'gap-0' : ''}
               footerExtra={
-                tool ? null : (
+                !standaloneWorkshopLayout && tool ? null : (
                   <button
                     type="button"
                     onClick={() => toast('切换模型（演示）')}
-                    className="flex h-9 items-center gap-1 rounded-full px-3 text-[14px] text-[#1C1F23]/80 transition-colors hover:bg-black/5 hover:text-[#1C1F23]"
+                    className={`flex h-9 items-center gap-1 rounded-full px-3 text-[14px] text-[#1C1F23]/80 transition-colors hover:bg-black/5 hover:text-[#1C1F23] ${
+                      standaloneWorkshopLayout ? 'font-semibold' : ''
+                    }`}
                   >
-                    <Sparkles size={16} strokeWidth={1.8} />
+                    {standaloneWorkshopLayout ? (
+                      <span aria-hidden className="relative size-4 shrink-0 overflow-hidden">
+                        <img
+                          src="/assets/workshop/quick-commands/star-04.svg"
+                          alt=""
+                          className="absolute left-[0.67px] top-[0.67px] size-[14.67px] max-w-none"
+                        />
+                      </span>
+                    ) : (
+                      <Sparkles size={16} strokeWidth={1.8} />
+                    )}
                     Auto
                     <ChevronDown size={16} strokeWidth={1.8} />
                   </button>
@@ -651,31 +2532,61 @@ export default function PlatformHome({
               }
             />
           </div>
+          {standaloneWorkshopLayout && schemeTwo && (
+            <>
+              <div className="relative z-10 mt-6 w-full max-w-[800px]">
+                <StandaloneSubsceneSkillRow
+                  label={activeSceneConfig.label}
+                  options={activeSubscenes}
+                  selected={selectedSubscene}
+                  onSelect={selectSubscene}
+                />
+              </div>
+              {selectedSubscene && (
+                <StandaloneSubsceneCasePrompts
+                  subscene={selectedSubscene}
+                  cases={activeSceneConfig.cases}
+                  onPick={(prompt) => {
+                    setActiveSlotInstruction(null)
+                    setDraft(prompt)
+                  }}
+                />
+              )}
+            </>
+          )}
         </div>
 
         {/* ── 没有灵感？ ── */}
-        <div className="mt-[30px] flex w-full max-w-[779px] flex-col items-center gap-4">
-          <div className="flex items-center gap-2 text-[14px] leading-[22px] text-[rgba(28,31,35,0.6)]">
-            <Sparkles size={12} strokeWidth={1.8} />
-            没有灵感？试试点击以下需求
+        {!standaloneWorkshopLayout && (
+          <div className="mt-[30px] flex w-full max-w-[779px] flex-col items-center gap-4">
+            <div className="flex items-center gap-2 text-[14px] leading-[22px] text-[rgba(28,31,35,0.6)]">
+              <Sparkles size={12} strokeWidth={1.8} />
+              没有灵感？试试点击以下需求
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onSubmit(s)}
+                  className="flex h-[42px] items-center gap-2 rounded-[12px] bg-[#F5F7FA] px-4 text-[14px] leading-5 text-[#090C14] transition-colors hover:bg-[#ECEFF5]"
+                >
+                  {s}
+                  <ArrowUpRight size={12} strokeWidth={2} className="shrink-0 opacity-60" />
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => onSubmit(s)}
-                className="flex h-[42px] items-center gap-2 rounded-[12px] bg-[#F5F7FA] px-4 text-[14px] leading-5 text-[#090C14] transition-colors hover:bg-[#ECEFF5]"
-              >
-                {s}
-                <ArrowUpRight size={12} strokeWidth={2} className="shrink-0 opacity-60" />
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* ── 分类 tab + 灵感作品 ── */}
-        <div className="mt-[72px] w-full">
+        {standaloneWorkshopLayout && !schemeTwo ? (
+          <StandaloneSceneCases
+            scene={activeSceneConfig}
+            onPick={submit}
+          />
+        ) : !standaloneWorkshopLayout ? (
+          <div className="mt-[72px] w-full">
           <div className="flex flex-wrap items-center gap-1 pb-2">
             {TABS.map((tab) => (
               <button
@@ -768,7 +2679,8 @@ export default function PlatformHome({
             ))}
           </div>
           )}
-        </div>
+          </div>
+        ) : null}
       </div>
     </motion.div>
   )

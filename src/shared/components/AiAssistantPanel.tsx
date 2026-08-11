@@ -245,7 +245,7 @@ export default function AiAssistantPanel({
           animate={{ width: panelWidth, opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={{ duration: dragging ? 0 : 0.3, ease: [0.4, 0, 0.2, 1] }}
-          className={`light-scope relative flex shrink-0 flex-col overflow-hidden border-l border-[var(--divider-soft)] bg-[var(--color-surface-0)] ${className}`}
+          className={`light-scope relative mt-[var(--cc-top,0px)] flex shrink-0 flex-col overflow-hidden border-l border-[var(--divider-soft)] bg-[var(--color-surface-0)] ${className}`}
         >
           <div style={{ width: panelWidth }} className="relative flex h-full min-h-0 flex-col">
       {/* 左边缘拖拽手柄 — 调整面板宽度 */}
@@ -267,6 +267,7 @@ export default function AiAssistantPanel({
         <button
           type="button"
           title="收起创作助手"
+          aria-label="收起创作助手"
           onClick={() => setOpen(false)}
           className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink)]/40 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/80"
         >

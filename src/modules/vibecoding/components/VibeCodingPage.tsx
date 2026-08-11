@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import * as Popover from '@radix-ui/react-popover'
 import { Tooltip } from './Tooltip'
 import { toast } from 'sonner'
 import ChatPreview from '@/modules/editor/components/preview/ChatPreview'
@@ -272,11 +273,20 @@ import { generateAvatarConfig } from './artifact/generate'
 import {
   ArrowLeft,
   ArrowUp,
+  AlertTriangle,
+  Archive,
+  BadgeDollarSign,
+  Blocks,
+  BriefcaseBusiness,
+  Brush,
+  Camera,
   Check,
   CheckCircle2,
+  CheckSquare,
   ChevronDown,
   ChevronUp,
   ChevronRight,
+  Clapperboard,
   Clock,
   LayoutGrid,
   ListChecks,
@@ -295,6 +305,10 @@ import {
   Pencil,
   Play,
   ExternalLink,
+  FileSearch,
+  Flag,
+  Flashlight,
+  Gift,
   Plus,
   Minus,
   RefreshCw,
@@ -309,8 +323,22 @@ import {
   MessageSquarePlus,
   Gamepad2,
   Image as ImageIcon,
+  MessageCircleHeart,
+  MessageSquare,
   ShieldCheck,
+  MessageSquareText,
+  MessageSquareWarning,
+  MonitorPlay,
   BookOpen,
+  PencilLine,
+  Search,
+  Sparkles,
+  SquareUser,
+  Telescope,
+  Type,
+  UserRound,
+  UsersRound,
+  Video,
   WandSparkles,
   Zap,
   AppWindow,
@@ -968,6 +996,198 @@ const STANDALONE_WORKSHOP_NAV_ITEMS: SideNavItem[] = [
   },
 ]
 
+type StandaloneSpaceTile = { label: string; Icon: LucideIcon }
+
+const STANDALONE_SPACE_SECTIONS: {
+  title: string
+  color: string
+  tiles: StandaloneSpaceTile[]
+}[] = [
+  {
+    title: '我的',
+    color: '#8b5cf6',
+    tiles: [
+      { Icon: UserRound, label: '个人空间' },
+      { Icon: Brush, label: '创意设计' },
+    ],
+  },
+  {
+    title: '平台',
+    color: '#e72e75',
+    tiles: [
+      { Icon: CheckSquare, label: '解决方案' },
+      { Icon: Telescope, label: '前沿实验室' },
+    ],
+  },
+  {
+    title: '运营',
+    color: '#fa8b14',
+    tiles: [
+      { Icon: UsersRound, label: '作者运营' },
+      { Icon: BadgeDollarSign, label: '资金结算' },
+      { Icon: Archive, label: '版权运营' },
+      { Icon: Type, label: '敏感词运营' },
+      { Icon: MessageSquareText, label: '群聊' },
+      { Icon: Search, label: '抖音搜索' },
+      { Icon: MessageCircleHeart, label: '垂类运营' },
+      { Icon: Gamepad2, label: '抖音游戏' },
+      { Icon: FileSearch, label: '调研中台' },
+      { Icon: Flashlight, label: '热点资讯运营' },
+      { Icon: Video, label: '抖音直播运营' },
+      { Icon: Clapperboard, label: '抖音UGC' },
+      { Icon: Camera, label: '社交互动' },
+      { Icon: SquareUser, label: '直播用户平台' },
+      { Icon: Brush, label: '效果与创作' },
+    ],
+  },
+  {
+    title: '治理',
+    color: '#3b82f6',
+    tiles: [
+      { Icon: MonitorPlay, label: '视频治理' },
+      { Icon: Video, label: '直播治理' },
+      { Icon: SquareUser, label: '账号治理' },
+      { Icon: MessageSquare, label: 'IM治理' },
+      { Icon: Smartphone, label: '小程序治理' },
+      { Icon: ImageIcon, label: 'AIGC治理' },
+      { Icon: ShieldCheck, label: '版权治理' },
+      { Icon: Clapperboard, label: '短剧治理' },
+      { Icon: Gamepad2, label: '游戏治理' },
+      { Icon: BadgeDollarSign, label: '资金安全' },
+      { Icon: AlertTriangle, label: 'ZL治理' },
+      { Icon: MessageSquareWarning, label: '评论治理' },
+      { Icon: Blocks, label: '生态治理' },
+      { Icon: MessageSquareText, label: '舆情' },
+      { Icon: Gift, label: '投稿道具' },
+    ],
+  },
+  {
+    title: '职能',
+    color: '#8b5cf6',
+    tiles: [
+      { Icon: Sparkles, label: '开放平台' },
+      { Icon: PencilLine, label: '智能标注' },
+      { Icon: Flag, label: '数据BP' },
+      { Icon: WandSparkles, label: 'MagicX' },
+      { Icon: MessageSquare, label: '体验' },
+      { Icon: AppWindow, label: '产品研发' },
+      { Icon: BriefcaseBusiness, label: '劳动力管理' },
+    ],
+  },
+]
+
+/** 方案 7 的工作台品牌头：品牌标识、空间切换与收展入口属于同一上下文。 */
+function StandaloneWorkshopLogoHeader({
+  collapsed = false,
+  onToggle,
+}: {
+  collapsed?: boolean
+  onToggle: () => void
+}) {
+  const [activeSpace, setActiveSpace] = useState('创意设计')
+
+  if (collapsed) {
+    return (
+      <div className="flex h-10 items-center justify-center">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label="展开导航"
+          title="展开导航"
+          className="group relative flex size-8 items-center justify-center rounded-lg text-[#565A60] transition-colors duration-150 hover:bg-black/[0.03] hover:text-[#161823] motion-reduce:transition-none"
+        >
+          <img
+            src="/assets/logo2.svg"
+            alt=""
+            aria-hidden
+            className="size-[18px] object-contain transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0 motion-reduce:transition-none"
+          />
+          <SideNavPanelStateIcon
+            collapsed
+            className="absolute size-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none"
+          />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-10 items-center gap-0.5 pl-5 pr-2">
+      <img
+        src="/assets/logo2.svg"
+        alt=""
+        aria-hidden
+        className="size-[18px] shrink-0 object-contain"
+      />
+      <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[#161823]">
+        抖音 AI 工作台
+      </span>
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <button
+            type="button"
+            aria-label={`切换工作空间，当前为${activeSpace}`}
+            className="flex h-6 max-w-[64px] shrink-0 items-center gap-0.5 rounded-md px-1 text-[11px] font-medium text-[#565A60] transition-colors hover:bg-black/[0.04] hover:text-[#161823]"
+          >
+            <span className="truncate">{activeSpace}</span>
+            <ChevronDown size={10} className="shrink-0" />
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            side="bottom"
+            align="start"
+            sideOffset={8}
+            collisionPadding={12}
+            aria-label="选择工作空间"
+            className="thin-scroll z-50 max-h-[var(--radix-popover-content-available-height)] overflow-y-auto rounded-xl border border-black/5 bg-white p-3 shadow-lg outline-none"
+            style={{ width: 'min(616px, calc(100vw - 24px))' }}
+          >
+            {STANDALONE_SPACE_SECTIONS.map((section) => (
+              <section key={section.title} className="rounded-lg p-3">
+                <h3 className="mb-2 text-[12px] font-normal leading-4 text-[#1c1f23]/55">
+                  {section.title}
+                </h3>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                  {section.tiles.map(({ Icon, label }) => {
+                    const selected = label === activeSpace
+                    return (
+                      <Popover.Close asChild key={label}>
+                        <button
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => setActiveSpace(label)}
+                          className={`flex min-w-0 items-center gap-2 rounded-lg border p-3 text-left text-[14px] leading-5 transition-colors ${
+                            selected
+                              ? 'border-[#1c1f23]/50 bg-black/[0.04]'
+                              : 'border-black/10 bg-white hover:bg-black/[0.03]'
+                          }`}
+                        >
+                          <Icon size={14} style={{ color: section.color }} />
+                          <span className="truncate text-[#1c1f23]">{label}</span>
+                        </button>
+                      </Popover.Close>
+                    )
+                  })}
+                </div>
+              </section>
+            ))}
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label="收起导航"
+        title="收起导航"
+        className="flex size-6 shrink-0 items-center justify-center rounded-md text-[#565A60] transition-colors hover:bg-black/[0.04] hover:text-[#161823]"
+      >
+        <SideNavPanelStateIcon className="size-4" />
+      </button>
+    </div>
+  )
+}
+
 function StandaloneWorkshopAccountMenu({ collapsed }: { collapsed: boolean }) {
   return (
     <div className="px-[var(--sn-px)] pb-2">
@@ -1014,9 +1234,7 @@ function StandaloneWorkshopRail({
       }}
       header={
         <>
-          <SideNavProductHeader
-            leadingText="开启创作"
-            bottomGap={0}
+          <StandaloneWorkshopLogoHeader
             collapsed
             onToggle={onExpand}
           />
@@ -1303,9 +1521,7 @@ function PlatformSidebar({
            分身变体没有 AI 创作入口；方案 2 / 4 / 6 显示各自顶部工具栏。 */
         standaloneWorkshopLayout ? (
           <>
-            <SideNavProductHeader
-              leadingText="开启创作"
-              bottomGap={0}
+            <StandaloneWorkshopLogoHeader
               collapsed={collapsed}
               onToggle={() => onCollapseSidebar?.()}
             />

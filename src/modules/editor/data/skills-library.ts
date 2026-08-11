@@ -1,6 +1,195 @@
 import type { SkillCard } from '../store/persona-store'
 
+/** 工坊首页技能下拉，按《X的技能/知识/模型/工具盘点-工坊结构》同步。 */
+export const WORKSHOP_SKILLS: SkillCard[] = [
+  /* ── 灵感设计 / 活动设计 ─────────── */
+  {
+    id: 'workshop-h5-page-generation',
+    kind: 'virtual',
+    title: 'H5活动页生成（coding）',
+    content: 'h5-page-generation：完成需求分析、页面方案、大纲、组件选择、子 Agent 调度与 H5 代码交付',
+    tags: ['灵感设计', '活动设计', 'H5'],
+  },
+  {
+    id: 'workshop-head-image',
+    kind: 'virtual',
+    title: '页面头图生成',
+    content: 'head-image：负责 H5 与原生页面头图的生成、编辑和尺寸适配',
+    tags: ['灵感设计', '活动设计', '头图'],
+  },
+  {
+    id: 'workshop-native-batch',
+    kind: 'virtual',
+    title: 'Native活动页生成（批量）',
+    content: 'workflow-creator：新建、修改、批量生成或参考活动生成原生化、TTML、阿拉丁页面',
+    tags: ['灵感设计', '活动设计', 'Native'],
+  },
+  {
+    id: 'workshop-portrait-poster',
+    kind: 'virtual',
+    title: '海报制作（人像）',
+    content: 'ip-keep-image：保持人物或 IP 一致，并按参考版式生成人像海报',
+    tags: ['灵感设计', '活动设计', '海报'],
+  },
+
+  /* ── 灵感设计 / 素材设计 ─────────── */
+  {
+    id: 'workshop-livestream-sticker',
+    kind: 'virtual',
+    title: '直播间贴片生成',
+    content: 'livestream-sticker：生成直播背景、艺术字、上下或侧贴片及福袋等透明 PNG 套件',
+    tags: ['灵感设计', '素材设计', '直播'],
+  },
+  {
+    id: 'workshop-video-cover',
+    kind: 'virtual',
+    title: '短视频封面生成',
+    content: 'video-cover：解析视频、抽帧并理解内容，生成适配的短视频封面',
+    tags: ['灵感设计', '素材设计', '封面'],
+  },
+  {
+    id: 'workshop-series-image',
+    kind: 'virtual',
+    title: '主KV-资源位扩展生成',
+    content: 'series-image：基于主 KV 生成 Banner 等多尺寸、同风格资源位图片',
+    tags: ['灵感设计', '素材设计', '资源位'],
+  },
+  {
+    id: 'workshop-image-crop',
+    kind: 'virtual',
+    title: '图片裁切',
+    content: 'general-image-processing：裁切、处理并适配不同尺寸的图片',
+    tags: ['灵感设计', '素材设计', '图片处理'],
+  },
+  {
+    id: 'workshop-long-image-h5',
+    kind: 'virtual',
+    title: '长图H5生成',
+    content: 'long-image-page-generation：规划、生成并切分长图页面楼层',
+    tags: ['灵感设计', '素材设计', 'H5'],
+  },
+  {
+    id: 'workshop-dynamic-poster',
+    kind: 'virtual',
+    title: '动态图生成',
+    content: 'dynamic-poster：将静态设计转化为可动的视频或 GIF',
+    tags: ['灵感设计', '素材设计', '动图'],
+  },
+  {
+    id: 'workshop-general-image',
+    kind: 'virtual',
+    title: '兜底-通用图片生成',
+    content: '专业生图技能不匹配时使用，覆盖文生图、图像编辑、扩图、局部重绘、风格转换与套系延展',
+    tags: ['灵感设计', '素材设计', '通用生图'],
+  },
+
+  /* ── 灵感设计 / 游戏设计 ─────────── */
+  {
+    id: 'workshop-game-card',
+    kind: 'virtual',
+    title: '卡牌设计',
+    content: '从世界观、立绘与卡框方案出发，生成结构一致且包含文字、数值和阵营特征的套系卡牌',
+    tags: ['灵感设计', '游戏设计', '卡牌'],
+  },
+  {
+    id: 'workshop-game-illustration',
+    kind: 'virtual',
+    title: '立绘设计',
+    content: '围绕统一游戏世界观规划资产树，并生成立绘、头像、背景图与 CG 等套系美术资产',
+    tags: ['灵感设计', '游戏设计', '立绘'],
+  },
+  {
+    id: 'workshop-sprite-animation',
+    kind: 'virtual',
+    title: '帧动画生成',
+    content: '根据一张角色图和动作指令，生成透明背景的 Sprite Sheet 与 GIF',
+    tags: ['灵感设计', '游戏设计', '帧动画'],
+  },
+
+  /* ── 灵感设计 / 产品设计 ─────────── */
+  {
+    id: 'workshop-ai-platform-ui',
+    kind: 'virtual',
+    title: 'AI平台-界面生成',
+    content: '快速生成符合 AI 平台设计规范的 HTML 界面',
+    tags: ['灵感设计', '产品设计', 'AI 平台'],
+  },
+  {
+    id: 'workshop-tifu-b-style',
+    kind: 'virtual',
+    title: '体服平台B端-全局样式',
+    content: '应用体服 B 端风格，轻量刷新页面的全局 CSS 样式',
+    tags: ['灵感设计', '产品设计', 'B 端'],
+  },
+  {
+    id: 'workshop-tifu-b-page',
+    kind: 'virtual',
+    title: '体服平台B端-界面生成',
+    content: '调用体服 B 端组件与模板，生成高还原度的业务页面',
+    tags: ['灵感设计', '产品设计', 'B 端'],
+  },
+  {
+    id: 'workshop-tifu-b-dashboard',
+    kind: 'virtual',
+    title: '体服平台B端-数据看板',
+    content: '调用体服 B 端 Dashboard 组件与模板，生成高还原度的数据看板',
+    tags: ['灵感设计', '产品设计', '数据看板'],
+  },
+  {
+    id: 'workshop-tifu-c-voip',
+    kind: 'virtual',
+    title: '体服平台C端-VOIP',
+    content: '调用体服 C 端 VOIP 组件与模板，生成高还原度的通话界面',
+    tags: ['灵感设计', '产品设计', 'VOIP'],
+  },
+  {
+    id: 'workshop-tifu-c-im',
+    kind: 'virtual',
+    title: '体服平台C端-IM',
+    content: '调用体服 C 端 IM 组件与模板，生成高还原度的即时通讯界面',
+    tags: ['灵感设计', '产品设计', 'IM'],
+  },
+  {
+    id: 'workshop-miniapp-feed-ui',
+    kind: 'virtual',
+    title: '小程序&Feed异形卡-界面生成',
+    content: '生成高质量小程序界面，并生产符合抖音主端规范的 Feed 异形卡',
+    tags: ['灵感设计', '产品设计', '小程序'],
+  },
+  {
+    id: 'workshop-agent-card',
+    kind: 'virtual',
+    title: 'C端智能体-卡片生成',
+    content: '生成符合 C 端智能体规范的玩法卡、活动卡、视频卡等卡片',
+    tags: ['灵感设计', '产品设计', '智能体'],
+  },
+
+  /* ── 活动复盘与通用能力 ─────────── */
+  {
+    id: 'workshop-activity-review',
+    kind: 'virtual',
+    title: '复盘报告生成',
+    content: '查询活动数据、完成分析并生成飞书复盘报告；当前能力由子 Agent 承载，待抽象为独立技能',
+    tags: ['活动复盘', '数据复盘', '报告'],
+  },
+  {
+    id: 'workshop-knowledge-management',
+    kind: 'virtual',
+    title: '知识管理',
+    content: 'knowledge-management：分阶段检索系统、团队与个人知识，并控制证据读取顺序和范围',
+    tags: ['通用能力', '知识管理'],
+  },
+  {
+    id: 'workshop-douyin-search',
+    kind: 'virtual',
+    title: '抖音搜索',
+    content: 'media-search：搜索并注入真实的抖音视频、用户等媒体数据',
+    tags: ['通用能力', '搜索', '抖音'],
+  },
+]
+
 export const SKILLS_LIBRARY: SkillCard[] = [
+  ...WORKSHOP_SKILLS,
   /* ── 数据分析 ─────────── */
   { id: 's-comment-sentiment', kind: 'virtual', title: '情感分析', content: '分析评论区情感倾向与高频热词', tags: ['分析', '评论'] },
   { id: 's-comment-opinion', kind: 'virtual', title: '评论舆情分析', content: '分析评论区舆情走向、争议焦点和风险信号', tags: ['分析', '舆情'] },
