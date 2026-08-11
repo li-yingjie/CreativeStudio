@@ -1081,6 +1081,7 @@ export default function CreatorCenterHome({
 }) {
   // 左侧栏当前页：data=数据看板 content=内容管理 其余为建设中占位
   const [page, setPage] = useState('data')
+  const [homeScrolled, setHomeScrolled] = useState(false)
   const navVersion = useNavVersion((state) => state.version)
   const liveEnabled = useLiveMgmt((s) => s.enabled)
   // 关闭直播管理开关后若正停在该页，回落到数据看板（渲染期派生）
@@ -1091,14 +1092,20 @@ export default function CreatorCenterHome({
   // 首页新板块（互动/变现/活动/快速导航）共用一次 home-overview 拉取
   const { data: homeData } = useHomeOverview(homePageActive)
   const reduceMotion = useReducedMotion()
+  const selectPage = (nextPage: string) => {
+    if (nextPage === 'data') setHomeScrolled(false)
+    setPage(nextPage)
+  }
 
   useEffect(() => {
-    if (!active || page !== 'data') onScrollStateChange?.(false)
+    if (!active || page !== 'data') {
+      onScrollStateChange?.(false)
+    }
   }, [active, onScrollStateChange, page])
 
   return (
     <div className={`flex h-full min-h-0 ${navVersion === 1 ? 'bg-transparent' : 'bg-[#F5F6F8]'}`}>
-      <SideNav active={page} onSelect={setPage} />
+      <SideNav active={page} onSelect={selectPage} />
       {/* 只有内容区做载入动画；侧栏等框架保持静止 */}
       <motion.div
         key={page}
@@ -1137,7 +1144,11 @@ export default function CreatorCenterHome({
         </main>
       ) : (
       <main
-        onScroll={(event) => onScrollStateChange?.(event.currentTarget.scrollTop > 8)}
+        onScroll={(event) => {
+          const scrolled = event.currentTarget.scrollTop > 8
+          setHomeScrolled(scrolled)
+          onScrollStateChange?.(scrolled)
+        }}
         className={`min-w-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
           navVersion === 1 ? 'bg-white' : ''
         }`}
@@ -1150,6 +1161,12 @@ export default function CreatorCenterHome({
           }`}
         >
           <AmbientBackgroundVideo active={active} fadeToWhite={navVersion === 1} />
+          <div
+            aria-hidden="true"
+            className={`pointer-events-none absolute inset-x-0 top-[var(--cc-top)] h-[88px] bg-gradient-to-b from-white/68 via-white/28 to-transparent transition-opacity duration-200 ${
+              homeScrolled ? 'opacity-0' : 'opacity-100'
+            }`}
+          />
           <div className="relative px-4 pb-4 pt-6">
             <ProfileHeader stats={profileData} />
 
