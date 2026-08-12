@@ -1090,9 +1090,12 @@ function StandaloneSceneSwitcher({
 function StandaloneSubsceneIcon({
   subscene,
   selected = false,
+  size = 12,
 }: {
   subscene: StandaloneSubscene
   selected?: boolean
+  /** 设计稿的 iconClassName 都按 12px 框标定，其他尺寸整体缩放这层。 */
+  size?: number
 }) {
   const colorClassName = subscene.disabled
     ? 'text-[#1c1f23]/25'
@@ -1105,7 +1108,7 @@ function StandaloneSubsceneIcon({
     return (
       <Icon
         aria-hidden
-        size={12}
+        size={size}
         strokeWidth={1.8}
         className={`shrink-0 ${colorClassName}`}
       />
@@ -1113,6 +1116,35 @@ function StandaloneSubsceneIcon({
   }
 
   if (!subscene.iconSrc || !subscene.iconClassName) return null
+
+  if (size !== 12) {
+    return (
+      <span
+        aria-hidden
+        className={`relative shrink-0 ${colorClassName}`}
+        style={{ width: size, height: size }}
+      >
+        <span
+          className="absolute left-0 top-0 size-3 origin-top-left overflow-hidden"
+          style={{ transform: `scale(${size / 12})` }}
+        >
+          <span
+            className={`absolute bg-current ${subscene.iconClassName}`}
+            style={{
+              WebkitMaskImage: `url(${subscene.iconSrc})`,
+              WebkitMaskPosition: 'center',
+              WebkitMaskRepeat: 'no-repeat',
+              WebkitMaskSize: '100% 100%',
+              maskImage: `url(${subscene.iconSrc})`,
+              maskPosition: 'center',
+              maskRepeat: 'no-repeat',
+              maskSize: '100% 100%',
+            }}
+          />
+        </span>
+      </span>
+    )
+  }
 
   return (
     <span
@@ -2757,20 +2789,22 @@ export default function PlatformHome({
                         value={approvalMode}
                         onChange={setApprovalMode}
                       />
+                      {/* 字号/字重/图标尺寸跟左边「技能」「手动审批」同一套。 */}
                       {schemeTwo && selectedSubscene && (
-                        <span className="ml-1 flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#d5ebfe] pl-2.5 pr-1.5 text-[13px] text-[#2e90fa]">
+                        <span className="ml-1 flex h-9 shrink-0 items-center gap-1 rounded-full bg-[#d5ebfe] pl-3 pr-1.5 text-[14px] font-semibold text-[#2e90fa]">
                           <StandaloneSubsceneIcon
                             subscene={selectedSubscene}
                             selected
+                            size={16}
                           />
                           <span>{selectedSubscene.label}</span>
                           <button
                             type="button"
                             aria-label={`移除${selectedSubscene.label}技能`}
                             onClick={removeSelectedSubscene}
-                            className="flex size-5 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[#2e90fa]/10"
+                            className="flex size-6 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[#2e90fa]/10"
                           >
-                            <X aria-hidden size={12} strokeWidth={2} />
+                            <X aria-hidden size={14} strokeWidth={2} />
                           </button>
                         </span>
                       )}
