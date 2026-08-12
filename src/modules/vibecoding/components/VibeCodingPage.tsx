@@ -986,6 +986,11 @@ const STANDALONE_WORKSHOP_NAV_ITEMS: SideNavItem[] = [
     key: '资源库',
     label: '资源库',
     Icon: InboxLinearIcon,
+  },
+  {
+    key: '评测库',
+    label: '评测库',
+    Icon: FileSearch,
     dividerAfter: true,
   },
   {
@@ -1008,7 +1013,7 @@ const STANDALONE_SPACE_SECTIONS: {
     color: '#8b5cf6',
     tiles: [
       { Icon: UserRound, label: '个人空间' },
-      { Icon: Brush, label: '创意设计' },
+      { Icon: Brush, label: '创意工坊' },
     ],
   },
   {
@@ -1084,11 +1089,11 @@ function StandaloneWorkshopLogoHeader({
   collapsed?: boolean
   onToggle: () => void
 }) {
-  const [activeSpace, setActiveSpace] = useState('创意设计')
+  const [activeSpace, setActiveSpace] = useState('创意工坊')
 
   if (collapsed) {
     return (
-      <div className="flex h-10 items-center justify-center">
+      <div className="mt-4 flex h-10 items-center justify-center">
         <button
           type="button"
           onClick={onToggle}
@@ -1112,7 +1117,7 @@ function StandaloneWorkshopLogoHeader({
   }
 
   return (
-    <div className="flex h-10 items-center gap-0.5 pl-5 pr-2">
+    <div className="mt-4 flex h-10 items-center gap-0.5 pl-5 pr-2">
       <img
         src="/assets/logo2.svg"
         alt=""
@@ -1238,11 +1243,12 @@ function StandaloneWorkshopRail({
             collapsed
             onToggle={onExpand}
           />
-          <div className="px-[var(--sn-px)] pb-3 pt-1">
+          <div className="px-[var(--sn-px)] pb-3 pt-4">
             <SideNavActionButton
               aria-label="新建项目"
               collapsed
               onClick={onNewProject}
+              style={{ height: 40 }}
             >
               <Plus size={16} strokeWidth={1.8} className="shrink-0" />
             </SideNavActionButton>
@@ -1525,11 +1531,12 @@ function PlatformSidebar({
               collapsed={collapsed}
               onToggle={() => onCollapseSidebar?.()}
             />
-            <div className="px-[var(--sn-px)] pb-3 pt-1">
+            <div className="px-[var(--sn-px)] pb-3 pt-4">
               <SideNavActionButton
                 aria-label="新建项目"
                 collapsed={collapsed}
                 onClick={onNewProject}
+                style={{ height: 40 }}
               >
                 <Plus size={16} strokeWidth={1.8} className="shrink-0" />
                 {!collapsed && '新建项目'}
@@ -2909,7 +2916,9 @@ export default function VibeCodingPage({
   const sidebarExpandButtonRef = useRef<HTMLButtonElement>(null)
   const { width: platformSidebarWidth, setWidth: setPlatformSidebarWidth } =
     useResizableSideNavWidth()
-  const effectivePlatformSidebarWidth = platformSidebarWidth
+  const effectivePlatformSidebarWidth = standaloneWorkshopLayout
+    ? 256
+    : platformSidebarWidth
   const sidebarRailCollapsed =
     sidebarCollapsed && usesIconRailCollapse(navVersion)
   const sidebarFullyHidden = sidebarCollapsed && !sidebarRailCollapsed

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
+import * as TooltipPrimitive from '@radix-ui/react-tooltip'
 import { motion, useReducedMotion } from 'framer-motion'
 import { toast } from 'sonner'
 import {
@@ -13,24 +14,25 @@ import {
   FileText,
   FolderCode,
   Gamepad2,
-  Globe,
   Image as ImageIcon,
   Layers,
   LayoutGrid,
   LayoutTemplate,
   Megaphone,
+  MonitorPlay,
   MoreHorizontal,
   Palette,
   Plus,
   Presentation,
   Puzzle,
+  RefreshCw,
+  Scissors,
   Search,
+  ShieldCheck,
   Smartphone,
   Sparkles,
-  SquareUser,
   Star,
-  Type,
-  UserRound,
+  Target,
   X,
 } from '@/shared/icons'
 import ChatComposer from '@/shared/components/ChatComposer'
@@ -198,7 +200,11 @@ const TABS = [
   '兴趣卡模板',
 ]
 
-type StandaloneSceneKey = 'marketing' | 'game' | 'creative'
+type StandaloneSceneKey =
+  | 'marketing'
+  | 'game'
+  | 'activity-assets'
+  | 'game-assets'
 
 interface StandaloneToolbarParam {
   label: string
@@ -208,6 +214,7 @@ interface StandaloneToolbarParam {
 interface StandaloneSubscene {
   key: string
   label: string
+  disabled?: boolean
   Icon?: typeof LayoutTemplate
   iconSrc?: string
   iconClassName?: string
@@ -299,15 +306,15 @@ function buildResourceSlotInstruction(slots: ResourceSlotInstructionSlots) {
   return `基于${valueOrPlaceholder(slots.referenceImage, '插入图像')}生成${slots.deliverables}`
 }
 
-/** Figma 490:13321 的六个运营子场景；选中后原位进入对应快捷指令。 */
+/** 运营活动子场景；选中后原位进入对应快捷指令。 */
 const STANDALONE_SUBSCENES: readonly StandaloneSubscene[] = [
   {
     key: 'lynx',
-    label: 'Lynx 互动活动',
+    label: '互动活动',
     iconSrc: '/assets/workshop/quick-commands/wallet-05.svg',
     iconClassName: 'left-[0.64px] top-[0.75px] h-[10.25px] w-[10.72px]',
-    prompt: 'Lynx 互动活动',
-    placeholder: '请描述你想搭建的 Lynx 互动活动',
+    prompt: '互动活动',
+    placeholder: '请描述你想搭建的互动活动',
     commands: [
       '集卡抽奖',
       '节日会场',
@@ -355,53 +362,20 @@ const STANDALONE_SUBSCENES: readonly StandaloneSubscene[] = [
     ],
   },
   {
-    key: 'planning',
-    label: '活动灵感策划',
-    iconSrc: '/assets/workshop/quick-commands/lightbulb-02.svg',
-    iconClassName: 'left-[0.5px] top-[0.5px] size-[11px]',
-    prompt: '活动灵感策划',
-    placeholder: '请描述你想策划的活动方向',
+    key: 'creative-poster',
+    label: '活动海报',
+    Icon: Palette,
+    prompt: '活动海报',
+    placeholder: '请描述你想制作的活动海报',
     commands: [
-      PLANNING_SLOT_COMMAND,
-      '生成一套粉丝增长玩法',
-      '设计品牌联动创意',
-      '输出完整互动活动方案',
+      CREATIVE_POSTER_SLOT_COMMAND,
+      '制作活动主视觉海报',
+      '生成获奖名单海报',
+      '设计活动收官海报',
     ],
-  },
-  {
-    key: 'report',
-    label: '活动战报',
-    iconSrc: '/assets/workshop/quick-commands/certificate-02.svg',
-    iconClassName: 'left-[1px] top-[0.5px] h-[11px] w-[10px]',
-    prompt: '活动战报',
-    placeholder: '请描述你需要的活动战报',
     toolbarParams: [
-      { label: '活动阶段', options: ['实时', '阶段', '收官'] },
-      { label: '交付形式', options: ['长图', 'PPT'] },
-    ],
-    commands: [
-      '生成活动数据战报',
-      '制作阶段成果海报',
-      '输出获奖名单战报',
-      '生成活动收官战报',
-    ],
-  },
-  {
-    key: 'insights',
-    label: '活动洞察看板',
-    iconSrc: '/assets/workshop/quick-commands/chart-breakout-circle.svg',
-    iconClassName: 'left-[0.5px] top-[0.5px] size-[11px]',
-    prompt: '活动洞察看板',
-    placeholder: '请描述你想分析的活动数据',
-    toolbarParams: [
-      { label: '数据周期', options: ['近 7 天', '近 30 天', '活动全周期'] },
-      { label: '分析维度', options: ['转化', '留存', '人群'] },
-    ],
-    commands: [
-      '分析活动核心指标',
-      '生成实时数据看板',
-      '诊断用户转化漏斗',
-      '总结活动复盘洞察',
+      { label: '比例', options: ['3:4', '9:16', '1:1'] },
+      { label: '风格', options: ['通用', '国风', '赛博', '手绘'] },
     ],
   },
 ]
@@ -422,6 +396,8 @@ interface StandaloneScene {
   label: string
   description: string
   Icon: typeof LayoutTemplate
+  /** 设计稿自带的图标（图标库里没有的形状），用 mask 上色跟随选中态。 */
+  iconSrc?: string
   hero: string
   heroDetails: readonly [string, string, string]
   heroEffects: readonly [string, string, string]
@@ -442,8 +418,8 @@ const STANDALONE_HERO_EFFECT_FRAMES = [
   'left-[548.47px] top-[65.74px] size-[108.53px]',
 ] as const
 
-/** 方案 7 的首页只围绕三类核心场景组织；入口、输入和案例共用同一份配置。 */
-const STANDALONE_SCENES: readonly StandaloneScene[] = [
+/** 内部工作台的四类核心场景；入口、输入和案例共用同一份配置。 */
+const STANDALONE_BASE_SCENES: readonly StandaloneScene[] = [
   {
     key: 'marketing',
     label: '运营活动',
@@ -507,7 +483,7 @@ const STANDALONE_SCENES: readonly StandaloneScene[] = [
   {
     key: 'game',
     label: '互动游戏',
-    description: '玩法、页面与游戏素材',
+    description: '塔防、割草与射击玩法',
     Icon: Gamepad2,
     hero: '/assets/workshop/figma-scenes/hero-game.png?v=2',
     heroDetails: [
@@ -565,9 +541,9 @@ const STANDALONE_SCENES: readonly StandaloneScene[] = [
     ],
   },
   {
-    key: 'creative',
-    label: '设计素材',
-    description: 'KV、海报与资源位',
+    key: 'activity-assets',
+    label: '活动素材',
+    description: 'IP、头图、资源位与直播背景',
     Icon: Palette,
     hero: '/assets/workshop/figma-scenes/hero-creative.png?v=2',
     heroDetails: [
@@ -580,7 +556,7 @@ const STANDALONE_SCENES: readonly StandaloneScene[] = [
       '/assets/workshop/figma-scenes/details/hero-creative-star-glow.svg',
       '/assets/workshop/figma-scenes/details/hero-creative-fashion-glow.svg',
     ],
-    placeholder: '请描述你需要的设计素材',
+    placeholder: '请描述你需要的活动素材',
     cases: [
       {
         id: 'creative-spring',
@@ -626,6 +602,27 @@ const STANDALONE_SCENES: readonly StandaloneScene[] = [
   },
 ]
 
+const GAME_ASSET_SOURCE_SCENE = STANDALONE_BASE_SCENES[1]
+
+const STANDALONE_SCENES: readonly StandaloneScene[] = [
+  ...STANDALONE_BASE_SCENES,
+  {
+    ...GAME_ASSET_SOURCE_SCENE,
+    key: 'game-assets',
+    label: '游戏素材',
+    description: '卡牌、精灵帧、地图与游戏 UI',
+    Icon: Layers,
+    iconSrc: '/assets/workshop/scene-icons/game-assets-adventure.svg',
+    /* 三张圈图取设计稿 548:10434 的游戏画面，沿用互动游戏的圈形与光晕。 */
+    heroDetails: [
+      '/assets/workshop/figma-scenes/details/hero-game-assets-1.png',
+      '/assets/workshop/figma-scenes/details/hero-game-assets-2.png',
+      '/assets/workshop/figma-scenes/details/hero-game-assets-3.png',
+    ],
+    placeholder: '请描述你需要的游戏素材',
+  },
+]
+
 /** 子场景使用统一图标库，按内容语义逐项匹配，避免通用占位图标。 */
 const STANDALONE_SCENE_SUGGESTIONS: Record<
   Exclude<StandaloneSceneKey, 'marketing'>,
@@ -633,87 +630,43 @@ const STANDALONE_SCENE_SUGGESTIONS: Record<
 > = {
   game: [
     {
-      key: 'game-world',
-      label: '游戏世界观',
-      Icon: Globe,
-      prompt: '游戏世界观',
-      placeholder: '请描述你想构建的游戏世界观',
-      commands: ['构建奇幻世界观', '设计阵营与势力', '编写世界历史', '梳理核心冲突'],
-    },
-    {
-      key: 'game-scene',
-      label: '游戏场景',
-      Icon: ImageIcon,
-      prompt: '游戏场景',
-      placeholder: '请描述你想制作的游戏场景',
-      commands: ['生成主城场景', '设计战斗地图', '制作副本场景', '绘制关卡概念图'],
+      key: 'tower-defense',
+      label: '塔防',
+      Icon: ShieldCheck,
+      prompt: '塔防',
+      placeholder: '请描述你想制作的塔防游戏',
+      commands: ['生成经典路线塔防', '设计随机阵容塔防', '制作竖屏轻量塔防', '生成主题塔防关卡'],
       toolbarParams: [
-        { label: '画幅', options: ['16:9', '9:16', '1:1'] },
-        { label: '画风', options: ['二次元', '国风', '像素', '写实'] },
+        { label: '屏幕', options: ['竖屏', '横屏'] },
+        { label: '单局时长', options: ['60 秒', '3 分钟', '5 分钟'] },
       ],
     },
     {
-      key: 'game-character',
-      label: '游戏角色',
-      Icon: UserRound,
-      prompt: '游戏角色',
-      placeholder: '请描述你想设计的游戏角色',
-      commands: ['设计主角阵容', '生成 NPC 设定', '创建反派角色', '输出角色关系'],
+      key: 'survivor',
+      label: '割草',
+      Icon: Scissors,
+      prompt: '割草',
+      placeholder: '请描述你想制作的割草游戏',
+      commands: ['生成幸存者割草玩法', '设计技能构筑组合', '制作竖屏割草小游戏', '生成无限波次关卡'],
       toolbarParams: [
-        { label: '画风', options: ['二次元', '国风', '像素', '写实'] },
-        { label: '数量', options: ['×1', '×4', '整组'] },
+        { label: '屏幕', options: ['竖屏', '横屏'] },
+        { label: '节奏', options: ['轻度', '标准', '高强度'] },
       ],
     },
     {
-      key: 'character-art',
-      label: '角色立绘',
-      Icon: Brush,
-      prompt: '角色立绘',
-      placeholder: '请描述你需要的角色立绘',
-      commands: ['生成二次元立绘', '制作国风角色立绘', '设计像素角色', '输出角色三视图'],
+      key: '2d-shooter',
+      label: '2D 射击',
+      Icon: Target,
+      prompt: '2D 射击',
+      placeholder: '请描述你想制作的 2D 射击游戏',
+      commands: ['生成俯视角射击游戏', '制作横版弹幕射击', '设计双摇杆射击玩法', '生成像素射击关卡'],
       toolbarParams: [
-        { label: '画风', options: ['二次元', '国风', '像素', '写实'] },
-        { label: '视图', options: ['单视图', '三视图'] },
-      ],
-    },
-    {
-      key: 'game-effects',
-      label: '特效素材',
-      Icon: Sparkles,
-      prompt: '特效素材',
-      placeholder: '请描述你需要的游戏特效素材',
-      commands: ['生成技能特效', '制作爆炸序列帧', '设计粒子光效', '输出透明底特效'],
-      toolbarParams: [
-        { label: '帧数', options: ['8 帧', '12 帧', '24 帧'] },
-        { label: '交付', options: ['透明底', '黑底预览', '序列帧'] },
-      ],
-    },
-    {
-      key: 'game-ui',
-      label: '游戏 UI',
-      Icon: AppWindow,
-      prompt: '游戏 UI',
-      placeholder: '请描述你需要的游戏 UI',
-      commands: ['设计主界面 UI', '生成战斗 HUD', '制作背包界面', '设计按钮图标'],
-      toolbarParams: [
-        { label: '端型', options: ['竖屏', '横屏', '响应式'] },
-        { label: '风格', options: ['二次元', '国风', '像素', '写实'] },
-      ],
-    },
-    {
-      key: 'game-card',
-      label: '游戏卡牌',
-      Icon: CreditCard,
-      prompt: '游戏卡牌',
-      placeholder: '请描述你想制作的游戏卡牌',
-      commands: ['生成塔罗卡牌', '制作三国武将卡', '设计炉石风卡牌', '输出整套卡背'],
-      toolbarParams: [
-        { label: '比例', options: ['2:3', '3:4', '1:1'] },
-        { label: '数量', options: ['×1', '×4', '整套'] },
+        { label: '视角', options: ['俯视', '横版'] },
+        { label: '画风', options: ['像素', '二次元', '卡通'] },
       ],
     },
   ],
-  creative: [
+  'activity-assets': [
     {
       key: 'ip-design',
       label: 'IP 设计',
@@ -724,47 +677,6 @@ const STANDALONE_SCENE_SUGGESTIONS: Record<
       toolbarParams: [
         { label: '画风', options: ['卡通', '潮玩', '国风', '写实'] },
         { label: '视图', options: ['单视图', '三视图'] },
-      ],
-    },
-    {
-      key: 'logo-generation',
-      label: 'Logo 生成',
-      Icon: Type,
-      prompt: 'Logo 生成',
-      placeholder: '请描述你想生成的 Logo',
-      commands: ['生成品牌 Logo', '设计文字标志', '制作图形标志', '输出 Logo 组合规范'],
-      toolbarParams: [
-        { label: '标志类型', options: ['图形标', '文字标', '组合标'] },
-        { label: '色彩', options: ['彩色', '单色', '黑白'] },
-      ],
-    },
-    {
-      key: 'portrait-poster',
-      label: '人像海报',
-      Icon: SquareUser,
-      prompt: '人像海报',
-      placeholder: '请描述你想制作的人像海报',
-      commands: ['生成时尚人像海报', '制作国风人物海报', '设计杂志封面', '生成艺人宣传图'],
-      toolbarParams: [
-        { label: '比例', options: ['3:4', '9:16', '1:1'] },
-        { label: '风格', options: ['时尚', '国风', '杂志', '电影感'] },
-      ],
-    },
-    {
-      key: 'creative-poster',
-      label: '创意海报',
-      Icon: Palette,
-      prompt: '创意海报',
-      placeholder: '请描述你想制作的创意海报',
-      commands: [
-        CREATIVE_POSTER_SLOT_COMMAND,
-        '设计鎏金动效海报',
-        '制作活动主视觉',
-        '输出系列海报',
-      ],
-      toolbarParams: [
-        { label: '比例', options: ['3:4', '9:16', '1:1'] },
-        { label: '风格', options: ['通用', '国风', '赛博', '手绘'] },
       ],
     },
     {
@@ -797,19 +709,301 @@ const STANDALONE_SCENE_SUGGESTIONS: Record<
       ],
     },
     {
-      key: 'card-background',
-      label: '卡片背景',
-      Icon: Layers,
-      prompt: '卡片背景',
-      placeholder: '请描述你需要的卡片背景',
-      commands: ['生成星空卡片背景', '设计国风卡片底图', '制作玻璃质感背景', '输出系列卡面背景'],
+      key: 'live-background',
+      label: '直播间背景',
+      Icon: MonitorPlay,
+      prompt: '直播间背景',
+      placeholder: '请描述你需要的直播间背景',
+      commands: ['生成节日直播间背景', '制作游戏直播背景', '设计品牌专场背景', '输出多尺寸直播背景'],
+      toolbarParams: [
+        { label: '比例', options: ['16:9', '9:16'] },
+        { label: '风格', options: ['通用', '节日', '游戏', '品牌'] },
+      ],
+    },
+  ],
+  'game-assets': [
+    {
+      key: 'game-card',
+      label: '游戏卡牌',
+      Icon: CreditCard,
+      prompt: '游戏卡牌',
+      placeholder: '请描述你想制作的游戏卡牌',
+      commands: ['生成塔罗卡牌', '制作三国武将卡', '设计炉石风卡牌', '输出整套卡背'],
       toolbarParams: [
         { label: '比例', options: ['2:3', '3:4', '1:1'] },
-        { label: '风格', options: ['星空', '国风', '玻璃', '极简'] },
+        { label: '数量', options: ['×1', '×4', '整套'] },
+      ],
+    },
+    {
+      key: 'sprite-frames',
+      label: '精灵序列帧',
+      Icon: Sparkles,
+      prompt: '精灵序列帧',
+      placeholder: '请描述你需要的精灵序列帧',
+      commands: ['生成角色待机序列帧', '制作跑步动画帧', '生成攻击动作序列', '输出透明底精灵图集'],
+      toolbarParams: [
+        { label: '帧数', options: ['4 帧', '8 帧', '12 帧', '24 帧'] },
+        { label: '交付', options: ['精灵图集', '逐帧序列', 'PNG 透明底'] },
+      ],
+    },
+    {
+      key: 'game-map',
+      label: '游戏地图',
+      Icon: LayoutGrid,
+      prompt: '游戏地图',
+      placeholder: '请描述你需要的游戏地图',
+      commands: ['生成塔防关卡地图', '制作像素冒险地图', '设计战斗场景地图', '输出无缝地图素材'],
+      toolbarParams: [
+        { label: '视角', options: ['俯视', '横版', '2.5D'] },
+        { label: '画风', options: ['像素', '二次元', '卡通', '写实'] },
+      ],
+    },
+    {
+      key: 'game-ui',
+      label: '游戏 UI',
+      Icon: AppWindow,
+      prompt: '游戏 UI',
+      placeholder: '请描述你需要的游戏 UI',
+      commands: ['设计主界面 UI', '生成战斗 HUD', '制作背包界面', '设计按钮图标'],
+      toolbarParams: [
+        { label: '端型', options: ['竖屏', '横屏', '响应式'] },
+        { label: '风格', options: ['二次元', '国风', '像素', '写实'] },
       ],
     },
   ],
 }
+
+/** 方案 2 用真实场景缩略图区分 Skill，不与方案 1 的语义图标混用。 */
+const SCHEME_TWO_SKILL_THUMBNAILS: Record<string, string> = {
+  lynx: '/assets/workshop/figma-scenes/scheme2-skill-interactive.jpg',
+  h5: '/assets/workshop/figma-scenes/scheme2-skill-h5.jpg',
+  native: '/assets/workshop/figma-scenes/scheme2-skill-native.jpg',
+  'creative-poster': '/assets/workshop/figma-scenes/scheme2-skill-poster.jpg',
+  'tower-defense': '/assets/workshop/proj-garuda.webp',
+  survivor: '/assets/workshop/proj-sanguorush.webp',
+  '2d-shooter': '/assets/workshop/figma-scenes/details/hero-game-app.png',
+  'ip-design': '/assets/workshop/figma-scenes/details/hero-creative-avatar.png',
+  'header-banner': '/assets/workshop/figma-scenes/creative-spring.png?v=2',
+  'resource-slot': '/assets/workshop/figma-scenes/creative-gold.png?v=2',
+  'live-background': '/assets/workshop/figma-scenes/creative-lantern.png?v=2',
+  'game-card': '/assets/workshop/figma-scenes/scheme2-skill-game-card.jpg',
+  'sprite-frames': '/assets/workshop/figma-scenes/scheme2-skill-sprite-frames.jpg',
+  'game-map': '/assets/workshop/figma-scenes/scheme2-skill-game-map.jpg',
+  'game-ui': '/assets/workshop/figma-scenes/scheme2-skill-game-ui.jpg',
+}
+
+const SCHEME_TWO_SKILL_DESCRIPTIONS: Record<string, string> = {
+  lynx: '集卡、抽奖、答题、投票等互动活动搭建',
+  h5: '适合单页或多页面的轻量活动体验',
+  native: '基于端内能力搭建高性能原生活动',
+  'creative-poster': '快速生成活动主视觉与传播海报',
+  'tower-defense': '设计路线、防御塔与波次成长玩法',
+  survivor: '设计技能构筑、怪潮与成长节奏',
+  '2d-shooter': '生成俯视角或横版射击玩法',
+  'ip-design': '设计品牌 IP、三视图与延展形象',
+  'header-banner': '生成活动头图与多尺寸横幅',
+  'resource-slot': '制作频道焦点图与运营入口图',
+  'live-background': '生成节日、游戏或品牌直播背景',
+  'game-card': '设计角色卡、卡背与整套卡牌视觉',
+  'sprite-frames': '生成待机、跑步与攻击动作序列帧',
+  'game-map': '制作塔防、冒险与战斗场景地图',
+  'game-ui': '设计主界面、战斗 HUD 与按钮图标',
+}
+
+const MAGICX_CASES = '/assets/workshop/magicx-cases'
+const MAGICX_OFFICIAL_AVATAR =
+  '/assets/workshop/figma-scenes/people/avatar/avatar-marketing-magicx.png'
+
+/** 方案 2 的 Skill 推荐只取 MagicX 案例；每类至少两组，供「换一换」轮播。 */
+const MAGICX_H5_CASES: readonly StandaloneSceneCase[] = [
+  ...STANDALONE_BASE_SCENES[0].cases,
+  {
+    id: 'h5-pet-fan-festival',
+    title: '盛夏宠粉游戏狂欢节',
+    description: '夏日宠粉任务与游戏互动活动',
+    cover: `${MAGICX_CASES}/h5-pet-fan-festival.jpg`,
+    author: '孙思媛',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 0,
+    prompt: '参考盛夏宠粉游戏狂欢节，帮我生成一套夏日宠粉互动活动',
+  },
+  {
+    id: 'h5-singing-duel',
+    title: '歌声隔空对决',
+    description: '双人歌声对决与拉票互动活动',
+    cover: `${MAGICX_CASES}/h5-singing-duel.jpg`,
+    author: '孙思媛',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 1,
+    prompt: '参考歌声隔空对决，帮我生成一套音乐对战互动活动',
+  },
+  {
+    id: 'h5-emotion-host-recruit',
+    title: '情感新主播招募计划',
+    description: '主播招募、任务成长与报名转化活动',
+    cover: `${MAGICX_CASES}/h5-emotion-host-recruit.jpg`,
+    author: '洛柒清',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 0,
+    prompt: '参考情感新主播招募计划，帮我生成一套主播招募活动',
+  },
+  {
+    id: 'h5-new-voice-plan',
+    title: '新声发光计划',
+    description: '新主播成长任务与阶段激励活动',
+    cover: `${MAGICX_CASES}/h5-new-voice-plan.jpg`,
+    author: '吴亚楠',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 0,
+    prompt: '参考新声发光计划，帮我生成一套新主播成长激励活动',
+  },
+]
+
+const MAGICX_NATIVE_CASES: readonly StandaloneSceneCase[] = [
+  {
+    id: 'native-submission-atmosphere',
+    title: '促投稿氛围版',
+    description: '突出话题氛围与投稿入口的原生模板',
+    cover: `${MAGICX_CASES}/native-submission-atmosphere.jpg`,
+    author: '官方模板',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 0,
+    prompt: '参考促投稿氛围版，帮我生成一套端内投稿活动',
+  },
+  {
+    id: 'native-submission-rules',
+    title: '促投稿氛围版（强活动规则）',
+    description: '强化活动规则与投稿引导的原生模板',
+    cover: `${MAGICX_CASES}/native-submission-rules.jpg`,
+    author: '官方模板',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 0,
+    prompt: '参考强活动规则模板，帮我生成一套规则清晰的投稿活动',
+  },
+  {
+    id: 'native-submission-simple',
+    title: '促投稿简洁版',
+    description: '信息精简、转化路径清晰的投稿模板',
+    cover: `${MAGICX_CASES}/native-submission-simple.jpg`,
+    author: '官方模板',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 0,
+    prompt: '参考促投稿简洁版，帮我生成一套轻量投稿活动',
+  },
+  {
+    id: 'native-daily-topic',
+    title: '日常专题（带活动入口）',
+    description: '内容专题与活动入口组合的原生模板',
+    cover: `${MAGICX_CASES}/native-daily-topic.jpg`,
+    author: '官方模板',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 0,
+    prompt: '参考日常专题模板，帮我生成一套带活动入口的专题页',
+  },
+  {
+    id: 'native-celebrity-entry',
+    title: '名人明星入驻',
+    description: '明星内容聚合与账号关注转化模板',
+    cover: `${MAGICX_CASES}/native-celebrity-entry.jpg`,
+    author: '官方模板',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 0,
+    prompt: '参考名人明星入驻模板，帮我生成一套明星入驻专题活动',
+  },
+  {
+    id: 'native-ecommerce-atmosphere',
+    title: '电商强氛围',
+    description: '大促氛围与商品转化并重的原生模板',
+    cover: `${MAGICX_CASES}/native-ecommerce-atmosphere.jpg`,
+    author: '官方模板',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 0,
+    prompt: '参考电商强氛围模板，帮我生成一套大促活动页',
+  },
+  {
+    id: 'native-ecommerce-entry',
+    title: '电商内容与活动入口',
+    description: '内容种草与活动入口组合的电商模板',
+    cover: `${MAGICX_CASES}/native-ecommerce-entry.jpg`,
+    author: '官方模板',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 0,
+    prompt: '参考电商内容与活动入口模板，帮我生成一套内容型电商活动',
+  },
+  {
+    id: 'native-ecommerce-users',
+    title: '电商内容与相关用户',
+    description: '内容、达人与商品联动的原生模板',
+    cover: `${MAGICX_CASES}/native-ecommerce-users.jpg`,
+    author: '官方模板',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 0,
+    prompt: '参考电商内容与相关用户模板，帮我生成一套达人联动活动',
+  },
+]
+
+const MAGICX_POSTER_CASES: readonly StandaloneSceneCase[] = [
+  ...STANDALONE_BASE_SCENES[2].cases,
+  {
+    id: 'poster-birthday',
+    title: '主播生日海报',
+    description: '高识别度生日主题主播宣传海报',
+    cover: `${MAGICX_CASES}/poster-birthday.jpg`,
+    author: '官方案例',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 38,
+    prompt: '参考主播生日海报，帮我生成一张同风格生日活动海报',
+  },
+  {
+    id: 'poster-newyear',
+    title: '抖音跨年海报',
+    description: '跨年氛围与平台品牌结合的活动主视觉',
+    cover: `${MAGICX_CASES}/poster-newyear.jpg`,
+    author: '官方案例',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 3,
+    prompt: '参考抖音跨年海报，帮我生成一张跨年活动主视觉',
+  },
+  {
+    id: 'poster-redfox',
+    title: '红狐奇幻夜活动',
+    description: '奇幻角色与夜色氛围结合的活动海报',
+    cover: `${MAGICX_CASES}/poster-redfox.jpg`,
+    author: '官方案例',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 1,
+    prompt: '参考红狐奇幻夜活动，帮我生成一张奇幻主题活动海报',
+  },
+  {
+    id: 'poster-shopping-festival',
+    title: '2025 购物节主视觉',
+    description: '购物节促销信息与品牌氛围主视觉',
+    cover: `${MAGICX_CASES}/poster-shopping-festival.jpg`,
+    author: '官方案例',
+    avatar: MAGICX_OFFICIAL_AVATAR,
+    views: 0,
+    prompt: '参考 2025 购物节主视觉，帮我生成一张大促活动海报',
+  },
+]
+
+const SCHEME_TWO_RECOMMENDED_CASES: Readonly<
+  Record<string, readonly StandaloneSceneCase[]>
+> = {
+  lynx: MAGICX_H5_CASES,
+  h5: MAGICX_H5_CASES,
+  native: MAGICX_NATIVE_CASES,
+  'creative-poster': MAGICX_POSTER_CASES,
+}
+
+/* 每枚都是设计稿 548:10565 里 20×20 图标的整体导出，不再按图层手拼。 */
+const CONNECTED_APP_ICONS = [
+  { name: '抖音', src: '/assets/workshop/channel-icons/channel-1.svg' },
+  { name: '活动平台', src: '/assets/workshop/channel-icons/channel-2.svg' },
+  { name: '活动页面', src: '/assets/workshop/channel-icons/channel-3.svg' },
+  { name: '飞书表格', src: '/assets/workshop/channel-icons/channel-4.svg' },
+  { name: '飞书 Bot', src: '/assets/workshop/channel-icons/channel-5.svg' },
+  { name: 'Magic', src: '/assets/workshop/channel-icons/channel-6.svg' },
+] as const
 
 interface Work {
   id: string
@@ -849,7 +1043,7 @@ function StandaloneSceneSwitcher({
     <div
       role="group"
       aria-label="创作场景"
-      className="inline-flex items-center gap-2 rounded-[24px] bg-[rgba(83,96,143,0.07)] p-1"
+      className="inline-flex items-center gap-1 rounded-[24px] bg-[rgba(83,96,143,0.07)] p-1"
     >
       {STANDALONE_SCENES.map((scene) => {
         const active = scene.key === activeScene
@@ -859,7 +1053,7 @@ function StandaloneSceneSwitcher({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(scene.key)}
-            className={`relative flex h-9 w-[112px] items-center justify-center gap-2 rounded-full px-4 text-[14px] font-semibold transition-colors ${
+            className={`relative flex h-9 w-[104px] items-center justify-center gap-1.5 rounded-full px-2.5 text-[14px] font-semibold transition-colors ${
               active
                 ? 'text-white'
                 : 'text-[#1c1f23] hover:bg-white/70'
@@ -873,7 +1067,18 @@ function StandaloneSceneSwitcher({
                 transition={reduceMotion ? { duration: 0 } : SCENE_TRANSITION}
               />
             )}
-            <scene.Icon className="relative z-10" size={16} strokeWidth={1.8} />
+            {scene.iconSrc ? (
+              <span
+                aria-hidden
+                className="relative z-10 size-4 shrink-0 bg-current"
+                style={{
+                  WebkitMask: `url(${scene.iconSrc}) center / contain no-repeat`,
+                  mask: `url(${scene.iconSrc}) center / contain no-repeat`,
+                }}
+              />
+            ) : (
+              <scene.Icon className="relative z-10" size={16} strokeWidth={1.8} />
+            )}
             <span className="relative z-10">{scene.label}</span>
           </button>
         )
@@ -889,9 +1094,11 @@ function StandaloneSubsceneIcon({
   subscene: StandaloneSubscene
   selected?: boolean
 }) {
-  const colorClassName = selected
-    ? 'text-[#2e90fa]'
-    : 'text-[#1c1f23]/55'
+  const colorClassName = subscene.disabled
+    ? 'text-[#1c1f23]/25'
+    : selected
+      ? 'text-[#2e90fa]'
+      : 'text-[#1c1f23]/55'
 
   if (subscene.Icon) {
     const Icon = subscene.Icon
@@ -1235,8 +1442,9 @@ function StandaloneSubsceneCommands({
           <button
             key={subscene.key}
             type="button"
+            disabled={subscene.disabled}
             onClick={() => onSelect(subscene)}
-            className="flex h-9 shrink-0 items-center gap-2 rounded-[10px] bg-[rgba(83,96,143,0.07)] px-3 text-[14px] leading-5 text-[#1c1f23] transition-colors hover:bg-[rgba(83,96,143,0.12)]"
+            className="flex h-9 shrink-0 items-center gap-2 rounded-[10px] bg-[rgba(83,96,143,0.07)] px-3 text-[14px] leading-5 text-[#1c1f23] transition-colors hover:bg-[rgba(83,96,143,0.12)] disabled:cursor-default disabled:text-[#1c1f23]/25 disabled:hover:bg-[rgba(83,96,143,0.07)]"
           >
             <StandaloneSubsceneIcon subscene={subscene} />
             {subscene.label}
@@ -1259,34 +1467,131 @@ function StandaloneSubsceneSkillRow({
   onSelect: (subscene: StandaloneSubscene) => void
 }) {
   return (
-    <div
-      role="group"
-      aria-label={`${label}场景 Skill`}
-      className="w-full overflow-x-auto"
-    >
-      <div className="flex w-max min-w-full items-center justify-center gap-3">
-        {options.map((subscene) => {
-          const active = selected?.key === subscene.key
-          return (
-            <button
-              key={subscene.key}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onSelect(subscene)}
-              style={{
-                backgroundColor: '#ffffff',
-              }}
-              className={`flex h-9 shrink-0 items-center gap-2 rounded-[10px] px-3 text-[14px] leading-5 transition-colors ${
-                active
-                  ? 'text-[#2e90fa]'
-                  : 'text-[#1c1f23]'
-              }`}
-            >
-              <StandaloneSubsceneIcon subscene={subscene} selected={active} />
-              {subscene.label}
-            </button>
-          )
-        })}
+    // 悬停 1.5s 才出预览：鼠标扫过整排时不该一路弹卡片。
+    <TooltipPrimitive.Provider delayDuration={1500} skipDelayDuration={0}>
+      <div
+        role="group"
+        aria-label={`${label}场景 Skill`}
+        className="w-full overflow-x-auto"
+      >
+        <div className="flex w-max min-w-full items-center justify-center gap-3">
+          {options.map((subscene) => {
+            const active = selected?.key === subscene.key
+            return (
+              <TooltipPrimitive.Root key={subscene.key}>
+                <TooltipPrimitive.Trigger asChild>
+                  <button
+                    type="button"
+                    disabled={subscene.disabled}
+                    aria-pressed={active}
+                    onClick={() => onSelect(subscene)}
+                    style={{
+                      backgroundColor: '#ffffff',
+                    }}
+                    /* 选中态跟输入框工具栏的按钮同一套字重（14px semibold）。 */
+                    className={`flex h-11 shrink-0 items-center gap-2 rounded-[10px] border border-[rgba(45,66,107,0.12)] py-1 pl-1 pr-3 text-[14px] leading-5 transition-colors ${
+                      subscene.disabled
+                        ? 'cursor-default font-normal text-[#1c1f23]/25'
+                        : active
+                        ? 'font-semibold text-[#2e90fa]'
+                        : 'font-normal text-[#1c1f23]'
+                    }`}
+                  >
+                    <span
+                      className={`relative h-9 w-[66px] shrink-0 overflow-hidden rounded-lg ${
+                        subscene.disabled ? 'opacity-35' : ''
+                      }`}
+                    >
+                      <img
+                        src={SCHEME_TWO_SKILL_THUMBNAILS[subscene.key]}
+                        alt=""
+                        className={
+                          subscene.key === 'native'
+                            ? 'absolute left-0 top-[-7px] h-auto w-full max-w-none'
+                            : 'size-full object-cover'
+                        }
+                      />
+                    </span>
+                    <span className="min-w-0 truncate">
+                      {subscene.label}
+                    </span>
+                  </button>
+                </TooltipPrimitive.Trigger>
+                <TooltipPrimitive.Portal>
+                  <TooltipPrimitive.Content
+                    side="top"
+                    sideOffset={10}
+                    collisionPadding={16}
+                    className="z-50 w-[248px] rounded-xl border border-black/5 bg-white p-2 shadow-lg"
+                  >
+                    <img
+                      src={SCHEME_TWO_SKILL_THUMBNAILS[subscene.key]}
+                      alt=""
+                      className="h-[132px] w-full rounded-lg object-cover"
+                    />
+                    <div className="px-1 pb-1 pt-2 text-left">
+                      <p className="truncate text-[14px] font-semibold leading-5 text-[#1c1f23]">
+                        {subscene.label}
+                      </p>
+                      <p className="mt-1 text-pretty text-[12px] leading-[18px] text-[#1c1f23]/60">
+                        {SCHEME_TWO_SKILL_DESCRIPTIONS[subscene.key] ?? subscene.placeholder}
+                      </p>
+                    </div>
+                  </TooltipPrimitive.Content>
+                </TooltipPrimitive.Portal>
+              </TooltipPrimitive.Root>
+            )
+          })}
+        </div>
+      </div>
+    </TooltipPrimitive.Provider>
+  )
+}
+
+function SchemeTwoAppFooter() {
+  return (
+    <div className="relative z-0 mx-auto -mt-3 flex h-14 w-[760px] items-end justify-between overflow-hidden rounded-b-[24px] bg-[#f2f2f2] px-4 pb-2.5 pt-[22px]">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <img
+          src="/assets/workshop/figma-scenes/scheme2-footer-glow-3.svg"
+          alt=""
+          className="absolute left-[111px] top-[-251px] h-[594px] w-[765px] max-w-none"
+        />
+        <img
+          src="/assets/workshop/figma-scenes/scheme2-footer-glow-2.svg"
+          alt=""
+          className="absolute left-[-49px] top-[-275px] h-[594px] w-[765px] max-w-none"
+        />
+        <img
+          src="/assets/workshop/figma-scenes/scheme2-footer-glow-1.svg"
+          alt=""
+          className="absolute left-[-56px] top-[-238px] h-[299.855px] w-[429px] max-w-none"
+        />
+      </div>
+      <div className="relative z-10 flex min-w-0 flex-1 items-center gap-2 text-[14px] leading-5 text-[#1c1f23]/60">
+        <span className="relative size-4 shrink-0 overflow-hidden">
+          <img
+            src="/assets/workshop/figma-scenes/scheme2-footer-rocket.svg"
+            alt=""
+            className="absolute left-[1px] top-[0.667px] h-[14.333px] w-[14.333px] max-w-none"
+          />
+        </span>
+        <span>连接你常用的发布场景</span>
+      </div>
+      <div
+        role="group"
+        aria-label="可连接应用"
+        className="relative z-10 flex shrink-0 items-center gap-0.5"
+      >
+        {CONNECTED_APP_ICONS.map((app) => (
+          <span
+            key={app.name}
+            title={app.name}
+            className="flex size-6 shrink-0 items-center justify-center rounded-md bg-white"
+          >
+            <img src={app.src} alt="" className="size-5 shrink-0" />
+          </span>
+        ))}
       </div>
     </div>
   )
@@ -1301,17 +1606,38 @@ function StandaloneSubsceneCasePrompts({
   cases: readonly StandaloneSceneCase[]
   onPick: (prompt: string) => void
 }) {
+  const pageSize = 4
+  const pageCount = Math.max(1, Math.ceil(cases.length / pageSize))
+  const [page, setPage] = useState(0)
+  const safePage = page % pageCount
+  const visibleCases = cases.slice(
+    safePage * pageSize,
+    safePage * pageSize + pageSize,
+  )
+
   return (
     <section
       className="relative z-10 mt-4 w-full"
       aria-label={`${subscene.label}模板`}
     >
-      <div className="mb-2 flex items-center gap-1.5 text-[13px] leading-5 text-[#1c1f23]/55">
-        <Sparkles size={14} strokeWidth={1.8} />
-        选择一个 {subscene.label} 模板
+      <div className="mb-2 flex items-center justify-between gap-3 text-[13px] leading-5 text-[#1c1f23]/55">
+        <span className="flex min-w-0 items-center gap-1.5">
+          选择 {subscene.label} 模板
+        </span>
+        {pageCount > 1 && (
+          <button
+            type="button"
+            aria-label={`换一组${subscene.label}推荐案例`}
+            onClick={() => setPage((current) => (current + 1) % pageCount)}
+            className="flex h-7 shrink-0 items-center gap-1 rounded-full px-2 text-[12px] text-[#1c1f23]/55 transition-colors hover:bg-black/5 hover:text-[#1c1f23]/80"
+          >
+            <RefreshCw size={13} strokeWidth={1.8} />
+            换一换
+          </button>
+        )}
       </div>
       <div className="grid grid-cols-4 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
-        {cases.map((item) => (
+        {visibleCases.map((item) => (
           <button
             key={item.id}
             type="button"
@@ -1360,7 +1686,7 @@ function StandaloneSceneCases({
   return (
     <section
       className={`mt-[160px] w-full ${
-        scene.key === 'creative' ? 'max-w-[996px]' : 'max-w-[1008px]'
+        scene.key === 'activity-assets' ? 'max-w-[996px]' : 'max-w-[1008px]'
       }`}
       aria-label={`${scene.label}案例`}
     >
@@ -1372,14 +1698,14 @@ function StandaloneSceneCases({
             onClick={() => onPick(item.prompt)}
             aria-label={`参考${item.title}做同款，作者${item.author}`}
             className={`group relative flex w-full min-w-0 flex-col overflow-hidden rounded-[10px] bg-[#f9fafb] px-[10px] pb-4 pt-[10px] text-left ${
-              scene.key === 'creative'
+              scene.key === 'activity-assets'
                 ? 'h-[488px] max-w-[240px]'
                 : 'h-[455px] max-w-[243px]'
             }`}
           >
             <span
               className={`relative w-full shrink-0 overflow-hidden rounded-[8px] ${
-                scene.key === 'creative' ? 'h-[396px]' : 'h-[363px]'
+                scene.key === 'activity-assets' ? 'h-[396px]' : 'h-[363px]'
               }`}
             >
               <img
@@ -1805,7 +2131,7 @@ export default function PlatformHome({
   const standaloneWorkshopLayout = usesStandaloneWorkshopLayout(navVersion)
   const reduceMotion = useReducedMotion() ?? false
   const [homeLayoutVariant, setHomeLayoutVariant] =
-    useState<HomeLayoutVariant>('scheme-1')
+    useState<HomeLayoutVariant>('scheme-2')
   const schemeTwo = homeLayoutVariant === 'scheme-2'
   const [activeScene, setActiveScene] =
     useState<StandaloneSceneKey>('marketing')
@@ -2129,7 +2455,11 @@ export default function PlatformHome({
              + 226），输入框 top 368 —— 所以簇底 349.6 到输入框正好 18。 */}
         <div
           className={`relative flex w-full flex-col items-center ${
-            standaloneWorkshopLayout ? 'h-[381px]' : 'h-[350px]'
+            standaloneWorkshopLayout
+              ? schemeTwo
+                ? 'h-[349px]'
+                : 'h-[381px]'
+              : 'h-[350px]'
           }`}
         >
           <img
@@ -2137,13 +2467,19 @@ export default function PlatformHome({
             src={standaloneWorkshopLayout ? activeSceneConfig.hero : HERO_RING}
             alt=""
             className={`pointer-events-none absolute z-0 w-[945px] max-w-none select-none ${
-              standaloneWorkshopLayout ? 'top-[92px]' : 'top-[-24px]'
+              standaloneWorkshopLayout
+                ? schemeTwo
+                  ? 'top-[60px]'
+                  : 'top-[92px]'
+                : 'top-[-24px]'
             }`}
           />
           {standaloneWorkshopLayout && (
             <div
               aria-hidden
-              className="pointer-events-none absolute top-[92px] z-[1] h-[272px] w-[945px] max-w-none select-none"
+              className={`pointer-events-none absolute z-[1] h-[272px] w-[945px] max-w-none select-none ${
+                schemeTwo ? 'top-[60px]' : 'top-[92px]'
+              }`}
             >
               {activeSceneConfig.heroDetails.map((src, index) => (
                 <img
@@ -2165,7 +2501,11 @@ export default function PlatformHome({
           )}
           <div
             className={`relative z-10 flex flex-col items-center ${
-              standaloneWorkshopLayout ? 'gap-6 pt-[284px]' : 'gap-4 pt-[274px]'
+              standaloneWorkshopLayout
+                ? schemeTwo
+                  ? 'gap-6 pt-[252px]'
+                  : 'gap-6 pt-[284px]'
+                : 'gap-4 pt-[274px]'
             }`}
           >
             <div className="flex items-center gap-1.5">
@@ -2225,9 +2565,15 @@ export default function PlatformHome({
           {/* 设计稿：输入框背后的深色光晕。用 box-shadow 而不是模糊方块——
               外阴影会被裁在 border-box 之外，不会从磨砂输入框里透出来。 */}
           <div
-            className={`relative z-0 border-[0.5px] border-[rgba(16,17,18,0.05)] shadow-[0_4px_64px_rgba(30,31,35,0.02),0_28px_88px_-28px_rgba(27,48,81,0.45)] ${
-              standaloneWorkshopLayout ? 'mt-2 max-w-[800px] rounded-[20px]' : 'rounded-[32px]'
-            }`}
+            className={
+              standaloneWorkshopLayout && schemeTwo
+                ? 'relative z-0 mx-auto w-full max-w-[800px] overflow-visible'
+                : `relative z-0 shadow-[0_-10px_64px_rgba(30,31,35,0.02),0_8px_88px_-28px_rgba(27,48,81,0.45)] ${
+                    standaloneWorkshopLayout
+                      ? 'mt-2 max-w-[800px] rounded-[20px]'
+                      : 'rounded-[32px]'
+                  } border-[0.5px] border-[rgba(16,17,18,0.05)]`
+            }
           >
             {/* @模板 引用弹层 —— 输入 @ 时贴在输入框上方 */}
             {mentionOpen && (
@@ -2266,7 +2612,8 @@ export default function PlatformHome({
             )}
             <ChatComposer
               /* 传附件不撑高 —— 附件卡挤占输入区，输入框整体高度不动。 */
-              height={standaloneWorkshopLayout ? 134 : 166}
+              height={standaloneWorkshopLayout ? (schemeTwo ? 166 : 134) : 166}
+              className={schemeTwo ? 'relative z-10' : ''}
               value={draft}
               onChange={(v) => {
                 setDraft(v)
@@ -2286,9 +2633,13 @@ export default function PlatformHome({
               }
               ariaLabel="输入你的创作想法"
               sendDisabled={!draft.trim() && !attachedFile}
-              skinClassName={`border border-white bg-gradient-to-b from-[rgba(251,251,251,0.6)] to-white backdrop-blur-[12px] ${
-                standaloneWorkshopLayout ? 'rounded-[20px]' : 'rounded-[32px]'
-              }`}
+              skinClassName={
+                standaloneWorkshopLayout && schemeTwo
+                  ? 'rounded-[32px] border-[0.5px] border-[rgba(16,17,18,0.05)] bg-gradient-to-b from-[rgba(251,251,251,0.6)] to-white p-[13px] shadow-[0_4px_64px_rgba(30,31,35,0.02),0_12px_88px_-32px_rgba(27,48,81,0.35)] backdrop-blur-[12px]'
+                  : `border border-white bg-gradient-to-b from-[rgba(251,251,251,0.6)] to-white backdrop-blur-[12px] ${
+                      standaloneWorkshopLayout ? 'rounded-[20px]' : 'rounded-[32px]'
+                    }`
+              }
               inputClassName={`platform-home-composer-input text-[14px] text-[#1C1F23] placeholder:text-[#1C1F23]/35 ${
                 showsComposerPrefix
                   ? 'px-0 pt-[11px] leading-[22px]'
@@ -2531,21 +2882,33 @@ export default function PlatformHome({
                 )
               }
             />
+            {standaloneWorkshopLayout && schemeTwo && (
+              <SchemeTwoAppFooter />
+            )}
           </div>
           {standaloneWorkshopLayout && schemeTwo && (
             <>
-              <div className="relative z-10 mt-6 w-full max-w-[800px]">
+              <div className="relative z-10 mx-auto mt-6 w-full max-w-[800px]">
                 <StandaloneSubsceneSkillRow
                   label={activeSceneConfig.label}
                   options={activeSubscenes}
                   selected={selectedSubscene}
-                  onSelect={selectSubscene}
+                  /* 再点一次当前 Skill 就反选，和工具栏 chip 上的 × 等价。 */
+                  onSelect={(subscene) =>
+                    subscene.key === selectedSubscene?.key
+                      ? removeSelectedSubscene()
+                      : selectSubscene(subscene)
+                  }
                 />
               </div>
               {selectedSubscene && (
                 <StandaloneSubsceneCasePrompts
+                  key={selectedSubscene.key}
                   subscene={selectedSubscene}
-                  cases={activeSceneConfig.cases}
+                  cases={
+                    SCHEME_TWO_RECOMMENDED_CASES[selectedSubscene.key] ??
+                    activeSceneConfig.cases
+                  }
                   onPick={(prompt) => {
                     setActiveSlotInstruction(null)
                     setDraft(prompt)
