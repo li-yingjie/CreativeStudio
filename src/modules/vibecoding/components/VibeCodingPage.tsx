@@ -1094,7 +1094,7 @@ function StandaloneWorkshopLogoHeader({
           onClick={onToggle}
           aria-label="展开导航"
           title="展开导航"
-          className="group relative flex size-8 items-center justify-center rounded-lg text-[#565A60] transition-colors duration-150 hover:bg-black/[0.03] hover:text-[#161823] motion-reduce:transition-none"
+          className="group relative flex size-8 -translate-x-px items-center justify-center rounded-lg text-[#565A60] transition-colors duration-150 hover:bg-black/[0.03] hover:text-[#161823] motion-reduce:transition-none"
         >
           <img
             src="/assets/logo2.svg"
