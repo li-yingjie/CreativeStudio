@@ -1520,13 +1520,12 @@ function StandaloneSubsceneSkillRow({
                     style={{
                       backgroundColor: '#ffffff',
                     }}
-                    /* 选中态跟输入框工具栏的按钮同一套字重（14px semibold）。 */
-                    className={`flex h-11 shrink-0 items-center gap-2 rounded-[10px] border border-[rgba(45,66,107,0.12)] py-1 pl-1 pr-3 text-[14px] leading-5 transition-colors ${
+                    className={`flex h-11 shrink-0 items-center gap-2 rounded-[10px] border border-[rgba(45,66,107,0.12)] py-1 pl-1 pr-3 text-[14px] font-normal leading-5 transition-colors ${
                       subscene.disabled
-                        ? 'cursor-default font-normal text-[#1c1f23]/25'
+                        ? 'cursor-default text-[#1c1f23]/25'
                         : active
-                        ? 'font-semibold text-[#2e90fa]'
-                        : 'font-normal text-[#1c1f23]'
+                        ? 'text-[#2e90fa]'
+                        : 'text-[#1c1f23]'
                     }`}
                   >
                     <span
