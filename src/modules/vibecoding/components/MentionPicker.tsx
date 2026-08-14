@@ -169,12 +169,6 @@ export default function MentionPicker({
     }
   }, [activeItem, onClose, onInsert, open, tab])
 
-  useEffect(() => {
-    setCategory('全部')
-    setQuery('')
-    setActiveId(null)
-  }, [tab])
-
   if (!open || !anchor) return null
 
   const width = Math.min(880, window.innerWidth - 32)
@@ -198,7 +192,12 @@ export default function MentionPicker({
             <button
               key={item.id}
               type="button"
-              onClick={() => setTab(item.id)}
+              onClick={() => {
+                setTab(item.id)
+                setCategory('全部')
+                setQuery('')
+                setActiveId(null)
+              }}
               className={`relative flex h-12 items-center gap-2 text-[14px] transition-colors ${
                 active
                   ? 'font-semibold text-[#161823]'
