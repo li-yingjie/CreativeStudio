@@ -1,0 +1,14 @@
+{
+  "brandKitId": "brand.douyin-acg-new-year-2026",
+  "version": "1.1.0",
+  "sourceFileKey": "dATx52XsiA0xtpE2xpAeBC",
+  "images": [
+    { "src": "/assets/figma-deliverables/acg/resource-banner-780x220.png", "label": "窄资源位最小签名", "nodeId": "2156:15188", "width": 780, "height": 220 },
+    { "src": "/assets/figma-deliverables/acg/discovery-banner-1372x512.png", "label": "横版完整活动签名", "nodeId": "2229:63622", "width": 1372, "height": 512 },
+    { "src": "/assets/figma-deliverables/acg/topic-header-banner.png", "label": "话题页标题适配", "nodeId": "2229:64229", "width": 1125, "height": 450 },
+    { "src": "/assets/figma-deliverables/acg/splash-screen.png", "label": "竖版联名与活动签名", "nodeId": "2229:67795", "width": 1242, "height": 2208 },
+    { "src": "/assets/figma-deliverables/acg/anime-venue-long.png", "label": "二次元会场身份与 UI 角色", "nodeId": "1529:29607", "width": 375, "height": 3383 },
+    { "src": "/assets/figma-deliverables/acg/program-guide-long.png", "label": "节目单章节系统", "nodeId": "2895:67559", "width": 1080, "height": 11493 },
+    { "src": "/assets/figma-deliverables/acg/final-report-long.png", "label": "战报信息层级延展", "nodeId": "2911:6506", "width": 1080, "height": 26668 }
+  ]
+}

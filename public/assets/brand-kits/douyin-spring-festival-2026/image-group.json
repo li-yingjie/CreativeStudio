@@ -1,0 +1,118 @@
+{
+  "kitId": "brand.douyin-spring-festival-2026",
+  "version": "1.0.0",
+  "source": {
+    "fileName": "2026春晚&元宵",
+    "fileKey": "DLhjcvo02Wbwk2PrUAJTkR",
+    "rootNode": "572:114797",
+    "url": "https://www.figma.com/design/DLhjcvo02Wbwk2PrUAJTkR/2026%E6%98%A5%E6%99%9A-%E5%85%83%E5%AE%B5?node-id=572-114797&m=dev"
+  },
+  "evidencePolicy": {
+    "included": ["正式 UI", "直播间物料", "正式资源位延展"],
+    "structuralOnly": ["交互"],
+    "excluded": ["过程", "试稿", "外部参考"],
+    "note": "春晚 8 张正式导出已本地归档；元宵已核验正式总板与关键节点，不使用浏览器截图冒充生产源文件。"
+  },
+  "images": [
+    {
+      "branch": "spring_gala",
+      "src": "/assets/figma-deliverables/spring-gala/activity-banner.png",
+      "label": "春晚节目与合作方横向锁定",
+      "page": "资源位延展",
+      "nodeId": "439:12044",
+      "sourceSize": "1074×192",
+      "role": "节目标题—火山引擎—豆包横向锁定与窄画幅安全区",
+      "status": "已核验"
+    },
+    {
+      "branch": "spring_gala",
+      "src": "/assets/figma-deliverables/spring-gala/admin-screen-landscape.png",
+      "label": "抖音传播口号与行政横屏",
+      "page": "资源位延展",
+      "nodeId": "686:120050",
+      "sourceSize": "1920×1079",
+      "role": "节目/合作方锁定、传播主张与抖音平台署名的分层关系",
+      "status": "已核验"
+    },
+    {
+      "branch": "spring_gala",
+      "src": "/assets/figma-deliverables/spring-gala/main-venue.png",
+      "label": "春晚主会场身份与 UI 层级",
+      "page": "UI",
+      "nodeId": "636:116216",
+      "sourceSize": "375×2348",
+      "role": "页面 Hero、节目时间、主行动与内容模块的身份层级",
+      "status": "已核验"
+    },
+    {
+      "branch": "spring_gala",
+      "src": "/assets/figma-deliverables/spring-gala/live-main-camera.png",
+      "label": "直播主机位节目签名",
+      "page": "直播间物料",
+      "nodeId": "739:121303",
+      "sourceSize": "1116×630",
+      "role": "节目标题锁定与直播主机位封面",
+      "status": "已核验"
+    },
+    {
+      "branch": "spring_gala",
+      "src": "/assets/figma-deliverables/spring-gala/live-vertical-cover.png",
+      "label": "竖屏看春晚频道封面",
+      "page": "直播间物料",
+      "nodeId": "739:121593",
+      "sourceSize": "728×1032",
+      "role": "竖版频道名、节目身份和直播状态",
+      "status": "已核验"
+    },
+    {
+      "branch": "spring_gala",
+      "src": "/assets/figma-deliverables/spring-gala/program-cover-landscape.png",
+      "label": "节目封面横版锁定",
+      "page": "资源位延展",
+      "nodeId": "423:13605",
+      "sourceSize": "1125×633",
+      "role": "横版节目标题与合作方锁定",
+      "status": "已核验"
+    },
+    {
+      "branch": "spring_gala",
+      "src": "/assets/figma-deliverables/spring-gala/program-cover-portrait.png",
+      "label": "节目封面竖版锁定",
+      "page": "资源位延展",
+      "nodeId": "423:13656",
+      "sourceSize": "1125×1600",
+      "role": "竖版节目封面与合作方安全区",
+      "status": "已核验"
+    },
+    {
+      "branch": "spring_gala",
+      "src": "/assets/figma-deliverables/spring-gala/admin-screen-portrait.png",
+      "label": "行政竖屏传播适配",
+      "page": "资源位延展",
+      "nodeId": "686:120040",
+      "sourceSize": "1079×1920",
+      "role": "行政竖屏中的节目身份、传播口号和平台署名",
+      "status": "已核验"
+    },
+    {
+      "branch": "lantern_festival",
+      "src": null,
+      "label": "元宵资源位延展总板",
+      "page": "元宵 / 资源位延展",
+      "nodeId": "750:117489",
+      "sourceSize": "5407×4401 画板",
+      "role": "话题页、方图、横幅、节目中心、直播状态和竖版封面的正式证据集合",
+      "status": "待归档"
+    },
+    {
+      "branch": "lantern_festival",
+      "src": null,
+      "label": "元宵 1125×630 横版资源位",
+      "page": "元宵 / 资源位延展",
+      "nodeId": "750:117493",
+      "sourceSize": "1125×630（Figma 画布放置尺寸 562.5×315）",
+      "role": "元宵节目标题、节点日期和横版传播构图",
+      "status": "待归档"
+    }
+  ]
+}

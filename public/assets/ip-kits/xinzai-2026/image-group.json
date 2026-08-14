@@ -1,0 +1,33 @@
+{
+  "id": "ip.xinzai-life-service-2026.images",
+  "version": "1.0.0",
+  "title": "抖音生活服务 · 心仔 IP Kit 图片组",
+  "sourceDocuments": [
+    {
+      "title": "抖音生活服务｜心仔",
+      "revision": "1005",
+      "url": "https://bytedance.larkoffice.com/docx/JwHXdvBNPoybwixdnFKcTGahnse"
+    },
+    {
+      "title": "心仔｜形象设计资产库",
+      "revision": "1208",
+      "url": "https://bytedance.larkoffice.com/docx/G5fAdFVT0ovcN1x0lOycir3wnOf"
+    }
+  ],
+  "rightsBoundary": "只收录角色规范、标准形象、表情和动作预览；版权应用示意图不进入可复用图片组。",
+  "images": [
+    { "file": "01-color-standard.png", "width": 4001, "height": 1920, "role": "color-standard", "label": "标准色规范", "source": "抖音生活服务｜心仔" },
+    { "file": "02-character-anatomy.png", "width": 4001, "height": 1921, "role": "anatomy-guideline", "label": "角色结构标注", "source": "抖音生活服务｜心仔" },
+    { "file": "03-3d-front.png", "width": 4168, "height": 4168, "role": "standard-character-3d", "label": "3D 标准形象", "source": "抖音生活服务｜心仔" },
+    { "file": "04-2d-front.png", "width": 2084, "height": 2084, "role": "standard-character-2d", "label": "2D 标准形象", "source": "抖音生活服务｜心仔" },
+    { "file": "05-height-ratio.png", "width": 8000, "height": 4500, "role": "proportion-guideline", "label": "标准比例与线下参考", "source": "抖音生活服务｜心仔" },
+    { "file": "06-emotion-expect.png", "width": 1024, "height": 1024, "role": "expression", "label": "期待", "source": "抖音生活服务｜心仔" },
+    { "file": "07-emotion-angry.png", "width": 1024, "height": 1024, "role": "expression", "label": "生气", "source": "抖音生活服务｜心仔" },
+    { "file": "08-action-greeting.jpg", "width": 2000, "height": 2000, "role": "action-regular", "label": "打招呼", "source": "心仔｜形象设计资产库" },
+    { "file": "09-action-hotpot.png", "width": 4000, "height": 4000, "role": "action-food", "label": "吃火锅", "source": "心仔｜形象设计资产库" },
+    { "file": "10-action-karaoke.png", "width": 2000, "height": 2000, "role": "action-entertainment", "label": "唱 K", "source": "心仔｜形象设计资产库" },
+    { "file": "11-action-skateboard.png", "width": 7046, "height": 7046, "role": "action-sports", "label": "滑板", "source": "心仔｜形象设计资产库" },
+    { "file": "12-action-plane.png", "width": 3488, "height": 3489, "role": "action-travel", "label": "开飞机", "source": "心仔｜形象设计资产库" },
+    { "file": "13-action-spring.png", "width": 2000, "height": 2000, "role": "action-festival", "label": "新春快乐", "source": "心仔｜形象设计资产库" }
+  ]
+}

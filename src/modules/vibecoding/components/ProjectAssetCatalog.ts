@@ -245,104 +245,38 @@ export const GARUDA_ASSET_GROUPS: AssetGroup[] = [
   },
 ]
 
-const H5_IP_SKILL = '抖音 IP skill'
-
-function h5Asset(
-  id: string,
-  file: string,
-  label: string,
-  text: string,
-  model = 'NanoBanana',
-): AssetItem {
-  return {
-    id,
-    src: `/assets/acg-new-year/materials/${file}`,
-    label,
-    prompt: {
-      text,
-      skillLabel: H5_IP_SKILL,
-      model,
-    },
-  }
-}
-
 export const ACG_NEW_YEAR_ASSET_GROUPS: AssetGroup[] = [
   {
-    title: '活动素材',
-    desc: '2026 抖音 ACG 新春会 · 12 项独立生成素材',
+    title: '主视觉与传播适配',
+    desc: '直接来自 2026 抖音 ACG 新春会 Figma 的真实画板；保留 node 来源，不混入脑暴或生成占位图',
     items: [
-      h5Asset(
-        'acg-01-hero',
-        '01-activity-hero.png',
-        '01 / 活动主视觉',
-        '春节 ACG 主题活动主视觉，红色新春舞台背景，悬挂灯笼、中国结与烟花，集合多款热门游戏与二次元角色形成热闹群像。画面中心下方预留“2026 抖音 ACG 新春会”主标题，红金高亮、节庆氛围浓郁，16:9 横版商业活动 KV，高细节。',
-      ),
-      h5Asset(
-        'acg-02-corgi',
-        '02-party-corgi.png',
-        '02 / 派对动物角色',
-        '一只可爱的 3D 卡通柯基吉祥物，橙白柔软短毛，大耳朵、圆眼睛、黑色鼻头，佩戴红色项圈与金色圆牌，正面略微侧身站立。玩具级角色设计，毛绒与软胶结合，柔和棚拍光，透明背景，完整全身，高细节。',
-      ),
-      h5Asset(
-        'acg-03-dungeon',
-        '03-dungeon-character.png',
-        '03 / 地下城角色立绘',
-        '地下城冒险主题的 Q 版男性角色立绘，白色兜帽与红棕描边，手持巨大木槌，另一只手做出制止姿势。日系游戏角色比例，清晰赛璐璐上色，表情坚定，正面三分之二视角，透明背景，完整角色。',
-      ),
-      h5Asset(
-        'acg-04-king',
-        '04-king-character.png',
-        '04 / 王者角色素材',
-        '东方幻想竞技游戏的青年男性英雄，青黑长发，裸露上身搭配金色与青色机械饰甲，右手凝聚金蓝双色能量。写实游戏宣传立绘，动态姿态，边缘带速度残影，透明背景，横向构图，高细节。',
-      ),
-      h5Asset(
-        'acg-05-egg',
-        '05-egg-party-keyboard.png',
-        '05 / 蛋仔角色素材',
-        '一个可爱的 3D 卡通机器人角色，拟人化电子乐器造型，一个蓝色小钢琴/电子琴角色，拥有圆润的白色身体和黄色圆形头部，头顶两个黄色小天线。角色正面朝向镜头，身体漂浮在空中，姿态轻松可爱。\n\n巨大的圆形黄色脸部位于后方，脸上有两个星星形状的闪亮眼睛，黑色小嘴，带有害羞可爱的表情。前方是一台倾斜放置的蓝色电子键盘乐器，圆角矩形设计，表面光滑，带有白色和黑色琴键，左右两侧有黄色圆形机械手臂握住键盘。\n\n整体采用玩具级工业设计，软胶材质，磨砂塑料质感，圆润边角，高级产品渲染效果，简洁几何造型，轻微反射，高光柔和，Octane Render 风格，3D icon design，儿童玩具风格。\n\n纯浅灰色背景，居中构图，漂浮展示，无阴影或柔和接触阴影，干净商业产品展示图，高细节。',
-      ),
-      h5Asset(
-        'acg-06-cannon',
-        '06-title-cannon.png',
-        '06 / 标题炮筒装饰',
-        '两个红橙色玩具炮筒组成的新春装饰图标，圆润软胶材质，金黄色金属包边，绿色点火环与红色引线，顶部绽放小型金色烟花。3D icon design，透明背景，居中构图，柔和高光，高细节。',
-      ),
-      h5Asset(
-        'acg-07-video-cover',
-        '07-focus-video-cover.png',
-        '07 / 焦点视频封面',
-        '梦幻派对游戏的横版焦点视频封面，粉蓝天空、彩虹道路、糖果城堡和漂浮星球，前景是戴黄色安全帽的可爱角色，远处多个角色飞跃拱门。明亮 3D 卡通渲染，童趣、轻盈、高饱和，16:9 宣传海报构图。',
-      ),
-      h5Asset(
-        'acg-08-content-party',
-        '08-content-cover-party.png',
-        '08 / 内容封面素材 01',
-        '都市潮流动作游戏的横版内容封面，粉发少女在前景伸手指向镜头，多名未来街头角色与机器人分布在黄色几何分镜中。动漫赛璐璐风格，黑黄主色，高动势漫画排版，16:9，高细节。',
-      ),
-      h5Asset(
-        'acg-09-content-action',
-        '09-content-cover-action.png',
-        '09 / 内容封面素材 02',
-        '极简电影感竖版风景，橙粉色落日天空与海面，中间以细长黑色落地窗框形成节奏，一个微小人物沿地平线行走。大面积留白、宁静孤独、低饱和胶片色调，9:16。',
-      ),
-      h5Asset(
-        'acg-10-content-sunset',
-        '10-content-cover-sunset.png',
-        '10 / 内容封面素材 03',
-        '超现实极简竖版风景，深蓝天空、白色沙丘、橙红色花田与一棵孤树，天空悬挂细小月牙，远处只有一个人物。强烈色块分层，安静梦境感，9:16，杂志摄影质感。',
-      ),
-      h5Asset(
-        'acg-11-content-field',
-        '11-content-cover-field.png',
-        '11 / 内容封面素材 04',
-        '极简梦幻竖版风景，浅粉天空中悬浮巨大淡粉月亮，绿色田野延伸至地平线，一个微小人物站在月下。柔和粉绿配色、低对比、宁静超现实氛围，9:16，高级海报感。',
-      ),
-      h5Asset(
-        'acg-12-mascot',
-        '12-event-mascot-horse.png',
-        '12 / 活动入口吉祥物',
-        '站立的 3D 卡通红色小马吉祥物，深棕色蓬松鬃毛与尾巴，米色大口鼻、手脚，半睁眼和简单弧线笑脸。圆润软胶玩具质感，透明背景，三分之四正面，高细节。',
-      ),
+      documentedCaseAsset('acg-discovery-banner', '/assets/figma-deliverables/acg/discovery-banner-1372x512.png', '游戏中心发现页 Banner', 'node 2229:63622，活动主身份、群像与轨道场景的完整横向交付', { width: 1372, height: 512 }),
+      documentedCaseAsset('acg-kv-landscape', '/assets/figma-deliverables/acg/key-visual-landscape.png', '主会场 KV 横版', 'node 2253:13642，主会场 1920×1080 KV', { width: 1920, height: 1080 }),
+      documentedCaseAsset('acg-kv-portrait', '/assets/figma-deliverables/acg/key-visual-portrait.png', '主会场 KV 竖版', 'node 2253:13707，主会场 1080×1920 KV', { width: 1080, height: 1920 }),
+      documentedCaseAsset('acg-splash', '/assets/figma-deliverables/acg/splash-screen.png', 'ACG 新春会开屏', 'node 2229:67795，1242×2208 开屏画板', { width: 1242, height: 2208 }),
+      documentedCaseAsset('acg-partner-honor', '/assets/figma-deliverables/acg/partner-poster-honor.png', '王者合作海报', 'node 2017:7470，合作 IP 竖版传播海报', { width: 1080, height: 1920 }),
+    ],
+  },
+  {
+    title: '站内资源位矩阵',
+    desc: '搜索、话题、活动中心、游戏中心与创作广场的真实尺寸适配',
+    items: [
+      documentedCaseAsset('acg-search', '/assets/figma-deliverables/acg/search-banner.png', '精选搜索 Banner', 'node 2181:42603，搜索承接资源位', { width: 1029, height: 360 }),
+      documentedCaseAsset('acg-topic-header', '/assets/figma-deliverables/acg/topic-header-banner.png', '话题头图与 Banner', 'node 2229:64229，话题页活动身份组合', { width: 1125, height: 450 }),
+      documentedCaseAsset('acg-activity-center', '/assets/figma-deliverables/acg/activity-center-banner.png', '活动中心 Banner', 'node 2229:64459，活动中心入口', { width: 1029, height: 420 }),
+      documentedCaseAsset('acg-creative-plaza', '/assets/figma-deliverables/acg/creative-plaza-banner.png', '创作广场 Banner', 'node 2229:65564，游戏中心创作广场入口', { width: 1029, height: 384 }),
+      documentedCaseAsset('acg-topic-narrow', '/assets/figma-deliverables/acg/topic-banner.png', '话题窄 Banner', 'node 2276:18124，开年高燃话题 Banner', { width: 1029, height: 195 }),
+      documentedCaseAsset('acg-cny-banner', '/assets/figma-deliverables/acg/cny-page-banner.png', '精选 CNY 页 Banner', 'node 2181:42598，精选活动页入口', { width: 747, height: 420 }),
+    ],
+  },
+  {
+    title: '页面、节目单与战报',
+    desc: '活动长页与结算内容只作为项目实例沉淀，提炼结构时保留 IP 与数据授权边界',
+    items: [
+      documentedCaseAsset('acg-game-venue', '/assets/figma-deliverables/acg/game-venue-long.png', '游戏分会场长页', 'node 1470:25605，游戏会场完整长页', { width: 750, height: 9776 }),
+      documentedCaseAsset('acg-anime-venue', '/assets/figma-deliverables/acg/anime-venue-long.png', '二次元分会场长页', 'node 1529:29607，二次元会场完整长页', { width: 375, height: 3383 }),
+      documentedCaseAsset('acg-program', '/assets/figma-deliverables/acg/program-guide-long.png', '节目单长图', 'node 2895:67559，完整节目单传播长图', { width: 1080, height: 11493 }),
+      documentedCaseAsset('acg-report', '/assets/figma-deliverables/acg/final-report-long.png', '活动战报长图', 'node 2911:6506，数据与内容结算战报', { width: 1080, height: 26668 }),
     ],
   },
 ]
@@ -526,6 +460,17 @@ const XIAHUA_ASSET_VARIANTS: Record<string, string[]> = {
 
 export const XIAHUA_ASSET_GROUPS: AssetGroup[] = [
   {
+    title: 'Figma 真实交付基线',
+    desc: '暑期 UI 最终页中的玩水与夜食页面、收集状态和原生入口；用于同项目派生与资产提炼，不把交互过程板当成成品',
+    items: [
+      documentedCaseAsset('xh-figma-water', '/assets/figma-deliverables/xiahua/water-venue-full.png', '玩水完整长页', '暑期UI - 玩水 / node 7976:42929，玩水主题主会场', { width: 375, height: 2989 }),
+      documentedCaseAsset('xh-figma-food', '/assets/figma-deliverables/xiahua/food-venue-full.png', '夜食完整长页', '暑期UI - 美食 / node 9553:15006，夜食主题主会场', { width: 375, height: 1898 }),
+      documentedCaseAsset('xh-figma-outfits', '/assets/figma-deliverables/xiahua/my-summer-outfits.png', '我的夏装', '暑期UI - 玩水 / node 8091:73128，收集与交换状态', { width: 375, height: 812 }),
+      documentedCaseAsset('xh-figma-night-food', '/assets/figma-deliverables/xiahua/my-night-food.png', '我的夜食', '暑期UI - 美食 / node 9834:33984，夜食卡图鉴状态', { width: 375, height: 812 }),
+      documentedCaseAsset('xh-figma-native', '/assets/figma-deliverables/xiahua/native-activity-home.png', '原生活动首页', '暑期UI - 玩水 / node 8214:64702，活动原生承接', { width: 390, height: 845 }),
+    ],
+  },
+  {
     title: '主视觉与品牌',
     desc: '活动头图、标题字与 IP —— 定调深夜食堂 × 小马的整体气质',
     items: [
@@ -665,6 +610,86 @@ export const XIAHUA_ASSET_GROUPS: AssetGroup[] = [
     return variants ? { ...item, variants } : item
   }),
 }))
+
+function documentedCaseAsset(
+  id: string,
+  src: string,
+  label: string,
+  purpose: string,
+  canvas: { width: number; height: number } = { width: 750, height: 1624 },
+): AssetItem {
+  return {
+    id,
+    src,
+    label,
+    prompt: {
+      text: `${purpose}。这是从真实 Figma 案例归档的项目交付实例；只允许在保持活动身份、版式职责和授权边界的前提下派生同项目变体，不得作为跨项目通用品牌素材直接复用。`,
+      skillLabel: '活动交付适配 skill',
+      model: 'Design Compiler',
+    },
+    layerManifest: {
+      canvas,
+      layers: [
+        { id: `${id}-source`, name: '真实交付画面', type: 'raster', renderer: 'source-asset', x: 0, y: 0, width: canvas.width, height: canvas.height, z: 0, visible: true, locked: true, src },
+      ],
+    },
+    layeringHint: {
+      recommendation: 'consider-layering',
+      reason: '项目实例保留原稿；后续只拆分需要独立替换的标题、角色、数据和行动按钮。',
+    },
+  }
+}
+
+export const SPRING_GALA_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '站内页面与直播封面',
+    desc: '来自 Figma UI / 直播间物料页的真实最终画板',
+    items: [
+      documentedCaseAsset('gala-lynx', '/assets/figma-deliverables/spring-gala/main-venue-full.png', 'Lynx 春晚完整长页', 'UI / node 773:119100，直播、节目与互动内容中枢', { width: 375, height: 5925 }),
+      documentedCaseAsset('gala-archive', '/assets/figma-deliverables/spring-gala/past-gala-archive.png', '历年春晚回放', 'UI / node 361:32601，年份与回放内容', { width: 375, height: 812 }),
+      documentedCaseAsset('gala-live-main', '/assets/figma-deliverables/spring-gala/live-main-camera.png', '直播主机位封面', '直播间物料 / node 739:121303', { width: 1116, height: 630 }),
+      documentedCaseAsset('gala-live-captions', '/assets/figma-deliverables/spring-gala/live-captions-cover.png', '无障碍字幕封面', '直播间物料 / node 739:120836', { width: 1116, height: 630 }),
+      documentedCaseAsset('gala-live-sign', '/assets/figma-deliverables/spring-gala/live-sign-language-cover.png', '无障碍手语封面', '直播间物料 / node 739:121021', { width: 1116, height: 630 }),
+    ],
+  },
+  {
+    title: '资源位与传播物料',
+    desc: '同一活动身份在 Banner、头图、节目封面与行政屏中的真实画幅适配',
+    items: [
+      documentedCaseAsset('gala-banner', '/assets/figma-deliverables/spring-gala/activity-banner.png', '活动 Banner', '资源位延展 / node 439:12044', { width: 1074, height: 192 }),
+      documentedCaseAsset('gala-header', '/assets/figma-deliverables/spring-gala/activity-header.png', '活动头图', '资源位延展 / node 439:12072', { width: 738, height: 1032 }),
+      documentedCaseAsset('gala-program-landscape', '/assets/figma-deliverables/spring-gala/program-cover-landscape.png', '节目封面横版', '资源位延展 / node 423:13605', { width: 1125, height: 633 }),
+      documentedCaseAsset('gala-program-portrait', '/assets/figma-deliverables/spring-gala/program-cover-portrait.png', '节目封面竖版', '资源位延展 / node 423:13656', { width: 1125, height: 1600 }),
+      documentedCaseAsset('gala-admin-p', '/assets/figma-deliverables/spring-gala/admin-screen-portrait.png', '行政竖屏', '资源位延展 / node 686:120040', { width: 1079, height: 1920 }),
+      documentedCaseAsset('gala-admin-l', '/assets/figma-deliverables/spring-gala/admin-screen-landscape.png', '行政横屏', '资源位延展 / node 686:120050', { width: 1920, height: 1079 }),
+    ],
+  },
+]
+
+export const EVERNIGHT_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '抽卡页面与图鉴',
+    desc: 'Figma 正式页面中的主会场、任务页、图鉴与搜索入口',
+    items: [
+      documentedCaseAsset('evernight-main', '/assets/figma-deliverables/evernight/main-venue.png', '抽卡主会场', '页面 / node 40:27228，卡池、抽卡、图鉴与任务', { width: 750, height: 3652 }),
+      documentedCaseAsset('evernight-tasks', '/assets/figma-deliverables/evernight/task-page.png', '抽卡任务页', '页面 / node 747:9409，任务与次数领取', { width: 750, height: 1603 }),
+      documentedCaseAsset('evernight-atlas', '/assets/figma-deliverables/evernight/collection-page.png', '卡片图鉴', '页面 / node 110:81917，已收集与未解锁状态', { width: 750, height: 2687 }),
+      documentedCaseAsset('evernight-banner', '/assets/figma-deliverables/evernight/search-banner-1029x420.png', '搜索 Banner', '页面 / node 1220:54942，搜索承接', { width: 1029, height: 420 }),
+    ],
+  },
+  {
+    title: '卡框与结果视觉',
+    desc: 'SP / SSR / SR / R / DYR 稀有度卡框和抽卡结果舞台',
+    items: [
+      documentedCaseAsset('evernight-frame-sp', '/assets/figma-deliverables/evernight/card-frame-sp.png', 'SP 卡框', '页面 / node 1608:11633', { width: 492, height: 676 }),
+      documentedCaseAsset('evernight-frame-ssr', '/assets/figma-deliverables/evernight/card-frame-ssr.png', 'SSR 卡框', '页面 / node 1608:11662', { width: 492, height: 676 }),
+      documentedCaseAsset('evernight-frame-sr', '/assets/figma-deliverables/evernight/card-frame-sr.png', 'SR 卡框', '页面 / node 1608:11695', { width: 492, height: 676 }),
+      documentedCaseAsset('evernight-frame-r', '/assets/figma-deliverables/evernight/card-frame-r.png', 'R 卡框', '页面 / node 1608:11724', { width: 492, height: 676 }),
+      documentedCaseAsset('evernight-frame-dyr', '/assets/figma-deliverables/evernight/card-frame-dyr.png', 'DYR 独占卡框', '页面 / node 1608:11777', { width: 492, height: 676 }),
+      documentedCaseAsset('evernight-result', '/assets/figma-deliverables/evernight/draw-result-stage.png', '抽卡结果舞台', '页面 / node 1601:11382', { width: 672, height: 924 }),
+    ],
+  },
+]
 
 export function resolveAssetPrompt(item: AssetItem): AssetPrompt {
   if (item.prompt) return item.prompt

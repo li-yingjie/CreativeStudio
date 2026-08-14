@@ -37,19 +37,27 @@ const FIELD_CLASS = 'h-9 w-full rounded-lg border border-[#E1E2E5] bg-white px-3
 const TEXTAREA_CLASS = 'w-full resize-none rounded-lg border border-[#E1E2E5] bg-white px-3 py-2.5 text-[12px] leading-5 text-[#161823] outline-none placeholder:text-[#161823]/28 focus:border-[#161823]/36 focus:ring-2 focus:ring-[#161823]/[0.04]'
 
 const CATEGORY_CLASS: Record<AssetCenterCategory, readonly AssetClass[]> = {
-  template: ['activity-template'],
-  brand: ['brand-kit', 'character-kit', 'banner-template', 'live-room-kit', 'live-component'],
-  style: ['style-profile', 'layer-template'],
+  'page-component': ['h5-component', 'native-component', 'lynx-component'],
+  'page-template': ['page-template'],
+  'material-template': ['banner-template', 'live-room-kit', 'live-component', 'layer-template'],
+  brand: ['brand-kit'],
+  ip: ['character-kit'],
   gameplay: ['gameplay-package'],
+  inspiration: ['style-profile'],
   font: ['font-family'],
+  'activity-template': ['activity-template'],
 }
 
 const CATEGORY_LABEL: Record<AssetCenterCategory, string> = {
-  template: '活动模板',
+  'page-component': '页面组件库',
+  'page-template': '页面模板',
+  'material-template': '素材模板',
   brand: 'Brand Kit',
-  style: '视觉能力',
+  ip: 'IP 资产',
   gameplay: '玩法库',
+  inspiration: '视觉灵感',
   font: '字体库',
+  'activity-template': '活动项目模板',
 }
 
 const MODE_STYLE: Record<AssetParameterMode, string> = {
@@ -59,7 +67,7 @@ const MODE_STYLE: Record<AssetParameterMode, string> = {
   固定规则: 'bg-[#F1F2F4] text-[#161823]/50',
 }
 
-const COVERAGE_OPTIONS = ['抖音', '抖音极速版', '站内 H5', '图片生成', '直播间', 'Figma'] as const
+const COVERAGE_OPTIONS = ['抖音', '抖音极速版', 'H5', 'Native', 'Lynx', '图片生成', '直播间', 'Figma'] as const
 
 function cloneParameterGroups(groups: readonly AssetParameterGroup[]): AssetParameterGroup[] {
   return groups.map((group) => ({

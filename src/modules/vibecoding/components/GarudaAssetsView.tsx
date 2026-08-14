@@ -6,7 +6,6 @@ import {
   ArrowUp,
   Box,
   Check,
-  ChevronDown,
   Film,
   FolderCode,
   FolderTree,
@@ -1051,13 +1050,6 @@ function AssetPromptDetail({
                 <span aria-live="polite" className="text-[11px] text-[var(--color-ink)]/45">
                   {saved ? 'Prompt 已保存' : ''}
                 </span>
-                <button
-                  type="button"
-                  className="flex h-6 items-center gap-1 rounded-full px-2 text-[12px] font-semibold text-[var(--color-ink)]/80 transition-colors duration-150 hover:bg-[var(--fill-hover)]"
-                >
-                  Auto
-                  <ChevronDown className="size-3.5" strokeWidth={1.8} />
-                </button>
                 <button
                   type="button"
                   aria-label="保存当前 Prompt"

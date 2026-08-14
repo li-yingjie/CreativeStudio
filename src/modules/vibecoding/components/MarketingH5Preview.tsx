@@ -781,7 +781,7 @@ function Hotspot({
       aria-label={label}
       aria-pressed={active || undefined}
       onClick={
-        editing && element
+        element
           ? (event) => {
               event.stopPropagation()
               onSelect?.({ type: 'element', el: element })
@@ -827,19 +827,15 @@ function SelectableElement({
       type="button"
       aria-label={`选择${element.label}`}
       aria-pressed={active || undefined}
-      tabIndex={editing ? 0 : -1}
-      onClick={
-        editing
-          ? (event) => {
-              event.stopPropagation()
-              onSelect?.({ type: 'element', el: element })
-            }
-          : undefined
-      }
+      tabIndex={0}
+      onClick={(event) => {
+        event.stopPropagation()
+        onSelect?.({ type: 'element', el: element })
+      }}
       className={`absolute border-0 bg-transparent p-0 ${
         editing
           ? 'pointer-events-auto cursor-pointer hover:ring-1 hover:ring-inset hover:ring-[#7c5cff]/70'
-          : 'pointer-events-none'
+          : 'pointer-events-auto cursor-pointer'
       } ${active ? 'ring-2 ring-inset ring-[#7c5cff]' : ''} ${className}`}
       style={style}
     >
@@ -889,12 +885,10 @@ function SelectableLayer({
       } ${className}`}
       style={style}
       onClick={
-        editing
-          ? (event) => {
-              event.stopPropagation()
-              onSelect?.({ type: 'layer', layer: id })
-            }
-          : undefined
+        (event) => {
+          event.stopPropagation()
+          onSelect?.({ type: 'layer', layer: id })
+        }
       }
     >
       {children}

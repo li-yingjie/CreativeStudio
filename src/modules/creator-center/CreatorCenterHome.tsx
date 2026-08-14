@@ -1,5 +1,11 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import {
+  motion,
+  useMotionTemplate,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+} from 'framer-motion'
 import { toast } from 'sonner'
 import {
   ChevronDown,
@@ -182,6 +188,7 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
       ariaLabel="创作者中心侧栏"
       chrome={version === 1 ? 'plain' : 'panel'}
       showDivider={version !== 1}
+      style={{ paddingTop: 'var(--cc-top)' }}
       collapsed={collapsed}
       resizable
       flushHeader={version === 1}
@@ -329,19 +336,35 @@ function EntryCard({
   icon,
   label,
   desc,
+  hoverArrow = false,
+  accent,
   onClick,
 }: {
   icon: React.ReactNode
   label: string
   desc: string
+  hoverArrow?: boolean
+  accent?: string
   onClick?: () => void
 }) {
   const reduceMotion = useReducedMotion()
+  const pointerX = useMotionValue(104)
+  const pointerY = useMotionValue(38)
+  const matrixX = useSpring(pointerX, { stiffness: 270, damping: 28, mass: 0.45 })
+  const matrixY = useSpring(pointerY, { stiffness: 270, damping: 28, mass: 0.45 })
+  const matrixMask = useMotionTemplate`radial-gradient(112px circle at ${matrixX}px ${matrixY}px, black 0%, rgba(0,0,0,0.72) 52%, transparent 84%)`
+  const enhanced = Boolean(accent)
 
   return (
     <motion.button
       type="button"
       onClick={onClick}
+      onPointerMove={(event) => {
+        if (!enhanced || reduceMotion) return
+        const bounds = event.currentTarget.getBoundingClientRect()
+        pointerX.set(event.clientX - bounds.left)
+        pointerY.set(event.clientY - bounds.top)
+      }}
       initial="rest"
       animate="rest"
       whileHover="spread"
@@ -351,41 +374,107 @@ function EntryCard({
           ? undefined
           : { y: 0, scale: 0.99, transition: { type: 'tween', duration: 0.07, ease: 'easeOut' } }
       }
-      className="relative h-[75px] rounded-2xl border-[0.5px] border-black/5 bg-white py-[16px] pl-[86px] pr-1 text-left shadow-[0_7px_8px_rgba(0,0,0,0.05)]"
+      style={enhanced ? ({ '--entry-accent': accent } as React.CSSProperties) : undefined}
+      className="group relative h-[75px] overflow-visible rounded-2xl border-[0.5px] border-black/5 bg-white py-[16px] pl-[86px] pr-3 text-left shadow-[0_5px_8px_rgba(0,0,0,0.05)] outline-none transition-[border-color,box-shadow] duration-200 hover:border-black/[0.08] hover:shadow-[0_10px_24px_rgba(28,38,64,0.11)] focus-visible:ring-2 focus-visible:ring-[#1769C2]/35 focus-visible:ring-offset-2"
     >
+      {enhanced && (
+        <motion.span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
+          style={{ maskImage: matrixMask, WebkitMaskImage: matrixMask }}
+          variants={{
+            rest: { opacity: 0, transition: { duration: reduceMotion ? 0 : 0.12 } },
+            spread: { opacity: reduceMotion ? 0 : 0.72, transition: { duration: 0.18 } },
+          }}
+        >
+          <span
+            className="absolute inset-0"
+            style={{
+              backgroundImage: 'radial-gradient(circle, #CED9E3 1px, transparent 1.15px)',
+              backgroundSize: '7.5px 7.5px',
+            }}
+          />
+        </motion.span>
+      )}
       <span className="pointer-events-none absolute -left-px top-[-5.1px] z-[1] h-[84px] w-[77px]">{icon}</span>
-      <div className="min-w-0">
+      <div className="relative min-w-0">
         <div className="truncate text-[14px] font-semibold text-[#252632]">{label}</div>
-        <div className="mt-1 truncate text-[12px] text-[#252632]/50">{desc}</div>
+        <div className="relative mt-1 h-[18px] overflow-hidden whitespace-nowrap text-[12px] leading-[18px] text-[#252632]/50">
+          <span>{desc}</span>
+          {hoverArrow && (
+            <motion.span
+              aria-hidden="true"
+              className="ml-0.5 inline-flex h-[18px] items-center align-top text-[#252632]/45"
+              variants={{
+                rest: { x: reduceMotion ? 0 : -3, opacity: 0 },
+                spread: { x: 0, opacity: 1 },
+              }}
+              transition={{ duration: reduceMotion ? 0 : 0.16, ease: 'easeOut' }}
+            >
+              <ChevronRight size={13} strokeWidth={2} />
+            </motion.span>
+          )}
+        </div>
       </div>
     </motion.button>
   )
 }
 
-/** 智能创作图标已在 Figma 内完成前后卡叠放，直接按整组渲染以保持原始几何。 */
+/** 智能创作图标已是 Figma 合成图；只加轻微抬升和光泽，避免重复拆层。 */
 function SmartCreateImageIcon({ src }: { src: string }) {
-  return <img src={src} alt="" className="pointer-events-none block h-full w-full object-contain" />
+  const reduceMotion = useReducedMotion()
+  return (
+    <motion.span
+      className="relative block h-full w-full"
+      variants={{
+        rest: { y: 0, rotate: 0, scale: 1 },
+        spread: { y: reduceMotion ? 0 : -1.5, rotate: reduceMotion ? 0 : -0.8, scale: reduceMotion ? 1 : 1.025 },
+      }}
+      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 390, damping: 29, mass: 0.5 }}
+    >
+      <motion.span
+        aria-hidden="true"
+        className="absolute bottom-2 left-2 h-[52px] w-[58px] rounded-full bg-[color:var(--entry-accent)] blur-xl"
+        variants={{ rest: { opacity: 0 }, spread: { opacity: reduceMotion ? 0 : 0.12 } }}
+      />
+      <img src={src} alt="" className="pointer-events-none relative block h-full w-full object-contain drop-shadow-[0_4px_7px_rgba(35,42,61,0.06)]" />
+      <motion.span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-[7px] rounded-[14px] bg-[linear-gradient(115deg,transparent_25%,rgba(255,255,255,0.45)_48%,transparent_68%)]"
+        variants={{ rest: { opacity: 0, x: -8 }, spread: { opacity: reduceMotion ? 0 : 0.5, x: 7 } }}
+        transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
+      />
+    </motion.span>
+  )
 }
 
 /** 入口卡图标：正卡（front，设计稿导出的 4x 贴纸）在左，后卡与正卡等大、在右后方
  *  斜置探出（有 back 图则铺图，否则用中性浅色底板——对应设计里作品发布/工坊的白底后卡）。
  *  默认几何与 hover 增量分层：后卡绕左下角右扇，正卡同时向左展开。 */
-function CardImageIcon({ front, back }: { front: string; back?: string }) {
+function CardImageIcon({ front, back, refined = false }: { front: string; back?: string; refined?: boolean }) {
   const reduceMotion = useReducedMotion()
   const fanInTransition = { type: 'tween' as const, duration: reduceMotion ? 0 : 0.11, ease: 'easeOut' as const }
   const fanOutTransition = { type: 'tween' as const, duration: reduceMotion ? 0 : 0.08, ease: 'easeOut' as const }
 
   return (
     <span className="relative block h-full w-full">
+      {refined && (
+        <motion.span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-1 left-2 h-[52px] w-[58px] rounded-full bg-[color:var(--entry-accent)] blur-xl"
+          variants={{ rest: { opacity: 0 }, spread: { opacity: reduceMotion ? 0 : 0.12 } }}
+        />
+      )}
       {/* 后卡：设计稿 x=17.936, y=0, 60×75, rotate=10°, skewX=-1.54° */}
       <motion.span
         className="pointer-events-none absolute left-[17.94px] top-0 h-[75px] w-[60px]"
         style={{ transformOrigin: '0% 100%' }}
         variants={{
-          rest: { x: 0, rotate: 0, transition: fanOutTransition },
+          rest: { x: 0, y: 0, rotate: 0, transition: fanOutTransition },
           spread: {
             x: reduceMotion ? 0 : 2,
-            rotate: reduceMotion ? 0 : 4,
+            y: reduceMotion || !refined ? 0 : -1,
+            rotate: reduceMotion ? 0 : refined ? 3 : 4,
             transition: fanInTransition,
           },
         }}
@@ -404,10 +493,12 @@ function CardImageIcon({ front, back }: { front: string; back?: string }) {
         className="pointer-events-none absolute left-0 top-[5.1px] h-[75px] w-[60px] object-cover"
         style={{ transformOrigin: '100% 100%' }}
         variants={{
-          rest: { x: 0, rotate: 0, transition: fanOutTransition },
+          rest: { x: 0, y: 0, rotate: 0, scale: 1, transition: fanOutTransition },
           spread: {
-            x: reduceMotion ? 0 : -5,
-            rotate: reduceMotion ? 0 : -6,
+            x: reduceMotion ? 0 : refined ? -2 : -5,
+            y: reduceMotion || !refined ? 0 : -1,
+            rotate: reduceMotion ? 0 : refined ? -2 : -6,
+            scale: reduceMotion || !refined ? 1 : 1.025,
             transition: fanInTransition,
           },
         }}
@@ -875,12 +966,15 @@ function AmbientBackgroundVideo({
 export default function CreatorCenterHome({
   active,
   onOpenProduct,
+  onScrollStateChange,
 }: {
   active: boolean
   onOpenProduct: (id: ProductId) => void
+  onScrollStateChange?: (scrolled: boolean) => void
 }) {
   // 左侧栏当前页：data=数据看板 content=内容管理 其余为建设中占位
   const [page, setPage] = useState('data')
+  const [homeScrolled, setHomeScrolled] = useState(false)
   const navVersion = useNavVersion((state) => state.version)
   const liveEnabled = useLiveMgmt((s) => s.enabled)
   // 关闭直播管理开关后若正停在该页，回落到数据看板（渲染期派生）
@@ -891,10 +985,18 @@ export default function CreatorCenterHome({
   // 首页新板块（互动/变现/活动/快速导航）共用一次 home-overview 拉取
   const { data: homeData } = useHomeOverview(homePageActive)
   const reduceMotion = useReducedMotion()
+  const selectPage = (nextPage: string) => {
+    if (nextPage === 'data') setHomeScrolled(false)
+    setPage(nextPage)
+  }
+
+  useEffect(() => {
+    if (!active || page !== 'data') onScrollStateChange?.(false)
+  }, [active, onScrollStateChange, page])
 
   return (
     <div className={`flex h-full min-h-0 ${navVersion === 1 ? 'bg-transparent' : 'bg-[#F5F6F8]'}`}>
-      <SideNav active={page} onSelect={setPage} />
+      <SideNav active={page} onSelect={selectPage} />
       {/* 只有内容区做载入动画；侧栏等框架保持静止 */}
       <motion.div
         key={page}
@@ -933,6 +1035,11 @@ export default function CreatorCenterHome({
         </main>
       ) : (
       <main
+        onScroll={(event) => {
+          const scrolled = event.currentTarget.scrollTop > 8
+          setHomeScrolled(scrolled)
+          onScrollStateChange?.(scrolled)
+        }}
         className={`min-w-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
           navVersion === 1 ? 'bg-white' : ''
         }`}
@@ -940,11 +1047,17 @@ export default function CreatorCenterHome({
         {/* 完整 ASCII 动画靠底取景；遮罩不跟随视频放大，确保在内容区
             底边完全落到页面底色，避免残留画面形成一条硬接缝。 */}
         <div
-          className={`relative overflow-hidden ${
+          className={`relative overflow-hidden pt-[var(--cc-top)] ${
             navVersion === 1 ? 'bg-white' : 'bg-[#F5F6F8]'
           }`}
         >
           <AmbientBackgroundVideo active={active} fadeToWhite={navVersion === 1} />
+          <div
+            aria-hidden="true"
+            className={`pointer-events-none absolute inset-x-0 top-[var(--cc-top)] h-[88px] bg-gradient-to-b from-white/68 via-white/28 to-transparent transition-opacity duration-200 ${
+              homeScrolled ? 'opacity-0' : 'opacity-100'
+            }`}
+          />
           <div className="relative px-4 pb-4 pt-6">
             <ProfileHeader stats={profileData} />
 
@@ -959,6 +1072,13 @@ export default function CreatorCenterHome({
                       icon={<SmartCreateImageIcon src={e.homeIcon} />}
                       label={e.label}
                       desc={e.desc}
+                      hoverArrow
+                      accent={{
+                        'ai-avatar': '#3478D4',
+                        wiki: '#6157D9',
+                        suibian: '#C58A00',
+                        workshop: '#D76026',
+                      }[e.id]}
                       onClick={() => onOpenProduct(e.id)}
                     />
                   ))}
@@ -977,9 +1097,15 @@ export default function CreatorCenterHome({
                   {PUBLISH_ENTRIES.map((e) => (
                     <EntryCard
                       key={e.label}
-                      icon={<CardImageIcon front={e.img} />}
+                      icon={<CardImageIcon front={e.img} refined />}
                       label={e.label}
                       desc={e.desc}
+                      accent={{
+                        video: '#E54867',
+                        image: '#258AF4',
+                        panorama: '#6952E8',
+                        article: '#C58A00',
+                      }[e.id]}
                       onClick={() => setPage(publishPageKey(e.id))}
                     />
                   ))}

@@ -1,9 +1,37 @@
 import type { GenerationReference, RegistryDomain } from '../gameplay/contracts'
+import {
+  ACG_NEW_YEAR_BRAND_KIT_PROFILE,
+  DOUYIN_SPRING_FESTIVAL_BRAND_KIT_PROFILE,
+  ZHUAMA_UGC_BRAND_KIT_PROFILE,
+  type BrandKitProfile,
+} from './brandKitProfiles.ts'
+import { XINZAI_IP_KIT_PROFILE, type IpKitProfile } from './ipKitProfiles.ts'
+import {
+  DOUYIN_LIFE_SERVICE_RESOURCE_POSITION_PROFILE,
+  type ResourcePositionProfile,
+} from './resourcePositionProfiles.ts'
+import {
+  QIXI_MAGPIE_HUNT_GAMEPLAY_PROFILE,
+  type GameplayAssetProfile,
+} from './gameplayAssetProfiles.ts'
 
-export type AssetCenterCategory = 'template' | 'brand' | 'style' | 'gameplay' | 'font'
+export type AssetCenterCategory =
+  | 'page-component'
+  | 'page-template'
+  | 'material-template'
+  | 'brand'
+  | 'ip'
+  | 'gameplay'
+  | 'inspiration'
+  | 'font'
+  | 'activity-template'
 
 export type AssetClass =
   | 'activity-template'
+  | 'page-template'
+  | 'h5-component'
+  | 'native-component'
+  | 'lynx-component'
   | 'brand-kit'
   | 'character-kit'
   | 'banner-template'
@@ -35,6 +63,27 @@ export interface AssetDeliverable {
   required: boolean
 }
 
+export interface AssetVisualReference {
+  src: string
+  label: string
+  specification: string
+  objectPosition?: string
+}
+
+export interface ActivityTemplateProfile {
+  purpose: string
+  organization: string
+  gameplay: string
+  scale: string
+  format: string
+  fit: string
+  systemMap: {
+    journey: readonly { label: string; detail: string }[]
+    assetInputs: readonly { label: string; role: string }[]
+    outputs: readonly { label: string; detail: string }[]
+  }
+}
+
 export interface AssetCatalogItem {
   id: string
   category: AssetCenterCategory
@@ -56,6 +105,12 @@ export interface AssetCatalogItem {
   accent: string
   preview?: string
   thumbnail?: string
+  visualReferences?: readonly AssetVisualReference[]
+  templateProfile?: ActivityTemplateProfile
+  brandKitProfile?: BrandKitProfile
+  resourcePositionProfile?: ResourcePositionProfile
+  ipKitProfile?: IpKitProfile
+  gameplayProfile?: GameplayAssetProfile
   basedOn?: {
     assetId: string
     name: string
@@ -76,7 +131,11 @@ export interface AssetCatalogItem {
 }
 
 export const ASSET_CLASS_LABEL: Record<AssetClass, string> = {
-  'activity-template': '活动模板',
+  'activity-template': '活动项目模板',
+  'page-template': '页面模板',
+  'h5-component': 'H5 组件',
+  'native-component': 'Native 组件',
+  'lynx-component': 'Lynx 组件',
   'brand-kit': 'Brand Kit',
   'character-kit': 'IP 角色',
   'banner-template': 'Banner 模板',
@@ -93,10 +152,10 @@ export const ASSET_CENTER_CATEGORIES: readonly {
   label: string
   description: string
 }[] = [
-  { id: 'template', label: '活动模板', description: '活动主流程、玩法组件槽位与交付矩阵组成的可复用活动配方' },
-  { id: 'brand', label: 'Brand Kit', description: '主品牌身份、IP 角色、Banner 模板与直播间分层素材' },
+  { id: 'brand', label: 'Brand Kit', description: '品牌主体级身份系统：Logo、品牌色、字体角色、联名锁定与不可变使用规则' },
   { id: 'gameplay', label: '玩法库', description: '可生成、可编辑、可校验、可运行的玩法能力包' },
-  { id: 'style', label: '视觉能力', description: 'Style Profile 与可版本化的分层结构模板' },
+  { id: 'page-component', label: '页面组件库', description: '可独立引用的 H5、Native 与 Lynx 页面组件' },
+  { id: 'ip', label: 'IP 资产', description: '角色、动作、表情、道具、授权范围与不可变结构组成的可复用 IP Kit' },
   { id: 'font', label: '字体库', description: '字重、角色、授权和端能力明确的字体资产' },
 ] as const
 
@@ -105,36 +164,278 @@ const commonBrandGovernance = {
   importFormats: ['PNG', 'SVG', 'Figma', 'PSD'],
 } as const
 
+function createPageTemplate({
+  id,
+  name,
+  surface,
+  summary,
+  preview,
+  source,
+  specification,
+  modules,
+  accent,
+}: {
+  id: string
+  name: string
+  surface: 'H5' | 'Lynx'
+  summary: string
+  preview: string
+  source: string
+  specification: string
+  modules: readonly string[]
+  accent: string
+}): AssetCatalogItem {
+  return {
+    id,
+    category: 'page-template',
+    assetClass: 'page-template',
+    registry: 'asset',
+    name,
+    version: '1.0.0',
+    summary,
+    owner: '活动体验设计',
+    status: '已发布',
+    updatedAt: '2026-08-10',
+    tags: [surface, ...modules.slice(0, 3)],
+    coverage: [surface, '站内活动页', 'Web Preview'],
+    metrics: [
+      { label: '页面', value: '1 个' },
+      { label: '运行载体', value: surface },
+      { label: '预览比例', value: '100%' },
+    ],
+    parameterGroups: [
+      {
+        name: '页面信息',
+        summary: '页面预览、适用端及包含模块。',
+        parameters: [
+          { label: '页面模块', value: modules.join(' / '), mode: '可配置' },
+          { label: '页面类型', value: surface, mode: '固定规则' },
+          { label: '画布尺寸', value: '390px 宽 · 原始比例', mode: '固定规则' },
+          { label: '适用场景', value: modules.slice(0, 3).join('、'), mode: '固定规则' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name, specification: `${surface} 页面`, required: true },
+      { name: '页面说明', specification: '包含模块、适用场景与使用要求', required: true },
+    ],
+    constraints: ['按原始比例预览页面', '关键内容保持在页面安全区内', '品牌、IP 与人物素材按项目授权使用'],
+    usage: `适用于${modules.join('、')}等活动页面场景`,
+    accent,
+    thumbnail: preview,
+    visualReferences: [{ src: preview, label: `${name}设计对照`, specification }],
+    governance: {
+      source,
+      evidence: `${name}正式设计稿与页面预览`,
+      rights: '复用页面结构；具体品牌、IP、人物和成片素材按项目授权替换',
+      qualityGate: '核心交互、页面适配、文字安全区与来源文件检查',
+      importFormats: ['Figma Frame', `${surface} Page`, '页面说明'],
+    },
+  }
+}
+
+type PageComponentSurface = 'H5' | 'Native' | 'Lynx'
+
+function createPageComponent({
+  id,
+  name,
+  surface,
+  summary,
+  preview,
+  source,
+  specification,
+  slots,
+  accent,
+}: {
+  id: string
+  name: string
+  surface: PageComponentSurface
+  summary: string
+  preview: string
+  source: string
+  specification: string
+  slots: readonly string[]
+  accent: string
+}): AssetCatalogItem {
+  const assetClass: AssetClass =
+    surface === 'H5'
+      ? 'h5-component'
+      : surface === 'Native'
+        ? 'native-component'
+        : 'lynx-component'
+  return {
+    id,
+    category: 'page-component',
+    assetClass,
+    registry: 'asset',
+    name,
+    version: '1.0.0',
+    summary,
+    owner: '活动体验设计',
+    status: '已发布',
+    updatedAt: '2026-08-10',
+    tags: [surface, '页面组件', ...slots.slice(0, 3)],
+    coverage: [surface, '活动页', '组件引用'],
+    metrics: [
+      { label: '运行载体', value: surface },
+      { label: '可配置槽位', value: `${slots.length} 类` },
+      { label: '引用单位', value: '1 个组件' },
+    ],
+    parameterGroups: [
+      {
+        name: '组件接口',
+        summary: '组件只管自身的内容、状态和交互，页面路由项目组装。',
+        parameters: [
+          { label: '运行载体', value: surface, mode: '固定规则' },
+          { label: '内容槽位', value: slots.join(' / '), mode: '可配置' },
+          { label: '状态回调', value: '加载 / 空态 / 成功 / 失败', mode: '可配置' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name, specification: `${surface} 组件包 · 真实运行态`, required: true },
+      { name: '组件接口定义', specification: '属性、事件、状态与降级规则', required: true },
+    ],
+    constraints: ['只封装单一页面组件', '不携带项目品牌与授权素材', '引用后仍由页面管理布局与路由'],
+    usage: `在 ${surface} 页面中引用「${name}」，再绑定本项目的文案、数据和素材`,
+    accent,
+    thumbnail: preview,
+    visualReferences: [{ src: preview, label: `${name}真实应用`, specification }],
+    governance: {
+      source,
+      evidence: `${name}在已上线活动页中的实际使用画面`,
+      rights: '复用组件结构与交互；品牌、IP 和成片素材按项目授权替换',
+      qualityGate: '端能力、内容槽位、状态闭环、埋点和降级检查',
+      importFormats: ['Figma Component', `${surface} Component`, 'JSON Schema'],
+    },
+  }
+}
+
 export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
+  createPageComponent({
+    id: 'component.h5.venue-header',
+    name: '会场头图组件',
+    surface: 'H5',
+    summary: '活动标题、主视觉、会场切换与分享入口组成的 H5 首屏组件。',
+    preview: '/assets/figma-deliverables/acg/gameplay-header.png',
+    source: '2026 抖音 ACG 新春会 · Figma 资源位延展',
+    specification: '1002 × 600 真实会场头图；用于 H5 首屏组件对照',
+    slots: ['主标题', '活动时间', '会场切换', '分享入口'],
+    accent: '#EE5E3B',
+  }),
+  createPageComponent({
+    id: 'component.h5.card-atlas',
+    name: '卡片图鉴组件',
+    surface: 'H5',
+    summary: '卡组分类、持有状态、锁定态与卡片详情组成的 H5 图鉴组件。',
+    preview: '/assets/figma-deliverables/evernight/collection-page.png',
+    source: '《永夜星河》独星河小卡 · Figma 页面',
+    specification: '750 × 2687 图鉴页中的真实卡片组件应用',
+    slots: ['卡面', '稀有度', '持有数量', '锁定态'],
+    accent: '#7652D6',
+  }),
+  createPageComponent({
+    id: 'component.native.activity-entry',
+    name: '活动入口卡组件',
+    surface: 'Native',
+    summary: '在原生内容首页中承接活动标识、进度和主动作的入口卡。',
+    preview: '/assets/figma-deliverables/xiahua/native-activity-home.png',
+    source: 'UGC 活动 2026H1 · Figma 暑期 UI',
+    specification: '390 × 845 原生活动首页实际应用',
+    slots: ['活动标识', '进度', '主动作', '状态角标'],
+    accent: '#3A9CB5',
+  }),
+  createPageComponent({
+    id: 'component.native.onboarding-dialog',
+    name: '新手引导弹层',
+    surface: 'Native',
+    summary: '首次进入活动时展示玩法摘要、步骤和开始动作的原生弹层。',
+    preview: '/assets/figma-deliverables/xiahua/onboarding-dialog.png',
+    source: 'UGC 活动 2026H1 · Figma 暑期 UI',
+    specification: '375 × 812 首次进入态真实画面',
+    slots: ['标题', '规则摘要', '步骤图', '主按钮'],
+    accent: '#20A1C4',
+  }),
+  createPageComponent({
+    id: 'component.lynx.live-room-frame',
+    name: '直播间活动边框',
+    surface: 'Lynx',
+    summary: '直播画面、活动标识、任务入口和下方操作区组成的 Lynx 容器组件。',
+    preview: '/assets/figma-deliverables/evernight/live-room-frame.png',
+    source: '《永夜星河》抽卡 · Figma 直播间画板',
+    specification: '375 × 812 直播间 Lynx 边框真实应用',
+    slots: ['活动标识', '任务入口', '互动区', '安全区'],
+    accent: '#6B4BD2',
+  }),
+  createPageComponent({
+    id: 'component.lynx.draw-stage',
+    name: '抽卡结果舞台',
+    surface: 'Lynx',
+    summary: '卡牌翻开、稀有度反馈、结果操作与再抽一次组成的 Lynx 结果组件。',
+    preview: '/assets/figma-deliverables/evernight/draw-result-stage.png',
+    source: '《永夜星河》抽卡 · Figma 页面',
+    specification: '672 × 924 抽卡结果舞台真实应用',
+    slots: ['卡面', '稀有度', '结果文案', '结果动作'],
+    accent: '#7B59C8',
+  }),
   {
     id: 'template.ip-co-brand-dual-venue-event',
-    category: 'template',
+    category: 'activity-template',
     assetClass: 'activity-template',
     registry: 'asset',
-    name: 'IP 联名 · 双会场 · 节点大会场',
-    version: '1.0.0',
-    summary: '面向强 IP 与节日节点的内容聚合活动模板，以双会场、榜单助力和阶段传播组织 Lynx、H5、资源位与战报交付。',
+    name: '新春会模板',
+    version: '1.1.0',
+    summary: '从 ACG 新春会真实交付中抽取的节点活动配方：以主会场、1–N 个内容分会场、阶段互动和结算传播组织 Lynx、H5、资源位与战报，不携带具体品牌、IP 或成片。',
     owner: '活动产品中台',
     status: '已发布',
-    updatedAt: '2026-08-06',
-    tags: ['双会场', '内容榜单', '节点活动', '多端交付'],
+    updatedAt: '2026-08-10',
+    tags: ['新春会', '多会场', '内容互动', '阶段传播'],
     coverage: ['抖音', 'Lynx', '站内 H5', '站内资源位', '图片生成'],
     metrics: [
-      { label: '活动阶段', value: '4 个' },
-      { label: '交付组', value: '6 类' },
-      { label: '组件槽位', value: '3 个' },
+      { label: '组织形式', value: '主会场 + 分会场' },
+      { label: '标准规模', value: '中大型节点活动' },
+      { label: '核心玩法', value: '榜单 + 助力' },
     ],
+    templateProfile: {
+      purpose: '把多个内容品类、合作方或 IP 组织成一场节点型内容盛典，统一活动主题，同时保留各分会场独立参与空间。',
+      organization: '1 个主会场统筹活动身份与总入口，1–5 个分会场按内容品类或合作方分流；运营、合作方、嘉宾和创作者围绕同一阶段节奏协作。',
+      gameplay: '内容榜单与用户助力构成默认主循环；投稿、预约、投票可替换，场景小游戏与集卡作为可选增强组件。',
+      scale: '标准档为 4 个活动阶段、2–5 个分会场、2–4 个玩法组件、12–30 项跨渠道交付；适合 4–8 周的中大型节点活动。',
+      format: 'Lynx/H5 主会场与分会场，配套搜索、话题、活动中心等站内入口，以及节目单、传播图和结算战报。',
+      fit: '适合春节、周年、暑期等节点盛典及多 IP/多合作方内容活动；不适合只需要一个抽奖页或单次资源位投放的轻量需求。',
+      systemMap: {
+        journey: [
+          { label: '资源位触达', detail: '用户先看懂活动主题' },
+          { label: '进入主会场', detail: '理解内容与参与入口' },
+          { label: '选择分会场', detail: '按品类或合作方分流' },
+          { label: '榜单与助力', detail: '围绕内容持续参与' },
+          { label: '分享与结算', detail: '回流并形成阶段战报' },
+        ],
+        assetInputs: [
+          { label: '新春会模板', role: '活动结构' },
+          { label: 'Brand Kit', role: '品牌身份' },
+          { label: 'Style Bible', role: '视觉语法' },
+          { label: 'IP / 内容素材', role: '项目内容' },
+          { label: '榜单 / 助力包', role: '运行玩法' },
+        ],
+        outputs: [
+          { label: '主会场与分会场', detail: 'Lynx / H5 可交互页面' },
+          { label: '站内入口', detail: '搜索、话题、活动中心资源位' },
+          { label: '传播与结算', detail: '节目单、传播图和战报' },
+        ],
+      },
+    },
     parameterGroups: [
       {
         name: '活动主流程内核',
         summary: '定义用户如何触达、分流、参与、回流和结算；引用后写入 ActivitySpec，并在项目文档中结构化展示。',
         parameters: [
-          { label: '参与主循环', value: '资源位触达 → 主会场理解 → 双会场分流 → 榜单参与 → 回流 → 结算传播', mode: '固定规则' },
+          { label: '参与主循环', value: '资源位触达 → 主会场理解 → 1–N 个内容会场分流 → 内容互动 → 分享回流 → 结算传播', mode: '固定规则' },
           { label: '入口', value: '话题 Banner / 站内资源位 / 分享回流', mode: '可配置' },
-          { label: '分支规则', value: '按内容偏好进入游戏会场或二次元会场', mode: '可配置' },
+          { label: '分支规则', value: '按内容品类、合作方或人群偏好进入对应分会场', mode: '可配置' },
           { label: '回流与完成', value: '组件结果回写榜单/个人状态；结算快照驱动战报', mode: '固定规则' },
           { label: '阶段模型', value: '预热 → 主会场开启 → 分会场主推 → 结算战报', mode: '固定规则' },
-          { label: '会场结构', value: '1 个主会场 + N 个内容分会场', mode: '可配置', note: '分会场数量由内容分类字段计算，不复制模板。' },
+          { label: '会场结构', value: '1 个主会场 + 1–N 个内容分会场', mode: '可配置', note: 'ACG 实例使用游戏/二次元双分会场；模板本身不固化为两个。' },
           { label: '内容骨架', value: '主题 Hero / 会场入口 / 嘉宾主理人 / 分类榜单 / 权益与规则', mode: '固定规则' },
           { label: '状态模型', value: '页面、状态变体与渠道变体分别计数', mode: '固定规则', note: '同一页面的 5 个榜单状态不能误算为 5 个页面。' },
         ],
@@ -143,7 +444,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
         name: '玩法组件槽位',
         summary: '组件挂载在主流程节点上，只声明能力契约和槽位约束，不反向定义整个活动流程。',
         parameters: [
-          { label: '榜单与助力', value: '必填 · 内容榜单 / 双动作助力能力包', mode: '引用资产' },
+          { label: '内容互动', value: '至少 1 个 · 榜单 / 助力 / 投票 / 预约等能力包', mode: '引用资产' },
           { label: '场景小游戏', value: '可选 · 跃马攀峰等轻量玩法', mode: '引用资产' },
           { label: '收集玩法', value: '可选 · 集卡 / 集章能力包', mode: '引用资产' },
           { label: '跨玩法关系', value: '由 ActivitySpec 引用图与 Compiler 校验', mode: '固定规则' },
@@ -171,12 +472,12 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
       },
     ],
     deliverables: [
-      { name: '主会场 · Lynx', specification: '1 页；设计源 1688×4237；原生状态栏、DuxTitleBar、Hero、双会场入口、阶段内容、主理人与榜单入口', required: true },
-      { name: '内容分会场 · H5', specification: 'N 个路由；参考设计 750×9776；当前样例 2 个内容路由、5 个展示状态', required: true },
-      { name: '资源位矩阵', specification: '话题 Banner、大横图、竖图、入口卡；画板尺寸与实际投放画框分别登记并校验', required: true },
+      { name: '主会场页面', specification: '1 个主入口 Surface；Hero、分会场入口、阶段内容与核心互动入口，具体 Lynx/H5 合同由项目选择', required: true },
+      { name: '内容分会场页面', specification: '按内容分类实例化 N 个路由；页面数量、状态数量和渠道变体分别计数', required: true },
+      { name: '资源位矩阵', specification: '话题 Banner、大横图、竖图、入口卡；尺寸从项目 Delivery Surface 读取并逐项校验', required: true },
       { name: '玩法视觉件', specification: '按已启用玩法生成主页、卡片、任务卡和结果态；运行逻辑仍由 GameplayPackage 提供', required: false },
-      { name: '节目单与宣发', specification: '节目单长图、双列横卡、1080×1920 宣发图等渠道变体', required: true },
-      { name: '结算战报', specification: '数据驱动的长图与渠道版；超长版参考 1080×26668，P0 允许人工排版并锁定', required: true },
+      { name: '节目单与宣发', specification: '节目单长图、横卡、海报等渠道变体；画幅和内容槽位由项目合同决定', required: true },
+      { name: '结算战报', specification: '数据驱动的长图与渠道版；允许人工排版并锁定，重编译前必须展示差异', required: true },
     ],
     constraints: [
       '探索方向稿、脑暴板和外部参考不得计入交付完成度',
@@ -184,16 +485,22 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
       '没有激励证据时必须标记待确认，不得由 Agent 臆造奖品',
       '人工编辑或锁定的交付物不得被重编译静默覆盖',
     ],
-    usage: '2026 抖音 ACG 新春会锁定 v1.0.0；用于验证模板 → 项目交付物的完整编译链路',
+    usage: '2026 抖音 ACG 新春会锁定 v1.1.0；该项目实例化 2 个分会场并启用榜单/助力，模板仍允许其它会场数和互动组件',
     accent: '#EA5B34',
+    visualReferences: [
+      { src: '/assets/figma-deliverables/acg/discovery-banner-1372x512.png', label: '游戏中心发现页 Banner', specification: 'Figma node 2229:63622 · 1372×512' },
+      { src: '/assets/figma-deliverables/acg/key-visual-landscape.png', label: '主会场 KV 横版', specification: 'Figma node 2253:13642 · 1920×1080' },
+      { src: '/assets/figma-deliverables/acg/game-venue-long.png', label: '游戏分会场长页', specification: 'Figma node 1470:25605 · 750×9776' },
+      { src: '/assets/figma-deliverables/acg/program-guide-long.png', label: '节目单长图', specification: 'Figma node 2895:67559 · 1080×11493' },
+    ],
     sourceFiles: [
       { name: '2026 抖音ACG新春会-创意.fig', format: 'Figma', status: '已归档' },
       { name: 'activity-template.manifest.json', format: 'JSON', status: '已归档' },
     ],
     governance: {
       source: '2026 抖音 ACG 新春会真实创意交付复盘',
-      evidence: '5 个设计页面、主会场/分会场/资源位/节目单/战报的画板与状态清单',
-      rights: '模板结构可跨项目复用；具体 ACG/IP 视觉与内容仅限授权项目引用',
+      evidence: 'ACG 新春会正式分会场、资源位、节目单和战报节点作为首个验证实例；项目像素不写入模板合同',
+      rights: '模板结构可跨项目复用；具体 ACG 品牌、春节视觉、IP 群像和项目成片不属于模板',
       qualityGate: '阶段完整性、玩法槽位兼容、页面/状态计数、设计/交付尺寸、安全区、人工锁定与必交付项检查',
       importFormats: ['Figma', 'JSON', 'Markdown', 'CSV'],
     },
@@ -203,18 +510,18 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
     category: 'brand',
     assetClass: 'brand-kit',
     registry: 'asset',
-    name: '抖音 ACG 新春会 Brand Kit',
-    version: '1.0.0',
-    summary: '从真实交付中沉淀抖音 ACG 主身份、游戏/二次元双会场锁定关系、标题字与节日视觉边界。',
+    name: '抖音 ACG Brand Kit · 新春会应用版',
+    version: '1.1.0',
+    summary: '统一抖音 ACG 主身份、活动标题、平台联名与跨画幅使用规则，覆盖会场页面、站内资源位、节目单与传播长图。',
     owner: '抖音 ACG 视觉设计',
     status: '已发布',
     updatedAt: '2026-08-06',
-    tags: ['抖音 ACG', '新春会', '游戏会场', '二次元会场'],
+    tags: ['抖音 ACG', '品牌锁定', '平台联名', '跨画幅适配'],
     coverage: ['抖音', 'Lynx', '站内 H5', '站内资源位', '图片生成'],
     metrics: [
-      { label: '身份锁定', value: '3 组' },
-      { label: '标题字', value: '4 套' },
-      { label: '会场主题', value: '2 类' },
+      { label: '身份层级', value: '3 层' },
+      { label: '规范组件', value: '5 组' },
+      { label: '适配画幅', value: '7 组' },
     ],
     parameterGroups: [
       {
@@ -223,18 +530,18 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
         parameters: [
           { label: '主品牌', value: '抖音 ACG', mode: '固定规则' },
           { label: '活动标题', value: '抖音 ACG 新春会 / 新春会独立标题字', mode: '引用资产' },
-          { label: '会场锁定', value: '游戏会场 / 二次元会场', mode: '可配置' },
+          { label: '会场子身份', value: '游戏会场 / 二次元会场', mode: '引用资产', note: '只属于本项目应用版，不是抖音 ACG 永久品牌分类。' },
           { label: '平台联名', value: '抖音游戏、抖音动漫按场景启用', mode: '可配置' },
         ],
       },
       {
-        name: '视觉语言',
-        summary: 'ACG 热血感与春节团聚、热闹、归途等语义交叉后的视觉约束。',
+        name: '品牌表达边界',
+        summary: '只定义可跨画幅保持的身份关系；场景、氛围、群像构图交给关联 Style Bible。',
         parameters: [
-          { label: '主色关系', value: '暖橙红 / 奶油白为主，天空蓝仅用于场景纵深与信息区', mode: '固定规则' },
-          { label: '构图语汇', value: '多 IP 群像、跨次元轨道、舞台/庙会空间', mode: '可配置' },
+          { label: '品牌基础色', value: '抖音黑 / 白；活动色不得改变 Logo 本体', mode: '固定规则' },
+          { label: '活动色与构图', value: '引用“新春热力 · ACG Style Bible”', mode: '引用资产' },
           { label: '标题层级', value: 'ACG 标识 < 新春会主标题 < 阶段口号', mode: '固定规则' },
-          { label: '节日叠加', value: '春节 Style Profile 作为角色化输入，不改变主品牌标识', mode: '引用资产' },
+          { label: '字体角色', value: '活动主标题使用定制标题字图层；UI 正文沿用平台字体角色', mode: '固定规则', note: '具体字体文件仍需从 Figma 字体清单补齐校验。' },
         ],
       },
       {
@@ -249,25 +556,548 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
       },
     ],
     deliverables: [
-      { name: '品牌与活动 Logo', specification: '抖音 ACG、抖音 ACG 新春会、游戏会场、二次元会场透明源文件', required: true },
-      { name: '标题字资产', specification: '完整标题字与“新春会”短标题多背景变体', required: true },
-      { name: '视觉 Token', specification: '色板、标题/正文字体角色、描边、阴影与信息卡层级', required: true },
-      { name: 'Golden / Reject', specification: '采用方向与未采用探索稿分别标注，不允许 Reject 进入生成参考', required: true },
-      { name: '资源位锁定件', specification: 'Hero、话题 Banner、节目单、战报的品牌最小组合', required: true },
+      { name: 'Brand Kit Markdown', specification: '定义、边界、来源、身份层级、色彩、字体、组件、Do / Don’t 与待归档项', required: true },
+      { name: '跨画幅参考图', specification: '7 组会场、资源位、节目单与战报应用示例', required: true },
+      { name: '品牌与活动锁定件', specification: '平台联名、活动标题、会场署名；透明 Logo 与标题矢量源仍待归档', required: true },
+      { name: 'Design Token', specification: '核心身份色、活动应用色、字体角色与组件固定/可配置规则', required: true },
+      { name: 'Golden / Reject 清单', specification: '正式交付与过程探索分开登记，禁止 Reject 进入生成参考', required: true },
     ],
     constraints: ['不得重绘或改写抖音 ACG 标识', '游戏与二次元 IP 只能进入对应授权会场', '外部战报参考图禁止被编译引用', '窄资源位必须优先保证标题字和活动识别'],
-    usage: '2026 抖音 ACG 新春会使用；与“IP 联名 · 双会场 · 节点大会场”模板共同锁定',
-    accent: '#EA5B34',
+    usage: '适用于抖音 ACG 活动会场、站内资源位、节目单与传播长图；具体 IP 与项目素材按授权引用。',
+    accent: '#E65D24',
+    thumbnail: '/assets/figma-deliverables/acg/resource-banner-780x220.png',
+    visualReferences: [
+      { src: '/assets/figma-deliverables/acg/resource-banner-780x220.png', label: '窄资源位最小签名', specification: '资源位 Banner · 780×220' },
+      { src: '/assets/figma-deliverables/acg/discovery-banner-1372x512.png', label: '横版完整活动签名', specification: '游戏中心发现页 · 1372×512' },
+      { src: '/assets/figma-deliverables/acg/topic-header-banner.png', label: '话题页标题适配', specification: '话题头图 · 1125×450' },
+      { src: '/assets/figma-deliverables/acg/splash-screen.png', label: '竖版联名与活动签名', specification: '开屏 · 1242×2208' },
+      { src: '/assets/figma-deliverables/acg/anime-venue-long.png', label: '二次元会场身份与 UI 角色', specification: '二次元会场 H5 · 375×3383' },
+      { src: '/assets/figma-deliverables/acg/program-guide-long.png', label: '节目单章节系统', specification: '节目单长图 · 1080×11493' },
+      { src: '/assets/figma-deliverables/acg/final-report-long.png', label: '战报信息层级延展', specification: '结算战报 · 1080×26668' },
+    ],
     sourceFiles: [
-      { name: '抖音ACG主标题&分会场.fig', format: 'Figma', status: '已归档' },
-      { name: 'brand-lockups.svg', format: 'SVG', status: '已归档' },
+      { name: '2026 抖音 ACG 新春会设计源文件', format: 'Figma', status: '已归档' },
+      { name: 'brand-kit.md', format: 'Markdown', status: '已归档' },
+      { name: 'image-group.json', format: 'JSON', status: '已归档' },
+      { name: 'brand-lockups.svg', format: 'SVG', status: '待校验' },
     ],
     governance: {
       ...commonBrandGovernance,
       source: '2026 抖音 ACG 新春会真实设计交付',
-      evidence: '脑暴、方向聚焦、主标题与分会场、资源位延展、战报五页设计记录',
+      evidence: '主标题与分会场、资源位延展、战报三类正式画板；脑暴、方向探索和外部参考已排除',
       rights: '仅限抖音 ACG 及本次已授权 IP/游戏合作范围；复用模板时必须替换具体 IP 资产',
       qualityGate: 'Logo 变形/安全区、标题识别度、IP 授权会场、窄资源位信息优先级与 Reject 泄漏检查',
+    },
+    brandKitProfile: ACG_NEW_YEAR_BRAND_KIT_PROFILE,
+  },
+  {
+    id: 'brand.douyin-spring-festival-2026',
+    category: 'brand',
+    assetClass: 'brand-kit',
+    registry: 'asset',
+    name: '抖音春节 Brand Kit · 2026 春晚 / 元宵',
+    version: '1.0.0',
+    summary: '统一抖音春节传播中的节目标题、合作方署名、直播频道与跨画幅规则；春晚和元宵各自保留独立标题与应用视觉。',
+    owner: '抖音节目活动视觉设计',
+    status: '待更新',
+    updatedAt: '2026-08-10',
+    tags: ['抖音春节', '春晚', '元宵', '节目合作', '跨渠道署名'],
+    coverage: ['抖音', 'Lynx', 'H5', '直播间', '站内资源位', '行政传播'],
+    metrics: [
+      { label: '身份层级', value: '3 层' },
+      { label: '规范组件', value: '6 组' },
+      { label: '适配场景', value: '8 组' },
+    ],
+    parameterGroups: [
+      {
+        name: '节目节点身份',
+        summary: '“抖音春节”是资产组织层，不假定存在一枚新的母 Logo；生成前必须先选择春晚或元宵节点。',
+        parameters: [
+          { label: '春节节目节点', value: '2026 春晚 / 2026 元宵', mode: '可配置' },
+          { label: '节目主标题', value: '按节点引用总台正式标题锁定', mode: '引用资产' },
+          { label: '抖音传播署名', value: '抖音 Logo + 节目节点传播口号', mode: '引用资产' },
+          { label: '跨节点复用', value: '只复用平台级规则，不复用节目标题和应用视觉', mode: '固定规则' },
+        ],
+      },
+      {
+        name: '合作方与频道锁定',
+        summary: '合作口径和频道名来自正式交付，不从项目文案临时拼接。',
+        parameters: [
+          { label: '春晚合作链', value: '总台春晚标题—火山引擎—豆包', mode: '固定规则' },
+          { label: '元宵合作链', value: '按元宵正式资源位节点读取；待透明源件归档', mode: '引用资产' },
+          { label: '直播频道', value: '主机位 / 竖屏看春晚 / 年年有你 / 字幕 / 手语', mode: '可配置' },
+          { label: '节目日期与直播时间', value: '按节点配置并进入发布前内容校验', mode: '可配置' },
+        ],
+      },
+      {
+        name: 'Surface 适配',
+        summary: '同一身份关系按页面、直播、资源位和行政传播提供受控变体，而不是裁切同一张 KV。',
+        parameters: [
+          { label: '页面 Hero', value: '节目标题 + 抖音传播署名 + 直播时间 + 主行动', mode: '固定规则' },
+          { label: '直播封面', value: '节目签名 + 频道名 + 直播状态', mode: '可配置' },
+          { label: '资源位', value: '240×240 / 1029×195 / 1125×630 / 516×672 等来源规格', mode: '固定规则' },
+          { label: '行政传播', value: '横屏 / 竖屏 / 海报 / 易拉宝；保留合作身份与口号安全区', mode: '可配置' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name: 'Brand Kit Markdown', specification: '定义、边界、来源、双节目节点、身份层级、色彩、字体、组件与 Do / Don’t', required: true },
+      { name: '跨画幅参考图', specification: '8 组页面、直播间、资源位与行政传播应用示例', required: true },
+      { name: '节目与合作方锁定件', specification: '春晚/元宵节目签名、合作方链和抖音传播署名；透明源文件按证据状态登记', required: true },
+      { name: 'Design Token', specification: '核心身份色、节目应用色、字体角色和组件固定/可配置关系', required: true },
+      { name: '节目节点防混用校验', specification: '阻止春晚标题、合作口径和红金应用视觉误装到元宵成品', required: true },
+    ],
+    constraints: [
+      '春晚与元宵必须先选节目节点再调用资产，不允许跨节点拼装标题锁定',
+      '总台节目标题、抖音、火山引擎和豆包 Logo 不得重绘、拉伸或 AI 仿画',
+      '马年角色、山水烟花与节目画面属于项目素材，不进入品牌基础件',
+      '“过程”页与试稿不得进入生成 Golden Reference',
+    ],
+    usage: '春晚规则可直接使用；元宵引用前需补齐独立导出与透明标题源件。',
+    accent: '#C91D25',
+    thumbnail: '/assets/figma-deliverables/spring-gala/admin-screen-landscape.png',
+    visualReferences: [
+      { src: '/assets/figma-deliverables/spring-gala/activity-banner.png', label: '春晚节目与合作方横向锁定', specification: '资源位延展 · 1074×192' },
+      { src: '/assets/figma-deliverables/spring-gala/admin-screen-landscape.png', label: '抖音传播口号与行政横屏', specification: '资源位延展 · 1920×1079' },
+      { src: '/assets/figma-deliverables/spring-gala/main-venue.png', label: '春晚主会场身份与 UI 层级', specification: 'Lynx 页面 · 375×2348' },
+      { src: '/assets/figma-deliverables/spring-gala/live-main-camera.png', label: '直播主机位节目签名', specification: '直播间物料 · 1116×630' },
+      { src: '/assets/figma-deliverables/spring-gala/live-vertical-cover.png', label: '竖屏看春晚频道封面', specification: '直播间物料 · 728×1032' },
+      { src: '/assets/figma-deliverables/spring-gala/program-cover-landscape.png', label: '节目封面横版锁定', specification: '资源位延展 · 1125×633' },
+      { src: '/assets/figma-deliverables/spring-gala/program-cover-portrait.png', label: '节目封面竖版锁定', specification: '资源位延展 · 1125×1600' },
+      { src: '/assets/figma-deliverables/spring-gala/admin-screen-portrait.png', label: '行政竖屏传播适配', specification: '资源位延展 · 1079×1920' },
+    ],
+    sourceFiles: [
+      { name: '2026 春晚与元宵设计源文件', format: 'Figma', status: '已归档' },
+      { name: 'brand-kit.md', format: 'Markdown', status: '已归档' },
+      { name: 'image-group.json', format: 'JSON', status: '已归档' },
+      { name: '元宵独立节点图片组', format: 'PNG/JPG', status: '待校验' },
+      { name: '节目/合作方锁定件', format: 'SVG/PNG', status: '待校验' },
+    ],
+    governance: {
+      source: '2026春晚&元宵真实设计交付',
+      evidence: '春晚 UI、直播间物料、资源位延展 17 个独立节点；元宵资源位延展总画板与关键横版节点已核验；过程页已排除',
+      rights: '仅用于对应节目节点与已确认的抖音/总台/火山引擎/豆包合作范围；人物、节目画面和马年角色按项目授权使用',
+      qualityGate: '节目节点、标题锁定、合作方次序、Logo 安全区、直播频道可读性、资源位尺寸与 Reject 泄漏检查',
+      importFormats: ['Figma', 'Markdown', 'JSON', 'PNG', 'SVG'],
+    },
+    brandKitProfile: DOUYIN_SPRING_FESTIVAL_BRAND_KIT_PROFILE,
+  },
+  {
+    id: 'brand.zhuama-ugc-2026-h1',
+    category: 'brand',
+    assetClass: 'brand-kit',
+    registry: 'asset',
+    name: '生活服务 UGC「抓马」Brand Kit · 2026 H1',
+    version: '0.9.0',
+    summary: '统一抖音生活服务署名、红色小马识别结构与“马”字语义规则，覆盖春节、五一与暑期活动应用。',
+    owner: '生活服务 UGC 设计',
+    status: '待更新',
+    updatedAt: '2026-08-10',
+    tags: ['生活服务 UGC', '抓马', '小马 IP', '跨节期', '角色身份'],
+    coverage: ['抖音生活服务', 'H5', 'Native', '活动资源位', '角色活动'],
+    metrics: [
+      { label: '身份层级', value: '3 层' },
+      { label: '规范组件', value: '6 组' },
+      { label: '节期场景', value: '3 类' },
+    ],
+    parameterGroups: [
+      {
+        name: '身份与命名',
+        summary: '“抓马”当前是资产组织名，而不是已证明存在的独立字标；生成时按业务署名、IP 识别和阶段活动三层组合。',
+        parameters: [
+          { label: '业务主身份', value: '抖音生活服务', mode: '引用资产' },
+          { label: '角色识别', value: '红色小马 + 深棕鬃尾 + 米色口鼻/手脚 + 半睁眼神态', mode: '固定规则' },
+          { label: '阶段节点', value: '春节 / 五一 / 暑期', mode: '可配置' },
+          { label: '“抓马”字标', value: '无正式源文件证据，不作为 Logo 使用', mode: '固定规则' },
+        ],
+      },
+      {
+        name: '角色与活动分层',
+        summary: 'Brand Kit 只保留角色识别锚点；模型、动作、服装和表情进入关联 IP Kit，项目标题和场景进入活动应用层。',
+        parameters: [
+          { label: '角色结构', value: '比例、鼻口体块、鬃尾、基础配色与眼神气质', mode: '固定规则' },
+          { label: '角色变体', value: '动作 / 服装 / 道具 / 场景光线', mode: '引用资产' },
+          { label: '暑期项目标题', value: '这夏夯爆了', mode: '引用资产', note: '属于暑期活动签名，不是抓马母品牌名。' },
+          { label: '暑期视觉', value: '玩水蓝 / 夜食棕 / 荧光绿强调', mode: '可配置', note: '仅限暑期应用色。' },
+        ],
+      },
+      {
+        name: '跨 Surface 识别',
+        summary: '页面、原生入口与角色选择页共享身份顺序，但不复制同一张长图。',
+        parameters: [
+          { label: '活动 Hero', value: '阶段标题 + 档期 + 抓马角色 + 一句利益点', mode: '固定规则' },
+          { label: '原生入口', value: '业务署名 + 活动入口 + 角色/阶段轻提示', mode: '可配置' },
+          { label: '角色选择页', value: '全身角色 + 角色名 + 姿势提示 + 唯一主动作', mode: '固定规则' },
+          { label: '页脚署名', value: '抖音生活服务 Logo / 口号按背景选黑白版本', mode: '引用资产' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name: 'Brand Kit Markdown', specification: '定义、边界、来源、身份层级、色彩、字体、组件、Do / Don’t 与待归档项', required: true },
+      { name: '跨页面参考图', specification: '8 组 Hero、原生入口、角色选择、引导与收集状态示例', required: true },
+      { name: '身份与应用 Token', specification: '业务署名、角色识别锚点、核心色与暑期应用色的固定/可配置关系', required: true },
+      { name: '关联 IP Kit', specification: '小马三视图、结构、动作、表情、服装和 3D 模型；当前待独立归档', required: true },
+      { name: '命名与语气规则', specification: '马字双关、角色名、利益点和禁用语；正式词库仍待内容侧校验', required: true },
+    ],
+    constraints: [
+      '“抓马”不能在没有源文件的情况下被画成或当作正式 Logo',
+      '这夏夯爆了的标题、暑期配色、场景和卡面不进入品牌永久层',
+      '小马动作、服装、3D 模型和完整角色库必须从关联 IP 资产引用',
+      '业务 Logo、阶段标题和角色关键识别结构不得被生成模型重绘或互相覆盖',
+    ],
+    usage: '适用于抖音生活服务 UGC 节期活动；补齐官方命名、Logo/字体源件与独立小马 IP Kit 后发布。',
+    accent: '#FF4A32',
+    thumbnail: '/assets/figma-deliverables/xiahua/select-horse.png',
+    visualReferences: [
+      { src: '/assets/figma-deliverables/xiahua/water-venue-a.png', label: '暑期玩水活动签名与 Hero', specification: '暑期 UI · 390×2320', objectPosition: '50% 15%' },
+      { src: '/assets/figma-deliverables/xiahua/native-activity-home.png', label: '原生活动入口与轻量署名', specification: 'Native 页面 · 390×845' },
+      { src: '/assets/figma-deliverables/xiahua/onboarding-dialog.png', label: '角色引导与玩法说明层级', specification: '引导弹窗 · 375×812' },
+      { src: '/assets/figma-deliverables/xiahua/select-horse.png', label: '抓马角色选择 Hero', specification: '角色选择页 · 375×812' },
+      { src: '/assets/figma-deliverables/xiahua/food-venue-full.png', label: '夜食线阶段活动签名', specification: '暑期 UI · 375×1898' },
+      { src: '/assets/figma-deliverables/xiahua/food-ar-venue.png', label: '角色与夜食场景适配', specification: 'AR 会场 · 375×812' },
+      { src: '/assets/figma-deliverables/xiahua/my-summer-outfits.png', label: '玩水线收集状态', specification: '收集页 · 375×812' },
+      { src: '/assets/figma-deliverables/xiahua/my-night-food.png', label: '夜食线收集状态', specification: '收集页 · 375×812' },
+    ],
+    sourceFiles: [
+      { name: 'UGC 活动 2026 H1 设计源文件', format: 'Figma', status: '已归档' },
+      { name: 'brand-kit.md', format: 'Markdown', status: '已归档' },
+      { name: 'image-group.json', format: 'JSON', status: '已归档' },
+      { name: '抓马官方命名与 Logo/字标源件', format: 'SVG/PNG', status: '待校验' },
+      { name: '小马独立 IP Kit', format: 'Figma/GLB/PNG', status: '待校验' },
+    ],
+    governance: {
+      source: 'UGC活动-2026H1 真实设计文件与暑期正式交付节点',
+      evidence: 'Figma 文件按春节、五一、暑期与选马组织；暑期 14 个正式节点可回链，春节 UI 图层包含连续的“马”字语义命名',
+      rights: '仅用于抖音生活服务 UGC 活动及已确认项目；小马角色、合作方、场景和用户内容按独立授权范围使用',
+      qualityGate: '业务署名、活动节点、角色识别结构、应用色分层、IP 版本、标题源件与 Reject 泄漏检查',
+      importFormats: ['Figma', 'Markdown', 'JSON', 'PNG', 'SVG', 'GLB'],
+    },
+    brandKitProfile: ZHUAMA_UGC_BRAND_KIT_PROFILE,
+  },
+  {
+    id: 'brand.douyin-life-service-resource-spec',
+    category: 'brand',
+    assetClass: 'brand-kit',
+    registry: 'rule',
+    name: '生活服务 Brand Kit · 常见资源位规范',
+    version: '1.0.0',
+    summary: '话题页与创作者活动中心的画布、导出倍率、遮挡区、文图距离和端侧主题变量规范。',
+    owner: '生活服务创意视觉 / POI Graphic',
+    status: '待更新',
+    updatedAt: '2026-08-11',
+    tags: ['生活服务', '资源位规范', '画布校验', '话题页', 'Banner'],
+    coverage: ['话题页', '创作者活动中心', '移动端', '网页端', '图片生成'],
+    metrics: [
+      { label: '交付画布', value: '5 类' },
+      { label: '交付检查', value: '7 条' },
+      { label: '精确尺寸', value: '4+1 组' },
+    ],
+    parameterGroups: [
+      {
+        name: '资源位选择',
+        summary: '生成前先选择 Surface；画布、倍率和遮挡合同随资源位一起锁定。',
+        parameters: [
+          { label: '话题头像 / 封面', value: '240×240', mode: '固定规则' },
+          { label: '话题页背景', value: '375×210 → @3x 1125×630', mode: '固定规则' },
+          { label: '话题页 Banner', value: '343×65 → @3x 1029×195', mode: '固定规则' },
+          { label: '创作者活动中心卡片', value: '183×244 → @3x 549×732', mode: '固定规则' },
+          { label: '网页端活动专区 Banner', value: '916×74 → @4x 3664×296', mode: '固定规则', note: '由 Figma 内导出图片尺寸与 @4x 规则换算。' },
+        ],
+      },
+      {
+        name: '安全区与内容规则',
+        summary: '遮挡区、文图关系和 Token 解析属于交付门槛，不是设计建议。',
+        parameters: [
+          { label: '顶部完全遮挡', value: '375×20', mode: '固定规则' },
+          { label: '下方渐变遮挡', value: '375×190，底部偏移 20', mode: '固定规则' },
+          { label: '文图最小距离', value: '≥ 12px', mode: '固定规则' },
+          { label: '文字 / 背景色', value: '解析 Text / BG / Line 端侧 Token', mode: '引用资产' },
+          { label: '字号', value: '跟随具体组件 Token；不采用说明板 50/18px', mode: '引用资产' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name: 'Resource Spec Markdown', specification: '交付尺寸、倍率、遮挡、组合关系、文图规则、来源与未覆盖项', required: true },
+      { name: '交付检查清单', specification: '5 类资源位和 7 条机器校验规则，含错误码与阻断条件', required: true },
+      { name: '规格图谱', specification: '逻辑画布与导出像素并列，说明板尺寸独立排除', required: true },
+      { name: '主题 Token 映射', specification: 'Text / BG / Line 变量名称已核验；精确亮暗色值仍需从端侧主题解析', required: true },
+    ],
+    constraints: [
+      '禁止把规范说明板尺寸登记为资源位交付尺寸',
+      '话题背景顶部 20px 不得放关键信息，默认不放抖音 Logo',
+      '创作者活动 Banner 的文案与配图间距不得小于 12px',
+      '未解析主题变量前不得手写猜测字色；未核验字号不得拿说明板字体替代',
+    ],
+    usage: '用于生活服务常见资源位的生成前选型、画布初始化、设计复核和导出前自动验收；当前已覆盖话题页三件套与创作者活动中心核心入口。',
+    accent: '#FE2C55',
+    sourceFiles: [
+      { name: '生活服务常见资源位设计规范 · Figma', format: 'Figma', status: '已归档' },
+      { name: 'brand-kit.md', format: 'Markdown', status: '已归档' },
+      { name: 'resource-spec.json', format: 'JSON', status: '已归档' },
+      { name: '端侧字号与主题色变量解析表', format: 'JSON', status: '待校验' },
+    ],
+    governance: {
+      source: '【基建】生活服务常见资源位设计规范',
+      evidence: '⭐️汇总页的真实组件画布与遮挡图层；✈️页的创作者活动中心实例、资源图片尺寸和规范文字',
+      rights: '用于抖音生活服务内部资源位生产与验收；项目视觉、Logo、IP 与活动素材按各自资产权限调用',
+      qualityGate: '画布、倍率、遮挡碰撞、文图间距、主题 Token 解析与说明板尺寸泄漏检查',
+      importFormats: ['Figma', 'Markdown', 'JSON', 'PNG'],
+    },
+    resourcePositionProfile: DOUYIN_LIFE_SERVICE_RESOURCE_POSITION_PROFILE,
+  },
+  {
+    id: 'style.acg-new-year-kinetic-festival',
+    category: 'inspiration',
+    assetClass: 'style-profile',
+    registry: 'asset',
+    name: '新春热力 · ACG Style Bible',
+    version: '1.0.0',
+    summary: '从 ACG 新春会正式 Banner、主 KV、话题头图和分会场中提炼的项目视觉语法；负责春节氛围、群像构图和活动色，不承担品牌 Logo 或具体 IP 授权。',
+    owner: '抖音 ACG 视觉设计',
+    status: '已发布',
+    updatedAt: '2026-08-07',
+    tags: ['春节热力', '天空纵深', '轨道动势', '多 IP 群像'],
+    coverage: ['Lynx', 'H5', 'Banner', '开屏', '节目单', '战报'],
+    metrics: [
+      { label: '正式参考', value: '4 组' },
+      { label: '核心色', value: '6 个' },
+      { label: '构图层', value: '5 层' },
+    ],
+    parameterGroups: [
+      {
+        name: '视觉 Token',
+        summary: '色值来自正式交付的降采样聚类；按 Surface 选择语境，用作生成约束而非重新定义品牌色。',
+        parameters: [
+          { label: '热力橙', value: '#E65D24', mode: '固定规则' },
+          { label: '深轨道红', value: '#9B230D', mode: '固定规则' },
+          { label: '天空蓝', value: '#B0E2F8', mode: '固定规则' },
+          { label: '高光奶油', value: '#F3D5AA', mode: '固定规则' },
+          { label: '云雾白', value: '#E8EAEA', mode: '固定规则' },
+          { label: '信息深棕', value: '#5E2B1C', mode: '固定规则' },
+        ],
+      },
+      {
+        name: 'Surface 视觉语境',
+        summary: '主会场与站内资源位不是同一张 KV 的裁切，而是同一活动身份下的两套正式表达。',
+        parameters: [
+          { label: '主会场 / 开屏 / 竖版 KV', value: '新春红 + 暖金 + 米黄；灯笼、烟花与节庆舞台', mode: '固定规则' },
+          { label: '发现页 / 话题 / 活动中心', value: '天空蓝 + 热力橙红 + 奶油白；轨道与跨次元群像', mode: '固定规则' },
+          { label: '语境选择', value: '由 Delivery Surface 决定，不允许全渠道套用单一主色', mode: 'Agent 推断' },
+        ],
+      },
+      {
+        name: '群像与动势',
+        summary: '保证跨画幅仍能读出“沿轨道奔向新春会”的同一世界，而不是简单裁切一张 KV。',
+        parameters: [
+          { label: '空间层级', value: '云雾前景 / 红色轨道 / 左侧骑行主角 / 右侧环形群像 / 天空烟花', mode: '固定规则' },
+          { label: '动势方向', value: '左下 → 右上；角色与载具沿轨道汇聚', mode: '固定规则' },
+          { label: '标题安全区', value: '横版优先左侧 38%；竖版移至下三分之一并避开角色脸部', mode: 'Agent 推断' },
+          { label: '群像密度', value: '主 KV 高密；窄 Banner 保留 1 个主角簇 + 标题锁定', mode: 'Agent 推断' },
+        ],
+      },
+      {
+        name: '跨 Surface 编译',
+        summary: '每类交付按信息职责重排，不允许对主 KV 做机械 center-crop。',
+        parameters: [
+          { label: 'H5 / Lynx', value: 'Hero 先建立世界观，内容卡与榜单使用暖白信息面', mode: '固定规则' },
+          { label: '资源位', value: '标题、活动日期、单一利益点优先；IP 数量按安全区删减', mode: '固定规则' },
+          { label: '节目单 / 战报', value: '沿用章节标题字、橙红数据高亮和轨道分隔语汇', mode: '固定规则' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name: 'Style Token', specification: '6 色、光影、描边、阴影与信息面层级', required: true },
+      { name: '构图规则', specification: '横版、竖版、窄 Banner、长页 Hero 四类重排规则', required: true },
+      { name: 'Golden References', specification: '仅引用正式 KV / Banner / 会场，不含脑暴和外部参考', required: true },
+      { name: 'Reject Rules', specification: '禁止机械裁切、跨授权会场混放 IP、标题压脸和弱化活动日期', required: true },
+    ],
+    constraints: ['不得修改抖音 ACG Logo', '不得把具体 IP 群像发布为跨项目素材', '窄资源位不得机械裁切主 KV', '探索稿和外部战报参考禁止进入生成参考'],
+    usage: '2026 抖音 ACG 新春会项目视觉输入；其它项目复用时必须重新选择 Brand Kit 与授权 IP 素材',
+    accent: '#E65D24',
+    thumbnail: '/assets/figma-deliverables/acg/discovery-banner-1372x512.png',
+    visualReferences: [
+      { src: '/assets/figma-deliverables/acg/discovery-banner-1372x512.png', label: '群像与轨道主构图', specification: 'Figma node 2229:63622 · 1372×512' },
+      { src: '/assets/figma-deliverables/acg/topic-header-banner.png', label: '话题页横向适配', specification: 'Figma node 2229:64229 · 1125×450' },
+      { src: '/assets/figma-deliverables/acg/key-visual-portrait.png', label: '竖版重排', specification: 'Figma node 2253:13707 · 1080×1920' },
+      { src: '/assets/figma-deliverables/acg/game-venue-long.png', label: 'H5 信息面与章节语法', specification: 'Figma node 1470:25605 · 750×9776' },
+    ],
+    sourceFiles: [
+      { name: '2026 抖音ACG新春会-创意.fig', format: 'Figma', status: '已归档' },
+      { name: 'style-token.sample.json', format: 'JSON', status: '待校验' },
+    ],
+    governance: {
+      source: '2026 抖音 ACG 新春会正式设计交付',
+      evidence: '资源位延展、主 KV、话题头图与分会场正式画板；每个参考均保留 node ID 和源尺寸',
+      rights: '视觉语法可作为受控参考；具体游戏/IP 角色和项目成片只限原授权项目',
+      qualityGate: '正式稿来源、标题安全区、角色脸部遮挡、跨画幅重排、IP 授权与 Reject 泄漏检查',
+      importFormats: ['Figma', 'PNG', 'WebP', 'JSON'],
+    },
+  },
+  {
+    id: 'ip.xinzai-life-service-2026',
+    category: 'ip',
+    assetClass: 'character-kit',
+    registry: 'asset',
+    name: '抖音生活服务 · 心仔 IP Kit',
+    version: '1.0.0',
+    summary: '统一管理心仔的角色身份、不可变结构、标准色、比例、15 种表情、30 个动作和传播使用要求。',
+    owner: '抖音生活服务品牌',
+    status: '已发布',
+    updatedAt: '2026-08-10',
+    tags: ['心仔', '抖音生活服务', '官方 IP', '2D', '3D', 'STL', '动作资产'],
+    coverage: ['平面传播', '视频', '线下装置', '周边', '联合营销', '活动页面'],
+    metrics: [
+      { label: '标准形象', value: '2D / 3D' },
+      { label: '情绪资产', value: '15 种' },
+      { label: '动作资产', value: '30 个' },
+    ],
+    parameterGroups: [
+      {
+        name: '角色身份与不可变结构',
+        summary: '心仔不是一张吉祥物图片，而是一套具有稳定识别、比例和业务归属的角色系统。',
+        parameters: [
+          { label: '核心定位', value: '抖音生活服务 · 吃喝玩乐好搭子', mode: '固定规则' },
+          { label: '爱心脑袋', value: '外轮廓、头身主关系与左右心瓣结构不可变', mode: '固定规则' },
+          { label: '烟火雷达眼', value: '保留大眼体块；瞳孔、眼皮与眉形可随表情变化', mode: '可配置' },
+          { label: '云朵腮红', value: '两侧云朵形状、成对关系和粉色识别不可变', mode: '固定规则' },
+          { label: '百宝挎包', value: '爱心包体、斜挎关系与抖音标识不可变', mode: '固定规则' },
+          { label: '圆圆小手', value: '四根手指；手势和持物按批准动作资产变化', mode: '可配置' },
+        ],
+      },
+      {
+        name: '表情与动作资产',
+        summary: '表情与动作是受控变体，不允许借场景变化改写角色本体。',
+        parameters: [
+          { label: '标准表情', value: '开心、比心、无奈、眯眼笑、得意、委屈、生气、无语、吃惊、眩晕、期待、犯困、疑惑、尴尬、馋', mode: '引用资产' },
+          { label: '常规动作', value: '8 个', mode: '引用资产' },
+          { label: '吃喝动作', value: '8 个', mode: '引用资产' },
+          { label: '玩乐 / 日常', value: '各 3 个', mode: '引用资产' },
+          { label: '运动 / 出行 / 购物 / 节日', value: '各 2 个', mode: '引用资产' },
+        ],
+      },
+      {
+        name: '源文件与授权',
+        summary: '公开预览、可编辑源文件与传播授权分开管理，能下载不代表自动获得所有使用权限。',
+        parameters: [
+          { label: '标准形象', value: '2D / 3D PNG 与平面 AI', mode: '引用资产' },
+          { label: '线下模型', value: '标准“心仔模型.stl”', mode: '引用资产' },
+          { label: '动作源文件', value: '30 个 PSD / PSB 与对应预览', mode: '引用资产' },
+          { label: '传播确认', value: '使用前按规范联系黄文强确认范围', mode: '固定规则' },
+          { label: '正式署名', value: '联合海报、单人海报及周边需呈现“抖音生活服务  心仔”', mode: '固定规则' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name: '标准形象', specification: '2D / 3D 正面与侧面 PNG、平面 AI', required: true },
+      { name: '结构与比例规范', specification: '不可变结构、1 : 0.35 : 0.30 头身腿比例与线下参考', required: true },
+      { name: '标准色', specification: '6 个核验色号及对应 Pantone', required: true },
+      { name: '表情资产', specification: '15 种标准表情及使用规则', required: true },
+      { name: '动作资产库', specification: '8 个场景分类、30 个 PSD / PSB 动作', required: true },
+      { name: '线下模型', specification: '心仔模型 STL 与带品牌 Logo 的底座要求', required: false },
+    ],
+    constraints: [
+      '爱心脑袋、云朵腮红和百宝挎包不可重画或替换',
+      '四根手指不得改成拟真人手，头身比例不得拉长成人形',
+      '版权应用示意图不可作为可复用营销成片对外传播',
+      '生成结果必须逐项复核帽子、挎包、手指、Logo 与身体比例',
+    ],
+    usage: '作为心仔在生活服务活动、传播、线下装置与周边中的受控角色输入；活动主题、页面视觉与合作方资产需在项目层另行绑定。',
+    accent: '#FF2424',
+    thumbnail: '/assets/ip-kits/xinzai-2026/03-3d-front.png',
+    visualReferences: [
+      { src: '/assets/ip-kits/xinzai-2026/01-color-standard.png', label: '标准色规范', specification: '官方规范 · 4001×1920 · 6 个标准色' },
+      { src: '/assets/ip-kits/xinzai-2026/02-character-anatomy.png', label: '角色结构标注', specification: '官方规范 · 4001×1921 · 5 个核心识别结构' },
+      { src: '/assets/ip-kits/xinzai-2026/03-3d-front.png', label: '3D 标准形象', specification: '官方规范 · 4168×4168 · 透明 PNG' },
+      { src: '/assets/ip-kits/xinzai-2026/04-2d-front.png', label: '2D 标准形象', specification: '官方规范 · 2084×2084 · 透明 PNG' },
+      { src: '/assets/ip-kits/xinzai-2026/05-height-ratio.png', label: '标准比例与线下参考', specification: '官方规范 · 8000×4500 · 头 1× / 身 0.35× / 腿 0.30×' },
+      { src: '/assets/ip-kits/xinzai-2026/06-emotion-expect.png', label: '表情示例 · 期待', specification: '官方规范 · 1024×1024' },
+      { src: '/assets/ip-kits/xinzai-2026/07-emotion-angry.png', label: '表情示例 · 生气', specification: '官方规范 · 1024×1024' },
+      { src: '/assets/ip-kits/xinzai-2026/08-action-greeting.jpg', label: '动作示例 · 打招呼', specification: '动作资产库 · 常规 · 2000×2000' },
+      { src: '/assets/ip-kits/xinzai-2026/09-action-hotpot.png', label: '动作示例 · 吃火锅', specification: '动作资产库 · 吃喝 · 4000×4000' },
+      { src: '/assets/ip-kits/xinzai-2026/10-action-karaoke.png', label: '动作示例 · 唱 K', specification: '动作资产库 · 玩乐 · 2000×2000' },
+      { src: '/assets/ip-kits/xinzai-2026/11-action-skateboard.png', label: '动作示例 · 滑板', specification: '动作资产库 · 运动 · 7046×7046' },
+      { src: '/assets/ip-kits/xinzai-2026/12-action-plane.png', label: '动作示例 · 开飞机', specification: '动作资产库 · 出行 · 3488×3489' },
+      { src: '/assets/ip-kits/xinzai-2026/13-action-spring.png', label: '动作示例 · 新春快乐', specification: '动作资产库 · 节日 · 2000×2000' },
+    ],
+    sourceFiles: [
+      { name: '心仔平面 AI 与 PNG 压缩包', format: 'AI / PNG', status: '已归档' },
+      { name: '心仔 3D PNG 压缩包', format: 'PNG', status: '已归档' },
+      { name: '心仔模型.stl', format: 'STL', status: '已归档' },
+      { name: '30 个动作源文件', format: 'PSD / PSB', status: '已归档' },
+      { name: '心仔正式 title 矢量与安全区', format: 'AI / SVG', status: '待校验' },
+    ],
+    governance: {
+      source: '飞书《抖音生活服务｜心仔》revision 1005 与《心仔｜形象设计资产库》revision 1208',
+      evidence: '13 张官方规范 / 资产库图片；15 种表情；8 个已填充动作分类共 30 个动作与对应 PSD/PSB',
+      rights: '资产使用前需确认传播范围；版权应用示意图不进入可复用图片组，联合与周边场景保留正式署名。',
+      qualityGate: '来源、版本、轮廓、比例、标准色、手指、腮红、挎包、Logo、正式署名与传播授权逐项检查',
+      importFormats: ['Lark Docx', 'AI', 'PNG', 'PSD', 'PSB', 'STL', 'MD', 'JSON'],
+    },
+    ipKitProfile: XINZAI_IP_KIT_PROFILE,
+  },
+  {
+    id: 'ip.acg-horse-mascot-2026',
+    category: 'ip',
+    assetClass: 'character-kit',
+    registry: 'asset',
+    name: 'ACG 新春会 · 马年吉祥物与授权素材包',
+    version: '1.0.0',
+    summary: '从项目正式页面切片中登记的 12 个真实素材文件，包含马年吉祥物、游戏角色、节庆道具和内容封面；只服务当前授权项目，不属于通用新春会模板。',
+    owner: '抖音 ACG 视觉设计',
+    status: '已发布',
+    updatedAt: '2026-08-07',
+    tags: ['马年吉祥物', '项目授权', '透明切片', '游戏角色'],
+    coverage: ['H5', '资源位', '玩法视觉', '节目单', '传播物料'],
+    metrics: [
+      { label: '真实文件', value: '12 个' },
+      { label: '角色 / 道具', value: '6 个' },
+      { label: '内容封面', value: '5 个' },
+    ],
+    parameterGroups: [
+      {
+        name: '素材清单',
+        summary: '每项对应本地真实 PNG，不用生成占位图替代。',
+        parameters: [
+          { label: '活动主视觉切片', value: '01-activity-hero.png · 1600×1035', mode: '引用资产' },
+          { label: '角色与道具', value: '派对柯基、地下城角色、王者角色、蛋仔键盘、标题炮仗、马年吉祥物', mode: '引用资产' },
+          { label: '内容封面', value: '焦点视频 1 张 + 榜单/内容封面 4 张', mode: '引用资产' },
+        ],
+      },
+      {
+        name: '授权与挂载',
+        summary: '角色归属和出现范围由项目授权清单控制，模板只保存槽位。',
+        parameters: [
+          { label: '授权范围', value: '2026 抖音 ACG 新春会项目内', mode: '固定规则' },
+          { label: '会场归属', value: '游戏角色仅进入游戏会场；跨会场使用需再次确认', mode: '固定规则' },
+          { label: '吉祥物挂载', value: '主会场 Hero / 玩法入口 / 节目单封面', mode: '可配置' },
+          { label: '重生成权限', value: '默认只可裁切与排版，不得重绘角色本体', mode: '固定规则' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name: '活动与吉祥物透明件', specification: '活动 Hero 与马年吉祥物 2 个高分辨率 PNG', required: true },
+      { name: '角色 / 道具切片', specification: '6 个项目授权角色与节庆道具 PNG', required: true },
+      { name: '内容封面', specification: '5 个视频、榜单和内容卡封面 PNG', required: true },
+    ],
+    constraints: ['不得发布为跨项目公共 IP', '不得重绘、镜像或改变角色识别结构', '角色必须匹配授权会场', '切片进入生成前保留来源文件名'],
+    usage: '2026 抖音 ACG 新春会项目素材输入；与 Brand Kit、Style Bible 和玩法槽位分别绑定',
+    accent: '#E65D24',
+    thumbnail: '/assets/acg-new-year/materials/12-event-mascot-horse.png',
+    visualReferences: [
+      { src: '/assets/acg-new-year/materials/12-event-mascot-horse.png', label: '马年活动吉祥物', specification: '真实 PNG · 1600×1064' },
+      { src: '/assets/acg-new-year/materials/01-activity-hero.png', label: '活动 Hero 切片', specification: '真实 PNG · 1600×1035' },
+      { src: '/assets/acg-new-year/materials/06-title-cannon.png', label: '节庆标题炮仗', specification: '真实 PNG · 488×511' },
+      { src: '/assets/acg-new-year/materials/02-party-corgi.png', label: '派对柯基角色', specification: '真实 PNG · 1100×1300' },
+    ],
+    sourceFiles: [
+      { name: 'public/assets/acg-new-year/materials · 12 PNG', format: 'PNG', status: '已归档' },
+    ],
+    governance: {
+      source: '2026 抖音 ACG 新春会正式页面切片',
+      evidence: '12 个本地真实 PNG；尺寸与文件名可逐项核验',
+      rights: '仅限当前项目和已授权渠道；不得作为通用角色包外发或用于其它活动',
+      qualityGate: '文件存在性、透明边缘、角色归属、授权范围、镜像和重绘检查',
+      importFormats: ['PNG', 'Figma node', '授权清单'],
     },
   },
   {
@@ -324,68 +1154,15 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
       qualityGate: '尺寸、对比度、安全区、变形与重复 Logo 自动检查',
     },
   },
-  {
-    id: 'brand.xinzai-character',
-    category: 'brand',
-    assetClass: 'character-kit',
-    registry: 'asset',
-    name: '心仔 IP 角色资产包',
-    version: '1.11',
-    summary: '不是一张吉祥物图片，而是包含标准形象、动作、表情、道具与不可变结构的角色系统。',
-    owner: '生活服务 IP 设计',
-    status: '已发布',
-    updatedAt: '2026-08-04',
-    tags: ['心仔', '角色资产', '3D IP'],
-    coverage: ['Banner', 'KV', '活动页', '直播贴片', '图片生成'],
-    metrics: [
-      { label: '资产总量', value: '160 项' },
-      { label: '官方动作', value: '30 个' },
-      { label: '表情参考', value: '15 款' },
-    ],
-    parameterGroups: [
-      {
-        name: '角色表现',
-        summary: 'Agent 按主题动词选动作，运营可以显式覆盖。',
-        parameters: [
-          { label: '形象维度', value: '立体 / 平面', mode: '可配置' },
-          { label: '身体朝向', value: '正面 / 侧面站姿 / 侧面行走', mode: '可配置' },
-          { label: '动作分类', value: '常规 / 吃喝 / 玩乐 / 日常 / 运动 / 出行 / 购物 / 节日', mode: 'Agent 推断' },
-          { label: '表情', value: '开心 / 馋 / 得意 / 吃惊 / 比心等 15 款', mode: '可配置' },
-          { label: '主题道具', value: '0–2 件，按主题动词选择', mode: 'Agent 推断' },
-          { label: '主题服饰', value: '标准着装 / 主题二创服饰', mode: '可配置' },
-        ],
-      },
-      {
-        name: '不可变结构',
-        summary: '这些不是审美偏好，任何生成结果都必须满足。',
-        parameters: [
-          { label: '头身腿比例', value: '1 : 0.35 : 0.30', mode: '固定规则' },
-          { label: '雷达眼', value: '默认双眼睁开；眨眼时至少保留一只完整眼件', mode: '固定规则' },
-          { label: '核心部件', value: '爱心头、云朵腮红、四指手、百宝挎包', mode: '固定规则' },
-          { label: '镜像使用', value: '禁止', mode: '固定规则' },
-        ],
-      },
-    ],
-    deliverables: [
-      { name: '标准形象', specification: '立体 / 平面 × 正面 / 侧面，共 6 张透明原件', required: true },
-      { name: '动作库', specification: '8 类 30 个透明动作件', required: true },
-      { name: '情绪表', specification: '15 款表情参考', required: true },
-      { name: '道具库', specification: '30 件主题道具，带死字素材单独标记', required: false },
-    ],
-    constraints: ['普通主题只引用单心仔透明件', '带死字道具不得进入图生图参考', '服饰可变但角色基础结构不可变'],
-    usage: '心仔 Banner Skill v1.11 的角色保真来源',
-    accent: '#FF2424',
-    thumbnail: '/assets/xiahua/kv/xinzai-meishi.png',
-    governance: {
-      ...commonBrandGovernance,
-      source: '生服-心仔 IP 物料生成 Skill v1.11',
-      evidence: '6 张标准形象、30 个官方动作、15 款表情及资产 URL 映射',
-      qualityGate: '角色结构、色值、镜像、额外角色泄漏与动作趋同检查',
-    },
-  },
+  createPageTemplate({ id: 'template.page.acg-game-venue', name: 'ACG 新春会 · 游戏榜单会场', surface: 'H5', summary: '游戏内容榜单、双动作助力、任务和规则入口组成的独立会场页。', preview: '/assets/figma-deliverables/acg/game-venue-long.png', source: '2026 抖音 ACG 新春会正式 Figma 交付', specification: 'Figma node 1470:25605 · 750×9776', modules: ['主视觉', '内容榜单', '助力', '任务'], accent: '#F06939' }),
+  createPageTemplate({ id: 'template.page.acg-anime-venue', name: 'ACG 新春会 · 二次元会场', surface: 'H5', summary: '二次元内容聚合、榜单、会场切换和互动反馈组成的独立会场页。', preview: '/assets/figma-deliverables/acg/anime-venue-long.png', source: '2026 抖音 ACG 新春会正式 Figma 交付', specification: 'Figma node 1529:29607 · 375×3383', modules: ['主视觉', '内容聚合', '榜单', '会场切换'], accent: '#E49B3D' }),
+  createPageTemplate({ id: 'template.page.gala-main', name: '抖音春晚 · 直播主会场', surface: 'Lynx', summary: '直播、节目单、抽奖、往年内容和投稿入口组成的独立主会场页。', preview: '/assets/figma-deliverables/spring-gala/main-venue.png', source: '2026 抖音春晚正式 Figma 交付', specification: 'Figma node 636:116216 · 375×2348', modules: ['直播', '节目单', '抽奖', '投稿'], accent: '#E94B40' }),
+  createPageTemplate({ id: 'template.page.gala-full', name: '抖音春晚 · 完整活动长页', surface: 'Lynx', summary: '在直播主会场基础上补齐话题内容、往年回放与完整活动承接的长页。', preview: '/assets/figma-deliverables/spring-gala/main-venue-full.png', source: '2026 抖音春晚正式 Figma 交付', specification: 'Figma node 773:119100 · 375×5925', modules: ['直播', '节目单', '话题投稿', '往年回放'], accent: '#C92D28' }),
+  createPageTemplate({ id: 'template.page.evernight-main', name: '永夜星河 · 抽卡主会场', surface: 'Lynx', summary: '卡池、单抽与十连、任务入口和图鉴进度组成的独立抽卡主页面。', preview: '/assets/figma-deliverables/evernight/main-venue.png', source: '《永夜星河》抽卡正式 Figma 页面交付', specification: 'Figma node 40:27228 · 750×3652', modules: ['卡池', '抽卡', '任务', '图鉴'], accent: '#7544D8' }),
+  createPageTemplate({ id: 'template.page.evernight-task', name: '永夜星河 · 抽卡任务页', surface: 'Lynx', summary: '任务列表、完成反馈、抽卡次数领取和图鉴回流组成的独立任务页面。', preview: '/assets/figma-deliverables/evernight/task-page.png', source: '《永夜星河》抽卡正式 Figma 页面交付', specification: 'Figma node 747:9409 · 750×1603', modules: ['任务列表', '次数领取', '完成反馈', '图鉴回流'], accent: '#8F5CFF' }),
   {
     id: 'template.xinzai-scene-banner',
-    category: 'brand',
+    category: 'material-template',
     assetClass: 'banner-template',
     registry: 'asset',
     name: '心仔全幅场景 Banner 模板',
@@ -444,7 +1221,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
   },
   {
     id: 'template.hot-topic-banner',
-    category: 'brand',
+    category: 'material-template',
     assetClass: 'banner-template',
     registry: 'asset',
     name: '无 IP 热点话题 Banner 模板',
@@ -490,6 +1267,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
     constraints: ['固定 Hot!、#、爱心与音符不可被模型改写', '无字底图和 QC 仅作为中间产物', '任何门禁失败均不得发布'],
     usage: '7 条非心仔标准集 + 5 条语义盲测均通过',
     accent: '#F6C844',
+    thumbnail: '/assets/figma-deliverables/spring-gala/activity-banner.png',
     governance: {
       ...commonBrandGovernance,
       source: '生服-热点话题 Banner 生成 Skill v6.5',
@@ -500,7 +1278,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
   },
   {
     id: 'template.official-live-room',
-    category: 'brand',
+    category: 'material-template',
     assetClass: 'live-room-kit',
     registry: 'asset',
     name: '生服官号直播间分层套件',
@@ -564,7 +1342,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
   },
   {
     id: 'component.live-benefit-card',
-    category: 'brand',
+    category: 'material-template',
     assetClass: 'live-component',
     registry: 'asset',
     name: '直播间福利侧卡与福袋组件包',
@@ -624,7 +1402,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
   },
   {
     id: 'template.campaign-kv-layered',
-    category: 'style',
+    category: 'material-template',
     assetClass: 'layer-template',
     registry: 'asset',
     name: '活动主视觉分层模板',
@@ -670,7 +1448,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
     constraints: ['单图同样必须有一层 manifest', '不自动迁移已有项目版本', '艺术字不因可编辑性被强制转为普通字体'],
     usage: '这夏夯爆了主视觉已锁定 v1.2.0',
     accent: '#6C5CE7',
-    thumbnail: '/assets/xiahua/head-kv.png',
+    thumbnail: '/assets/figma-deliverables/acg/topic-header-banner.png',
     governance: {
       source: '图片分层编辑实践与活动 KV 生产链路',
       evidence: '心仔 Banner、深夜食堂 KV 和图文混合分层用例',
@@ -681,7 +1459,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
   },
   {
     id: 'template.live-room-layered',
-    category: 'style',
+    category: 'material-template',
     assetClass: 'layer-template',
     registry: 'asset',
     name: '直播间竖屏分层模板',
@@ -729,7 +1507,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
   },
   {
     id: 'template.interest-card-layered',
-    category: 'style',
+    category: 'material-template',
     assetClass: 'layer-template',
     registry: 'asset',
     name: '兴趣卡图文分层模板',
@@ -777,7 +1555,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
   },
   {
     id: 'style.night-food-3d',
-    category: 'style',
+    category: 'inspiration',
     assetClass: 'style-profile',
     registry: 'asset',
     name: '夜食 3D 烟火感',
@@ -814,7 +1592,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
     constraints: ['文字可读区不得叠高光食物', '背景不可低饱和灰紫', '不可把多个菜品并列成无焦点平铺'],
     usage: '这夏夯爆了项目当前引用',
     accent: '#E86D3A',
-    thumbnail: '/assets/xiahua/head-kv.png',
+    thumbnail: '/assets/figma-deliverables/xiahua/food-venue-full.png',
     governance: {
       source: '这夏夯爆了视觉基准与项目素材',
       evidence: '页面 KV、卡片、Banner 正反例及设计复盘',
@@ -825,7 +1603,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
   },
   {
     id: 'style.xinzai-commercial-3d',
-    category: 'style',
+    category: 'inspiration',
     assetClass: 'style-profile',
     registry: 'asset',
     name: '心仔明快商业 3D',
@@ -873,7 +1651,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
   },
   {
     id: 'style.live-commerce-premium',
-    category: 'style',
+    category: 'inspiration',
     assetClass: 'style-profile',
     registry: 'asset',
     name: '高质感直播电商 Style Bible',
@@ -922,7 +1700,7 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
   },
   {
     id: 'style.douyin-clean-campaign',
-    category: 'style',
+    category: 'inspiration',
     assetClass: 'style-profile',
     registry: 'asset',
     name: '抖音轻量活动页',
@@ -966,6 +1744,140 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
       qualityGate: '颜色数量、对比度、嵌套层数与字号层级检查',
       importFormats: ['Figma Frame', 'Design Token', '组件截图'],
     },
+  },
+  {
+    id: 'gameplay.hidden-object.magpie-hunt',
+    category: 'gameplay',
+    assetClass: 'gameplay-package',
+    registry: 'capability',
+    name: '限时找物闯关玩法包',
+    version: '0.7.0',
+    summary: '7 关限时找物，包含挑战次数、任务回流、里程碑奖励、抽奖、风险控制与逐关数据记录。',
+    owner: '互动活动产品 / 活动玩法平台',
+    status: '内测中',
+    updatedAt: '2026-08-10',
+    tags: ['找茬', '限时找物', '闯关', '任务回流'],
+    coverage: ['抖音 H5', 'Lynx', 'Web Preview'],
+    metrics: [
+      { label: '关卡', value: '7 关' },
+      { label: '找物目标', value: '47 个' },
+      { label: '单关', value: '90 秒' },
+    ],
+    parameterGroups: QIXI_MAGPIE_HUNT_GAMEPLAY_PROFILE.configGroups.map((group) => ({
+      name: group.name,
+      summary: group.summary,
+      parameters: group.fields.map((field) => ({
+        label: field.label,
+        value: field.value,
+        mode: field.ownership === '智能配置' ? '可配置' : field.ownership === '运营锁定' ? '引用资产' : '固定规则',
+        note: `${field.key} · ${field.status}${field.constraint ? ` · ${field.constraint}` : ''}`,
+      })),
+    })),
+    deliverables: [
+      { name: '玩法能力说明', specification: '玩家主循环、状态机、边际状态、任务与奖励边界', required: true },
+      { name: '调用清单', specification: '输入、输出、事件、依赖与发布前校验规则', required: true },
+      { name: '七夕活动预设', specification: '7 关 / 47 目标 / 90 秒 / 任务与里程碑配置', required: true },
+      { name: '视觉与热点清单', specification: '7 张场景、47 个目标热区和各状态视觉；当前待媒体权限归档', required: true },
+    ],
+    constraints: QIXI_MAGPIE_HUNT_GAMEPLAY_PROFILE.acceptance.slice(0, 5),
+    usage: '适合大规模泛用户的轻互动活动；引用时必须同时补齐场景、热点、奖励、任务与风险服务。',
+    accent: QIXI_MAGPIE_HUNT_GAMEPLAY_PROFILE.presentation.accent,
+    gameplayProfile: QIXI_MAGPIE_HUNT_GAMEPLAY_PROFILE,
+    sourceFiles: [
+      { name: 'README.md', format: 'Markdown', status: '已归档' },
+      { name: 'manifest.json', format: 'JSON', status: '已归档' },
+      { name: 'Figma 交互稿视觉文件', format: 'Figma', status: '待校验' },
+    ],
+    governance: {
+      source: '飞书《七夕「搭建鹊桥」互动玩法》revision 10 与对应 Figma 交互稿',
+      evidence: '玩法主链路、7 关目标、任务额度、奖励节点、边际状态、入口人群与埋点口径均由源文档确认',
+      rights: '能力结构可跨项目复用；七夕叙事、视觉和商品权益只能在授权项目内使用',
+      qualityGate: '热点数量与安全区、次数账本、奖励幂等、风险兜底、渠道标识、逐关事件和依赖可解析性检查',
+      importFormats: ['Gameplay Manifest JSON', 'Markdown', 'Figma', 'Hotspot Manifest'],
+    },
+  },
+  {
+    id: 'gameplay.content-ranking',
+    category: 'gameplay',
+    assetClass: 'gameplay-package',
+    registry: 'capability',
+    name: '内容榜单玩法包',
+    version: '1.0.0',
+    summary: '把内容池、准入、分榜、排名公式、刷新冻结和异常降级封装为可运行的榜单能力。',
+    owner: '活动玩法平台',
+    status: '已发布',
+    updatedAt: '2026-08-07',
+    tags: ['内容榜单', '分榜', '结算快照'],
+    coverage: ['H5', 'Lynx', 'Web Preview'],
+    metrics: [{ label: '配置组', value: '3 组' }, { label: '运行状态', value: '5 个' }, { label: '校验规则', value: '8 条' }],
+    parameterGroups: [
+      { name: '榜单契约', summary: '运营配置业务口径，运行时负责一致结算。', parameters: [
+        { label: '业务对象', value: '作品 / 创作者 / 话题内容', mode: '可配置' },
+        { label: '分榜', value: '按会场、内容分类或人群建立', mode: '可配置' },
+        { label: '排名公式', value: '有效助力 + 播放/互动补正', mode: '可配置' },
+        { label: '状态', value: '正常 / 空态 / 延迟 / 冻结 / 封禁降级', mode: '固定规则' },
+      ] },
+    ],
+    deliverables: [{ name: '榜单 Schema', specification: '内容池、分榜与排名口径', required: true }, { name: 'Runtime Adapter', specification: '查询、刷新、冻结与降级', required: true }],
+    constraints: ['所有会场使用同一结算快照', '异常内容必须可移出并补位', '状态变体不得误算为独立页面'],
+    usage: '新春会模板的必选内容互动槽位',
+    accent: '#4F46E5',
+    governance: { source: '活动玩法平台能力契约', evidence: 'ACG 双分会场榜单与 5 状态运行需求', rights: '平台内部能力，可按版本引用', qualityGate: '内容准入、排名公式、刷新冻结、异常降级和快照一致性', importFormats: ['内容池', '排名公式', '审核规则'] },
+  },
+  {
+    id: 'gameplay.dual-action-boost',
+    category: 'gameplay',
+    assetClass: 'gameplay-package',
+    registry: 'capability',
+    name: '双动作助力玩法包',
+    version: '1.0.0',
+    summary: '同一内容对象上的普通/高价值双动作助力，分别管理文案、权重、配额、反刷和榜单回写。',
+    owner: '活动玩法平台',
+    status: '已发布',
+    updatedAt: '2026-08-07',
+    tags: ['助力', '双动作', '榜单回写'],
+    coverage: ['H5', 'Lynx', 'Web Preview'],
+    metrics: [{ label: '动作槽位', value: '2 个' }, { label: '频控层', value: '3 层' }, { label: '回写目标', value: '1 个' }],
+    parameterGroups: [
+      { name: '动作与回写', summary: '两个动作共享对象，配额和分值独立。', parameters: [
+        { label: '动作', value: '普通动作 / 高价值动作', mode: '可配置' },
+        { label: '频控', value: '用户日额 / 单作品额度 / 冷却时间', mode: '可配置' },
+        { label: '回写', value: '目标榜单 + 得分 + 当前名次反馈', mode: '引用资产' },
+      ] },
+    ],
+    deliverables: [{ name: '助力 Schema', specification: '动作、权重、配额和反馈', required: true }, { name: '反刷与回写适配', specification: '风险拦截、幂等写入和榜单反馈', required: true }],
+    constraints: ['助力必须引用有效榜单', '高价值动作必须单独频控', '异常设备不得影响结算'],
+    usage: '与内容榜单玩法包组合使用',
+    accent: '#EC4899',
+    governance: { source: '活动玩法平台能力契约', evidence: 'ACG 分会场双动作助力运行需求', rights: '平台内部能力，可按版本引用', qualityGate: '配额、反刷、幂等、榜单引用和反馈一致性', importFormats: ['动作配置', '频控规则', '榜单引用'] },
+  },
+  {
+    id: 'gameplay.climb-lite',
+    category: 'gameplay',
+    assetClass: 'gameplay-package',
+    registry: 'capability',
+    name: '跃马攀峰轻游戏玩法包',
+    version: '0.8.0',
+    summary: '可选的 45 秒轻量跑酷/攀升玩法，独立管理局数、难度、积分和任务回流，不改写活动主流程。',
+    owner: '活动玩法平台',
+    status: '内测中',
+    updatedAt: '2026-08-07',
+    tags: ['轻游戏', '跑酷', '任务回流'],
+    coverage: ['H5', 'Web Preview'],
+    metrics: [{ label: '运行状态', value: '4 个' }, { label: '难度档', value: '3 档' }, { label: '回流事件', value: '1 个' }],
+    parameterGroups: [
+      { name: '对局与回流', summary: '对局独立结算，只向 ActivitySpec 回写完成事实。', parameters: [
+        { label: '单局时长', value: '30–90 秒', mode: '可配置' },
+        { label: '难度曲线', value: '固定 / 逐段加速', mode: '可配置' },
+        { label: '任务回流', value: 'minigame.completed', mode: '固定规则' },
+        { label: '角色素材', value: '引用项目 IP Kit', mode: '引用资产' },
+      ] },
+    ],
+    deliverables: [{ name: '游戏 Runtime', specification: '运行、暂停、结算和达成状态', required: true }, { name: '视觉槽位', specification: '入口小卡、角色、障碍与结果态', required: true }],
+    constraints: ['玩法结果不直接修改内容榜单', '角色必须来自已授权 IP Kit', '未启用时不进入交付矩阵'],
+    usage: '新春会模板的可选场景小游戏槽位',
+    accent: '#F97316',
+    governance: { source: '活动玩法平台轻游戏契约', evidence: 'ACG 跃马攀峰入口与状态画板', rights: '平台内部 Runtime；角色与视觉按项目授权', qualityGate: '局数、难度、事件回写、素材授权和可选槽位关闭检查', importFormats: ['关卡参数', '角色素材', '任务引用'] },
   },
   {
     id: 'gameplay.lottery',
@@ -1299,6 +2211,450 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
       rights: '遵循 SIL Open Font License',
       qualityGate: '缺字、语言变体、字体回退和授权文件完整性检查',
       importFormats: ['OTF', 'TTF', 'WOFF2', 'OFL.txt'],
+    },
+  },
+  {
+    id: 'template.channel-resource-pack-no-page',
+    category: 'activity-template',
+    assetClass: 'activity-template',
+    registry: 'asset',
+    name: '全渠道资源位整包',
+    version: '1.0.0',
+    summary: '面向已有承接页、话题页或内容详情页的轻量活动：不新建 H5/Lynx，通过搜索、话题、活动中心、开屏和业务频道等资源位形成统一触达矩阵。',
+    owner: '活动产品中台',
+    status: '内测中',
+    updatedAt: '2026-08-07',
+    tags: ['0 页面', '资源位矩阵', '存量承接', '轻量投放'],
+    coverage: ['搜索', '话题', '活动中心', '开屏', '业务频道', '图片生成'],
+    metrics: [
+      { label: '新增页面', value: '0 个' },
+      { label: '标准规模', value: '6–12 个资源位' },
+      { label: '核心形式', value: '触达矩阵' },
+    ],
+    templateProfile: {
+      purpose: '当活动已有可复用的内容页、话题页或业务承接页时，用一套统一身份和信息策略覆盖多个流量入口，而不是为了“像活动”再造一个无必要的 H5。',
+      organization: '1 个既有承接目标 + 1 份资源位清单；运营统一活动主题与节奏，各资源位 Owner 负责真实尺寸、审核和排期，没有主会场/分会场层级。',
+      gameplay: '默认无玩法，只承担活动触达和导流；可以表达倒计时、利益点或内容主题，但若需要抽奖、榜单、集卡等交互，应切换或组合其它活动模板。',
+      scale: '标准档为 1–2 个投放阶段、6–12 个站内资源位、2–4 天生产周期；新增页面为 0，工作量按尺寸与信息职责计数。',
+      format: 'PNG/WebP/JPG 资源位整包，覆盖搜索、话题、活动中心、开屏与业务频道；每个 Surface 独立重排，不从一张 KV 机械裁切。',
+      fit: '适合已有承接页的节点宣传、内容专题、品牌合作和短周期热点；不适合需要独立活动主流程、用户状态或复杂玩法的项目。',
+      systemMap: {
+        journey: [
+          { label: '多入口曝光', detail: '搜索、话题、开屏等触达' },
+          { label: '理解单一利益点', detail: '每个资源位只讲一件事' },
+          { label: '点击跳转', detail: '携带统一活动识别' },
+          { label: '既有页面承接', detail: '话题、内容或业务页面' },
+        ],
+        assetInputs: [
+          { label: '资源位整包模板', role: '活动结构' },
+          { label: 'Brand Kit', role: '品牌身份' },
+          { label: 'Style Bible', role: '视觉语法' },
+          { label: '文案与承接链接', role: '项目内容' },
+          { label: 'Resource Slot', role: '尺寸合同' },
+        ],
+        outputs: [
+          { label: '6–12 个资源位', detail: '逐 Surface 独立排版' },
+          { label: '文案矩阵', detail: '标题、利益点、时间与 CTA' },
+          { label: '投放检查单', detail: '尺寸、安全区、跳转与审核' },
+        ],
+      },
+    },
+    parameterGroups: [
+      {
+        name: '活动主流程内核',
+        summary: '没有新页面，但仍有清楚的触达、理解和承接链路；承接目标是整个模板的第一项必填。',
+        parameters: [
+          { label: '触达链路', value: '站内资源位曝光 → 单一利益点理解 → 点击 → 既有页面/内容承接', mode: '固定规则' },
+          { label: '承接目标', value: '话题页 / 内容详情 / 直播间 / 已有活动页 / 业务频道', mode: '可配置' },
+          { label: '投放阶段', value: '预热 / 爆发 / 收官中选择 1–2 段', mode: '可配置' },
+          { label: '新增页面数', value: '0；若 Brief 出现页面模块或用户状态，必须重新判断模板', mode: '固定规则' },
+          { label: '玩法槽位', value: '无默认玩法；仅允许跳转到承接目标已有能力', mode: '固定规则' },
+        ],
+      },
+      {
+        name: '资源位矩阵',
+        summary: '每个 Surface 都有自己的信息职责、尺寸合同、安全区与审核 Owner。',
+        parameters: [
+          { label: '资源位选择', value: '搜索 / 话题 / 活动中心 / 开屏 / 业务频道，多选', mode: '可配置' },
+          { label: '主信息', value: '活动身份 + 单一利益点 + 时间/行动提示', mode: '可配置' },
+          { label: '尺寸来源', value: '读取真实 ResourceSlot 合同，不使用“横版/竖版”模糊值', mode: '引用资产' },
+          { label: '适配策略', value: '按信息优先级重排角色、标题和背景，不做 center-crop', mode: '固定规则' },
+          { label: '投放校验', value: '文字安全区、Logo、跳转、时间、Owner 与审核状态逐项检查', mode: '固定规则' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name: '资源位清单', specification: 'Surface、真实尺寸、信息职责、承接链接、Owner、排期与审核状态', required: true },
+      { name: '主视觉母版', specification: '只作为视觉关系基准，不直接等同于所有渠道成片', required: true },
+      { name: '资源位成片整包', specification: '标准 6–12 张 PNG/WebP/JPG，每张保留独立交付 ID 与尺寸合同', required: true },
+      { name: '文案矩阵', specification: '活动身份、标题、利益点、时间和 CTA 的逐渠道版本', required: true },
+      { name: '投放检查单', specification: '尺寸、安全区、跳转、时效、Logo、版权与审核结果', required: true },
+    ],
+    constraints: ['不得为了套模板虚构 H5/Lynx 页面', '没有明确承接目标时不得开始批量生成', '资源位必须按职责重排而非机械裁切', '同一画面不同尺寸仍需分别登记和验收'],
+    usage: '从 ACG 新春会“资源位延展”10 个真实节点和春晚资源位画板中抽取；可独立用于只有站内图片投放、没有页面建设的活动',
+    accent: '#2F7CF6',
+    thumbnail: '/assets/figma-deliverables/acg/discovery-banner-1372x512.png',
+    visualReferences: [
+      { src: '/assets/figma-deliverables/acg/discovery-banner-1372x512.png', label: '游戏中心发现页', specification: 'Figma node 2229:63622 · 1372×512' },
+      { src: '/assets/figma-deliverables/acg/topic-header-banner.png', label: '话题头图与 Banner', specification: 'Figma node 2229:64229 · 1125×450' },
+      { src: '/assets/figma-deliverables/acg/splash-screen.png', label: '竖版开屏', specification: 'Figma node 2229:67795 · 1242×2208' },
+      { src: '/assets/figma-deliverables/acg/activity-center-banner.png', label: '活动中心入口', specification: 'Figma node 2229:64459 · 1029×420' },
+    ],
+    sourceFiles: [
+      { name: 'ACG 新春会 · 资源位延展.fig', format: 'Figma', status: '已归档' },
+      { name: 'resource-slot-manifest.json', format: 'JSON', status: '待校验' },
+    ],
+    governance: {
+      source: 'ACG 新春会与 2026 春晚真实资源位延展画板',
+      evidence: '真实案例分别提供搜索、话题、活动中心、游戏中心、开屏和活动 Banner 的独立节点；模板抽取的是可独立生产的资源位工作模式，不宣称原项目本身没有页面',
+      rights: '模板只复用渠道合同与组织方式；ACG、春晚、角色、标题字与项目成片不得跨项目沿用',
+      qualityGate: '承接目标、真实尺寸、信息职责、安全区、逐字文案、版权、Owner 与投放状态检查',
+      importFormats: ['Figma', 'PNG', 'WebP', 'CSV', 'JSON'],
+    },
+  },
+  {
+    id: 'template.live-program-asset-pack',
+    category: 'activity-template',
+    assetClass: 'activity-template',
+    registry: 'asset',
+    name: '直播节目包装整包',
+    version: '1.0.0',
+    summary: '不新建活动页面，以一场直播或节目为中心，为主机位、竖屏、无障碍频道、节目单元和站内外屏幕生成成套识别物料。',
+    owner: '节目活动产品中台',
+    status: '内测中',
+    updatedAt: '2026-08-07',
+    tags: ['0 页面', '直播包装', '频道矩阵', '节目同步'],
+    coverage: ['直播封面', '直播竖图', '无障碍频道', '节目封面', '行政屏'],
+    metrics: [
+      { label: '新增页面', value: '0 个' },
+      { label: '标准规模', value: '8–16 项物料' },
+      { label: '核心形式', value: '直播频道矩阵' },
+    ],
+    templateProfile: {
+      purpose: '为已经在直播产品内承载的节目活动建立统一识别和多频道包装，让用户能区分主机位、竖屏、手语、字幕与不同节目单元，无需额外创建活动页。',
+      organization: '1 场节目活动统筹时间、标题与主视觉，1–N 个直播频道或节目单元共享内容源；直播运营、节目编导和设计围绕同一场次表协作。',
+      gameplay: '默认无独立玩法，核心行为是进入对应直播频道观看；红包、抽奖或预约只能引用直播产品已有能力，不能在图片模板里伪造运行逻辑。',
+      scale: '标准档为 1 个活动身份、3–8 个直播频道/节目单元、8–16 项图片物料，生产周期 3–7 天；新增活动页面为 0。',
+      format: '横版直播封面、竖版频道图、无障碍频道封面、节目单元封面及行政横/竖屏；状态由直播间真实排期和频道数据驱动。',
+      fit: '适合春晚、演唱会、赛事、多机位直播和系列节目；不适合需要独立会场、复杂任务或跨日用户成长状态的活动。',
+      systemMap: {
+        journey: [
+          { label: '识别节目', detail: '从入口看懂场次与状态' },
+          { label: '选择频道', detail: '主机位、竖屏或无障碍' },
+          { label: '进入直播间', detail: '承接到真实直播能力' },
+          { label: '结束后回放', detail: '沿用同一节目内容源' },
+        ],
+        assetInputs: [
+          { label: '直播包装模板', role: '活动结构' },
+          { label: 'Brand Kit', role: '品牌身份' },
+          { label: '直播 Style', role: '视觉语法' },
+          { label: '节目与场次表', role: '项目内容' },
+          { label: '直播间 ID', role: '业务数据' },
+        ],
+        outputs: [
+          { label: '频道封面', detail: '主机位、竖屏、字幕与手语' },
+          { label: '节目单元封面', detail: '由同一节目表批量生成' },
+          { label: '直播前检查单', detail: '排期、ID、画幅与版权' },
+        ],
+      },
+    },
+    parameterGroups: [
+      {
+        name: '活动主流程内核',
+        summary: '活动组织发生在直播频道与节目排期中，而非新建页面中。',
+        parameters: [
+          { label: '观看链路', value: '资源位/直播入口 → 识别频道 → 进入直播间 → 切换机位或节目 → 结束态回放', mode: '固定规则' },
+          { label: '节目内容源', value: '场次、时间、频道、主持/嘉宾、节目标题与直播间 ID', mode: '引用资产' },
+          { label: '频道类型', value: '主机位 / 竖屏 / 手语 / 字幕 / 节目单元', mode: '可配置' },
+          { label: '直播状态', value: '预约 / 直播中 / 已结束 / 回放', mode: '可配置' },
+          { label: '新增页面数', value: '0；所有入口承接到真实直播间或回放页', mode: '固定规则' },
+        ],
+      },
+      {
+        name: '节目包装矩阵',
+        summary: '标题、角色与频道标识由同一内容表驱动，画幅只决定如何重排。',
+        parameters: [
+          { label: '频道识别', value: '频道名称、直播状态、节目标题和主视觉必须一致', mode: '固定规则' },
+          { label: '横版封面', value: '1116×630 或具体直播 Surface 合同', mode: '引用资产' },
+          { label: '竖版封面', value: '728×1032 或具体直播 Surface 合同', mode: '引用资产' },
+          { label: '无障碍版本', value: '字幕 / 手语作为独立频道身份，不用角标临时覆盖', mode: '固定规则' },
+          { label: '线下屏', value: '行政横屏 / 竖屏可选，读取各屏幕安全区', mode: '可配置' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name: '直播频道清单', specification: '频道类型、直播间 ID、排期、状态、节目名称、Owner 与审核状态', required: true },
+      { name: '主机位与频道封面', specification: '主机位、竖屏、字幕、手语等独立画幅与身份', required: true },
+      { name: '节目单元封面', specification: '按节目内容表批量生成，标题与排期保持单一事实源', required: true },
+      { name: '站内外屏幕物料', specification: '活动 Banner、行政横/竖屏按真实需求选配', required: false },
+      { name: '直播前检查单', specification: '直播间 ID、时间、频道名、节目名、画幅、安全区与版权检查', required: true },
+    ],
+    constraints: ['不得在静态图中模拟一个不存在的直播能力', '节目标题与直播时间必须来自同一内容源', '无障碍频道必须独立验收可识别性', '直播间 ID 未确认时成片不得标记可发布'],
+    usage: '从 2026 春晚 Figma“直播间物料”真实节点抽取；适合只交付直播包装、节目封面和屏幕物料而不建设活动页的项目',
+    accent: '#D73B35',
+    thumbnail: '/assets/figma-deliverables/spring-gala/live-main-camera.png',
+    visualReferences: [
+      { src: '/assets/figma-deliverables/spring-gala/live-main-camera.png', label: '主机位封面', specification: 'Figma node 739:121303 · 1116×630' },
+      { src: '/assets/figma-deliverables/spring-gala/live-vertical-cover.png', label: '竖版直播封面', specification: 'Figma node 739:121593 · 728×1032' },
+      { src: '/assets/figma-deliverables/spring-gala/live-sign-language-cover.png', label: '手语频道封面', specification: 'Figma node 739:121021 · 1116×630' },
+      { src: '/assets/figma-deliverables/spring-gala/program-cover-landscape.png', label: '节目单元横版封面', specification: 'Figma node 739:120914 · 1116×630' },
+    ],
+    sourceFiles: [
+      { name: '2026春晚&元宵 · 直播间物料.fig', format: 'Figma', status: '已归档' },
+      { name: 'live-program-manifest.csv', format: 'CSV', status: '待校验' },
+    ],
+    governance: {
+      source: '2026 春晚真实直播间物料与节目封面节点',
+      evidence: '主机位、竖屏、字幕、手语及节目单元均有独立 Figma 交付节点，证明活动组织可以只发生在直播与物料矩阵中',
+      rights: '模板复用频道与排期结构；春晚人物、节目名、标题字和成片仅限原项目',
+      qualityGate: '直播间 ID、单一内容源、频道识别、时间、画幅、安全区、无障碍标识与版权检查',
+      importFormats: ['Figma', 'PNG', 'WebP', 'CSV', 'JSON'],
+    },
+  },
+  {
+    id: 'template.program-gala-omnichannel',
+    category: 'activity-template',
+    assetClass: 'activity-template',
+    registry: 'asset',
+    name: '全渠道节目盛典',
+    version: '1.0.0',
+    summary: '从话题与资源位触达，到主会场直播、节目单、抽奖、结果分享和多画幅传播的节目活动模板；来源为 2026 抖音春晚真实交付。',
+    owner: '节目活动产品中台',
+    status: '内测中',
+    updatedAt: '2026-08-06',
+    tags: ['节目盛典', '直播', '抽奖', '全渠道交付'],
+    coverage: ['抖音原生页', 'Lynx', 'H5', '开屏', '直播 Tab', '线下屏'],
+    metrics: [
+      { label: '核心流程', value: '5 个节点' },
+      { label: '交付类型', value: '8 类' },
+      { label: '画幅族', value: '竖版 / 横版' },
+    ],
+    templateProfile: {
+      purpose: '把一场直播节目盛典组织成可触达、可观看、可参与、可分享和可回放的完整活动，统一节目内容、直播状态与跨渠道传播。',
+      organization: '1 个活动主会场统筹直播、节目单和互动入口，1–N 个直播频道或节目单元共享内容源，站内资源位与线下屏按阶段协同投放。',
+      gameplay: '观看与节目浏览是核心行为；任务抽奖、预约、投票和祝福结果卡作为可替换互动组件，奖励必须绑定真实库存与履约。',
+      scale: '标准档为 3–5 个活动阶段、1 个主会场、3–8 个直播频道/节目单元、12–30 项跨渠道交付，适合 2–6 周节点节目。',
+      format: '原生话题入口、Lynx 主会场、H5 互动、直播频道与封面、站内资源位及行政横/竖屏。',
+      fit: '适合春晚、演唱会、赛事和大型直播节目；若只需要直播包装而不建设会场，应使用“直播节目包装整包”。',
+      systemMap: {
+        journey: [
+          { label: '资源位触达', detail: '话题、开屏与频道入口' },
+          { label: '进入主会场', detail: '查看直播与节目单' },
+          { label: '观看或参与', detail: '预约、抽奖、投票可组合' },
+          { label: '生成结果卡', detail: '把参与结果变成内容' },
+          { label: '分享与回放', detail: '传播并承接结束态' },
+        ],
+        assetInputs: [
+          { label: '节目盛典模板', role: '活动结构' },
+          { label: 'Brand Kit', role: '品牌身份' },
+          { label: '节目 Style', role: '视觉语法' },
+          { label: '节目单 / 嘉宾', role: '项目内容' },
+          { label: '抽奖 / 预约包', role: '运行玩法' },
+        ],
+        outputs: [
+          { label: '原生页与主会场', detail: '话题、Lynx 与直播频道' },
+          { label: '互动 H5', detail: '抽奖与祝福结果卡' },
+          { label: '跨渠道物料', detail: '开屏、直播 Tab 与线下屏' },
+        ],
+      },
+    },
+    parameterGroups: [
+      {
+        name: '活动主流程内核',
+        summary: '定义触达、观看、参与、分享与回流顺序；抽奖和祝福卡作为可替换组件挂载。',
+        parameters: [
+          { label: '参与主循环', value: '资源位触达 → 主会场 → 直播/节目单 → 抽奖 → 祝福分享/回流', mode: '固定规则' },
+          { label: '直播状态', value: '未开播 / 直播中 / 已结束', mode: '可配置' },
+          { label: '节目内容源', value: '节目单、直播间与往年内容共用内容表', mode: '引用资产' },
+          { label: '互动槽位', value: '任务抽奖 + 祝福结果卡', mode: '可配置' },
+        ],
+      },
+      {
+        name: '交付矩阵',
+        summary: '按 Surface 生成不同职责的交付物，不把竖版主视觉机械裁切到所有资源位。',
+        parameters: [
+          { label: '站内页面', value: '原生话题页 / Lynx 主会场 / H5 抽奖 / H5 祝福卡', mode: '固定规则' },
+          { label: '站内资源位', value: '开屏 / 直播间 Tab', mode: '可配置' },
+          { label: '线下与内宣', value: '行政竖屏 / 商业中心横版海报', mode: '可配置' },
+          { label: '画幅适配', value: '信息层级、角色构图与安全区分别编译', mode: '固定规则' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name: '原生话题入口', specification: '活动身份、内容聚合与主会场导流', required: true },
+      { name: 'Lynx 主会场', specification: '直播、节目单、抽奖、更多活动、往年内容与投稿', required: true },
+      { name: 'H5 互动', specification: '抽奖页 + 祝福结果卡', required: true },
+      { name: '资源位', specification: '开屏 + 直播间 Tab', required: true },
+      { name: '线下与内宣', specification: '行政竖屏 + 商业中心横版海报', required: false },
+    ],
+    constraints: ['直播时间与节目单必须读取同一内容源', '抽奖奖品必须绑定履约与库存', '资源位必须按真实 Surface 安全区编译', '项目角色视觉不能作为跨项目 Brand Kit 复用'],
+    usage: '可用于春晚、晚会、演唱会等以直播与节目内容为核心的节点活动',
+    accent: '#E94138',
+    thumbnail: '/assets/figma-deliverables/spring-gala/main-venue-full.png',
+    visualReferences: [
+      { src: '/assets/figma-deliverables/spring-gala/main-venue-full.png', label: 'Lynx 春晚完整长页', specification: 'Figma node 773:119100 · 375×5925' },
+      { src: '/assets/figma-deliverables/spring-gala/live-main-camera.png', label: '直播主机位封面', specification: 'Figma node 739:121303 · 1116×630' },
+      { src: '/assets/figma-deliverables/spring-gala/activity-banner.png', label: '活动 Banner', specification: 'Figma node 439:12044 · 1074×192' },
+      { src: '/assets/figma-deliverables/spring-gala/admin-screen-landscape.png', label: '行政横屏', specification: 'Figma node 686:120050 · 1920×1079' },
+    ],
+    sourceFiles: [
+      { name: '2026春晚&元宵.fig', format: 'Figma', status: '已归档' },
+      { name: 'delivery-manifest.json', format: 'JSON', status: '待校验' },
+    ],
+    governance: {
+      source: '2026 抖音春晚真实设计交付',
+      evidence: '案例文档 8 类交付 + Figma UI / 资源位延展页面',
+      rights: '模板结构可复用；春晚角色、标题字和成片仅限原项目，派生项目必须重新校验授权',
+      qualityGate: '直播状态、节目数据一致性、奖品履约、资源位安全区与跨画幅构图检查',
+      importFormats: ['Figma', 'PNG', 'WebP', 'JSON'],
+    },
+  },
+  {
+    id: 'template.film-ip-task-card-draw',
+    category: 'activity-template',
+    assetClass: 'activity-template',
+    registry: 'asset',
+    name: '影视 IP · 任务抽卡',
+    version: '1.0.0',
+    summary: '以站内宣发行作为抽卡次数来源，通过单抽/十连、图鉴收集和个性化分享形成回流的影视宣发活动模板。',
+    owner: '节目活动产品中台',
+    status: '内测中',
+    updatedAt: '2026-08-06',
+    tags: ['影视 IP', '任务抽卡', '图鉴', '分享回流'],
+    coverage: ['Lynx', 'H5', '分享卡', '图片生成'],
+    metrics: [
+      { label: '流程节点', value: '5 个' },
+      { label: '能力对象', value: '任务 / 次数 / 卡池 / 图鉴 / 分享' },
+      { label: '参考画框', value: '181 个' },
+    ],
+    templateProfile: {
+      purpose: '围绕影视 IP 宣发，把站内观看、关注、互动等行为转成抽卡机会，再以稀有度卡池、图鉴收集和个性化分享形成回流。',
+      organization: '1 个抽卡主会场统筹卡池、任务和图鉴；内容运营维护宣发任务，IP/法务维护素材授权，奖励与次数账本由独立能力服务管理。',
+      gameplay: '任务得次数 → 单抽/十连 → 卡池概率与保底 → 图鉴收集 → 个性化分享；任务、次数、卡池、图鉴是独立但关联的数据对象。',
+      scale: '标准档为 1 个主会场、1 个任务页、12–60 张卡面、5–10 类任务和 8–20 项交付，适合 1–4 周影视宣发活动。',
+      format: 'Lynx/H5 抽卡主会场与任务页、卡池图鉴、结果/分享卡、搜索资源位和可选直播间包装。',
+      fit: '适合电视剧、电影、综艺等拥有稳定 IP 素材和宣发行为的活动；不适合无授权卡面、无概率/库存策略或只做资源位投放的需求。',
+      systemMap: {
+        journey: [
+          { label: '完成宣发任务', detail: '观看、关注或互动' },
+          { label: '获得抽卡次数', detail: '统一进入次数账本' },
+          { label: '单抽或十连', detail: '按概率、保底和库存出卡' },
+          { label: '点亮卡片图鉴', detail: '记录获得与重复数量' },
+          { label: '生成分享卡', detail: '用已获得卡面带来回流' },
+        ],
+        assetInputs: [
+          { label: '任务抽卡模板', role: '活动结构' },
+          { label: '剧集 Brand Kit', role: '品牌身份' },
+          { label: '角色 / 卡面 IP Kit', role: '项目内容' },
+          { label: '任务 / 卡池能力包', role: '运行玩法' },
+          { label: '概率与库存', role: '业务数据' },
+        ],
+        outputs: [
+          { label: '抽卡主会场', detail: '任务、次数与单抽/十连' },
+          { label: '卡池图鉴', detail: '已获得、未解锁与重复卡' },
+          { label: '个性化分享卡', detail: '保存、分享与搜索入口' },
+        ],
+      },
+    },
+    parameterGroups: [
+      {
+        name: '任务与次数',
+        summary: '所有站内任务只负责产出次数，次数账本是抽卡消费的唯一事实源。',
+        parameters: [
+          { label: '任务来源', value: '签到 / 想看 / 关注 / 观看 / 点赞 / 投票 / 浏览', mode: '可配置' },
+          { label: '奖励次数', value: '按任务配置，写入统一次数流水', mode: '可配置' },
+          { label: '抽取方式', value: '单抽扣 1 次 / 十连扣 10 次', mode: '固定规则' },
+          { label: '幂等与频控', value: '按用户、任务、自然日校验', mode: '固定规则' },
+        ],
+      },
+      {
+        name: '卡池与图鉴',
+        summary: '卡池决定抽到什么，图鉴只展示用户持有事实，分享卡只消费已获得卡面。',
+        parameters: [
+          { label: '卡池规模', value: 'N 张，可配置权重、保底、库存与上下架', mode: '可配置' },
+          { label: '重复卡', value: '记录持有数量，可挂补偿或赠送策略', mode: '可配置' },
+          { label: '图鉴状态', value: '已获得 / 未解锁 / 重复数量', mode: '固定规则' },
+          { label: '分享个性化', value: '卡面 + To 文案 + 保存 / 站内分享', mode: '可配置' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name: '抽卡主会场', specification: 'IP 主视觉、卡池、单抽/十连、图鉴与任务列表', required: true },
+      { name: '卡池图鉴', specification: '已获得、未解锁与重复持有状态', required: true },
+      { name: '个性化分享卡', specification: '已获得卡面、用户文案、保存与分享', required: true },
+    ],
+    constraints: ['页面不得自行维护抽卡次数副本', '分享卡只能使用用户已获得卡面', '演员与剧集素材必须按项目授权隔离', '卡池概率、库存和保底发布前必须通过模拟'],
+    usage: '适合电视剧、电影、综艺等需要站内宣发任务与收藏传播的活动',
+    accent: '#8D57FF',
+    thumbnail: '/assets/figma-deliverables/evernight/main-venue.png',
+    visualReferences: [
+      { src: '/assets/figma-deliverables/evernight/main-venue.png', label: '抽卡主会场', specification: 'Figma node 40:27228 · 750×3652' },
+      { src: '/assets/figma-deliverables/evernight/collection-page.png', label: '卡片图鉴', specification: 'Figma node 110:81917 · 750×2687' },
+      { src: '/assets/figma-deliverables/evernight/search-banner-1029x420.png', label: '搜索资源位', specification: 'Figma node 1220:54942 · 1029×420' },
+      { src: '/assets/figma-deliverables/evernight/card-frame-dyr.png', label: 'DYR 独占卡框', specification: 'Figma node 1608:11777 · 492×676' },
+    ],
+    sourceFiles: [
+      { name: '《永夜星河》抽卡.fig', format: 'Figma', status: '已归档' },
+      { name: 'card-pool.schema.json', format: 'JSON Schema', status: '待校验' },
+    ],
+    governance: {
+      source: '《永夜星河》抽卡真实设计交付',
+      evidence: '750 × 3652 主组件、181 个 Figma 画框与案例文档三类核心交付',
+      rights: '模板结构与分层规则可复用；演员、剧名、角色和成片卡面仅限原项目',
+      qualityGate: '任务幂等、次数账本、卡池模拟、图鉴一致性、分享文本安全与 IP 授权检查',
+      importFormats: ['Figma', 'PNG', 'WebP', 'JSON Schema'],
+    },
+  },
+  {
+    id: 'layer.film-card-atlas-share',
+    category: 'material-template',
+    assetClass: 'layer-template',
+    registry: 'asset',
+    name: '影视卡牌 · 图鉴与分享分层模板',
+    version: '1.0.0',
+    summary: '把影视 IP 卡面、稀有标、锁定遮罩、持有数量、用户 To 文案和分享动作拆成可替换层，避免整图重绘。',
+    owner: '节目活动视觉中台',
+    status: '内测中',
+    updatedAt: '2026-08-06',
+    tags: ['卡牌', '图鉴', '分享卡', '分层模板'],
+    coverage: ['玩法图鉴', '结果分享页', '图片生成'],
+    metrics: [
+      { label: '卡牌状态', value: '3 类' },
+      { label: '真文字槽', value: '3 个' },
+      { label: '核心图层', value: '8 层' },
+    ],
+    parameterGroups: [
+      {
+        name: '卡牌槽位',
+        summary: '卡面与版权信息锁定，状态与数据层由运行时更新。',
+        parameters: [
+          { label: 'IP 卡面', value: '项目素材引用，不参与跨项目生成', mode: '引用资产' },
+          { label: '状态遮罩', value: '已获得 / 未解锁 / 重复持有', mode: '可配置' },
+          { label: '持有数量', value: '运行时真文字', mode: 'Agent 推断' },
+          { label: 'To 文案', value: '最多 6 字，独立真文字层', mode: '可配置' },
+        ],
+      },
+    ],
+    deliverables: [
+      { name: 'Layer Manifest', specification: '卡面 / 边框 / 稀有标 / 锁定遮罩 / 数量 / 文案 / CTA / 背景', required: true },
+      { name: '图鉴状态组件', specification: '已获得、未解锁、重复数量', required: true },
+      { name: '分享卡模板', specification: '卡面选择、To 文案、保存与分享', required: true },
+    ],
+    constraints: ['演员卡面保持锁定', '文案必须使用真文字层', '状态遮罩不得覆盖版权与角色主体', '不同项目必须替换全部 IP 专属层'],
+    usage: '与“影视 IP · 任务抽卡”模板共同使用，也可服务其他具备正式 IP 授权的卡牌活动',
+    accent: '#6F45D5',
+    thumbnail: '/assets/figma-deliverables/evernight/card-frame-sp.png',
+    visualReferences: [
+      { src: '/assets/figma-deliverables/evernight/card-frame-sp.png', label: 'SP 卡框槽位', specification: 'Figma node 1608:11633 · 透明卡面区' },
+      { src: '/assets/figma-deliverables/evernight/card-frame-dyr.png', label: 'DYR 独占卡框槽位', specification: 'Figma node 1608:11777 · 项目独占稀有度' },
+      { src: '/assets/figma-deliverables/evernight/collection-page.png', label: '图鉴状态基线', specification: 'Figma node 110:81917 · 已获得 / 未解锁 / 重复持有' },
+    ],
+    governance: {
+      source: '《永夜星河》图鉴与分享卡真实交付抽象',
+      evidence: 'Figma 图鉴状态与个性化分享卡画面',
+      rights: '仅复用结构与图层规则；项目卡面、演员与剧集元素不得跨项目复制',
+      qualityGate: '保护区像素不变量、真文字、状态完整性、对比度与版权层检查',
+      importFormats: ['Figma', 'PSD', 'Layer Manifest JSON'],
     },
   },
 ] as const

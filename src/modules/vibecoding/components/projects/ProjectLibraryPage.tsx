@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Code2,
   CreditCard,
+  ExternalLink,
   Info,
   MessageCircle,
   Search,
@@ -35,7 +36,7 @@ import {
  * 卡片 128 高、封面 64、四列 gap 16（<1600 三列 / <1180 两列 / <900 一列）。 */
 
 const CATEGORY_ITEMS: { key: ProjectKind; label: string; icon: ReactNode }[] = [
-  { key: 'assistant', label: 'H5', icon: <AppWindow size={14} strokeWidth={1.8} /> },
+  { key: 'assistant', label: '活动页', icon: <AppWindow size={14} strokeWidth={1.8} /> },
   { key: 'miniapp', label: '小程序', icon: <Code2 size={14} strokeWidth={1.8} /> },
   { key: 'interest', label: '兴趣卡', icon: <CreditCard size={14} strokeWidth={1.8} /> },
   { key: 'avatar', label: 'AI分身', icon: <UserCircle size={14} strokeWidth={1.8} /> },
@@ -45,7 +46,7 @@ const CATEGORY_ITEMS: { key: ProjectKind; label: string; icon: ReactNode }[] = [
 const SECTION_ORDER: ProjectKind[] = ['assistant', 'miniapp', 'interest', 'avatar', 'agent']
 
 const SECTION_LABELS: Record<ProjectKind, string> = {
-  assistant: 'H5',
+  assistant: '活动页',
   miniapp: '小程序',
   interest: '兴趣卡',
   avatar: 'AI分身',
@@ -59,12 +60,6 @@ const SPACE_SECTIONS: {
   tone: string
 }[] = [
   {
-    key: 'featured',
-    label: '精选项目',
-    icon: <BadgeCheck size={12} strokeWidth={2} />,
-    tone: 'bg-[#E8F0FF] text-[#2B6CF6]',
-  },
-  {
     key: 'team',
     label: '团队空间',
     icon: <Users size={12} strokeWidth={2} />,
@@ -75,6 +70,12 @@ const SPACE_SECTIONS: {
     label: '个人空间',
     icon: <User size={12} strokeWidth={2} />,
     tone: 'bg-[#F3E8FF] text-[#844CFF]',
+  },
+  {
+    key: 'featured',
+    label: '精选项目',
+    icon: <BadgeCheck size={12} strokeWidth={2} />,
+    tone: 'bg-[#E8F0FF] text-[#2B6CF6]',
   },
 ]
 
@@ -106,6 +107,89 @@ function ProjectCard({
   onOpen: () => void
   onToggleFavorite: () => void
 }) {
+  if (project.activity) {
+    const statusTone = project.activity.status === '已上线'
+      ? 'bg-emerald-50 text-emerald-700'
+      : project.activity.status === '交付中'
+        ? 'bg-blue-50 text-blue-700'
+        : 'bg-amber-50 text-amber-700'
+    return (
+      <article
+        role="button"
+        tabIndex={0}
+        aria-label={`打开项目 ${project.title}`}
+        onClick={onOpen}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return
+          event.preventDefault()
+          onOpen()
+        }}
+        className="group relative flex h-[264px] w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E6E7E9] bg-white text-left transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-[#D5D7DA] hover:shadow-[0_10px_26px_rgba(31,35,41,0.08)]"
+      >
+        <div className="relative h-[106px] shrink-0 overflow-hidden bg-[#F1F2F4]">
+          <img src={project.cover} alt={`${project.title} 项目封面`} className="size-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.025]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/46 via-black/5 to-transparent" />
+          <span className="absolute left-3 top-3 flex items-center gap-1.5">
+            <span className={`rounded-md px-2 py-1 text-[9px] font-medium shadow-sm ${statusTone}`}>{project.activity.status}</span>
+            {project.activity.priority ? <span className="rounded-md bg-[#FFF2E8] px-2 py-1 text-[9px] font-semibold text-[#B84B2D] shadow-sm">{project.activity.priority}</span> : null}
+          </span>
+          <span className="absolute bottom-2.5 left-3 rounded bg-black/46 px-2 py-1 text-[9px] text-white/90 backdrop-blur-sm">{project.activity.template}</span>
+          <button
+            type="button"
+            aria-label={`${isFavorite ? '取消收藏' : '收藏'}${project.title}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              onToggleFavorite()
+            }}
+            className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-full bg-white/88 text-[#161823]/55 shadow-sm backdrop-blur-sm hover:bg-white"
+          >
+            <Star size={13} strokeWidth={1.8} className={isFavorite ? 'fill-[#FF8800] text-[#FF8800]' : ''} />
+          </button>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col px-3.5 pb-3 pt-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="truncate text-[14px] font-semibold leading-5 text-[#1C1F23]">{project.title}</h3>
+              <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-[#1C1F23]/52">{project.description}</p>
+            </div>
+            <ChevronRight className="mt-0.5 size-4 shrink-0 text-[#1C1F23]/24 transition-transform group-hover:translate-x-0.5" />
+          </div>
+          {project.activity.sources && project.activity.sources.length > 0 ? (
+            <div className="mt-2 flex min-w-0 flex-wrap gap-1.5" aria-label="项目依据">
+              {project.activity.sources.map((source) => (
+                <a
+                  key={`${source.type}-${source.label}`}
+                  href={source.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={`${source.type} · ${source.label}`}
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                  className="inline-flex h-5 max-w-[108px] items-center gap-1 rounded-md border border-[#E7E8EA] bg-[#FAFAFB] px-1.5 text-[8px] font-medium text-[#1C1F23]/52 hover:border-[#D5D7DA] hover:bg-white hover:text-[#1C1F23]/76"
+                >
+                  <span className="shrink-0 text-[#1C1F23]/34">{source.type}</span>
+                  <span className="truncate">{source.label}</span>
+                  <ExternalLink className="size-2.5 shrink-0" />
+                </a>
+              ))}
+            </div>
+          ) : null}
+          <div className="mt-auto grid grid-cols-[1fr_auto] items-end gap-3 border-t border-[#F0F1F2] pt-2.5">
+            <div className="min-w-0">
+              <p className="truncate text-[9px] font-medium text-[#1C1F23]/62">{project.activity.phase}</p>
+              <p className="mt-0.5 truncate text-[8px] text-[#1C1F23]/34">{project.activity.investment ?? project.activity.period} · {project.activity.deliverables}</p>
+              {project.activity.evidence ? <p className="mt-0.5 truncate text-[8px] font-medium text-[#B84B2D]/72">{project.activity.evidence}</p> : null}
+            </div>
+            <div className="text-right">
+              <p className="text-[8px] text-[#1C1F23]/32">最近更新</p>
+              <p className="mt-0.5 text-[9px] font-medium text-[#1C1F23]/55">{project.activity.updatedAt}</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    )
+  }
+
   return (
     <div className="group relative h-full w-full">
       <div
@@ -117,7 +201,15 @@ function ProjectCard({
         }}
       />
       <article
+        role="button"
+        tabIndex={0}
+        aria-label={`打开项目 ${project.title}`}
         onClick={onOpen}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return
+          event.preventDefault()
+          onOpen()
+        }}
         className="relative flex h-32 w-full cursor-pointer flex-col gap-3 overflow-hidden rounded-2xl border border-[#F2F2F7] bg-white p-4 transition-[box-shadow,border-color] duration-200"
       >
         <div className="flex h-16 w-full min-w-0 items-start gap-3">
@@ -172,7 +264,7 @@ function ProjectCard({
   )
 }
 
-export default function ProjectLibraryPage() {
+export default function ProjectLibraryPage({ onOpenProject }: { onOpenProject?: (project: ExperienceProject) => void }) {
   const contentRef = useRef<HTMLElement>(null)
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
   const [keyword, setKeyword] = useState('')
@@ -181,6 +273,7 @@ export default function ProjectLibraryPage() {
   const [orderBy, setOrderBy] = useState<ProjectOrder>('usage')
   const [collapsedSpaces, setCollapsedSpaces] = useState(() => new Set<SpaceKind>())
   const [favorites, setFavorites] = useState(() => new Set<string>())
+  const acgPilot = projects.find((project) => project.id === 'team_acg_new_year_2026')
 
   const toggleFavorite = (id: string) =>
     setFavorites((current) => {
@@ -200,11 +293,16 @@ export default function ProjectLibraryPage() {
       const matchMine = onlyMine ? project.space === 'personal' : true
       return matchKeyword && matchFavorite && matchMine
     })
-    return [...list].sort((a, b) =>
-      orderBy === 'favorites'
+    return [...list].sort((a, b) => {
+      if (Boolean(a.activity) !== Boolean(b.activity)) return a.activity ? -1 : 1
+      if (orderBy === 'usage' && a.activity && b.activity) {
+        const benchmarkDelta = (a.activity.benchmarkOrder ?? 99) - (b.activity.benchmarkOrder ?? 99)
+        if (benchmarkDelta !== 0) return benchmarkDelta
+      }
+      return orderBy === 'favorites'
         ? (b.favorites ?? 0) - (a.favorites ?? 0)
-        : parseUsage(b.usage) - parseUsage(a.usage),
-    )
+        : parseUsage(b.usage) - parseUsage(a.usage)
+    })
   }, [favorites, keyword, onlyFavorites, onlyMine, orderBy])
 
   const countOf = (space: SpaceKind, kind?: ProjectKind) =>
@@ -329,12 +427,29 @@ export default function ProjectLibraryPage() {
 
         {/* ── 右：Banner + 筛选条 + 分组 ── */}
         <main ref={contentRef} className="thin-scroll min-w-0 flex-1 overflow-y-auto px-6 pb-10">
-          <div className="-mx-6">
-            <div className="flex items-start gap-2 bg-[#E8F0FF] px-6 py-2.5 text-[13px] leading-5 text-[#1C1F23]/80">
-              <Info size={14} strokeWidth={1.8} className="mt-0.5 shrink-0 text-[#2B6CF6]" />
-              存量项目默认归类为「个人项目」，若需对空间内全体用户开放使用权限，请手动切换为「团队项目」
-            </div>
-          </div>
+          {acgPilot ? (
+            <section className="-mx-6 grid min-h-[168px] grid-cols-[minmax(0,1.15fr)_minmax(330px,0.85fr)] overflow-hidden border-b border-[#E7DDD5] bg-[#F8F4F0] max-[980px]:grid-cols-1">
+              <div className="flex flex-col justify-center px-6 py-5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[#EA5B34] px-2.5 py-1 text-[9px] font-semibold text-white">P0 · S 级高互动活动</span>
+                  <span className="text-[9px] text-[#1C1F23]/34">当前业务验证样板</span>
+                </div>
+                <h2 className="mt-3 text-[19px] font-semibold tracking-[-0.015em] text-[#1C1F23]">从需求、资产到可发布页面，先在 ACG 新春会跑通</h2>
+                <p className="mt-1.5 max-w-[720px] text-[11px] leading-[18px] text-[#1C1F23]/48">原流程单项目投入约 21–24 人月。本次不虚构提效数字，先验证主 KV、双会场、榜单/助力、资源位与战报能否形成可复用模板。</p>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <button type="button" onClick={() => onOpenProject?.(acgPilot)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#161823] px-4 text-[11px] font-medium text-white hover:bg-[#2B2C33]">进入端到端样板 <ChevronRight size={13} /></button>
+                  {['18 项正式交付', '来源节点可追溯', '模板可复用'].map((label) => <span key={label} className="rounded-full border border-[#DED3CA] bg-white/75 px-2.5 py-1.5 text-[9px] text-[#1C1F23]/52">{label}</span>)}
+                </div>
+              </div>
+              <button type="button" onClick={() => onOpenProject?.(acgPilot)} className="group relative min-h-[168px] overflow-hidden border-l border-[#E7DDD5] bg-[#DDEBF0] text-left max-[980px]:border-l-0 max-[980px]:border-t" aria-label="打开 2026 抖音 ACG 新春会端到端样板">
+                <img src="/assets/figma-deliverables/acg/discovery-banner-1372x512.png" alt="2026 抖音 ACG 新春会发现页 Banner" className="absolute inset-0 size-full object-contain transition duration-300 group-hover:scale-[1.01]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent" />
+                <span className="absolute inset-x-4 bottom-4 flex items-center justify-between text-white"><span><span className="block text-[9px] text-white/68">真实 Figma 交付</span><span className="mt-1 block text-[12px] font-semibold">游戏中心发现页 · 1372 × 512</span></span><ExternalLink size={14} className="text-white/72" /></span>
+              </button>
+            </section>
+          ) : (
+            <div className="-mx-6 flex items-start gap-2 bg-[#E8F0FF] px-6 py-2.5 text-[13px] leading-5 text-[#1C1F23]/80"><Info size={14} strokeWidth={1.8} className="mt-0.5 shrink-0 text-[#2B6CF6]" />团队项目与个人项目按空间权限分别管理。</div>
+          )}
 
           <div className="sticky top-0 z-[5] flex flex-wrap items-center gap-2 bg-white pb-2.5 pt-3">
             <label className="relative inline-flex h-8 w-[200px] items-center">
@@ -416,7 +531,9 @@ export default function ProjectLibraryPage() {
                       key={project.id}
                       project={project}
                       isFavorite={favorites.has(project.id)}
-                      onOpen={() => toast(`打开项目「${project.title}」（演示）`)}
+                      onOpen={() => project.projectName && onOpenProject
+                        ? onOpenProject(project)
+                        : toast(`「${project.title}」尚未加入当前工作区`)}
                       onToggleFavorite={() => toggleFavorite(project.id)}
                     />
                   ))}

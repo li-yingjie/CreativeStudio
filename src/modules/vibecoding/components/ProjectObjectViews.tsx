@@ -22,6 +22,7 @@ type InfoContent = {
   type: 'info'
   summary?: string
   tags?: string[]
+  visuals?: { src: string; label: string; detail: string }[]
   groups: { title: string; rows: [string, string][] }[]
 }
 type DbColumn = { name: string; type: string; desc: string }
@@ -249,15 +250,22 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
   '2026 抖音 ACG 新春会': {
     基础信息: {
       type: 'info',
-      summary: '以游戏/二次元双会场组织内容榜单与助力互动，并覆盖 Lynx 主会场、H5 分会场、站内资源位、节目单和结算战报。',
+      summary: '以游戏/二次元双会场组织内容榜单与助力互动，并覆盖 H5 分会场、站内资源位、节目单和结算战报。',
       tags: ['节点大会场', '双会场', 'ACG', '多端交付'],
+      visuals: [
+        { src: '/assets/acg-new-year/exact-hero-base.png', label: '游戏会场主视觉', detail: 'Lynx 主会场 Hero · Figma 已锁定' },
+        { src: '/assets/acg-new-year/materials/01-activity-hero.png', label: '横向资源位', detail: '游戏新春会 · 1600×1035' },
+        { src: '/assets/acg-new-year/exact-game-switcher.png', label: '双会场切换组件', detail: '游戏 / 二次元状态组件' },
+        { src: '/assets/acg-new-year/exact-lower-top.png', label: '榜单与助力模块', detail: '开年高燃 · 内容组件' },
+      ],
       groups: [
         {
           title: '活动信息',
           rows: [
             ['活动名称', '2026 抖音 ACG 新春会'],
-            ['活动模板', 'IP 联名 · 双会场 · 节点大会场 v1.0.0'],
-            ['主 Brand Kit', '抖音 ACG 新春会 v1.0.0'],
+            ['活动模板', '新春会模板 v1.1.0'],
+            ['主 Brand Kit', '抖音 ACG 新春会应用版 v1.1.0'],
+            ['Style Bible', '新春热力 · ACG v1.0.0'],
             ['状态', '交付完善中'],
           ],
         },
@@ -265,14 +273,14 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
           title: '投放',
           rows: [
             ['投放端', '抖音'],
-            ['交付端', 'Lynx / H5 / 站内资源位 / 图片'],
-            ['活动时间', '2026-01-09 ~ 2026-01-16'],
+            ['交付端', 'H5 / 站内资源位 / 图片'],
+            ['活动时间', '2026-01-09 ~ 2026-02-28 · Banner 证据'],
           ],
         },
         {
           title: '交付范围',
           rows: [
-            ['页面', '1 个 Lynx 主会场 · 2 个 H5 内容路由'],
+            ['页面', '2 个 H5 内容路由'],
             ['状态', '分会场 5 个展示状态'],
             ['传播物料', '资源位 / 节目单 / 宣发图 / 战报'],
           ],
@@ -316,6 +324,96 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
             { name: 'created_at', type: 'datetime', desc: '操作时间' },
           ],
         },
+      ],
+    },
+  },
+
+  /* ── 2026 抖音春晚（marketing-h5）── */
+  '2026 抖音春晚': {
+    基础信息: {
+      type: 'info',
+      summary: '节目盛典型全渠道活动，以 Lynx 主会场为核心，同时组织原生话题入口、H5 抽奖与祝福卡、开屏、直播 Tab 和线下屏延展。',
+      tags: ['节目盛典', '直播', '抽奖', '全渠道交付'],
+      visuals: [
+        { src: '/assets/spring-gala/lynx-main.webp', label: 'Lynx 春晚主会场', detail: '750 × 4696 · 直播、节目单、抽奖与投稿' },
+        { src: '/assets/spring-gala/h5-lottery.webp', label: 'H5 抽奖', detail: '奖品池、次数与结果承接' },
+        { src: '/assets/spring-gala/blessing-card.webp', label: '祝福分享卡', detail: '祝福结果、分享与继续抽奖' },
+        { src: '/assets/spring-gala/business-poster.webp', label: '商业中心横版海报', detail: '横版大屏独立构图' },
+      ],
+      groups: [
+        {
+          title: '活动信息',
+          rows: [
+            ['活动名称', '2026 抖音春晚'],
+            ['活动母型', '全渠道节目盛典'],
+            ['核心 Surface', 'Lynx 春晚主会场'],
+            ['来源状态', '真实案例已关联 · 项目资产化中'],
+          ],
+        },
+        {
+          title: '交付矩阵',
+          rows: [
+            ['站内页面', '原生话题页 / Lynx / H5 抽奖 / H5 祝福卡'],
+            ['站内资源位', '开屏 / 直播间 Tab'],
+            ['线下与内宣', '行政电子竖屏 / 商业中心横版海报'],
+            ['Figma 延展', '会议室广告 / 海报 / 易拉宝 / 艺术装置屏'],
+          ],
+        },
+      ],
+    },
+    [GAMEPLAY_CONFIG_LABEL]: {
+      type: 'cards',
+      note: '玩法组件服务于节目盛典主流程；奖池、次数、祝福卡和分享分别维护，不把整场活动压成一张“抽奖配置表”。',
+      items: [
+        { icon: '📺', title: '直播承接', desc: '主会场首屏展示直播状态、直播画面与节目单入口；未开播、直播中和结束态分别配置。', meta: '主流程节点' },
+        { icon: '🎁', title: '任务抽奖', desc: '展示奖品池、剩余次数与中奖播报，抽取结果进入统一履约记录。', meta: 'H5 组件' },
+        { icon: '🧧', title: '祝福结果卡', desc: '依据抽奖结果生成祝福视觉，提供分享与继续抽奖动作。', meta: '结果组件' },
+        { icon: '🗓️', title: '节目单', desc: '节目名称、时间与直播状态由内容表驱动，主会场和资源位读取同一来源。', meta: '内容组件' },
+      ],
+    },
+  },
+
+  /* ── 《永夜星河》独星河小卡（marketing-h5）── */
+  '《永夜星河》独星河小卡': {
+    基础信息: {
+      type: 'info',
+      summary: '影视 IP 宣发型任务抽卡活动，使用站内行为任务换取抽卡次数，以 7 张独占卡图鉴和个性化分享卡形成传播回流。',
+      tags: ['影视宣发', '任务抽卡', '卡牌图鉴', '分享回流'],
+      visuals: [
+        { src: '/assets/evernight/main-venue.webp', label: '抽卡主会场', detail: '750 × 3652 · Figma 主组件' },
+        { src: '/assets/evernight/card-collection.webp', label: '7 卡图鉴', detail: '已收集、锁定与重复持有状态' },
+        { src: '/assets/evernight/share-card.webp', label: '个性化分享卡', detail: '卡面、To 文案、保存与分享' },
+      ],
+      groups: [
+        {
+          title: '活动信息',
+          rows: [
+            ['活动名称', '《永夜星河》独星河小卡'],
+            ['活动母型', '影视 IP · 任务抽卡'],
+            ['卡池规模', '7 张抖音独占卡'],
+            ['设计规模', '181 个 Figma 画框'],
+          ],
+        },
+        {
+          title: '页面与状态',
+          rows: [
+            ['主页面', 'Lynx 抽卡主会场 · 750 × 3652'],
+            ['抽取动作', '单次抽卡 / 十次连抽'],
+            ['图鉴状态', '已获得 / 未解锁 / 重复持有'],
+            ['分享结果', '卡面选择 / To 文案 / 保存 / 去分享'],
+          ],
+        },
+      ],
+    },
+    [GAMEPLAY_CONFIG_LABEL]: {
+      type: 'cards',
+      note: '任务、次数账本、抽卡策略、卡池与分享结果是五个可独立演进的对象；页面只编排它们，不保存另一份重复配置。',
+      items: [
+        { icon: '✅', title: '任务得次数', desc: '签到、想看、关注、观看、点赞、角色投票与相关页面浏览统一发放抽卡次数。', meta: '多任务源' },
+        { icon: '🎟️', title: '次数账本', desc: '所有获得与消耗写入同一流水，单抽扣 1 次，十连扣 10 次，并处理并发与幂等。', meta: '统一口径' },
+        { icon: '🎴', title: '独占卡池', desc: '7 张卡分别配置权重、保底参与、重复补偿和上下架状态；演员卡面是项目 IP 实例。', meta: '7 张' },
+        { icon: '📚', title: '图鉴收集', desc: '展示收集进度、重复持有数量和锁定槽位，并为分享卡提供已获得卡面。', meta: '3 类状态' },
+        { icon: '💌', title: '个性化分享', desc: '选择已获得卡面、填写最多 6 个字的 To 文案，生成保存与站内分享结果。', meta: '回流节点' },
       ],
     },
   },
@@ -575,6 +673,29 @@ function Shell({ children }: { children: ReactNode }) {
 function InfoView({ c }: { c: InfoContent }) {
   return (
     <Shell>
+      {c.visuals?.length ? (
+        <section className="mb-6">
+          <div className="mb-3 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-[15px] font-semibold text-[var(--color-ink)]">项目视觉与交付快照</h2>
+              <p className="mt-1 text-[10px] text-[var(--color-ink)]/38">真实 Figma 交付切片 · 按项目对象归档</p>
+            </div>
+            <span className="shrink-0 rounded-md bg-emerald-50 px-2 py-1 text-[9px] font-medium text-emerald-700">{c.visuals.length} 项已关联</span>
+          </div>
+          <div className="grid h-[286px] grid-cols-[1.55fr_0.95fr] grid-rows-3 gap-2 overflow-hidden rounded-2xl border border-[var(--divider-soft)] bg-[var(--fill-subtle)] p-2">
+            {c.visuals.slice(0, 4).map((visual, index) => (
+              <figure key={visual.src} className={`${index === 0 ? 'row-span-3' : ''} group relative min-h-0 overflow-hidden rounded-xl bg-white`}>
+                <img src={visual.src} alt={visual.label} className="size-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.015]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/68 via-transparent to-black/5" />
+                <figcaption className="absolute inset-x-0 bottom-0 px-3 pb-2.5 pt-5 text-white">
+                  <p className={`${index === 0 ? 'text-[12px]' : 'text-[9px]'} font-medium`}>{visual.label}</p>
+                  <p className={`${index === 0 ? 'mt-1 text-[9px]' : 'mt-0.5 text-[7px]'} text-white/68`}>{visual.detail}</p>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+      ) : null}
       {c.tags && (
         <div className="mb-2 flex flex-wrap gap-1.5">
           {c.tags.map((t) => (

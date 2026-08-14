@@ -83,12 +83,18 @@ export interface BuildGate {
   confirmTo?: string
   alt?: string
   altTo?: string
+  /** Asset/template selection needs enough room to explain the consequence of each choice. */
+  choiceLayout?: 'compact' | 'cards'
   /** 选择题式卡点：几个选项各自跳不同分支（选玩法这种，一句话说不清差别）。
    *  给了 choices 就不再渲染 confirm / alt。最后一项可以是自由输入。 */
   choices?: {
     title: string
     desc: string
     tag?: string
+    eyebrow?: string
+    preview?: string
+    facts?: readonly string[]
+    recommended?: boolean
     to: string
     /** 选它展开输入框，用户自己写；写的内容就是发出去的那条消息 */
     input?: boolean
@@ -103,7 +109,7 @@ export interface BuildStep {
   id: string
   /** 对话里的呈现形态 */
   view:
-    | { kind: 'doc'; text?: string }
+    | { kind: 'doc'; text?: string; fileName?: string; meta?: string }
     | { kind: 'user'; text: string }
     /** 结论 —— 正常的一条回复，可挂产物卡片 */
     | { kind: 'ai'; text: string; cards?: BuildCard[]; image?: { src: string; caption?: string } }

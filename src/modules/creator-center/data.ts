@@ -67,7 +67,7 @@ export const SMART_CREATE_ENTRIES: {
   {
     id: 'workshop',
     label: 'AI工坊',
-    desc: '把好想法变成好玩法',
+    desc: '从需求到可发布活动',
     homeIcon: '/icons/creator-center/smart-create-workshop.png',
     front: '/icons/creator-center/entry-workshop.png',
   },

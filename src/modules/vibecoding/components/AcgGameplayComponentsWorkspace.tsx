@@ -14,10 +14,10 @@ import { toast } from 'sonner'
 type ComponentId = 'ranking' | 'boost' | 'collection' | 'minigame'
 
 const COMPONENTS = [
-  { id: 'ranking' as const, name: '内容榜单', package: 'ranking.content.v3.4', mount: '主流程 · 参与节点', status: '必填', icon: BarChart3 },
-  { id: 'boost' as const, name: '双动作助力', package: 'boost.dual-action.v2.1', mount: '内容榜单 · 作品行', status: '必填', icon: HandHeart },
-  { id: 'collection' as const, name: '集卡', package: 'collection.card.v4.0', mount: '主流程 · 阶段任务', status: '可选', icon: Layers3 },
-  { id: 'minigame' as const, name: '跃马攀峰', package: 'game.climb-lite.v1.6', mount: '主会场 · 玩法卡', status: '可选', icon: Gamepad2 },
+  { id: 'ranking' as const, name: '内容榜单', package: 'gameplay.content-ranking@1.0.0', mount: '主流程 · 参与节点', status: '必填', icon: BarChart3 },
+  { id: 'boost' as const, name: '双动作助力', package: 'gameplay.dual-action-boost@1.0.0', mount: '内容榜单 · 作品行', status: '必填', icon: HandHeart },
+  { id: 'collection' as const, name: '集卡', package: 'gameplay.collection@0.9.4', mount: '主流程 · 阶段任务', status: '可选', icon: Layers3 },
+  { id: 'minigame' as const, name: '跃马攀峰', package: 'gameplay.climb-lite@0.8.0', mount: '主会场 · 玩法卡', status: '可选', icon: Gamepad2 },
 ]
 
 function Section({ title, summary, children }: { title: string; summary: string; children: ReactNode }) {

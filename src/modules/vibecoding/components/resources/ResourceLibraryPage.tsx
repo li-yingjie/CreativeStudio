@@ -1,782 +1,264 @@
-import { useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
-import { toast } from 'sonner'
-import { ChevronDown, ChevronRight, PlusCircle, Search } from '@/shared/icons'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  type KnowledgeItem,
-  type ModelItem,
-  type PublisherItem,
+  ArrowLeft,
+  BookOpen,
+  Box,
+  ChevronDown,
+  ChevronRight,
+  Code2,
+  Cpu,
+  Database,
+  Image,
+  Search,
+  Sparkles,
+} from '@/shared/icons'
+import {
+  type ResourceItem,
   type ResourceTabKey,
-  type ToolboxItem,
-  type ToolboxNavGroup,
-  type TriggerItem,
-  knowledgeItems,
-  knowledgeSectionMeta,
-  knowledgeTypeOptions,
-  modelAbilityOptions,
-  modelGroupMeta,
-  modelItems,
-  modelSceneOptions,
-  publisherEntryOptions,
-  publisherGenreOptions,
-  publisherItems,
   resourceTabOptions,
-  toolboxItems,
-  toolboxNavGroups,
-  toolboxNavStats,
-  toolboxOrderOptions,
-  toolboxSectionMeta,
-  toolboxSourceOptions,
-  toolboxStatusOptions,
-  triggerAppOptions,
-  triggerItems,
-  triggerMethodOptions,
-  triggerSceneOptions,
+  resources,
+  resourcesForTab,
 } from './resources-data'
 
-/* ─── 资源库 ───
- *
- * 对齐 AI 平台 (ai_design) 的 components/resources/*：顶部「资源库」标题 +
- * 五个 tab（工具箱 / 知识库 / 模型库 / 发布器 / 触发器），数据来自同一份
- * resourceMockData。那边每个子页是独立路由 + @douyin-ai/ui 的 Filter/Tabs，
- * 这里合并成一个组件、用本地 tab state 切换，筛选条与卡片用 Tailwind 重建。 */
-
-/* ── 共用小件 ── */
-
-function FilterSelect({
-  value,
-  placeholder,
-  options,
-  onChange,
-}: {
-  value: string
-  placeholder: string
-  options: readonly { label: string; value: string }[]
-  onChange: (value: string) => void
-}) {
-  return (
-    <label className="relative inline-flex h-8 items-center">
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-8 cursor-pointer appearance-none rounded-md border border-[rgba(45,66,107,0.12)] bg-white py-0 pl-2.5 pr-7 text-[13px] text-[#1C1F23] outline-none transition-colors hover:border-[rgba(45,66,107,0.24)]"
-      >
-        <option value="">{placeholder}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        size={12}
-        strokeWidth={2}
-        aria-hidden
-        className="pointer-events-none absolute right-2 text-[#1C1F23]/45"
-      />
-    </label>
-  )
+export interface ResourceReference {
+  id: string
+  name: string
+  kind: ResourceTabKey
 }
 
-function SearchInput({
-  value,
-  placeholder,
-  onChange,
-}: {
-  value: string
-  placeholder: string
-  onChange: (value: string) => void
-}) {
-  return (
-    <label className="relative inline-flex h-8 w-[200px] items-center">
-      <Search
-        size={14}
-        aria-hidden
-        className="pointer-events-none absolute left-2.5 text-[#1C1F23]/45"
-      />
-      <input
-        type="search"
-        value={value}
-        aria-label={placeholder}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-8 w-full rounded-md border border-[rgba(45,66,107,0.12)] bg-white pl-[30px] pr-2 text-[13px] text-[#1C1F23] outline-none transition-colors placeholder:text-[#1C1F23]/35 focus:border-[rgba(45,66,107,0.28)]"
-      />
-    </label>
-  )
+const TAB_META: Record<ResourceTabKey, { label: string; singular: string }> = {
+  toolbox: { label: '工具箱', singular: '工具' },
+  knowledge: { label: '知识库', singular: '知识' },
+  model: { label: '模型库', singular: '模型' },
 }
 
-function CheckboxFilter({
-  checked,
-  label,
-  onChange,
-}: {
-  checked: boolean
-  label: string
-  onChange: (checked: boolean) => void
-}) {
-  return (
-    <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[13px] text-[#1C1F23]/80 transition-colors hover:bg-black/[0.03]">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="size-3.5 cursor-pointer accent-[#1C1F23]"
-      />
-      {label}
-    </label>
-  )
+const GROUP_STYLE: Record<string, { bg: string; ink: string }> = {
+  抖音: { bg: '#E9F2FF', ink: '#3268A8' },
+  通用能力: { bg: '#EDF0F3', ink: '#4C5967' },
+  内容创作: { bg: '#F6EDE6', ink: '#8A5E3C' },
+  开发工具: { bg: '#E9F3EF', ink: '#33715B' },
+  'H5 页面开发': { bg: '#EAF1FF', ink: '#315FA9' },
+  活动设计: { bg: '#F4EEE4', ink: '#86623A' },
+  'Native 页面开发': { bg: '#E8F3F5', ink: '#2C6D78' },
+  视觉设计: { bg: '#F0EAF6', ink: '#6D4C8C' },
+  玩法库: { bg: '#F3EAF5', ink: '#765287' },
+  页面组件库: { bg: '#EAF1FF', ink: '#315FA9' },
+  字体库: { bg: '#F4EEE4', ink: '#86623A' },
+  基础模型: { bg: '#ECEFF4', ink: '#485A73' },
+  多模态生成模型: { bg: '#F3EAEF', ink: '#84506B' },
 }
 
-function FilterBar({
-  children,
-  action,
-}: {
-  children: ReactNode
-  action?: ReactNode
-}) {
+function styleFor(item: ResourceItem) {
+  return GROUP_STYLE[item.group] ?? { bg: '#EFF0F2', ink: '#4F5662' }
+}
+
+function ResourceIcon({ item, size = 18 }: { item: ResourceItem; size?: number }) {
+  const props = { size, strokeWidth: 1.8 }
+  if (item.tab === 'model') return <Cpu {...props} />
+  if (item.tab === 'knowledge') return <BookOpen {...props} />
+  if (item.category.includes('图片')) return <Image {...props} />
+  if (item.category.includes('数据') || item.title.includes('查询') || item.title.includes('搜索')) return <Database {...props} />
+  if (item.category.includes('开发')) return <Code2 {...props} />
+  return <Box {...props} />
+}
+
+function StateTag({ state }: { state: string }) {
+  const ready = state === '已有' || state === '已有系统知识'
+  return <span className={`inline-flex h-5 items-center rounded-md px-1.5 text-[11px] font-medium ${ready ? 'bg-[#E7F6EF] text-[#137A52]' : 'bg-[#FFF3DC] text-[#8A5B18]'}`}>{state}</span>
+}
+
+function ResourceCover({ item }: { item: ResourceItem }) {
+  const style = styleFor(item)
+  const asset = item.sourceAsset
+  const image = asset?.thumbnail ?? asset?.visualReferences?.[0]?.src
+  if (image) {
+    return (
+      <div className="relative h-[132px] overflow-hidden bg-[#F1F2F4]">
+        <img src={image} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.015]" />
+        <span className="absolute left-3 top-3 inline-flex h-6 items-center gap-1.5 rounded-md bg-white/92 px-2 text-[11px] font-medium text-[#1C1F23] shadow-sm backdrop-blur"><ResourceIcon item={item} size={12} />{item.group}</span>
+      </div>
+    )
+  }
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-2 px-6 pb-2.5 pt-3">
-      {children}
-      {action && <div className="ml-auto shrink-0">{action}</div>}
+    <div className="relative flex h-[108px] items-center justify-center overflow-hidden" style={{ background: style.bg }}>
+      <span aria-hidden className="absolute -left-8 top-4 h-12 w-32 rotate-[-12deg] rounded-full bg-white/30" />
+      <span aria-hidden className="absolute -bottom-10 right-0 size-28 rounded-full border-[22px] border-white/30" />
+      <div className="relative flex h-12 max-w-[calc(100%-28px)] items-center gap-2 rounded-xl border border-black/[0.06] bg-white px-3.5 shadow-[0_3px_10px_rgba(31,35,41,0.07)]">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg" style={{ background: style.bg, color: style.ink }}><ResourceIcon item={item} size={15} /></span>
+        <span className="truncate text-[13px] font-medium text-[#1C1F23]">{item.title}</span>
+      </div>
     </div>
   )
 }
 
-function CreateButton({ label }: { label: string }) {
+function ResourceDetail({ item, onBack, onUse }: { item: ResourceItem; onBack: () => void; onUse?: (reference: ResourceReference) => void }) {
+  const style = styleFor(item)
+  const asset = item.sourceAsset
+  const image = asset?.thumbnail ?? asset?.visualReferences?.[0]?.src
   return (
-    <button
-      type="button"
-      onClick={() => toast(`${label}（演示）`)}
-      className="flex h-8 items-center gap-1.5 rounded-full bg-[#1C1F23] px-3.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
-    >
-      <PlusCircle size={14} strokeWidth={1.8} />
-      {label}
-    </button>
-  )
-}
-
-function SectionTitle({ label, count }: { label: string; count: number }) {
-  return (
-    <div className="flex h-5 items-center gap-1.5 pb-1 pt-3 text-[14px] leading-5 text-[#1C1F23]">
-      <strong className="font-semibold">{label}</strong>
-      <span className="inline-flex h-[18px] min-w-2 items-center justify-center rounded-2xl bg-[rgba(83,96,143,0.07)] px-[5px] text-[12px] font-normal leading-4 text-[#1C1F23]/60">
-        {count}
-      </span>
+    <div className="thin-scroll h-full overflow-y-auto bg-[#F7F8FA] px-8 py-6">
+      <div className="mx-auto max-w-[920px]">
+        <button type="button" onClick={onBack} className="mb-4 inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] text-[#1C1F23]/65 hover:bg-black/[0.04] hover:text-[#1C1F23]"><ArrowLeft size={15} />返回{TAB_META[item.tab].label}</button>
+        <article className="overflow-hidden rounded-2xl border border-[rgba(45,66,107,0.10)] bg-white">
+          <header className="flex min-h-[176px] items-end justify-between gap-8 px-8 py-7" style={{ background: style.bg }}>
+            <div>
+              <div className="mb-4 text-[12px] font-medium" style={{ color: style.ink }}>{item.group} / {item.category}</div>
+              <h1 className="text-[30px] font-semibold tracking-[-0.7px] text-[#1C1F23]">{item.title}</h1>
+            </div>
+            {image ? <img src={image} alt="" className="h-[116px] w-[206px] shrink-0 rounded-xl object-cover shadow-[0_5px_18px_rgba(31,35,41,0.10)]" /> : <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white shadow-[0_5px_18px_rgba(31,35,41,0.08)]" style={{ color: style.ink }}><ResourceIcon item={item} size={28} /></span>}
+          </header>
+          <div className="grid grid-cols-1 gap-8 p-8 md:grid-cols-[minmax(0,1fr)_260px] md:gap-10">
+            <section>
+              {item.summary ? <><h2 className="text-[15px] font-semibold text-[#1C1F23]">知识说明</h2><p className="mt-3 text-[14px] leading-7 text-[#1C1F23]/72">{item.summary}</p></> : <div className="flex h-24 items-center text-[13px] text-[#1C1F23]/42">暂无补充说明</div>}
+              {asset?.parameterGroups.map((group) => (
+                <div key={group.name} className="mt-7 border-t border-[rgba(45,66,107,0.10)] pt-6">
+                  <h2 className="text-[15px] font-semibold text-[#1C1F23]">{group.name}</h2>
+                  <p className="mt-1.5 text-[12px] leading-5 text-[#1C1F23]/50">{group.summary}</p>
+                  <dl className="mt-4 divide-y divide-[rgba(45,66,107,0.08)] rounded-xl border border-[rgba(45,66,107,0.10)]">
+                    {group.parameters.map((parameter) => (
+                      <div key={parameter.label} className="grid grid-cols-[132px_minmax(0,1fr)] gap-4 px-4 py-3 text-[12px] leading-5">
+                        <dt className="font-medium text-[#1C1F23]/64">{parameter.label}</dt><dd className="text-[#1C1F23]">{parameter.value}<span className="ml-2 text-[10px] text-[#1C1F23]/38">{parameter.mode}</span></dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              ))}
+              {asset?.constraints.length ? <div className="mt-7 border-t border-[rgba(45,66,107,0.10)] pt-6"><h2 className="text-[15px] font-semibold text-[#1C1F23]">使用边界</h2><ul className="mt-3 space-y-2 text-[13px] leading-6 text-[#1C1F23]/68">{asset.constraints.map((rule) => <li key={rule} className="flex gap-2"><span className="mt-[9px] size-1 shrink-0 rounded-full bg-[#1C1F23]/35" />{rule}</li>)}</ul></div> : null}
+            </section>
+            <aside className="border-t border-[rgba(45,66,107,0.10)] pt-7 md:border-l md:border-t-0 md:pl-7 md:pt-0">
+              <dl className="space-y-5">
+                <div><dt className="text-[12px] text-[#1C1F23]/45">资源类型</dt><dd className="mt-1.5 text-[13px] text-[#1C1F23]">{TAB_META[item.tab].singular}</dd></div>
+                <div><dt className="text-[12px] text-[#1C1F23]/45">分类</dt><dd className="mt-1.5 text-[13px] text-[#1C1F23]">{item.group} · {item.category}</dd></div>
+                {asset && <div><dt className="text-[12px] text-[#1C1F23]/45">版本</dt><dd className="mt-1.5 text-[13px] text-[#1C1F23]">v{asset.version} · {asset.status}</dd></div>}
+                {asset?.metrics.map((metric) => <div key={metric.label}><dt className="text-[12px] text-[#1C1F23]/45">{metric.label}</dt><dd className="mt-1.5 text-[13px] text-[#1C1F23]">{metric.value}</dd></div>)}
+                {item.state && <div><dt className="text-[12px] text-[#1C1F23]/45">沉淀状态</dt><dd className="mt-1.5"><StateTag state={item.state} /></dd></div>}
+              </dl>
+              {onUse && <button type="button" onClick={() => onUse({ id: item.id, name: item.title, kind: item.tab })} className="mt-7 h-9 w-full rounded-full bg-[#1C1F23] text-[13px] font-medium text-white hover:bg-[#303238]">在对话中引用</button>}
+            </aside>
+          </div>
+        </article>
+      </div>
     </div>
   )
 }
 
-/** 通用资源卡：封面/图标 + 标题 + 摘要 + 底部元信息。 */
-function ResourceCard({
-  title,
-  summary,
-  cover,
-  coverText,
-  badge,
-  meta,
-  onOpen,
-}: {
-  title: string
-  summary: string
-  cover?: string
-  coverText?: string
-  badge?: string
-  meta: ReactNode
-  onOpen: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group flex min-w-0 flex-col gap-3 rounded-2xl border border-[#F2F2F7] bg-white p-4 text-left transition-[box-shadow,transform] duration-150 hover:-translate-y-px hover:shadow-[0_8px_20px_rgba(31,35,41,0.08)]"
-    >
-      <div className="flex min-w-0 items-start gap-3">
-        {cover ? (
-          <img src={cover} alt="" className="size-10 shrink-0 rounded-lg object-cover" />
-        ) : (
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[rgba(83,96,143,0.07)] text-[16px]">
-            {coverText ?? '🧩'}
-          </span>
-        )}
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <span className="min-w-0 truncate text-[14px] font-medium text-[#1C1F23]">
-              {title}
-            </span>
-            {badge && (
-              <span className="shrink-0 rounded border border-[rgba(45,66,107,0.12)] px-1 text-[11px] leading-4 text-[#1C1F23]/70">
-                {badge}
-              </span>
-            )}
-          </span>
-          <span className="line-clamp-2 text-[12px] leading-4 text-[#1C1F23]/45">
-            {summary}
-          </span>
-        </div>
-      </div>
-      <div className="flex min-w-0 items-center gap-2 text-[12px] leading-4 text-[#1C1F23]/45">
-        {meta}
-      </div>
-    </button>
-  )
-}
-
-const CARD_GRID =
-  'grid grid-cols-1 gap-3 min-[900px]:grid-cols-2 min-[1280px]:grid-cols-3 min-[1680px]:grid-cols-4'
-
-const Dot = () => <span aria-hidden className="h-2.5 w-px shrink-0 bg-[rgba(45,66,107,0.12)]" />
-
-/* ── 工具箱 ── */
-
-function ToolboxPane() {
+function ResourcePane({ tab, onUseResource }: { tab: ResourceTabKey; onUseResource?: (reference: ResourceReference) => void }) {
+  const allItems = useMemo(() => resourcesForTab(tab), [tab])
   const [keyword, setKeyword] = useState('')
-  const [source, setSource] = useState('')
-  const [status, setStatus] = useState('')
-  const [isMine, setIsMine] = useState(false)
-  const [orderBy, setOrderBy] = useState('use_count')
-  const [activeKey, setActiveKey] = useState('plaza')
-  const [collapsed, setCollapsed] = useState(() => new Set<string>())
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [expanded, setExpanded] = useState(
+    () => new Set(allItems.map((item) => item.group)),
+  )
+  const [selected, setSelected] = useState<ResourceItem | null>(() => {
+    if (typeof window === 'undefined') return null
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get('knowledge') ?? (params.get('asset') ? `knowledge:${params.get('asset')}` : null)
+    return resourcesForTab(tab).find((item) => item.id === id) ?? null
+  })
 
-  const toggleGroup = (key: string) =>
-    setCollapsed((current) => {
-      const next = new Set(current)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+  const selectResource = (item: ResourceItem | null) => {
+    setSelected(item)
+    const params = new URLSearchParams(window.location.search)
+    if (item) params.set('knowledge', item.id)
+    else params.delete('knowledge')
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
+  }
+
+  const groups = useMemo(() => Array.from(new Set(allItems.map((item) => item.group))).map((group) => ({
+    group,
+    categories: Array.from(new Set(allItems.filter((item) => item.group === group).map((item) => item.category))),
+  })), [allItems])
 
   const filtered = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase()
-    const list = toolboxItems.filter((item) => {
-      const matchKeyword = normalized
-        ? `${item.title}${item.summary}`.toLowerCase().includes(normalized)
-        : true
-      const matchSource = source ? item.source === source : true
-      const matchStatus = status ? item.status === status : true
-      const matchMine = isMine ? item.isMine : true
-      const matchNav =
-        activeKey === 'plaza' ||
-        item.groupKey === activeKey ||
-        item.categoryKey === activeKey
-      return matchKeyword && matchSource && matchStatus && matchMine && matchNav
+    const query = keyword.trim().toLocaleLowerCase('zh-CN')
+    return allItems.filter((item) => {
+      const categoryMatch = selectedCategory === 'all' || selectedCategory === item.group || selectedCategory === `${item.group}/${item.category}`
+      const keywordMatch = !query || `${item.title}${item.summary ?? ''}${item.group}${item.category}`.toLocaleLowerCase('zh-CN').includes(query)
+      return categoryMatch && keywordMatch
     })
-    return [...list].sort((a, b) =>
-      orderBy === 'use_count' ? b.useCount - a.useCount : a.title.localeCompare(b.title),
-    )
-  }, [activeKey, isMine, keyword, orderBy, source, status])
+  }, [allItems, keyword, selectedCategory])
 
-  /** 按 section（官方广场 / 空间）分组 —— 与源站的两段式一致。 */
-  const sections = useMemo(() => {
-    const bySection = new Map<string, ToolboxItem[]>()
-    for (const item of filtered) {
-      const list = bySection.get(item.section) ?? []
-      list.push(item)
-      bySection.set(item.section, list)
-    }
-    return [...bySection.entries()].map(([key, items]) => ({
-      key,
-      label: toolboxSectionMeta[key as keyof typeof toolboxSectionMeta] ?? key,
-      items,
-    }))
-  }, [filtered])
+  if (selected) return <ResourceDetail item={selected} onBack={() => selectResource(null)} onUse={onUseResource} />
 
   return (
     <div className="flex h-full min-h-0">
-      <aside className="thin-scroll w-[216px] shrink-0 overflow-y-auto border-r border-[rgba(45,66,107,0.12)] px-1.5 py-1">
-        <button
-          type="button"
-          onClick={() => setActiveKey('plaza')}
-          className={`flex h-10 w-full items-center gap-1.5 rounded-lg px-1.5 text-left text-[13px] font-medium leading-[18px] transition-colors ${
-            activeKey === 'plaza' ? 'bg-[rgba(83,96,143,0.12)]' : 'hover:bg-black/[0.03]'
-          }`}
-        >
-          <span className="inline-flex size-5 shrink-0 items-center justify-center rounded bg-[#E8F0FF] text-[11px] text-[#2B6CF6]">
-            全
-          </span>
-          <span className="text-[#1C1F23]">广场</span>
-          <span className="ml-auto text-[12px] text-[#1C1F23]/45">
-            {toolboxNavStats.plazaTotal}
-          </span>
-        </button>
-
-        {(toolboxNavGroups as ToolboxNavGroup[]).map((group) => {
-          const isCollapsed = collapsed.has(group.key)
-          return (
-            <div key={group.key}>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveKey(group.key)
-                  toggleGroup(group.key)
-                }}
-                className={`flex h-9 w-full items-center gap-1.5 rounded-lg px-1.5 text-left text-[13px] font-medium leading-[18px] transition-colors ${
-                  activeKey === group.key
-                    ? 'bg-[rgba(83,96,143,0.12)]'
-                    : 'hover:bg-black/[0.03]'
-                }`}
-              >
-                <span className="flex size-3.5 shrink-0 items-center justify-center text-[#1C1F23]/45">
-                  {isCollapsed ? (
-                    <ChevronRight size={12} strokeWidth={2} />
-                  ) : (
-                    <ChevronDown size={12} strokeWidth={2} />
-                  )}
-                </span>
-                {group.iconUrl ? (
-                  <img src={group.iconUrl} alt="" className="size-4 shrink-0 rounded" />
-                ) : (
-                  <span aria-hidden className="size-4 shrink-0 rounded bg-[rgba(83,96,143,0.12)]" />
-                )}
-                <span className="min-w-0 truncate text-[#1C1F23]">{group.label}</span>
-                <span className="ml-auto shrink-0 text-[12px] text-[#1C1F23]/45">
-                  {toolboxNavStats.groupTotals[group.key] ?? 0}
-                </span>
+      <aside className="thin-scroll w-[220px] shrink-0 overflow-y-auto border-r border-[rgba(45,66,107,0.10)] px-2 py-3">
+        <button type="button" onClick={() => setSelectedCategory('all')} className={`flex h-9 w-full items-center justify-between rounded-lg px-2.5 text-[13px] ${selectedCategory === 'all' ? 'bg-[#EEF0F5] font-medium text-[#1C1F23]' : 'text-[#1C1F23]/70 hover:bg-black/[0.03]'}`}><span className="flex items-center gap-2"><Sparkles size={15} />全部{TAB_META[tab].singular}</span><span className="text-[12px] text-[#1C1F23]/40">{allItems.length}</span></button>
+        <div className="mt-2 space-y-1">
+          {groups.map(({ group, categories }) => {
+            const open = expanded.has(group)
+            const count = allItems.filter((item) => item.group === group).length
+            return <div key={group}>
+              <button type="button" onClick={() => {
+                setSelectedCategory(group)
+                setExpanded((current) => { const next = new Set(current); if (next.has(group)) next.delete(group); else next.add(group); return next })
+              }} className={`flex h-8 w-full items-center gap-1 rounded-lg px-2 text-[13px] ${selectedCategory === group ? 'bg-[#EEF0F5] font-medium text-[#1C1F23]' : 'text-[#1C1F23]/76 hover:bg-black/[0.03]'}`}>
+                {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}<span className="min-w-0 flex-1 truncate text-left">{group}</span><span className="text-[12px] text-[#1C1F23]/38">{count}</span>
               </button>
-              {!isCollapsed &&
-                group.children.map((child) => (
-                  <button
-                    key={child.key}
-                    type="button"
-                    onClick={() => setActiveKey(child.key)}
-                    className={`flex h-7 w-full items-center gap-1.5 rounded-md pl-8 pr-2 text-left text-[13px] leading-[18px] transition-colors ${
-                      activeKey === child.key
-                        ? 'bg-[rgba(83,96,143,0.12)] text-[#1C1F23]'
-                        : 'text-[#1C1F23]/80 hover:bg-black/[0.03]'
-                    }`}
-                  >
-                    <span className="min-w-0 flex-1 truncate">{child.label}</span>
-                    <span className="shrink-0 text-[12px] text-[#1C1F23]/45">
-                      {toolboxNavStats.childTotals[child.key] ?? 0}
-                    </span>
-                  </button>
-                ))}
+              {open && <div className="ml-4 border-l border-[rgba(45,66,107,0.10)] pl-2">{categories.map((category) => {
+                const key = `${group}/${category}`
+                const childCount = allItems.filter((item) => item.group === group && item.category === category).length
+                return <button key={key} type="button" onClick={() => setSelectedCategory(key)} className={`flex h-8 w-full items-center justify-between rounded-lg px-2 text-[12px] ${selectedCategory === key ? 'bg-[#EEF0F5] font-medium text-[#1C1F23]' : 'text-[#1C1F23]/62 hover:bg-black/[0.03]'}`}><span className="truncate">{category}</span><span className="text-[#1C1F23]/35">{childCount}</span></button>
+              })}</div>}
             </div>
-          )
-        })}
+          })}
+        </div>
       </aside>
-
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <FilterBar action={<CreateButton label="创建工具" />}>
-          <SearchInput value={keyword} placeholder="搜索工具" onChange={setKeyword} />
-          <FilterSelect
-            value={source}
-            placeholder="来源"
-            options={toolboxSourceOptions}
-            onChange={setSource}
-          />
-          <FilterSelect
-            value={status}
-            placeholder="工具状态"
-            options={toolboxStatusOptions}
-            onChange={setStatus}
-          />
-          <CheckboxFilter checked={isMine} label="我创建的" onChange={setIsMine} />
-          <FilterSelect
-            value={orderBy}
-            placeholder="热门排序"
-            options={toolboxOrderOptions}
-            onChange={(value) => setOrderBy(value || 'use_count')}
-          />
-        </FilterBar>
-
-        <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-8">
-          {sections.length === 0 ? (
-            <div className="flex min-h-[320px] items-center justify-center text-[13px] text-[#1C1F23]/45">
-              当前筛选条件下暂无工具
-            </div>
-          ) : (
-            sections.map((section) => (
-              <section key={section.key}>
-                <SectionTitle label={section.label} count={section.items.length} />
-                <div className={CARD_GRID}>
-                  {section.items.map((item) => (
-                    <ResourceCard
-                      key={item.id}
-                      title={item.title}
-                      summary={item.summary}
-                      coverText="🛠"
-                      badge={item.source}
-                      onOpen={() => toast(`打开工具「${item.title}」（演示）`)}
-                      meta={
-                        <>
-                          <span className="truncate">{item.category}</span>
-                          <Dot />
-                          <span className="shrink-0">{item.owner}</span>
-                          <Dot />
-                          <span className="shrink-0">调用 {item.useCount}</span>
-                        </>
-                      }
-                    />
-                  ))}
-                </div>
-              </section>
-            ))
-          )}
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[rgba(45,66,107,0.08)] px-6 py-3">
+          <label className="relative min-w-[190px] flex-1 sm:max-w-[280px]"><Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#1C1F23]/38" /><input type="search" value={keyword} onChange={(event) => setKeyword(event.target.value)} aria-label={`搜索${TAB_META[tab].singular}`} placeholder={`搜索${TAB_META[tab].singular}名称或能力`} className="h-8 w-full rounded-lg border border-[rgba(45,66,107,0.14)] bg-white pl-8 pr-3 text-[13px] outline-none placeholder:text-[#1C1F23]/35 focus:border-[#697386]" /></label>
+          <span className="ml-auto whitespace-nowrap text-[12px] text-[#1C1F23]/42">{filtered.length} / {allItems.length} 项</span>
         </div>
-      </div>
-    </div>
-  )
-}
-
-/* ── 知识库 ── */
-
-function KnowledgePane() {
-  const [keyword, setKeyword] = useState('')
-  const [type, setType] = useState('')
-  const [isMine, setIsMine] = useState(false)
-
-  const sections = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase()
-    const list = knowledgeItems.filter((item: KnowledgeItem) => {
-      const matchKeyword = normalized
-        ? `${item.title}${item.summary}`.toLowerCase().includes(normalized)
-        : true
-      const matchType = type ? item.type === type : true
-      const matchMine = isMine ? item.isMine : true
-      return matchKeyword && matchType && matchMine
-    })
-    const bySection = new Map<string, KnowledgeItem[]>()
-    for (const item of list) {
-      const bucket = bySection.get(item.section) ?? []
-      bucket.push(item)
-      bySection.set(item.section, bucket)
-    }
-    return [...bySection.entries()].map(([key, items]) => ({
-      key,
-      label: knowledgeSectionMeta[key as keyof typeof knowledgeSectionMeta] ?? key,
-      items,
-    }))
-  }, [isMine, keyword, type])
-
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <FilterBar action={<CreateButton label="创建知识库" />}>
-        <SearchInput value={keyword} placeholder="搜索知识库" onChange={setKeyword} />
-        <FilterSelect
-          value={type}
-          placeholder="类型"
-          options={knowledgeTypeOptions}
-          onChange={setType}
-        />
-        <CheckboxFilter checked={isMine} label="我创建的" onChange={setIsMine} />
-      </FilterBar>
-      <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-8">
-        {sections.map((section) => (
-          <section key={section.key}>
-            <SectionTitle label={section.label} count={section.items.length} />
-            <div className={CARD_GRID}>
-              {section.items.map((item) => (
-                <ResourceCard
-                  key={item.id}
-                  title={item.title}
-                  summary={item.summary}
-                  cover={item.coverIconUrl ?? item.coverBackgroundUrl}
-                  coverText={item.coverIconText ?? '📚'}
-                  badge={item.type}
-                  onOpen={() => toast(`打开知识库「${item.title}」（演示）`)}
-                  meta={
-                    <>
-                      <span className="truncate">{item.owner}</span>
-                      <Dot />
-                      <span className="shrink-0">{item.documentCount} 篇</span>
-                      <Dot />
-                      <span className="shrink-0">{item.updatedAt}</span>
-                    </>
-                  }
-                />
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ── 模型库 ── */
-
-function ModelPane() {
-  const [keyword, setKeyword] = useState('')
-  const [scene, setScene] = useState('')
-  const [ability, setAbility] = useState('')
-
-  const sections = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase()
-    const list = modelItems.filter((item: ModelItem) => {
-      const matchKeyword = normalized
-        ? `${item.title}${item.summary}`.toLowerCase().includes(normalized)
-        : true
-      const matchScene = scene ? item.scenes.includes(scene) : true
-      const matchAbility = ability ? item.abilities.includes(ability) : true
-      return matchKeyword && matchScene && matchAbility
-    })
-    const byGroup = new Map<string, ModelItem[]>()
-    for (const item of list) {
-      const bucket = byGroup.get(item.group) ?? []
-      bucket.push(item)
-      byGroup.set(item.group, bucket)
-    }
-    return [...byGroup.entries()].map(([key, items]) => ({
-      key,
-      label: modelGroupMeta[key as keyof typeof modelGroupMeta] ?? key,
-      items,
-    }))
-  }, [ability, keyword, scene])
-
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <FilterBar>
-        <SearchInput value={keyword} placeholder="搜索模型" onChange={setKeyword} />
-        <FilterSelect
-          value={scene}
-          placeholder="场景"
-          options={modelSceneOptions.map((option) =>
-            typeof option === 'string' ? { label: option, value: option } : option,
-          )}
-          onChange={setScene}
-        />
-        <FilterSelect
-          value={ability}
-          placeholder="能力"
-          options={modelAbilityOptions.map((option) =>
-            typeof option === 'string' ? { label: option, value: option } : option,
-          )}
-          onChange={setAbility}
-        />
-      </FilterBar>
-      <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-8">
-        {sections.map((section) => (
-          <section key={section.key}>
-            <SectionTitle label={section.label} count={section.items.length} />
-            <div className={CARD_GRID}>
-              {section.items.map((item) => (
-                <ResourceCard
-                  key={item.id}
-                  title={item.title}
-                  summary={item.summary}
-                  cover={item.coverUrl}
-                  coverText={item.coverLabel ?? '🤖'}
-                  badge={item.modal}
-                  onOpen={() => toast(`打开模型「${item.title}」（演示）`)}
-                  meta={
-                    <>
-                      <span className="truncate">{item.provider ?? item.series ?? '—'}</span>
-                      <Dot />
-                      <span className="shrink-0">上下文 {item.contextLength}</span>
-                      <Dot />
-                      <span className="shrink-0">{item.status ?? '已上线'}</span>
-                    </>
-                  }
-                />
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ── 发布器 ── */
-
-function PublisherPane() {
-  const [keyword, setKeyword] = useState('')
-  const [genre, setGenre] = useState('')
-  const [entry, setEntry] = useState('')
-
-  const items = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase()
-    return publisherItems.filter((item: PublisherItem) => {
-      const matchKeyword = normalized
-        ? `${item.name}${item.description}`.toLowerCase().includes(normalized)
-        : true
-      const matchGenre = genre ? item.genre === genre : true
-      const matchEntry = entry ? item.entry === entry : true
-      return matchKeyword && matchGenre && matchEntry
-    })
-  }, [entry, genre, keyword])
-
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <FilterBar>
-        <SearchInput value={keyword} placeholder="搜索发布器" onChange={setKeyword} />
-        <FilterSelect
-          value={genre}
-          placeholder="体裁"
-          options={publisherGenreOptions.map((option) =>
-            typeof option === 'string' ? { label: option, value: option } : option,
-          )}
-          onChange={setGenre}
-        />
-        <FilterSelect
-          value={entry}
-          placeholder="入口"
-          options={publisherEntryOptions.map((option) => ({ label: option, value: option }))}
-          onChange={setEntry}
-        />
-      </FilterBar>
-      <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-8">
-        <SectionTitle label="全部发布器" count={items.length} />
-        <div className={CARD_GRID}>
-          {items.map((item) => (
-            <ResourceCard
-              key={item.id}
-              title={item.name}
-              summary={item.description}
-              cover={item.coverImage}
-              badge={item.sceneLabel}
-              onOpen={() => toast(`打开发布器「${item.name}」（演示）`)}
-              meta={
-                <>
-                  <span className="truncate">{item.entryLabel}</span>
-                  <Dot />
-                  <span className="shrink-0">{item.genre}</span>
-                  {item.available === false && (
-                    <>
-                      <Dot />
-                      <span className="shrink-0">敬请期待</span>
-                    </>
-                  )}
-                </>
-              }
-            />
-          ))}
+        <div className="thin-scroll min-h-0 flex-1 overflow-y-auto bg-[#FAFAFB] px-6 py-5">
+          {filtered.length ? <div className="grid grid-cols-[repeat(auto-fill,minmax(232px,1fr))] gap-3">{filtered.map((item) => (
+            <button key={item.id} type="button" onClick={() => selectResource(item)} className="group min-w-0 overflow-hidden rounded-xl border border-[rgba(45,66,107,0.10)] bg-white text-left transition hover:-translate-y-px hover:border-[rgba(45,66,107,0.18)] hover:shadow-[0_8px_22px_rgba(31,35,41,0.07)]">
+              <ResourceCover item={item} />
+              <div className="p-3.5">
+                <div className="flex min-w-0 items-center gap-2"><h2 className="min-w-0 flex-1 truncate text-[14px] font-semibold text-[#1C1F23]">{item.title}</h2>{item.state && <StateTag state={item.state} />}</div>
+                {item.summary && <p className="mt-2 line-clamp-2 min-h-10 text-[12px] leading-5 text-[#1C1F23]/55">{item.summary}</p>}
+                <div className={`${item.summary ? 'mt-3' : 'mt-7'} flex items-center justify-between border-t border-[rgba(45,66,107,0.08)] pt-2.5 text-[11px] text-[#1C1F23]/42`}><span>{item.group}</span><span>{item.category}</span></div>
+              </div>
+            </button>
+          ))}</div> : <div className="flex h-48 flex-col items-center justify-center text-center"><Search size={24} className="text-[#1C1F23]/22" /><p className="mt-3 text-[13px] text-[#1C1F23]/48">没有符合条件的{TAB_META[tab].singular}</p></div>}
         </div>
-      </div>
+      </main>
     </div>
   )
 }
 
-/* ── 触发器 ── */
-
-function TriggerPane() {
-  const [keyword, setKeyword] = useState('')
-  const [scene, setScene] = useState('')
-  const [method, setMethod] = useState('')
-  const [app, setApp] = useState('')
-
-  const items = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase()
-    return triggerItems.filter((item: TriggerItem) => {
-      const matchKeyword = normalized
-        ? `${item.title}${item.summary}`.toLowerCase().includes(normalized)
-        : true
-      const matchScene = scene ? item.scenes.includes(scene) : true
-      const matchMethod = method ? item.method === method : true
-      const matchApp = app ? item.apps.includes(app) : true
-      return matchKeyword && matchScene && matchMethod && matchApp
-    })
-  }, [app, keyword, method, scene])
-
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <FilterBar>
-        <SearchInput value={keyword} placeholder="搜索触发器" onChange={setKeyword} />
-        <FilterSelect
-          value={scene}
-          placeholder="场景"
-          options={triggerSceneOptions.map((option) => ({ label: option, value: option }))}
-          onChange={setScene}
-        />
-        <FilterSelect
-          value={method}
-          placeholder="触发方式"
-          options={triggerMethodOptions.map((option) => ({ label: option, value: option }))}
-          onChange={setMethod}
-        />
-        <FilterSelect
-          value={app}
-          placeholder="应用"
-          options={triggerAppOptions.map((option) => ({ label: option, value: option }))}
-          onChange={setApp}
-        />
-      </FilterBar>
-      <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-8">
-        <SectionTitle label="全部触发器" count={items.length} />
-        <div className={CARD_GRID}>
-          {items.map((item) => (
-            <ResourceCard
-              key={item.id}
-              title={item.title}
-              summary={item.summary}
-              cover={item.iconUrl ?? item.coverUrl}
-              coverText={item.coverIcon ?? '⚡️'}
-              badge={item.method}
-              onOpen={() => toast(`打开触发器「${item.title}」（演示）`)}
-              meta={
-                <>
-                  <span className="truncate">{item.scenes.join(' / ')}</span>
-                  <Dot />
-                  <span className="shrink-0">{item.updatedAt}</span>
-                  {!item.available && (
-                    <>
-                      <Dot />
-                      <span className="shrink-0">敬请期待</span>
-                    </>
-                  )}
-                </>
-              }
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+const getInitialTab = (fallback: ResourceTabKey): ResourceTabKey => {
+  if (typeof window === 'undefined') return fallback
+  const value = new URLSearchParams(window.location.search).get('resourceTab')
+  return value === 'toolbox' || value === 'knowledge' || value === 'model' ? value : fallback
 }
 
-/* ── 壳层 ── */
+export default function ResourceLibraryPage({ initialTab = 'toolbox', onUseResource }: { initialTab?: ResourceTabKey; onUseResource?: (reference: ResourceReference) => void }) {
+  const [tab, setTab] = useState<ResourceTabKey>(() => getInitialTab(initialTab))
 
-export default function ResourceLibraryPage({
-  initialTab = 'toolbox',
-}: {
-  initialTab?: ResourceTabKey
-}) {
-  const [tab, setTab] = useState<ResourceTabKey>(initialTab)
+  const selectTab = (next: ResourceTabKey) => {
+    setTab(next)
+    const params = new URLSearchParams(window.location.search)
+    params.set('page', 'resources')
+    params.set('resourceTab', next)
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
+  }
+
+  useEffect(() => {
+    const sync = () => setTab(getInitialTab(initialTab))
+    window.addEventListener('popstate', sync)
+    return () => window.removeEventListener('popstate', sync)
+  }, [initialTab])
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-white">
-      <div className="sticky top-0 z-20 shrink-0 bg-white px-6 shadow-[inset_0_-1px_0_rgba(45,66,107,0.12)]">
-        <div className="flex items-center gap-6">
-          <h1 className="shrink-0 text-[20px] font-semibold leading-6 tracking-[-0.08px] text-[#1C1F23]">
-            资源库
-          </h1>
-          <nav aria-label="资源库分类" className="flex min-w-0 flex-1 items-center gap-1">
-            {resourceTabOptions.map((option) => {
-              const active = option.key === tab
-              return (
-                <button
-                  key={option.key}
-                  type="button"
-                  aria-current={active ? 'page' : undefined}
-                  onClick={() => setTab(option.key)}
-                  className={`relative flex h-[52px] shrink-0 items-center px-3 text-[14px] transition-colors ${
-                    active
-                      ? 'font-medium text-[#1C1F23]'
-                      : 'text-[#1C1F23]/60 hover:text-[#1C1F23]'
-                  }`}
-                >
-                  {option.label}
-                  {active && (
-                    <span
-                      aria-hidden
-                      className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[#1C1F23]"
-                    />
-                  )}
-                </button>
-              )
-            })}
-          </nav>
-        </div>
-      </div>
-
-      <div className="min-h-0 flex-1">
-        {tab === 'toolbox' && <ToolboxPane />}
-        {tab === 'knowledge' && <KnowledgePane />}
-        {tab === 'model' && <ModelPane />}
-        {tab === 'publisher' && <PublisherPane />}
-        {tab === 'trigger' && <TriggerPane />}
-      </div>
+      <header className="flex h-[52px] shrink-0 items-center border-b border-[rgba(45,66,107,0.12)] px-6">
+        <h1 className="mr-6 shrink-0 text-[20px] font-semibold tracking-[-0.2px] text-[#1C1F23]">资源库</h1>
+        <nav aria-label="资源库分类" className="flex h-full items-center gap-1">
+          {resourceTabOptions.map((option) => <button key={option.key} type="button" aria-current={tab === option.key ? 'page' : undefined} onClick={() => selectTab(option.key)} className={`relative flex h-full items-center px-3 text-[14px] ${tab === option.key ? 'font-medium text-[#1C1F23]' : 'text-[#1C1F23]/55 hover:text-[#1C1F23]'}`}>{option.label}{tab === option.key && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[#1C1F23]" />}</button>)}
+        </nav>
+        <span className="ml-auto text-[12px] text-[#1C1F23]/40">{resources.length} 项资源</span>
+      </header>
+      <div className="min-h-0 flex-1"><ResourcePane key={tab} tab={tab} onUseResource={onUseResource} /></div>
     </div>
   )
 }

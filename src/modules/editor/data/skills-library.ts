@@ -92,3 +92,6 @@ export const SKILLS_LIBRARY: SkillCard[] = [
   { id: 's-r-travel-plan', kind: 'real', title: '出行行程规划', content: '按天生成机票酒店景点组合，支持城市比较', tags: ['生活', '旅行'] },
   { id: 's-r-wellness', kind: 'real', title: '每日作息建议', content: '根据作息目标生成一周可执行的休息 / 运动安排', tags: ['生活', '健康'] },
 ]
+
+/** AI 工坊首页与技能库共享同一份真实技能数据。 */
+export const WORKSHOP_SKILLS = SKILLS_LIBRARY

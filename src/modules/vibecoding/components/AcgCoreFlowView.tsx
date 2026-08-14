@@ -69,8 +69,8 @@ export default function AcgCoreFlowView({
         <div className="flex items-start justify-between gap-5">
           <div>
             <div className="flex items-center gap-2 text-[9px] text-[#161823]/38">
-              <span className="rounded-md bg-blue-50 px-2 py-1 font-medium text-blue-700">ActivitySpec rev.18</span>
-              <span>来自活动模板 v1.0.0</span>
+              <span className="rounded-md bg-blue-50 px-2 py-1 font-medium text-blue-700">ActivitySpec rev.13</span>
+              <span>来自新春会模板 v1.1.0</span>
             </div>
             <h1 className="mt-3 text-[22px] font-semibold tracking-[-0.02em] text-[#161823]">活动主流程内核</h1>
             <p className="mt-1.5 max-w-[680px] text-[11px] leading-5 text-[#161823]/46">

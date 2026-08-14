@@ -2,6 +2,12 @@
 @import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700&display=swap");
 @import "tailwindcss";
 
+@font-face {
+  font-family: "FangFang XianFeng";
+  src: url("/assets/hot-topic-banner/fangfang-xianfeng.ttf") format("truetype");
+  font-display: swap;
+}
+
 /* Register `--edge-angle` so browsers can animate it between keyframes /
    hover states. Without this, changes jump instantly. */
 @property --edge-angle {
@@ -1024,5 +1030,38 @@ html.theme-light .tab-scroll:hover::-webkit-scrollbar-thumb {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+@keyframes creator-matrix-flicker {
+  0%, 100% {
+    opacity: 0.1;
+  }
+  32% {
+    opacity: 0.52;
+  }
+  58% {
+    opacity: 0.19;
+  }
+  76% {
+    opacity: 0.38;
+  }
+}
+
+.creator-matrix-dot {
+  animation-name: creator-matrix-flicker;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-play-state: paused;
+  opacity: 0.1;
+}
+
+.group:hover .creator-matrix-dot,
+.group:focus-visible .creator-matrix-dot {
+  animation-play-state: running;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .creator-matrix-dot {
+    animation: none;
   }
 }

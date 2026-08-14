@@ -1,0 +1,89 @@
+{
+  "brandKitId": "brand.zhuama-ugc-2026-h1",
+  "version": "0.9.0",
+  "sourceFileKey": "kMedatdeXqtzmq0KOeG0qk",
+  "scope": "summer-formal-evidence",
+  "note": "The Figma file spans Spring Festival, Labor Day and Summer. The current archived image group contains verified Summer nodes only; seasonal project visuals are evidence, not permanent brand source assets.",
+  "images": [
+    {
+      "src": "/assets/figma-deliverables/xiahua/water-venue-a.png",
+      "label": "暑期玩水活动签名与 Hero",
+      "page": "暑期UI - 玩水",
+      "nodeId": "7880:28626",
+      "width": 390,
+      "height": 2320,
+      "evidenceRole": "campaign-signature"
+    },
+    {
+      "src": "/assets/figma-deliverables/xiahua/native-activity-home.png",
+      "label": "原生活动入口与轻量署名",
+      "page": "暑期UI - 玩水",
+      "nodeId": "8214:64702",
+      "width": 390,
+      "height": 845,
+      "evidenceRole": "native-entry"
+    },
+    {
+      "src": "/assets/figma-deliverables/xiahua/onboarding-dialog.png",
+      "label": "角色引导与玩法说明层级",
+      "page": "暑期UI - 玩水",
+      "nodeId": "8877:70573",
+      "width": 375,
+      "height": 812,
+      "evidenceRole": "onboarding"
+    },
+    {
+      "src": "/assets/figma-deliverables/xiahua/select-horse.png",
+      "label": "抓马角色选择 Hero",
+      "page": "暑期UI - 美食",
+      "nodeId": "9683:26518",
+      "width": 375,
+      "height": 812,
+      "evidenceRole": "character-selection"
+    },
+    {
+      "src": "/assets/figma-deliverables/xiahua/food-venue-full.png",
+      "label": "夜食线阶段活动签名",
+      "page": "暑期UI - 美食",
+      "nodeId": "9553:15006",
+      "sourceWidth": 375,
+      "sourceHeight": 1898,
+      "exportWidth": 282,
+      "exportHeight": 1424,
+      "evidenceRole": "campaign-application"
+    },
+    {
+      "src": "/assets/figma-deliverables/xiahua/food-ar-venue.png",
+      "label": "角色与夜食场景适配",
+      "page": "暑期UI - 美食",
+      "nodeId": "9697:3607",
+      "width": 375,
+      "height": 812,
+      "evidenceRole": "immersive-surface"
+    },
+    {
+      "src": "/assets/figma-deliverables/xiahua/my-summer-outfits.png",
+      "label": "玩水线收集状态",
+      "page": "暑期UI - 玩水",
+      "nodeId": "8091:73128",
+      "width": 375,
+      "height": 812,
+      "evidenceRole": "gameplay-application"
+    },
+    {
+      "src": "/assets/figma-deliverables/xiahua/my-night-food.png",
+      "label": "夜食线收集状态",
+      "page": "暑期UI - 美食",
+      "nodeId": "9834:33984",
+      "width": 375,
+      "height": 812,
+      "evidenceRole": "gameplay-application"
+    }
+  ],
+  "pending": [
+    "Official naming and rights record for Zhuama",
+    "Independent horse IP Kit with approved source assets",
+    "Spring Festival and Labor Day formal exports",
+    "Douyin Life Service logo lockups and typography source files"
+  ]
+}

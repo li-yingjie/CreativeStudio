@@ -62,6 +62,10 @@ import XiahuaEditPanel, { type XiahuaOverrides, type XiahuaSel } from './XiahuaE
 import XiahuaGameplayWorkspace from './XiahuaGameplayWorkspace'
 import XiahuaEditCanvas from './XiahuaEditCanvas'
 import XiahuaBuildFlow from './XiahuaBuildFlow'
+import AcgGenerationReplay from './AcgGenerationReplay'
+import type { AcgReplayTarget } from './AcgGenerationReplayScript'
+import AcgReplayWorkspace from './AcgReplayWorkspace'
+import type { BuildCard } from './XiahuaChatUI'
 import SummerSurfConversationMock from './SummerSurfConversationMock'
 import {
   LEGACY_XIAHUA_TEMPLATE_TOKEN,
@@ -104,11 +108,20 @@ import GarudaAssetsView, {
 } from './GarudaAssetsView'
 import {
   ACG_NEW_YEAR_ASSET_GROUPS,
+  EVERNIGHT_ASSET_GROUPS,
+  SPRING_GALA_ASSET_GROUPS,
   SUMMER_SURF_ASSET_GROUPS,
   XIAHUA_ASSET_GROUPS,
 } from './ProjectAssetCatalog'
-import ActivityDeliverablesWorkspace from './ActivityDeliverablesWorkspace'
-import { ACG_ACTIVITY_DELIVERABLE_LABELS } from './ActivityDeliverablesData'
+import DocumentedActivityWorkspace from './DocumentedActivityWorkspace'
+import HotTopicBannerWorkspace from './HotTopicBannerWorkspace'
+import {
+  DOCUMENTED_ACTIVITY_CASES,
+  DOCUMENTED_ACTIVITY_OVERVIEW,
+  EVERNIGHT_PROJECT,
+  SPRING_GALA_PROJECT,
+  documentedActivityLabels,
+} from './DocumentedActivityData'
 import AssetEditPanel from './AssetEditPanel'
 import VideoEditor from './VideoEditor'
 import ImageCanvasEditor from './ImageCanvasEditor'
@@ -142,9 +155,8 @@ import { useProductSideNav, type ProductSideNavId } from '@/shared/storage/produ
 import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
 import { useResizableSideNavWidth } from '@/shared/hooks/useResizableSideNavWidth'
 import { AppWindowLinearIcon } from 'master-icon/react/AppWindowLinearIcon'
-import { ColorPaletteLinearIcon } from 'master-icon/react/ColorPaletteLinearIcon'
 import { FolderCodeLinearIcon } from 'master-icon/react/FolderCodeLinearIcon'
-import { PackageLinearIcon } from 'master-icon/react/PackageLinearIcon'
+import { ToolboxLinearIcon } from 'master-icon/react/ToolboxLinearIcon'
 import { InboxLinearIcon } from 'master-icon/react/InboxLinearIcon'
 import { LightningLinearIcon } from 'master-icon/react/LightningLinearIcon'
 import { Notebook01LinearIcon } from 'master-icon/react/Notebook01LinearIcon'
@@ -172,9 +184,15 @@ import MentionPicker, { type MentionItem } from './MentionPicker'
 import TriggerDetailView from './TriggerDetailView'
 import { ChatFormCard, ChatFormStep, ChatFormSubmit } from './ChatFormCard'
 import SkillsLibraryPage from './skills/SkillsLibraryPage'
+import { skills as skillLibraryItems } from './skills/skills-data'
+import InspirationGalleryPage, {
+  type InspirationItem,
+} from './inspiration/InspirationGalleryPage'
 import ProjectLibraryPage from './projects/ProjectLibraryPage'
 import ResourceLibraryPage from './resources/ResourceLibraryPage'
+import { resources as resourceLibraryItems } from './resources/resources-data'
 import AssetCenterPage from './assets/AssetCenterPage'
+import { ASSET_CATALOG } from '../assets/assetCatalog'
 import DataOpsView, { type DataOpsProject } from './DataOpsView'
 import ProposalGoalCard, { type ProposalGoalDraft } from './ProposalGoalCard'
 import ProposalDiagnosisCard from './ProposalDiagnosisCard'
@@ -206,7 +224,6 @@ import {
 } from './ProposalChips'
 import MarkdownView from './MarkdownView'
 import {
-  RESOURCES,
   type Capability,
   type Resource,
 } from './ResourceLibraryData'
@@ -222,9 +239,11 @@ import {
   BASIC_INFO_LABEL,
   DATA_CONFIG_LABEL,
   DATABASE_LABEL,
+  FINISHED_PAGES_LABEL,
   H5_GAMEPLAY_CONFIG_LABEL,
   INTEREST_CARD_CONFIG_LABEL,
   GAMEPLAY_CONFIG_LABEL,
+  getDeliverableIcon,
   getProductPages,
   PAGE_CONFIG_LABEL,
   PERSONA_CONFIG_LABEL,
@@ -314,6 +333,7 @@ import {
   MessageSquarePlus,
   Gamepad2,
   Image as ImageIcon,
+  Lightbulb,
   ShieldCheck,
   BookOpen,
   WandSparkles,
@@ -665,6 +685,15 @@ const MENTION_ICON_PATHS: Record<MentionKind, string[]> = {
     'M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z',
   ],
   resources: ['m16 6 4 14', 'M12 6v14', 'M8 8v12', 'M4 4v16'],
+  knowledge: [
+    'M4 19.5A2.5 2.5 0 0 1 6.5 17H20',
+    'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z',
+  ],
+  inspiration: [
+    'M9 18h6',
+    'M10 22h4',
+    'M8.7 14.8A7 7 0 1 1 15.3 14.8C14.5 15.5 14 16.5 14 18h-4c0-1.5-.5-2.5-1.3-3.2z',
+  ],
   assets: [
     'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z',
     'm3.3 7 8.7 5 8.7-5',
@@ -678,7 +707,15 @@ type MentionKind =
   | 'files'
   | 'triggers'
   | 'resources'
+  | 'knowledge'
+  | 'inspiration'
   | 'assets'
+
+type ComposerMention = {
+  id: string
+  name: string
+  kind: MentionKind
+}
 
 /** Create a small SVG glyph element for a mention kind. Inline SVG so
  *  the pill renders without requiring React to mount a component. */
@@ -725,23 +762,28 @@ function buildMentionPill(
   return span
 }
 
-/** Flatten a project FileNode tree into the flat list the mention
- *  picker consumes. Folders become `foo/` paths so `@src` and
- *  `@src/pages/index.tsx` both end up unique. */
-function flattenFileTreeForMention(
-  nodes: FileNode[],
-  prefix = '',
-): { id: string; name: string }[] {
-  const out: { id: string; name: string }[] = []
-  for (const n of nodes) {
-    const path = prefix + n.name
-    if (n.type === 'file') {
-      out.push({ id: path, name: path })
-    } else if (n.children) {
-      out.push(...flattenFileTreeForMention(n.children, path + '/'))
+/** Rebuild the uncontrolled composer after a platform page temporarily
+ * unmounts it. `chatDraft` carries the readable text while this mention list
+ * carries the stable registry identity needed to reconstruct atomic pills. */
+function restoreComposerContent(
+  editor: HTMLDivElement,
+  draft: string,
+  mentions: readonly ComposerMention[],
+) {
+  editor.replaceChildren()
+  let cursor = 0
+  for (const mention of mentions) {
+    const index = draft.indexOf(mention.name, cursor)
+    if (index < 0) continue
+    if (index > cursor) {
+      editor.append(document.createTextNode(draft.slice(cursor, index)))
     }
+    editor.append(buildMentionPill(mention, mention.kind))
+    cursor = index + mention.name.length
   }
-  return out
+  if (cursor < draft.length) {
+    editor.append(document.createTextNode(draft.slice(cursor)))
+  }
 }
 
 /** Resolve the icon for a product-view tab / dropdown label so the top
@@ -752,6 +794,8 @@ function flattenFileTreeForMention(
  *  extension-based file icon. `parent` is the dropdown row's category;
  *  internal detail labels keep a `知识·` / `技能·` prefix. */
 function productLabelIcon(label: string, parent?: string): LucideIcon {
+  const deliverableIcon = getDeliverableIcon(label)
+  if (deliverableIcon) return deliverableIcon
   if (parent === PAGE_CONFIG_LABEL || label.startsWith(`${PAGE_CONFIG_LABEL}·`))
     return AppWindow
   if (parent === '知识库' || label.startsWith('知识·')) return BookOpen
@@ -969,37 +1013,24 @@ const WORKSHOP_SCHEME_TWO_TOOLBAR_ACTIONS = [
 const STANDALONE_WORKSHOP_MOTION_DURATION = 0.24
 const STANDALONE_WORKSHOP_MOTION_CSS_EASE = 'cubic-bezier(0.32,0.72,0,1)'
 const STANDALONE_WORKSHOP_NAV_ITEMS: SideNavItem[] = [
+  { key: '灵感广场', label: '灵感广场', Icon: Lightbulb },
   { key: 'Skills', label: '技能库', Icon: FolderCodeLinearIcon },
-  { key: '资产中心', label: '资产中心', Icon: ColorPaletteLinearIcon },
-  {
-    key: '资源库',
-    label: '资源库',
-    Icon: InboxLinearIcon,
-    dividerAfter: true,
-  },
-  {
-    key: '项目库',
-    label: '项目库',
-    Icon: PackageLinearIcon,
-    dividerAfter: true,
-  },
+  { key: '资源库', label: '资源库', Icon: ToolboxLinearIcon },
 ]
 function StandaloneWorkshopRail({
   activeNav,
   onExpand,
   onNewProject,
-  onOpenAssetCenter,
+  onOpenInspiration,
   onOpenResourceLibrary,
   onOpenSkills,
-  onOpenCreativeSquare,
 }: {
   activeNav: string | null
   onExpand: () => void
   onNewProject: () => void
-  onOpenAssetCenter: () => void
+  onOpenInspiration: () => void
   onOpenResourceLibrary: () => void
   onOpenSkills: () => void
-  onOpenCreativeSquare: () => void
 }) {
   return (
     <SideNav
@@ -1012,15 +1043,14 @@ function StandaloneWorkshopRail({
       items={STANDALONE_WORKSHOP_NAV_ITEMS}
       activeKey={activeNav}
       onSelect={(key) => {
-        if (key === '资产中心') onOpenAssetCenter()
+        if (key === '灵感广场') onOpenInspiration()
         else if (key === '资源库') onOpenResourceLibrary()
         else if (key === 'Skills') onOpenSkills()
-        else if (key === '项目库') onOpenCreativeSquare()
       }}
       header={
         <>
           <SideNavProductHeader
-            leadingText="开启创作"
+            leadingText="创意工坊"
             bottomGap={0}
             collapsed
             onToggle={onExpand}
@@ -1079,10 +1109,9 @@ function PlatformSidebar({
   setOpenProjects,
   onSwitchProject,
   onCollapseAll,
-  onOpenAssetCenter,
+  onOpenInspiration,
   onOpenResourceLibrary,
   onOpenSkills,
-  onOpenCreativeSquare,
   activeNav,
   activeRoute,
   activeFilePath,
@@ -1121,14 +1150,12 @@ function PlatformSidebar({
   onSwitchProject: (name: string) => void
   /** Collapse every open folder + project down to the root level. */
   onCollapseAll: () => void
+  /** Open the visual inspiration gallery. */
+  onOpenInspiration: () => void
   /** Open the dedicated 资源库 page on the right side. */
   onOpenResourceLibrary: () => void
-  /** Open the cross-project brand, style, gameplay and font asset center. */
-  onOpenAssetCenter: () => void
   /** Open the Skills placeholder page. */
   onOpenSkills: () => void
-  /** Open the 创意广场 placeholder page. */
-  onOpenCreativeSquare: () => void
   /** Open the 数据运营 placeholder page. */
   /** Which top-level nav is currently active — drives the highlight.
    *  除固定几项外，也可以是占位页 label（评测库）。 */
@@ -1231,9 +1258,12 @@ function PlatformSidebar({
     // 粉丝互动机器人 / 探店视频创作助手 / 每日打卡小程序 are hidden —
     // config exists but there's no scripted demo flow for them yet.
     '陶白白 Sensei 分身',
-    XIAHUA_PROJECT,
-    SUMMER_SURF_PROJECT,
     ACG_NEW_YEAR_PROJECT,
+    XIAHUA_PROJECT,
+    SPRING_GALA_PROJECT,
+    EVERNIGHT_PROJECT,
+    SUMMER_SURF_PROJECT,
+    HOT_TOPIC_BANNER_PROJECT,
     '射击小游戏',
     TAROT_INTEREST_CARD_PROJECT,
     // '抖音 AI 工坊设计探索' — 暂隐藏，保留配置与文件树供后续恢复。
@@ -1267,22 +1297,20 @@ function PlatformSidebar({
       .toLocaleLowerCase('zh-CN')
       .includes(normalizedSidebarSearch)
 
-  /* 顶部导航项 — 走统一 SideNav 菜单；分身变体为 技能库/资源库。 */
+  /* 顶部导航项 — 走统一 SideNav 菜单。 */
   const navItems: SideNavItem[] =
     variant === 'avatar'
       ? [
           { key: 'Skills', label: '技能库', Icon: FolderCodeLinearIcon },
-          { key: '资产中心', label: '资产中心', Icon: ColorPaletteLinearIcon },
-          { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
+          { key: '资源库', label: '资源库', Icon: ToolboxLinearIcon },
         ]
       : standaloneWorkshopLayout
         ? STANDALONE_WORKSHOP_NAV_ITEMS
         : [
-            { key: 'Skills', label: 'Skills', Icon: FolderCodeLinearIcon },
-            { key: '资产中心', label: '资产中心', Icon: ColorPaletteLinearIcon },
-            { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
+            { key: '灵感广场', label: '灵感广场', Icon: Lightbulb },
+            { key: 'Skills', label: '技能库', Icon: FolderCodeLinearIcon },
+            { key: '资源库', label: '资源库', Icon: ToolboxLinearIcon },
             // 运营数据已并入创作者中心（顶栏「首页」的数据看板），侧栏不再入口
-            { key: '项目库', label: '项目库', Icon: PackageLinearIcon },
           ]
   const visibleNavItems =
     searchToolbarLayout && normalizedSidebarSearch
@@ -1319,10 +1347,9 @@ function PlatformSidebar({
       items={sideNavItems}
       activeKey={activeNav}
       onSelect={(key) => {
-        if (key === '资产中心') onOpenAssetCenter()
+        if (key === '灵感广场') onOpenInspiration()
         else if (key === '资源库') onOpenResourceLibrary()
         else if (key === 'Skills') onOpenSkills()
-        else if (key === '项目库') onOpenCreativeSquare()
         else onOpenPlaceholder?.(key)
       }}
       header={
@@ -1331,7 +1358,7 @@ function PlatformSidebar({
         standaloneWorkshopLayout ? (
           <>
             <SideNavProductHeader
-              leadingText="开启创作"
+              leadingText="创意工坊"
               bottomGap={0}
               collapsed={collapsed}
               onToggle={() => onCollapseSidebar?.()}
@@ -1403,7 +1430,7 @@ function PlatformSidebar({
                   {...(usesSchemeFourLayout(navVersion)
                     ? {
                         leadingText:
-                          variant === 'avatar' ? '管理分身' : '开启创作',
+                          variant === 'avatar' ? '管理分身' : '创意工坊',
                       }
                     : {
                         icon:
@@ -1944,7 +1971,7 @@ function PlatformSidebar({
                                           tree,
                                           getMiniProgramConfig(name),
                                         )
-                                      : buildProductView(tree, kind),
+                                      : buildProductView(tree, kind, name),
                                   categoryExtras,
                                   name,
                                 ).filter(
@@ -1975,7 +2002,7 @@ function PlatformSidebar({
                                         onOpenProduct(name, n.name)
                                       }
                                       showDirChildren={false}
-                                      // 四级分类：大多数模块只「选中查看」；活动资产必须
+                                      // 四级分类：大多数模块只「选中查看」；交付物必须
                                       // 在左侧展开到具体 Lynx/H5/资源位交付件，项目文件则
                                       // 继续作为开发者源码文件夹。
                                       // 只在产物树一级判定：项目文件=文件夹，其余=模块；
@@ -2016,7 +2043,9 @@ function PlatformSidebar({
                                                     `/${AVATAR_TRIGGER_LABEL}/`,
                                                   )
                                                 ? LightningLinearIcon
-                                                : PRODUCT_CATEGORY_ICONS[n.name]
+                                                : path.includes(`/${ACTIVITY_ASSETS_LABEL}/`)
+                                                  ? getDeliverableIcon(n.name)
+                                                  : PRODUCT_CATEGORY_ICONS[n.name]
                                       }
                                       // 关键节点（产品树一级）上彩色图标底板；子级叶子
                                       // 保持单色（depth 从 1 起算）。
@@ -2098,6 +2127,7 @@ const AVATAR_PROJECT = '陶白白 Sensei 分身'
 const TAROT_INTEREST_CARD_PROJECT = '塔罗兴趣卡'
 const ACG_NEW_YEAR_PROJECT = '2026 抖音 ACG 新春会'
 const SUMMER_SURF_PROJECT = '夏日冲浪 · 顺风顺水'
+const HOT_TOPIC_BANNER_PROJECT = '生服热点 Banner'
 /** 已经做完并上线的那一版活动 —— 侧栏里的成品样板，也是模板的来源。 */
 const XIAHUA_PROJECT = '夯爆了 已上线'
 /** 首页传策划文档进来时新建的活动 —— 0→1 全过程在它身上从零跑一遍。 */
@@ -2108,6 +2138,8 @@ const XIAHUA_CLONE_PROJECT = TEMPLATE_CLONE_PROJECT
 /** 这两个项目共用「这夏夯爆了」这套活动预览/搭建机制（成品、新建）。 */
 const isXiahuaFamily = (t: string) =>
   t === XIAHUA_PROJECT || t === XIAHUA_BUILD_PROJECT
+const isMarketingFinishedPageTab = (label?: string) =>
+  label === FINISHED_PAGES_LABEL || label === '预览'
 /** 「数据库」节点的表结构 —— 全部从当前玩法配置推导：卡池、档位、任务、
  *  抽卡参数改了行就跟着变，不存在一份写死的终态副本。 */
 const xiahuaDatabaseContent = (
@@ -2281,6 +2313,7 @@ type PlatformSurface =
   | 'assets'
   | 'resources'
   | 'skills'
+  | 'inspiration'
   | 'projects'
   | 'data'
   | `placeholder:${string}`
@@ -2350,6 +2383,11 @@ export default function VibeCodingPage({
   const initialAssetCenterFromQuery = useRef(
     typeof window !== 'undefined' &&
       new URLSearchParams(window.location.search).get('page') === 'assets',
+  ).current
+  const initialPlatformPageFromQuery = useRef(
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('page')
+      : null,
   ).current
   // Standalone build — no router; the top-left back button is a no-op.
   const handleBack = useCallback(() => {
@@ -2484,15 +2522,22 @@ export default function VibeCodingPage({
   >([])
   const [chatCleared, setChatCleared] = useState(false)
   const [chatDraft, setChatDraft] = useState('')
+  const [composerMentions, setComposerMentions] = useState<ComposerMention[]>([])
   /* Composer is a contentEditable div so @mention picks render as
    * inline pills. `chatInputRef` points at the div; `chatDraft` mirrors
    * the div's plain-text content via its onInput. External setters
    * (clear-on-send, programmatic fill) go through `setComposerText`
    * so the DOM and state stay in lockstep. */
   const chatInputRef = useRef<HTMLDivElement>(null)
-  const setComposerText = (next: string) => {
-    if (chatInputRef.current) chatInputRef.current.innerText = next
+  const setComposerText = (
+    next: string,
+    mentions: readonly ComposerMention[] = [],
+  ) => {
+    if (chatInputRef.current) {
+      restoreComposerContent(chatInputRef.current, next, mentions)
+    }
     setChatDraft(next)
+    setComposerMentions(mentions.map((mention) => ({ ...mention })))
   }
   /* @mention picker — opens when the user types "@" in the composer.
    * `anchor` positions the popover above the input; clearing it closes
@@ -2551,6 +2596,7 @@ export default function VibeCodingPage({
   type SessionChatSnapshot = {
     sentMessages: SentMessage[]
     chatDraft: string
+    composerMentions: ComposerMention[]
     chatCleared: boolean
     needsFlowActive: boolean
     needsThinkingVisible: boolean
@@ -2610,14 +2656,19 @@ export default function VibeCodingPage({
   const [platformSurface, setPlatformSurface] = useState<PlatformSurface>(() => {
     if (typeof window === 'undefined') return 'home'
     const params = new URLSearchParams(window.location.search)
-    if (params.get('page') === 'resources') return 'resources'
-    if (params.get('page') === 'assets') return 'assets'
+    const page = params.get('page')
+    if (page === 'assets') {
+      const asset = ASSET_CATALOG.find((item) => item.id === params.get('asset'))
+      return asset?.category === 'brand' || asset?.category === 'ip' ? 'skills' : 'resources'
+    }
+    if (page === 'resources' || page === 'skills' || page === 'inspiration' || page === 'projects' || page === 'data') return page
     return params.get('project') ? 'workspace' : 'home'
   })
   const platformHomeOpen = platformSurface === 'home'
   const platformAssetCenterOpen = platformSurface === 'assets'
   const platformResourceLibraryOpen = platformSurface === 'resources'
   const platformSkillsOpen = platformSurface === 'skills'
+  const platformInspirationOpen = platformSurface === 'inspiration'
   const platformCreativeSquareOpen = platformSurface === 'projects'
   const platformDataOpsOpen = platformSurface === 'data'
   const platformPlaceholderPage = platformSurface.startsWith('placeholder:')
@@ -2650,6 +2701,10 @@ export default function VibeCodingPage({
   )
   const setPlatformSkillsOpen = useCallback(
     (open: boolean) => setExclusiveSurface('skills', open),
+    [setExclusiveSurface],
+  )
+  const setPlatformInspirationOpen = useCallback(
+    (open: boolean) => setExclusiveSurface('inspiration', open),
     [setExclusiveSurface],
   )
   const setPlatformCreativeSquareOpen = useCallback(
@@ -3157,6 +3212,7 @@ export default function VibeCodingPage({
       setPlatformAssetCenterOpen(false)
       setPlatformResourceLibraryOpen(false)
       setPlatformSkillsOpen(false)
+      setPlatformInspirationOpen(false)
       setPlatformCreativeSquareOpen(false)
       setPlatformDataOpsOpen(false)
       initProjectDefaults(XIAHUA_CLONE_PROJECT, false, 'marketing-h5', false)
@@ -3353,6 +3409,9 @@ export default function VibeCodingPage({
     sentMessages: sentMessages.map((message) => ({ ...message })),
     // Scripted replay typing is presentation state, not a user-authored draft.
     chatDraft: xiahuaTyping ? '' : chatDraft,
+    composerMentions: xiahuaTyping
+      ? []
+      : composerMentions.map((mention) => ({ ...mention })),
     chatCleared,
     needsFlowActive,
     needsThinkingVisible,
@@ -3412,7 +3471,7 @@ export default function VibeCodingPage({
 
   const applySessionSnapshot = (snap: SessionChatSnapshot) => {
     setSentMessages(snap.sentMessages.map((message) => ({ ...message })))
-    setComposerText(snap.chatDraft)
+    setComposerText(snap.chatDraft, snap.composerMentions ?? [])
     setChatCleared(snap.chatCleared)
     setNeedsFlowActive(snap.needsFlowActive)
     setNeedsThinkingVisible(snap.needsThinkingVisible)
@@ -3479,6 +3538,18 @@ export default function VibeCodingPage({
     projectKind: ProjectKind = kindOf(name),
   ) => {
     const k = projectKind
+    if (name === HOT_TOPIC_BANNER_PROJECT)
+      return [
+        { label: ASSET_LIBRARY_LABEL, closable: false },
+        { label: PROJECT_DOCUMENT_LABEL, closable: false },
+      ]
+    if (k === 'marketing-h5')
+      return [
+        { label: FINISHED_PAGES_LABEL, closable: false },
+        { label: PROJECT_DOCUMENT_LABEL, closable: false },
+        { label: H5_GAMEPLAY_CONFIG_LABEL, closable: false },
+        { label: ASSET_LIBRARY_LABEL, closable: false },
+      ]
     if (k === 'web-game')
       return [
         { label: '预览', closable: false },
@@ -3516,6 +3587,12 @@ export default function VibeCodingPage({
     sessionChatsRef.current.set(name, new Map())
     setSessions([{ id: sid, name: '新会话' }])
     setActiveSessionId(sid)
+    // The composer is an uncontrolled contentEditable node. Reset both its
+    // DOM and mirrored state when entering a project for the first time so a
+    // staged asset/capability reference from the previous project cannot leak
+    // into this project's request.
+    setComposerText('')
+    setMentionAnchor(null)
     setChatCleared(true)
     setSentMessages([])
     setNeedsFlowActive(false)
@@ -3589,6 +3666,10 @@ export default function VibeCodingPage({
    *  initialises kind-specific defaults on first visit. */
   const openProject = (name: string) => {
     pauseXiahuaReplayForProjectChange(name)
+    // A secondary page may queue a reference immediately before a project
+    // switch. Cancel that hand-off before snapshot/restore so it can never
+    // land in the newly active project's composer.
+    setPendingMention(null)
     // 活动预览/搭建状态是这一族项目共用的：切回「已上线」那版时归位，免得它
     // 顶着复刻换过的皮，或者停在新建活动搭到一半的状态。
     if (
@@ -3665,10 +3746,36 @@ export default function VibeCodingPage({
         setXiahuaBuildFocused(true)
       }
     }
-    const focusAcgPreview = name === ACG_NEW_YEAR_PROJECT
-    const focusPreview = (tabs: { label: string; closable: boolean }[]) => {
-      const previewIndex = tabs.findIndex((tab) => tab.label === '预览')
-      setActivePreviewTab(previewIndex >= 0 ? previewIndex : 0)
+    const focusMarketingPages =
+      kindOf(name) === 'marketing-h5' && name !== HOT_TOPIC_BANNER_PROJECT
+    const focusProjectEntry = (
+      tabs: { label: string; closable: boolean }[],
+      target: '预览' | typeof FINISHED_PAGES_LABEL,
+    ) => {
+      const compatibleTabs = target === FINISHED_PAGES_LABEL
+        ? [
+            ...defaultTabsForKind(name, 'marketing-h5'),
+            ...tabs.filter((tab) => ![
+              '预览',
+              DOCUMENTED_ACTIVITY_OVERVIEW,
+              FINISHED_PAGES_LABEL,
+              PROJECT_DOCUMENT_LABEL,
+              H5_GAMEPLAY_CONFIG_LABEL,
+              ASSET_LIBRARY_LABEL,
+            ].includes(tab.label)),
+          ]
+        : tabs
+      const existingIndex = compatibleTabs.findIndex((tab) => tab.label === target)
+      const nextTabs =
+        existingIndex >= 0
+          ? compatibleTabs
+          : [
+              { label: target, closable: false },
+              ...compatibleTabs,
+            ]
+      setOpenTabs(nextTabs)
+      const targetIndex = nextTabs.findIndex((tab) => tab.label === target)
+      setActivePreviewTab(targetIndex >= 0 ? targetIndex : 0)
       setPreviewCollapsed(false)
       setEditPanelOpen(false)
       setCanvasEditOpen(false)
@@ -3680,12 +3787,17 @@ export default function VibeCodingPage({
       !platformAssetCenterOpen &&
       !platformResourceLibraryOpen &&
       !platformSkillsOpen &&
+      !platformInspirationOpen &&
       !platformCreativeSquareOpen &&
       !platformDataOpsOpen &&
       platformPlaceholderPage === null
     ) {
-      // 抖音 ACG 项目行是预览快捷入口；重复点击也要从任意产物页回到预览。
-      if (focusAcgPreview) focusPreview(openTabs)
+      // 项目名是稳定的成品入口；项目内其他工具页仍通过子节点进入。
+      if (focusMarketingPages) focusProjectEntry(openTabs, FINISHED_PAGES_LABEL)
+      else if (name === HOT_TOPIC_BANNER_PROJECT) {
+        const index = openTabs.findIndex((tab) => tab.label === ASSET_LIBRARY_LABEL)
+        setActivePreviewTab(index >= 0 ? index : 0)
+      }
       return
     }
     if (projectTitle && !platformHomeOpen) {
@@ -3698,17 +3810,23 @@ export default function VibeCodingPage({
     setPlatformAssetCenterOpen(false)
     setPlatformResourceLibraryOpen(false)
     setPlatformSkillsOpen(false)
+    setPlatformInspirationOpen(false)
     setPlatformCreativeSquareOpen(false)
     setPlatformDataOpsOpen(false)
     setPlatformPlaceholderPage(null)
     const prior = projectChatsRef.current.get(name)
     if (prior) {
       applyProjectSnapshot(name, prior)
-      if (focusAcgPreview) focusPreview(prior.openTabs)
+      if (focusMarketingPages) focusProjectEntry(prior.openTabs, FINISHED_PAGES_LABEL)
       return
     }
     initProjectDefaults(name)
-    if (focusAcgPreview) focusPreview(defaultTabsForKind(name))
+    if (focusMarketingPages)
+      focusProjectEntry(defaultTabsForKind(name), FINISHED_PAGES_LABEL)
+    else if (name === HOT_TOPIC_BANNER_PROJECT) {
+      setOpenTabs(defaultTabsForKind(name))
+      setActivePreviewTab(0)
+    }
   }
 
   /* Avatar 变体开机即进入分身项目（跳过工坊 home），只执行一次。 */
@@ -3976,6 +4094,15 @@ export default function VibeCodingPage({
   const [xiahuaGameplay, setXiahuaGameplay] = useState<XiahuaGameplay>(
     () => readXiahuaEditStorage().gameplay,
   )
+  /** ACG uses an independent asset-driven compile replay. It must never share
+   * state or mutations with the legacy Xiahua 0→1 replay. */
+  const [acgReplayToken, setAcgReplayToken] = useState(0)
+  const [acgReplayPlaying, setAcgReplayPlaying] = useState(false)
+  const [acgReplaySurface, setAcgReplaySurface] = useState<{
+    target: AcgReplayTarget
+    stepId: string
+    pathIds: string[]
+  }>({ target: 'delivery-overview', stepId: 'acg-complete', pathIds: [] })
   const persistXiahuaEdits = useCallback(() => {
     try {
       window.localStorage.setItem(
@@ -4947,7 +5074,7 @@ export default function VibeCodingPage({
       {
         name: 'deliverables',
         type: 'dir',
-        children: ACG_ACTIVITY_DELIVERABLE_LABELS.map((name) => ({
+        children: documentedActivityLabels(ACG_NEW_YEAR_PROJECT).map((name) => ({
           name,
           type: 'file' as const,
         })),
@@ -4967,6 +5094,71 @@ export default function VibeCodingPage({
         name: 'config',
         type: 'dir',
         children: [{ name: 'h5.config.json', type: 'file' }],
+      },
+    ],
+    [SPRING_GALA_PROJECT]: [
+      {
+        name: 'deliverables',
+        type: 'dir',
+        children: documentedActivityLabels(SPRING_GALA_PROJECT).map((name) => ({ name, type: 'file' as const })),
+      },
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '2026抖音春晚活动方案.md', type: 'file' }],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: 'lynx-main.webp', type: 'file' },
+          { name: 'h5-lottery.webp', type: 'file' },
+          { name: 'blessing-card.webp', type: 'file' },
+          { name: 'open-screen.webp', type: 'file' },
+          { name: 'live-tab.webp', type: 'file' },
+          { name: 'admin-vertical.webp', type: 'file' },
+          { name: 'business-poster.webp', type: 'file' },
+        ],
+      },
+      {
+        name: 'gameplay',
+        type: 'dir',
+        children: [
+          { name: 'lottery.config.json', type: 'file' },
+          { name: 'blessing-card.config.json', type: 'file' },
+          { name: 'program-schedule.schema.json', type: 'file' },
+        ],
+      },
+    ],
+    [EVERNIGHT_PROJECT]: [
+      {
+        name: 'deliverables',
+        type: 'dir',
+        children: documentedActivityLabels(EVERNIGHT_PROJECT).map((name) => ({ name, type: 'file' as const })),
+      },
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '永夜星河抽卡活动方案.md', type: 'file' }],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: 'main-venue.webp', type: 'file' },
+          { name: 'card-collection.webp', type: 'file' },
+          { name: 'share-card.webp', type: 'file' },
+        ],
+      },
+      {
+        name: 'gameplay',
+        type: 'dir',
+        children: [
+          { name: 'task-rewards.config.json', type: 'file' },
+          { name: 'draw-wallet.schema.json', type: 'file' },
+          { name: 'card-pool.schema.json', type: 'file' },
+          { name: 'share-card.schema.json', type: 'file' },
+        ],
       },
     ],
     // Marketing King 里的夏日冲浪活动：这里的树与右侧 H5 预览共用同一套
@@ -5097,9 +5289,39 @@ export default function VibeCodingPage({
         ],
       },
     ],
+    [HOT_TOPIC_BANNER_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [
+          { name: '热点话题Banner标准.md', type: 'file' },
+          { name: '文案与字号门禁.md', type: 'file' },
+          { name: '发布校验清单.md', type: 'file' },
+        ],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: '行业热点Showcase-1170x330.png', type: 'file' },
+          { name: '灰色模板.png', type: 'file' },
+          { name: '黄色模板.png', type: 'file' },
+          { name: '蓝色模板.png', type: 'file' },
+          { name: '绿色模板.png', type: 'file' },
+          { name: '抖音生活服务Logo.png', type: 'file' },
+          { name: '方方先锋体.ttf', type: 'file' },
+          { name: 'banner.layers.json', type: 'file' },
+        ],
+      },
+    ],
     // 这夏夯爆了 — 夏日集卡 H5。文件树对应真实产物：一个自包含的活动
     // 页组件 + 30 个素材切图 + 玩法/数据配置。
     [XIAHUA_PROJECT]: [
+      {
+        name: 'deliverables',
+        type: 'dir',
+        children: documentedActivityLabels(XIAHUA_PROJECT).map((name) => ({ name, type: 'file' as const })),
+      },
       {
         name: 'docs',
         type: 'dir',
@@ -5406,7 +5628,7 @@ export default function VibeCodingPage({
               tree,
               getMiniProgramConfig(projectTitle),
             )
-          : buildProductView(tree, kind),
+          : buildProductView(tree, kind, projectTitle),
       categoryExtras,
       projectTitle,
     )
@@ -5517,7 +5739,13 @@ export default function VibeCodingPage({
         setActivePreviewTab(existing)
         return
       }
-      const next = [...openTabs, { label, closable: label !== '预览' }]
+      const next = [
+        ...openTabs,
+        {
+          label,
+          closable: label !== '预览' && label !== FINISHED_PAGES_LABEL,
+        },
+      ]
       setOpenTabs(next)
       setActivePreviewTab(next.length - 1)
     },
@@ -5544,7 +5772,7 @@ export default function VibeCodingPage({
           : xiahuaArtifactPhase === 'gameplay'
             ? H5_GAMEPLAY_CONFIG_LABEL
             : xiahuaArtifactPhase && xiahuaArtifactPhase !== 'none'
-              ? '预览'
+              ? FINISHED_PAGES_LABEL
               : null
     const pendingLabel = xiahuaPendingTabRef.current
     if (!phaseLabel) return
@@ -5788,15 +6016,23 @@ export default function VibeCodingPage({
   // the resource library — avoids the home-then-flash-to-library
   // hiccup that an effect-based hydration would produce.
   const [platformResourceLibraryInitialTab, setPlatformResourceLibraryInitialTab] =
-    useState<'toolbox' | 'knowledge'>('toolbox')
+    useState<'toolbox' | 'knowledge'>(() => {
+      if (typeof window === 'undefined') return 'toolbox'
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('resourceTab') === 'knowledge') return 'knowledge'
+      if (params.get('page') !== 'assets') return 'toolbox'
+      const asset = ASSET_CATALOG.find((item) => item.id === params.get('asset'))
+      return asset && asset.category !== 'brand' && asset.category !== 'ip' ? 'knowledge' : 'toolbox'
+    })
   /** 分身变体导航里的建设中页面（评测库）由 platformSurface 存 label。 */
   useEffect(() => {
     if (!standaloneWorkshopLayout) return
-    if (initialResourceLibraryFromQuery || initialAssetCenterFromQuery) return
+    if (initialResourceLibraryFromQuery || initialAssetCenterFromQuery || initialPlatformPageFromQuery) return
     const frame = requestAnimationFrame(() => {
       setPlatformAssetCenterOpen(false)
       setPlatformResourceLibraryOpen(false)
       setPlatformSkillsOpen(false)
+      setPlatformInspirationOpen(false)
       setPlatformCreativeSquareOpen(false)
       setPlatformDataOpsOpen(false)
       setPlatformPlaceholderPage(null)
@@ -5805,6 +6041,7 @@ export default function VibeCodingPage({
     return () => cancelAnimationFrame(frame)
   }, [
     initialAssetCenterFromQuery,
+    initialPlatformPageFromQuery,
     initialResourceLibraryFromQuery,
     setPlatformAssetCenterOpen,
     setPlatformCreativeSquareOpen,
@@ -5812,6 +6049,7 @@ export default function VibeCodingPage({
     setPlatformHomeOpen,
     setPlatformPlaceholderPage,
     setPlatformResourceLibraryOpen,
+    setPlatformInspirationOpen,
     setPlatformSkillsOpen,
     standaloneWorkshopLayout,
   ])
@@ -5821,6 +6059,7 @@ export default function VibeCodingPage({
     platformAssetCenterOpen ||
     platformResourceLibraryOpen ||
     platformSkillsOpen ||
+    platformInspirationOpen ||
     platformCreativeSquareOpen ||
     platformDataOpsOpen ||
     platformPlaceholderPage !== null
@@ -5846,6 +6085,11 @@ export default function VibeCodingPage({
     setPlatformResourceLibraryOpen(true)
   }
 
+  const openInspirationPage = () => {
+    setMentionAnchor(null)
+    setPlatformInspirationOpen(true)
+  }
+
   const openKnowledgeLibraryPage = () => {
     setPlatformResourceLibraryInitialTab('knowledge')
     setPlatformHomeOpen(false)
@@ -5857,15 +6101,81 @@ export default function VibeCodingPage({
     setPlatformResourceLibraryOpen(true)
   }
 
-  const openAssetCenterPage = (returnTarget?: AssetCenterReturnTarget) => {
-    setAssetCenterReturnTarget(returnTarget ?? null)
-    setPlatformHomeOpen(false)
-    setPlatformResourceLibraryOpen(false)
-    setPlatformSkillsOpen(false)
-    setPlatformCreativeSquareOpen(false)
-    setPlatformDataOpsOpen(false)
-    setPlatformPlaceholderPage(null)
-    setPlatformAssetCenterOpen(true)
+  const handleAcgReplayTarget = (
+    target: AcgReplayTarget,
+    stepId: string,
+    pathIds: string[],
+  ) => {
+    setAcgReplaySurface({ target, stepId, pathIds })
+    if (acgReplayToken === 0) return
+
+    const documentTab = { label: PROJECT_DOCUMENT_LABEL, closable: false }
+    const gameplayTab = { label: H5_GAMEPLAY_CONFIG_LABEL, closable: false }
+    const venueTab = { label: 'H5 · 游戏分会场长页', closable: false }
+    const assetTab = { label: ASSET_LIBRARY_LABEL, closable: false }
+    const finishedPagesTab = { label: FINISHED_PAGES_LABEL, closable: false }
+    const tabs =
+      target === 'delivery-overview'
+        ? [finishedPagesTab, documentTab, gameplayTab, venueTab, assetTab]
+        : target === 'game-runtime'
+          ? [documentTab, gameplayTab, venueTab]
+          : target === 'activity-blueprint'
+            ? [documentTab, gameplayTab]
+            : [documentTab]
+    const activeLabel =
+      target === 'delivery-overview'
+        ? FINISHED_PAGES_LABEL
+        : target === 'game-runtime'
+          ? venueTab.label
+          : target === 'activity-blueprint'
+            ? H5_GAMEPLAY_CONFIG_LABEL
+            : PROJECT_DOCUMENT_LABEL
+
+    setOpenTabs(tabs)
+    setActivePreviewTab(tabs.findIndex((tab) => tab.label === activeLabel))
+  }
+
+  const handleAcgReplayCard = (card: BuildCard) => {
+    const asset = card.id ? ASSET_CATALOG.find((item) => item.id === card.id) : undefined
+    if (asset) {
+      const params = new URLSearchParams(window.location.search)
+      if (asset.category === 'brand' || asset.category === 'ip') {
+        params.set('page', 'skills')
+        params.set('skill', asset.id)
+        params.delete('resourceTab')
+        params.delete('knowledge')
+        window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
+        setPlatformSkillsOpen(true)
+      } else {
+        params.set('page', 'resources')
+        params.set('resourceTab', 'knowledge')
+        params.set('knowledge', `knowledge:${asset.id}`)
+        params.delete('skill')
+        window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
+        setPlatformResourceLibraryInitialTab('knowledge')
+        setPlatformResourceLibraryOpen(true)
+      }
+      return
+    }
+    if (card.id?.startsWith('deliverable:')) {
+      const deliverableId = card.id.slice('deliverable:'.length)
+      const deliverable = DOCUMENTED_ACTIVITY_CASES[
+        ACG_NEW_YEAR_PROJECT
+      ]?.deliverables.find((item) => item.id === deliverableId)
+      if (deliverable) openFileInTab(deliverable.label)
+      return
+    }
+    if (card.id === 'activity-spec') {
+      focusPreviewTab(PROJECT_DOCUMENT_LABEL)
+      return
+    }
+    if (card.id === 'activity-brief') {
+      focusPreviewTab(PROJECT_DOCUMENT_LABEL)
+      return
+    }
+    if (card.id === 'delivery-overview' || card.id === 'delivery-matrix') {
+      focusPreviewTab(FINISHED_PAGES_LABEL)
+    }
   }
 
   const returnFromAssetCenter = () => {
@@ -5877,9 +6187,30 @@ export default function VibeCodingPage({
     }
   }
 
-  const useAssetFromCenter = (item: { id: string; name: string }) => {
-    setPendingMention({ id: item.id, name: item.name, kind: 'assets' })
+  const useAssetFromCenter = (item: {
+    id: string
+    name: string
+    version: string
+  }) => {
+    setPendingMention({
+      id: `${item.id}@${item.version}`,
+      name: `${item.name} · v${item.version}`,
+      kind: 'assets',
+    })
     returnFromAssetCenter()
+  }
+
+  const useResourceFromLibrary = (item: {
+    id: string
+    name: string
+    kind: string
+  }) => {
+    setPendingMention({
+      id: `${item.kind}:${item.id}`,
+      name: item.name,
+      kind: 'resources',
+    })
+    setPlatformResourceLibraryOpen(false)
   }
 
   /** Query-string deep link opens the library or asset center on
@@ -5890,62 +6221,46 @@ export default function VibeCodingPage({
     const sync = () => {
       const params = new URLSearchParams(window.location.search)
       const page = params.get('page')
-      const resourcesOpen =
-        page === 'resources' && !standaloneWorkshopLayout
-      const assetsOpen = page === 'assets' && !standaloneWorkshopLayout
-      setPlatformResourceLibraryOpen(resourcesOpen)
-      setPlatformAssetCenterOpen(assetsOpen)
-      if (resourcesOpen || assetsOpen) {
-        setPlatformHomeOpen(false)
-        setPlatformSkillsOpen(false)
-        setPlatformCreativeSquareOpen(false)
-        setPlatformDataOpsOpen(false)
-        setPlatformPlaceholderPage(null)
-        if (resourcesOpen) setPlatformResourceLibraryInitialTab('toolbox')
-      } else {
-        // Browser Back from a deep-linked library returns to the workspace
-        // instead of leaving the old secondary surface mounted under a URL
-        // that no longer names it.
-        setPlatformAssetCenterOpen(false)
-        setPlatformResourceLibraryOpen(false)
+      let pageSurface: PlatformSurface | null =
+        page === 'resources' || page === 'skills' || page === 'inspiration' || page === 'projects' || page === 'data'
+          ? page
+          : null
+      if (page === 'assets') {
+        const asset = ASSET_CATALOG.find((item) => item.id === params.get('asset'))
+        if (asset?.category === 'brand' || asset?.category === 'ip') {
+          params.set('page', 'skills')
+          params.set('skill', asset.id)
+          pageSurface = 'skills'
+        } else {
+          params.set('page', 'resources')
+          params.set('resourceTab', 'knowledge')
+          if (asset) params.set('knowledge', `knowledge:${asset.id}`)
+          pageSurface = 'resources'
+        }
+        params.delete('asset')
+        params.delete('assetCategory')
+        window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
       }
+      if (pageSurface === 'resources') setPlatformResourceLibraryInitialTab(params.get('resourceTab') === 'knowledge' ? 'knowledge' : 'toolbox')
+      setPlatformSurface(pageSurface ?? (params.get('project') ? 'workspace' : 'home'))
+
+      const requestedProject = params.get('project')
+      if (
+        !pageSurface &&
+        requestedProject &&
+        Object.prototype.hasOwnProperty.call(PROJECT_KINDS, requestedProject) &&
+        requestedProject !== projectTitle
+      ) openProject(requestedProject)
     }
     sync()
     window.addEventListener('popstate', sync)
     return () => window.removeEventListener('popstate', sync)
+    // `sync` reads the active project when Back/Forward fires. Rebinding on
+    // every workspace state update would turn a browser event into navigation churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     standaloneWorkshopLayout,
-    setPlatformAssetCenterOpen,
-    setPlatformCreativeSquareOpen,
-    setPlatformDataOpsOpen,
-    setPlatformHomeOpen,
-    setPlatformPlaceholderPage,
-    setPlatformResourceLibraryOpen,
-    setPlatformSkillsOpen,
   ])
-
-  /** Mirror the secondary page state back to the URL so the page is
-   *  shareable / refresh-safe. Uses replaceState to avoid spurious
-   *  history entries. */
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    if (platformAssetCenterOpen) {
-      params.set('page', 'assets')
-    } else if (platformResourceLibraryOpen) {
-      params.set('page', 'resources')
-    } else {
-      params.delete('page')
-    }
-    const qs = params.toString()
-    const next =
-      window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash
-    if (
-      next !==
-      window.location.pathname + window.location.search + window.location.hash
-    ) {
-      window.history.replaceState(null, '', next)
-    }
-  }, [platformAssetCenterOpen, platformResourceLibraryOpen])
   const openPlatformSkillsPage = () => {
     setPlatformHomeOpen(false)
     setPlatformAssetCenterOpen(false)
@@ -5955,14 +6270,15 @@ export default function VibeCodingPage({
     setPlatformPlaceholderPage(null)
     setPlatformSkillsOpen(true)
   }
-  const openPlatformCreativeSquarePage = () => {
-    setPlatformHomeOpen(false)
-    setPlatformAssetCenterOpen(false)
-    setPlatformResourceLibraryOpen(false)
-    setPlatformSkillsOpen(false)
-    setPlatformDataOpsOpen(false)
-    setPlatformPlaceholderPage(null)
-    setPlatformCreativeSquareOpen(true)
+
+  const useInspiration = (item: InspirationItem, prompt: string) => {
+    setChatDraft(prompt)
+    setPendingMention({
+      id: `inspiration:${item.slug}:${item.title}`,
+      name: `灵感 · ${item.title}`,
+      kind: 'inspiration',
+    })
+    setPlatformInspirationOpen(false)
   }
   /** 分身变体：打开建设中的评测库占位页。 */
   const openPlatformPlaceholderPage = (label: string) => {
@@ -7560,12 +7876,30 @@ export default function VibeCodingPage({
     ['h5', 'children-day', 'acg-new-year'].includes(
       new URLSearchParams(window.location.search).get('project') ?? '',
     )
+  const projectFromQuery =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('project')
+      : null
+  const knownProjectFromQuery =
+    projectFromQuery &&
+    Object.prototype.hasOwnProperty.call(PROJECT_KINDS, projectFromQuery)
+      ? projectFromQuery
+      : null
+  const contextProjectFromQuery =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('contextProject')
+      : null
+  const knownContextProject =
+    contextProjectFromQuery &&
+    Object.prototype.hasOwnProperty.call(PROJECT_KINDS, contextProjectFromQuery)
+      ? contextProjectFromQuery
+      : null
   const [projectTitle, setProjectTitle] = useState(
     wantsProposalProject
       ? '沪上火锅·五一种草提案'
-      : wantsAcgNewYearProject
+      : knownContextProject ?? knownProjectFromQuery ?? (wantsAcgNewYearProject
         ? '2026 抖音 ACG 新春会'
-        : WORKSHOP_DEFAULT_PROJECT,
+        : WORKSHOP_DEFAULT_PROJECT),
   )
   // Latest active project — read inside async generation callbacks to avoid
   // seeding the wrong project's preview if the user navigated away.
@@ -7574,6 +7908,94 @@ export default function VibeCodingPage({
     projectTitleRef.current = projectTitle
     activatePublishProject(projectTitle)
   }, [activatePublishProject, projectTitle])
+
+  useEffect(() => {
+    const projectKind =
+      PROJECT_KINDS[projectTitle] ??
+      createdProjectKinds[projectTitle] ??
+      'mini-program'
+    if (projectKind !== 'marketing-h5') return
+    setOpenTabs((tabs) => {
+      if (projectTitle === HOT_TOPIC_BANNER_PROJECT) {
+        const defaultTabs = [
+          { label: ASSET_LIBRARY_LABEL, closable: false },
+          { label: PROJECT_DOCUMENT_LABEL, closable: false },
+        ]
+        const cleaned = tabs.filter(
+          (tab) =>
+            tab.label !== FINISHED_PAGES_LABEL &&
+            tab.label !== '预览' &&
+            tab.label !== DOCUMENTED_ACTIVITY_OVERVIEW &&
+            tab.label !== PROJECT_DOCUMENT_LABEL &&
+            tab.label !== H5_GAMEPLAY_CONFIG_LABEL &&
+            tab.label !== ASSET_LIBRARY_LABEL,
+        )
+        return [...defaultTabs, ...cleaned]
+      }
+      const defaultTabs = [
+        { label: FINISHED_PAGES_LABEL, closable: false },
+        { label: PROJECT_DOCUMENT_LABEL, closable: false },
+        { label: H5_GAMEPLAY_CONFIG_LABEL, closable: false },
+        { label: ASSET_LIBRARY_LABEL, closable: false },
+      ]
+      const cleaned = tabs.filter(
+        (tab) =>
+          tab.label !== FINISHED_PAGES_LABEL &&
+          tab.label !== '预览' &&
+          tab.label !== DOCUMENTED_ACTIVITY_OVERVIEW &&
+          tab.label !== PROJECT_DOCUMENT_LABEL &&
+          tab.label !== H5_GAMEPLAY_CONFIG_LABEL &&
+          tab.label !== ASSET_LIBRARY_LABEL,
+      )
+      return [...defaultTabs, ...cleaned]
+    })
+    setActivePreviewTab(0)
+  }, [createdProjectKinds, projectTitle])
+
+  /** Keep every platform surface and project refresh-safe. Asset detail owns
+   * its own `asset` parameter; this effect preserves it while the center is open. */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const pageBySurface: Partial<Record<PlatformSurface, string>> = {
+      assets: 'assets',
+      resources: 'resources',
+      skills: 'skills',
+      inspiration: 'inspiration',
+      projects: 'projects',
+      data: 'data',
+    }
+    const page = pageBySurface[platformSurface]
+
+    if (platformSurface === 'workspace') {
+      params.delete('page')
+      params.delete('asset')
+      params.delete('assetCategory')
+      params.delete('resourceTab')
+      params.delete('contextProject')
+      params.set('project', projectTitle)
+    } else if (page) {
+      params.set('page', page)
+      params.set('contextProject', projectTitle)
+      params.delete('project')
+      if (platformSurface !== 'assets') {
+        params.delete('asset')
+        params.delete('assetCategory')
+      }
+      if (platformSurface !== 'resources') params.delete('resourceTab')
+    } else if (platformSurface === 'home') {
+      params.delete('page')
+      params.delete('project')
+      params.delete('asset')
+      params.delete('assetCategory')
+      params.delete('resourceTab')
+      params.delete('contextProject')
+    }
+
+    const query = params.toString()
+    const next = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`
+    if (next !== current) window.history.replaceState(window.history.state, '', next)
+  }, [platformSurface, projectTitle])
 
   useEffect(() => {
     if (gameStep === 'idle') return
@@ -7702,14 +8124,39 @@ export default function VibeCodingPage({
 
   // The active AI 分身 tree is derived from live trigger state rather than
   // copied into projectTrees in an effect, so session restore stays atomic.
+  const acgReplayTree = useMemo(() => {
+    const tree = projectTrees[ACG_NEW_YEAR_PROJECT]
+    if (!tree || acgReplayToken === 0) return tree
+    const generatedLabels =
+      acgReplaySurface.target === 'delivery-overview'
+        ? documentedActivityLabels(ACG_NEW_YEAR_PROJECT)
+        : acgReplaySurface.target === 'game-runtime'
+          ? ['H5 · 游戏分会场长页']
+          : []
+    return tree.map<FileNode>((node) =>
+      node.type === 'dir' && node.name === 'deliverables'
+        ? {
+            ...node,
+            children: generatedLabels.map((name) => ({
+              name,
+              type: 'file' as const,
+            })),
+          }
+        : node,
+    )
+  }, [acgReplaySurface.target, acgReplayToken, projectTrees])
   const projectTreeFor = (name: string): FileNode[] | undefined =>
     name === projectTitle && kindOf(name) === 'ai-avatar'
       ? aiPersonaFileTree
-      : projectTrees[name]
-  const projectTreesForSidebar =
+      : name === ACG_NEW_YEAR_PROJECT && acgReplayToken > 0
+        ? acgReplayTree
+        : projectTrees[name]
+  const projectTreesForSidebar: Record<string, FileNode[]> =
     kindOf(projectTitle) === 'ai-avatar'
       ? { ...projectTrees, [projectTitle]: aiPersonaFileTree }
-      : projectTrees
+      : acgReplayToken > 0 && acgReplayTree
+        ? { ...projectTrees, [ACG_NEW_YEAR_PROJECT]: acgReplayTree }
+        : projectTrees
 
   /* Open a product leaf in the context of *its owning project*. The sidebar
    * lists every project's product view, so a click may target a project
@@ -7793,7 +8240,12 @@ export default function VibeCodingPage({
       // focusing 预览 while that same click is still opening 素材库/配置页。
       if (hasPendingProduct) return
       setActivePreviewTab((current) => {
-        const index = openTabs.findIndex((tab) => tab.label === '预览')
+        const defaultLabel = projectTitle === HOT_TOPIC_BANNER_PROJECT
+          ? ASSET_LIBRARY_LABEL
+          : kindOf(projectTitle) === 'marketing-h5'
+            ? FINISHED_PAGES_LABEL
+            : '预览'
+        const index = openTabs.findIndex((tab) => tab.label === defaultLabel)
         return index >= 0 ? index : current
       })
     })
@@ -7838,7 +8290,7 @@ export default function VibeCodingPage({
     activeProjectKind === 'marketing-h5' &&
     // 这夏夯爆了预览自包含玩法，不接 ACG 的画布编辑链路。
     !isXiahuaFamily(projectTitle) &&
-    openTabs[activePreviewTab]?.label === '预览'
+    isMarketingFinishedPageTab(openTabs[activePreviewTab]?.label)
   const gameCanvasModeOpen =
     canvasEditOpen &&
     activeProjectKind === 'web-game' &&
@@ -7848,7 +8300,7 @@ export default function VibeCodingPage({
   const xiahuaEditMode =
     editPanelOpen &&
     isXiahuaFamily(projectTitle) &&
-    openTabs[activePreviewTab]?.label === '预览'
+    isMarketingFinishedPageTab(openTabs[activePreviewTab]?.label)
   const projectSidebarHidden =
     sidebarFullyHidden || immersiveCanvasModeOpen || xiahuaEditMode
   const effectiveSidebarWidth =
@@ -8092,7 +8544,13 @@ export default function VibeCodingPage({
         }
         editing={editPanelOpen}
         selected={h5Selected}
-        onSelect={setH5Selected}
+        onSelect={(selection) => {
+          setH5Selected(selection)
+          if (selection) {
+            setCanvasEditOpen(false)
+            setEditPanelOpen(true)
+          }
+        }}
       />
     </PhoneMockup>
   ) : projectTitle === TAROT_INTEREST_CARD_PROJECT ? (
@@ -8144,37 +8602,69 @@ export default function VibeCodingPage({
     </PhoneMockup>
   )
 
-  /* Mention-picker data — derived every render so it stays in sync with
-   * the active project's file tree + triggers. Skills stay static since
-   * they come from the platform catalog, not per-project state. */
-  const activeFileTree = projectTreeFor(projectTitle) ?? fileTree
-  const mentionSkills: MentionItem[] = CAPABILITY_OPTIONS.map((c) => ({
-    id: c.id,
-    name: c.title,
-    tag: c.kind === 'skill' ? 'Skill' : 'Knowledge',
+  /* @ 面板与技能库/资源库共用同一份真实目录数据，避免入口里再维护一套
+   * 看似完整、实际不可调用的 mock。Brand Kit / IP 和组件 / 玩法知识在
+   * 这里补充视觉与能力摘要，只改变呈现，不改变资源身份。 */
+  const mentionSkills: MentionItem[] = skillLibraryItems.map((item) => ({
+    id: item.id,
+    name: item.name,
+    tag: item.status,
+    summary: item.description,
+    category: item.category,
+    group: item.group,
+    variant:
+      item.category === 'Brand Kit'
+        ? 'brand-kit'
+        : item.category === 'IP 资产'
+          ? 'ip-kit'
+          : 'workflow',
+    preview:
+      item.sourceAsset?.thumbnail ??
+      item.sourceAsset?.preview ??
+      item.sourceAsset?.visualReferences?.[0]?.src,
+    accent: item.sourceAsset?.accent,
+    highlights: item.sourceAsset
+      ? [...item.sourceAsset.coverage, ...item.sourceAsset.tags].slice(0, 5)
+      : item.invocation
+        ? [`@${item.invocation}`, item.category, item.status]
+        : [item.category, item.status],
   }))
-  const mentionTools: MentionItem[] = [
-    { id: 'tool-search', name: '抖音搜索' },
-    { id: 'tool-image', name: '图片生成' },
-    { id: 'tool-publish', name: '发布助手' },
-    { id: 'tool-rag', name: 'RAG 检索' },
-  ]
-  const mentionFiles: MentionItem[] = flattenFileTreeForMention(activeFileTree)
-  /* Triggers tab lists preset CONDITIONS (the events the platform can
-   * hook on), not user-configured trigger instances. Picking one here
-   * is how the user scaffolds a new trigger via @ reference. */
-  const mentionTriggers: MentionItem[] = Object.values(TRIGGER_PRESETS).map(
-    (p) => ({
-      id: p.event.id,
-      name: p.event.label,
-      tag: p.event.scene,
-    }),
-  )
-  const mentionResources: MentionItem[] = RESOURCES.map((r) => ({
-    id: r.id,
-    name: r.name,
-    tag: r.secondaryCategory,
-  }))
+  const mentionTools: MentionItem[] = resourceLibraryItems
+    .filter((item) => item.tab === 'toolbox')
+    .map((item) => ({
+      id: item.id,
+      name: item.title,
+      tag: item.state,
+      summary: item.summary,
+      category: item.category,
+      group: item.group,
+      variant: 'tool',
+      highlights: [item.group, item.category, item.state ?? '可调用'],
+    }))
+  const mentionKnowledge: MentionItem[] = resourceLibraryItems
+    .filter((item) => item.tab === 'knowledge')
+    .map((item) => ({
+      id: item.id,
+      name: item.title,
+      tag: item.state,
+      summary: item.summary,
+      category: item.category,
+      group: item.group,
+      variant:
+        item.sourceAsset?.category === 'page-component'
+          ? 'component-library'
+          : item.sourceAsset?.category === 'gameplay'
+            ? 'gameplay-library'
+            : 'knowledge',
+      preview:
+        item.sourceAsset?.thumbnail ??
+        item.sourceAsset?.preview ??
+        item.sourceAsset?.visualReferences?.[0]?.src,
+      accent: item.sourceAsset?.accent,
+      highlights: item.sourceAsset
+        ? [...item.sourceAsset.coverage, ...item.sourceAsset.tags].slice(0, 5)
+        : [item.group, item.category, item.state ?? '有来源'],
+    }))
 
   /** Replace the most recent `@…` token at the caret with a non-editable
    *  pill node, then place the caret after an inserted trailing space.
@@ -8189,7 +8679,11 @@ export default function VibeCodingPage({
       // Fallback: append at end if no active selection.
       const pill = buildMentionPill(item, kind)
       editor.append(pill, document.createTextNode(' '))
-      setChatDraft(editor.innerText)
+      setChatDraft(editor.textContent ?? '')
+      setComposerMentions((current) => [
+        ...current,
+        { id: item.id, name: item.name, kind },
+      ])
       setMentionAnchor(null)
       return
     }
@@ -8219,7 +8713,11 @@ export default function VibeCodingPage({
     range.setEndAfter(space)
     sel.removeAllRanges()
     sel.addRange(range)
-    setChatDraft(editor.innerText)
+    setChatDraft(editor.textContent ?? '')
+    setComposerMentions((current) => [
+      ...current,
+      { id: item.id, name: item.name, kind },
+    ])
     setMentionAnchor(null)
   }
 
@@ -8259,6 +8757,9 @@ export default function VibeCodingPage({
     if (platformSecondaryPageOpen || platformHomeOpen) return
     const editor = chatInputRef.current
     if (!editor) return
+    if (!editor.childNodes.length && chatDraft) {
+      restoreComposerContent(editor, chatDraft, composerMentions)
+    }
     editor.focus()
     const last = editor.lastChild
     const tail = last?.textContent ?? ''
@@ -8278,9 +8779,37 @@ export default function VibeCodingPage({
       sel.removeAllRanges()
       sel.addRange(range)
     }
-    setChatDraft(editor.innerText)
+    setChatDraft(editor.textContent ?? '')
+    setComposerMentions((current) => [
+      ...current,
+      { ...pendingMention },
+    ])
     setPendingMention(null)
-  }, [pendingMention, platformSecondaryPageOpen, platformHomeOpen])
+  }, [
+    chatDraft,
+    composerMentions,
+    pendingMention,
+    platformSecondaryPageOpen,
+    platformHomeOpen,
+  ])
+
+  // Secondary pages replace the workspace rather than merely covering it,
+  // so the contentEditable composer is recreated when the user returns.
+  // Rehydrate its visible text and structured registry mentions exactly once
+  // per mount; otherwise a draft silently disappears after browsing assets.
+  useEffect(() => {
+    if (platformSecondaryPageOpen || platformHomeOpen) return
+    const editor = chatInputRef.current
+    if (!editor || editor.childNodes.length || !chatDraft) return
+    restoreComposerContent(editor, chatDraft, composerMentions)
+  }, [
+    activeSessionId,
+    chatDraft,
+    composerMentions,
+    platformSecondaryPageOpen,
+    platformHomeOpen,
+    projectTitle,
+  ])
 
   const [editingProjectTitle, setEditingProjectTitle] = useState(false)
   /* Which session row (if any) is in inline-edit mode inside the dropdown. */
@@ -8293,7 +8822,7 @@ export default function VibeCodingPage({
    * key → a display label instead of mutating the key. */
   const [projectDisplayNames, setProjectDisplayNames] = useState<
     Record<string, string>
-  >({})
+  >({ [XIAHUA_PROJECT]: '这夏夯爆了' })
   const displayProjectName = (name: string) =>
     projectDisplayNames[name]?.trim() || name
   const renameProject = (name: string, next: string) =>
@@ -8397,12 +8926,12 @@ export default function VibeCodingPage({
     { kind: 'cmd', text: '  Local:   http://localhost:10086/' },
     { kind: 'info', text: '  Network: http://192.168.1.42:10086/' },
   ]
-  const platformSidebarActiveNav = platformAssetCenterOpen
-    ? '资产中心'
-    : platformResourceLibraryOpen
+  const platformSidebarActiveNav = platformResourceLibraryOpen
       ? '资源库'
     : platformSkillsOpen
       ? 'Skills'
+      : platformInspirationOpen
+        ? '灵感广场'
       : platformCreativeSquareOpen
         ? '项目库'
         : platformDataOpsOpen
@@ -8442,10 +8971,9 @@ export default function VibeCodingPage({
         setExpandedDirs(new Set())
         setPlatformOpenProjects(new Set())
       }}
-      onOpenAssetCenter={openAssetCenterPage}
+      onOpenInspiration={openInspirationPage}
       onOpenResourceLibrary={openResourceLibraryPage}
       onOpenSkills={openPlatformSkillsPage}
-      onOpenCreativeSquare={openPlatformCreativeSquarePage}
       activeNav={platformSidebarActiveNav}
       activeRoute={previewRoute}
       activeFilePath={openTabs[activePreviewTab]?.label ?? null}
@@ -8571,10 +9099,9 @@ export default function VibeCodingPage({
                     activeNav={platformSidebarActiveNav}
                     onExpand={() => setSidebarCollapsed(false)}
                     onNewProject={handleNewProject}
-                    onOpenAssetCenter={openAssetCenterPage}
+                    onOpenInspiration={openInspirationPage}
                     onOpenResourceLibrary={openResourceLibraryPage}
                     onOpenSkills={openPlatformSkillsPage}
-                    onOpenCreativeSquare={openPlatformCreativeSquarePage}
                   />
                 </div>
               </>
@@ -8926,7 +9453,7 @@ export default function VibeCodingPage({
                     className="flex min-w-0 items-center gap-1 rounded text-[12px] leading-5 text-[var(--color-ink)]/70 transition-colors hover:text-[var(--color-ink)]"
                   >
                     <span className="truncate text-[var(--color-ink)]/55">
-                      {projectTitle}
+                      {displayProjectName(projectTitle)}
                     </span>
                     <span className="shrink-0 text-[var(--color-ink)]/30">
                       /
@@ -9039,6 +9566,40 @@ export default function VibeCodingPage({
                     <Play size={13} strokeWidth={1.8} />
                   </button>
                 )}
+                {projectTitle === ACG_NEW_YEAR_PROJECT && (
+                  <button
+                    type="button"
+                    title={
+                      acgReplayPlaying
+                        ? '正在回放资产驱动生成过程'
+                        : '查看资产驱动生成回放'
+                    }
+                    aria-label="查看 ACG 资产驱动生成回放"
+                    aria-pressed={acgReplayToken > 0}
+                    onClick={() => {
+                      setPreviewCollapsed(false)
+                      setOpenTabs([
+                        {
+                          label: PROJECT_DOCUMENT_LABEL,
+                          closable: false,
+                        },
+                      ])
+                      setActivePreviewTab(0)
+                      setAcgReplayToken((token) => token + 1)
+                    }}
+                    className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                      acgReplayToken > 0
+                        ? 'bg-[var(--fill-hover)] text-[var(--color-ink)]/85'
+                        : 'text-[var(--color-ink)]/55 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
+                    }`}
+                  >
+                    <Play
+                      size={13}
+                      strokeWidth={1.8}
+                      className={acgReplayPlaying ? 'animate-pulse' : ''}
+                    />
+                  </button>
+                )}
                 {/* When the X panel is already expanded, its own header
                    carries the collapse button — no need to duplicate it
                    here. The chat-header button only surfaces when the
@@ -9111,11 +9672,19 @@ export default function VibeCodingPage({
                 proposalStep === 'idle' ? (
                   // 这夏夯爆了：空会话固定回放「生成过程」记录（模拟平台从策划
                   // 文档到可玩活动的对话链路）——它就是这个项目的历史。
+                  projectTitle === ACG_NEW_YEAR_PROJECT ||
                   isXiahuaFamily(projectTitle) ||
                   buildFlowHere ||
                   projectTitle === SUMMER_SURF_PROJECT ? (
                     <div className="space-y-6">
-                      {buildFlowHere ? (
+                      {projectTitle === ACG_NEW_YEAR_PROJECT ? (
+                        <AcgGenerationReplay
+                          replayToken={acgReplayToken}
+                          onPlaybackChange={setAcgReplayPlaying}
+                          onTarget={handleAcgReplayTarget}
+                          onOpenCard={handleAcgReplayCard}
+                        />
+                      ) : buildFlowHere ? (
                         <XiahuaBuildFlow
                           step={xiahuaBuildStep}
                           path={xiahuaPath}
@@ -11141,8 +11710,24 @@ export default function VibeCodingPage({
                         data-placeholder="请输入，问我任何问题"
                         onInput={(e) => {
                           const el = e.currentTarget as HTMLDivElement
-                          const val = el.innerText
+                          const val = el.textContent ?? ''
                           setChatDraft(val)
+                          const activeMentionIds = new Set(
+                            Array.from(
+                              el.querySelectorAll<HTMLElement>(
+                                '[data-mention-id]',
+                              ),
+                            )
+                              .map((node) =>
+                                node.getAttribute('data-mention-id'),
+                              )
+                              .filter((id): id is string => Boolean(id)),
+                          )
+                          setComposerMentions((current) =>
+                            current.filter((mention) =>
+                              activeMentionIds.has(mention.id),
+                            ),
+                          )
                           // Detect "@" at the caret — check the character
                           // before the caret's position in the active text node.
                           const sel = window.getSelection()
@@ -11205,13 +11790,6 @@ export default function VibeCodingPage({
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
-                          className="flex h-8 items-center gap-1 rounded-full px-3 text-[13px] font-medium text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-                        >
-                          Auto
-                          <ChevronDown size={14} strokeWidth={1.8} />
-                        </button>
-                        <button
-                          type="button"
                           aria-label="发送"
                           disabled={!chatDraft.trim()}
                           onClick={() => sendChat()}
@@ -11247,12 +11825,15 @@ export default function VibeCodingPage({
             anchor={mentionAnchor}
             skills={mentionSkills}
             tools={mentionTools}
-            files={mentionFiles}
-            triggers={mentionTriggers}
-            resources={mentionResources}
+            knowledge={mentionKnowledge}
             onInsert={insertMention}
             onClose={() => setMentionAnchor(null)}
-            onOpenResourceLibrary={openResourceLibraryPage}
+            onBrowseAll={(tab) => {
+              setMentionAnchor(null)
+              if (tab === 'skills') openPlatformSkillsPage()
+              else if (tab === 'knowledge') openKnowledgeLibraryPage()
+              else openResourceLibraryPage()
+            }}
           />
           {/* Right-edge drag handle — only in platform layout for now. Sits
                straddling the chat/preview boundary with a 4px touch area. */}
@@ -11745,6 +12326,7 @@ export default function VibeCodingPage({
             setDraft={setHomeDraft}
             onSubmit={submitFromHome}
             onOpenResourceLibrary={openResourceLibraryPage}
+            onOpenProject={openProject}
           />
         )}
 
@@ -11767,7 +12349,10 @@ export default function VibeCodingPage({
 
         {isPlatform && platformResourceLibraryOpen && (
           <div className="flex min-h-0 flex-1 overflow-hidden">
-            <ResourceLibraryPage initialTab={platformResourceLibraryInitialTab} />
+            <ResourceLibraryPage
+              initialTab={platformResourceLibraryInitialTab}
+              onUseResource={useResourceFromLibrary}
+            />
           </div>
         )}
 
@@ -11782,6 +12367,17 @@ export default function VibeCodingPage({
           </motion.div>
         )}
 
+        {isPlatform && platformInspirationOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="flex min-h-0 flex-1 overflow-hidden"
+          >
+            <InspirationGalleryPage onUse={useInspiration} />
+          </motion.div>
+        )}
+
         {isPlatform && platformCreativeSquareOpen && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -11789,7 +12385,9 @@ export default function VibeCodingPage({
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="flex min-h-0 flex-1 overflow-hidden"
           >
-            <ProjectLibraryPage />
+            <ProjectLibraryPage
+              onOpenProject={(project) => openProject(project.projectName ?? project.title)}
+            />
           </motion.div>
         )}
 
@@ -11962,7 +12560,7 @@ export default function VibeCodingPage({
                                     tree,
                                     getMiniProgramConfig(projectTitle),
                                   )
-                                : buildProductView(tree, kind)
+                                : buildProductView(tree, kind, projectTitle)
                           // The + menu mirrors the active project's top-level objects
                           // (exactly the rows shown in the left project list) — one
                           // row each, no expansion of a category's children. Clicking
@@ -12086,10 +12684,12 @@ export default function VibeCodingPage({
                           const lbl = openTabs[activePreviewTab]?.label ?? ''
                           const isPageTab =
                             isPageCategory(lbl) && isMultiChildCategory(lbl)
+                          const isMarketingPageSurface =
+                            activeProjectKind === 'marketing-h5' &&
+                            isMarketingFinishedPageTab(lbl)
                           const isUnifiedEditablePreview =
-                            lbl === '预览' &&
-                            (activeProjectKind === 'marketing-h5' ||
-                              activeProjectKind === 'web-game')
+                            isMarketingPageSurface ||
+                            (lbl === '预览' && activeProjectKind === 'web-game')
                           if (isUnifiedEditablePreview) {
                             const isGamePreview =
                               activeProjectKind === 'web-game'
@@ -12110,7 +12710,7 @@ export default function VibeCodingPage({
                                   aria-label="选择活动页面"
                                   aria-haspopup="menu"
                                   aria-expanded={xiahuaPageMenuOpen}
-                                  title={`${XIAHUA_PROJECT} · ${xiahuaCurrentPage.label}`}
+                                  title={`${displayProjectName(projectTitle)} · ${xiahuaCurrentPage.label}`}
                                   onClick={() =>
                                     setXiahuaPageMenuOpen((open) => !open)
                                   }
@@ -12498,10 +13098,7 @@ export default function VibeCodingPage({
                                 onClick={() => setMiniAppKey((k) => k + 1)}
                               />
                               {!xiahuaArtifactView &&
-                                !(
-                                  activeProjectKind === 'marketing-h5' &&
-                                  lbl === '预览'
-                                ) && (
+                                !isMarketingPageSurface && (
                                   <ToolbarAction
                                     icon={Smartphone}
                                     label="真机预览"
@@ -12522,8 +13119,8 @@ export default function VibeCodingPage({
                               )}
                               {xiahuaArtifactView ? null : isXiahuaFamily(
                                   projectTitle,
-                                ) && lbl === '预览' ? null : projectTitle ===
-                                  SUMMER_SURF_PROJECT && lbl === '预览' ? (
+                                ) && isMarketingPageSurface ? null : projectTitle ===
+                                  SUMMER_SURF_PROJECT && isMarketingPageSurface ? (
                                 <ToolbarAction
                                   icon={Pencil}
                                   label="编辑"
@@ -12534,8 +13131,7 @@ export default function VibeCodingPage({
                                     else setEditPanelOpen(true)
                                   }}
                                 />
-                              ) : activeProjectKind === 'marketing-h5' &&
-                                lbl === '预览' ? (
+                              ) : isMarketingPageSurface ? (
                                 <div
                                   role="group"
                                   aria-label="编辑模式"
@@ -12607,6 +13203,15 @@ export default function VibeCodingPage({
                                   activeProjectKind === 'marketing-h5' ||
                                   undefined
                                 }
+                                onPointerDownCapture={() => {
+                                  if (
+                                    activeProjectKind === 'marketing-h5' &&
+                                    !editPanelOpen
+                                  ) {
+                                    setCanvasEditOpen(false)
+                                    setEditPanelOpen(true)
+                                  }
+                                }}
                                 className={`relative flex min-h-0 flex-1 overflow-auto ${
                     activeProjectKind === 'web-app' || activeProjectKind === 'web-game' ? '' : 'pt-6 pb-12'
                   }`}
@@ -12983,6 +13588,24 @@ export default function VibeCodingPage({
                         const renderTab = (label: string) => {
                           if (label === DIFF_TAB_LABEL) return diffView
                           if (
+                            projectTitle === ACG_NEW_YEAR_PROJECT &&
+                            acgReplayToken > 0 &&
+                            ((label === PROJECT_DOCUMENT_LABEL &&
+                              (acgReplaySurface.target === 'source-understanding' ||
+                                acgReplaySurface.target === 'activity-strategy' ||
+                                acgReplaySurface.target === 'asset-binding')) ||
+                              (label === H5_GAMEPLAY_CONFIG_LABEL &&
+                                acgReplaySurface.target === 'activity-blueprint'))
+                          ) {
+                            return (
+                              <AcgReplayWorkspace
+                                target={acgReplaySurface.target}
+                                stepId={acgReplaySurface.stepId}
+                                pathIds={acgReplaySurface.pathIds}
+                              />
+                            )
+                          }
+                          if (
                             activeProjectKind === 'marketing-h5' &&
                             label === PAGE_CONFIG_LABEL
                           ) {
@@ -13345,24 +13968,27 @@ export default function VibeCodingPage({
                           // marketing-h5 product-view sections.
                           if (activeProjectKind === 'marketing-h5') {
                             if (
+                              projectTitle === HOT_TOPIC_BANNER_PROJECT &&
+                              label === ASSET_LIBRARY_LABEL
+                            ) {
+                              return <HotTopicBannerWorkspace />
+                            }
+                            if (
                               projectTitle === ACG_NEW_YEAR_PROJECT &&
                               label === H5_GAMEPLAY_CONFIG_LABEL
                             ) {
                               return <AcgGameplayComponentsWorkspace />
                             }
+                            const documentedActivityCase = DOCUMENTED_ACTIVITY_CASES[projectTitle]
                             if (
-                              projectTitle === ACG_NEW_YEAR_PROJECT &&
-                              ACG_ACTIVITY_DELIVERABLE_LABELS.some(
-                                (deliverableLabel) =>
-                                  deliverableLabel === label,
-                              )
+                              documentedActivityCase &&
+                              documentedActivityLabels(projectTitle).includes(label)
                             ) {
                               return (
-                                <ActivityDeliverablesWorkspace
+                                <DocumentedActivityWorkspace
+                                  activityCase={documentedActivityCase}
                                   activeLabel={label}
-                                  onOpen={(deliverableLabel) =>
-                                    openFileInTab(deliverableLabel)
-                                  }
+                                  onOpen={(deliverableLabel) => openFileInTab(deliverableLabel)}
                                 />
                               )
                             }
@@ -13379,12 +14005,7 @@ export default function VibeCodingPage({
                                   onOpenAssetLibrary={() =>
                                     focusPreviewTab(ASSET_LIBRARY_LABEL)
                                   }
-                                  onOpenAssetCenter={() =>
-                                    openAssetCenterPage({
-                                      projectName: projectTitle,
-                                      tabLabel: H5_GAMEPLAY_CONFIG_LABEL,
-                                    })
-                                  }
+                                  onOpenAssetCenter={openKnowledgeLibraryPage}
                                   onOpenKnowledge={openKnowledgeLibraryPage}
                                 />
                               )
@@ -13449,7 +14070,11 @@ export default function VibeCodingPage({
                               return (
                                 <GarudaAssetsView
                                   groups={
-                                    projectTitle === SUMMER_SURF_PROJECT
+                                    projectTitle === SPRING_GALA_PROJECT
+                                      ? SPRING_GALA_ASSET_GROUPS
+                                      : projectTitle === EVERNIGHT_PROJECT
+                                        ? EVERNIGHT_ASSET_GROUPS
+                                        : projectTitle === SUMMER_SURF_PROJECT
                                       ? SUMMER_SURF_ASSET_GROUPS
                                       : isXiahuaFamily(projectTitle)
                                         ? XIAHUA_ASSET_GROUPS
@@ -13559,7 +14184,7 @@ export default function VibeCodingPage({
                           activeProjectKind === 'marketing-h5' &&
                           !isXiahuaFamily(projectTitle) &&
                           projectTitle !== SUMMER_SURF_PROJECT &&
-                          activeLabel === '预览' &&
+                          isMarketingFinishedPageTab(activeLabel) &&
                           canvasEditOpen
                         ) {
                           return (
@@ -13779,7 +14404,10 @@ export default function VibeCodingPage({
                             </>
                           )
                         }
-                        return activeLabel === '预览'
+                        return activeLabel === '预览' ||
+                          (activeProjectKind === 'marketing-h5' &&
+                            activeLabel === FINISHED_PAGES_LABEL &&
+                            !DOCUMENTED_ACTIVITY_CASES[projectTitle])
                           ? productView
                           : activeLabel
                             ? renderTab(activeLabel)
@@ -13869,7 +14497,9 @@ export default function VibeCodingPage({
                     )}
 
                     {/* zoom control — only on the 预览 surface; scales the preview */}
-                    {openTabs[activePreviewTab]?.label === '预览' &&
+                    {(openTabs[activePreviewTab]?.label === '预览' ||
+                      (openTabs[activePreviewTab]?.label === FINISHED_PAGES_LABEL &&
+                        !DOCUMENTED_ACTIVITY_CASES[projectTitle])) &&
                       !immersiveCanvasModeOpen &&
                       !xiahuaEditMode &&
                       !xiahuaArtifactView && (

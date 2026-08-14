@@ -14,7 +14,9 @@
 import type { LucideIcon } from '@/shared/icons'
 /* 产物树图标统一走 MasterIcon（与左侧栏菜单同一套字形）。 */
 import { Analytics01LinearIcon } from 'master-icon/react/Analytics01LinearIcon'
+import { AppWindowLinearIcon } from 'master-icon/react/AppWindowLinearIcon'
 import { BotLinearIcon } from 'master-icon/react/BotLinearIcon'
+import { BrowserLinearIcon } from 'master-icon/react/BrowserLinearIcon'
 import { BulbLinearIcon } from 'master-icon/react/BulbLinearIcon'
 import { Database01LinearIcon } from 'master-icon/react/Database01LinearIcon'
 import { EyeOpenLinearIcon } from 'master-icon/react/EyeOpenLinearIcon'
@@ -66,7 +68,8 @@ export const GAMEPLAY_CONFIG_LABEL = '玩法配置'
 export const TRIGGER_CONFIG_LABEL = '触发器配置'
 export const ASSET_LIBRARY_LABEL = '素材库'
 export const DATABASE_LABEL = '数据库'
-export const ACTIVITY_ASSETS_LABEL = '活动资产'
+export const ACTIVITY_ASSETS_LABEL = '交付物'
+export const FINISHED_PAGES_LABEL = '页面'
 export const H5_GAMEPLAY_CONFIG_LABEL = '玩法配置'
 export const GAME_GAMEPLAY_CONFIG_LABEL = '游戏玩法配置'
 export const INTEREST_CARD_CONFIG_LABEL = '兴趣卡配置'
@@ -123,6 +126,7 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   [PAGE_CONFIG_LABEL]: LayoutGrid1LinearIcon,
   // The primary 预览 tab — content varies by kind, one shared icon.
   预览: EyeOpenLinearIcon,
+  [FINISHED_PAGES_LABEL]: AppWindowLinearIcon,
   素材: Image01LinearIcon,
   [ASSET_LIBRARY_LABEL]: Image01LinearIcon,
   [ACTIVITY_ASSETS_LABEL]: LayoutGrid1LinearIcon,
@@ -156,6 +160,21 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   报告: FileTextLinearIcon,
   看板: Analytics01LinearIcon,
   // page leaves (children of 界面) are iconed by path in the consumer.
+}
+
+/** 项目交付目录里的叶子不是“文件名”，而是不同运行 Surface / 物料类型。
+ *  统一在这里解析，保证侧栏、顶部 Tab 和下拉目录使用同一套类型图标。 */
+export function getDeliverableIcon(label: string): LucideIcon | undefined {
+  const normalized = label.trim()
+  if (normalized === FINISHED_PAGES_LABEL) return AppWindowLinearIcon
+  if (normalized === '交付总览') return LayoutGrid1LinearIcon
+  if (/^Lynx\b/i.test(normalized) || /^(原生|直播间)\s*·/.test(normalized))
+    return AppWindowLinearIcon
+  if (/^H5\b/i.test(normalized)) return BrowserLinearIcon
+  if (/文档|方案|复盘/.test(normalized)) return FileTextLinearIcon
+  if (/资源位|玩法视觉|节目单|活动战报|开屏|线下屏|商业中心|海报|Banner|长图|横卡|图片|画布/i.test(normalized))
+    return Image01LinearIcon
+  return undefined
 }
 
 /** 关键节点的彩色图标底板。数据库 / 小程序配置 / 记忆跟随统一导航
@@ -299,6 +318,7 @@ function opsProposalView(tree: FileNode[]): FileNode[] {
 export function buildProductView(
   tree: FileNode[],
   kind: ProjectKind,
+  projectName?: string,
 ): FileNode[] {
   switch (kind) {
     case 'mini-program':
@@ -308,22 +328,16 @@ export function buildProductView(
     case 'web-game':
       return gameView(tree)
     case 'marketing-h5': {
-      // 营销活动按运营真实对象组织：活动资产 / 项目文档 / 玩法配置 /
-      // 素材库。数据库与代码仍存在于开发者入口，不占用运营一级导航。
-      const deliverables = childrenAt(tree, ['deliverables'])
+      // 项目名本身就是成品入口，不再在项目树里重复一层「交付物」。
+      // 页面从项目名直接进入成品画布；图片、资源位和传播物料统一在素材库管理。
+      void tree
+      if (projectName === '生服热点 Banner') {
+        return [
+          { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
+          { name: ASSET_LIBRARY_LABEL, type: 'file' },
+        ]
+      }
       return [
-        {
-          name: ACTIVITY_ASSETS_LABEL,
-          type: 'dir',
-          children: deliverables.length > 0
-            ? deliverables
-            : [
-                { name: '交付总览', type: 'file' },
-                { name: 'Lynx · 活动主会场', type: 'file' },
-                { name: 'H5 · 互动页面', type: 'file' },
-                { name: '资源位 · 活动 Banner', type: 'file' },
-              ],
-        },
         { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
         { name: H5_GAMEPLAY_CONFIG_LABEL, type: 'file' },
         { name: ASSET_LIBRARY_LABEL, type: 'file' },

@@ -19,10 +19,14 @@ import {
  * 回放（XiahuaBuildFlow）和静态记录（XiahuaGenerationLog）共用这一套。 */
 
 export interface BuildCard {
+  /** Optional stable target used by newer replays to open an asset or deliverable. */
+  id?: string
   badge: string
   title: string
   desc: string
   type: 'doc' | 'wire' | 'play' | 'list' | 'asset' | 'app'
+  /** Real source preview. Existing Xiahua cards omit it and keep their original icon. */
+  preview?: string
 }
 
 const ICON = 'size-4 shrink-0'
@@ -84,9 +88,15 @@ export function ArtifactCard({ card, onOpen }: { card: BuildCard; onOpen?: () =>
         onOpen ? 'cursor-pointer transition-colors hover:border-[#357ef8]/50 hover:bg-[#357ef8]/[0.03]' : ''
       }`}
     >
-      <span className={`flex size-[38px] shrink-0 items-center justify-center rounded-[8px] ${tone}`}>
-        <Icon className="size-[18px]" />
-      </span>
+      {card.preview ? (
+        <span className="h-[38px] w-[58px] shrink-0 overflow-hidden rounded-[8px] bg-[var(--color-surface-1)]">
+          <img src={card.preview} alt="" className="size-full object-cover" />
+        </span>
+      ) : (
+        <span className={`flex size-[38px] shrink-0 items-center justify-center rounded-[8px] ${tone}`}>
+          <Icon className="size-[18px]" />
+        </span>
+      )}
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="truncate text-[13px] font-medium text-[var(--color-ink)]">

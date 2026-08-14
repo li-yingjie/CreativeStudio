@@ -82,6 +82,26 @@ export const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
     '加一个每日签到',
   ],
   '射击小游戏': CHAT_SUGGESTIONS_BY_KIND['web-game'],
-  '2026 抖音 ACG 新春会': CHAT_SUGGESTIONS_BY_KIND['marketing-h5'],
+  '2026 抖音 ACG 新春会': [
+    '查看 ActivitySpec 与待确认项',
+    '打开游戏分会场运行态',
+    '检查 10 个资源位适配',
+    '查看资产版本与来源节点',
+    '运行发布前完整校验',
+  ],
+  '2026 抖音春晚': [
+    '打开春晚主会场长页',
+    '查看直播间包装矩阵',
+    '检查横竖方三种节目封面',
+    '定位活动 Banner 的 Figma 节点',
+    '查看全部 17 项交付',
+  ],
+  '《永夜星河》独星河小卡': [
+    '打开抽卡主会场运行态',
+    '查看卡片图鉴与空态',
+    '检查搜索 Banner 双尺寸',
+    '查看不同稀有度卡框',
+    '定位全部 16 项交付',
+  ],
   '沪上火锅·五一种草提案': CHAT_SUGGESTIONS_BY_KIND['ops-proposal'],
 }

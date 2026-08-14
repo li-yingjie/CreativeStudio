@@ -2,25 +2,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
-  BookOpen,
-  Box,
-  CheckCircle2,
   ChevronRight,
-  ExternalLink,
   Gift,
   Image as ImageIcon,
   Layers,
   LayoutTemplate,
-  Lock,
   Monitor,
   Palette,
-  Pencil,
   Plus,
   Search,
-  ShieldCheck,
   Sparkles,
   Type,
-  Upload,
 } from '@/shared/icons'
 import {
   ASSET_CATALOG,
@@ -29,13 +21,18 @@ import {
   type AssetCatalogItem,
   type AssetCenterCategory,
   type AssetClass,
-  type AssetParameterMode,
 } from '../../assets/assetCatalog'
 import AssetDetailPage from './AssetDetailPage'
 import AssetFormPage, { type AssetFormIntent } from './AssetFormPage'
+import { AssetImageDialog, AssetMediaSurface } from './AssetMedia'
+import { assetMediaReferences } from './assetMediaUtils'
 
 const CLASS_ICON = {
   'activity-template': LayoutTemplate,
+  'page-template': LayoutTemplate,
+  'h5-component': LayoutTemplate,
+  'native-component': LayoutTemplate,
+  'lynx-component': LayoutTemplate,
   'brand-kit': Layers,
   'character-kit': Sparkles,
   'banner-template': ImageIcon,
@@ -54,14 +51,19 @@ const REGISTRY_LABEL = {
   rule: '规则注册表',
 } as const
 
-const MODE_STYLE: Record<AssetParameterMode, string> = {
-  可配置: 'bg-blue-50 text-blue-700',
-  'Agent 推断': 'bg-violet-50 text-violet-700',
-  引用资产: 'bg-amber-50 text-amber-700',
-  固定规则: 'bg-[#F1F2F4] text-[#161823]/50',
-}
-
 const ASSET_DRAFT_STORAGE_KEY = 'creative-studio.asset-drafts.v1'
+
+function migrateLegacyCategory(item: AssetCatalogItem): AssetCatalogItem {
+  const legacyCategory = item.category as string
+  const legacyClass = item.assetClass as string
+  if (legacyCategory === 'template') return { ...item, category: 'activity-template' }
+  if (legacyCategory === 'style') {
+    return { ...item, category: item.assetClass === 'style-profile' ? 'inspiration' : 'material-template' }
+  }
+  if (legacyCategory === 'page-template' && legacyClass === 'page-canvas-template') return { ...item, assetClass: 'page-template' }
+  if (legacyCategory === 'page-template' && item.assetClass !== 'page-template') return { ...item, category: 'material-template' }
+  return item
+}
 
 function readStoredDrafts(): AssetCatalogItem[] {
   try {
@@ -69,14 +71,147 @@ function readStoredDrafts(): AssetCatalogItem[] {
     if (!value) return []
     const parsed: unknown = JSON.parse(value)
     if (!Array.isArray(parsed)) return []
-    return parsed.filter((item): item is AssetCatalogItem => Boolean(item && typeof item === 'object' && 'id' in item && 'name' in item && 'status' in item && item.status === '草稿'))
+    return parsed
+      .filter((item): item is AssetCatalogItem => Boolean(item && typeof item === 'object' && 'id' in item && 'name' in item && 'status' in item && item.status === '草稿'))
+      .map(migrateLegacyCategory)
+      .filter((item) => ASSET_CENTER_CATEGORIES.some((category) => category.id === item.category))
   } catch {
     return []
   }
 }
 
-function AssetPreview({ item, compact = false }: { item: AssetCatalogItem; compact?: boolean }) {
-  const height = compact ? 'h-[84px]' : 'h-[132px]'
+function AssetPreview({
+  item,
+  compact = false,
+  onPreview,
+}: {
+  item: AssetCatalogItem
+  compact?: boolean
+  onPreview?: (reference: NonNullable<AssetCatalogItem['visualReferences']>[number]) => void
+}) {
+  const pageTemplate = item.assetClass === 'page-template'
+  const fluidMaterial = compact && item.category === 'material-template'
+  const height = pageTemplate ? 'h-full' : fluidMaterial ? 'h-auto' : compact ? 'h-[84px]' : 'h-[132px]'
+  const primaryReference = assetMediaReferences(item)[0]
+
+  if (['h5-component', 'native-component', 'lynx-component'].includes(item.assetClass) && primaryReference) {
+    const surface = item.metrics.find((metric) => metric.label === '运行载体')?.value
+    return (
+      <div className={`relative overflow-hidden rounded-xl bg-[#E9EBEF] ${height}`}>
+        <img src={primaryReference.src} alt={primaryReference.label} className="size-full object-cover object-top" />
+        {surface ? <span className="absolute left-3 top-3 rounded-full bg-[#161823]/72 px-2.5 py-1 text-[9px] font-medium text-white backdrop-blur">{surface}</span> : null}
+      </div>
+    )
+  }
+
+  if (item.assetClass === 'page-template' && primaryReference) {
+    const surface = item.metrics.find((metric) => metric.label === '运行载体')?.value ?? 'H5'
+    return (
+      <div className={`relative overflow-hidden rounded-xl bg-[#E9EBEF] ${height}`}>
+        <img src={primaryReference.src} alt={primaryReference.label} className="size-full object-cover object-top" />
+        <span className="absolute left-3 top-3 rounded-full bg-[#161823]/72 px-2.5 py-1 text-[9px] font-medium text-white backdrop-blur">{surface}</span>
+      </div>
+    )
+  }
+
+  if (item.resourcePositionProfile) {
+    const topicBackground = item.resourcePositionProfile.canvases.find((canvas) => canvas.id === 'topic-background')
+    const topicBanner = item.resourcePositionProfile.canvases.find((canvas) => canvas.id === 'topic-banner')
+    const activityCard = item.resourcePositionProfile.canvases.find((canvas) => canvas.id === 'creator-activity-card')
+    return (
+      <div className={`relative overflow-hidden rounded-xl bg-[#F5F7FA] ${compact ? 'h-full' : height}`}>
+        <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-3">
+          <span className="text-xs font-medium text-[#1C1F23]">常见资源位</span>
+          <span className="text-xs text-[#71717A]">5 类尺寸</span>
+        </div>
+        <div className="absolute inset-x-4 bottom-4 top-11 grid grid-cols-[minmax(0,1fr)_72px] items-end gap-3">
+          <div className="min-w-0">
+            <div className="relative aspect-[375/210] overflow-hidden rounded-lg border border-[#D4D4D8] bg-[linear-gradient(145deg,#3A547F_0%,#8B5E86_48%,#EE9B74_100%)] shadow-[0_1px_3px_rgba(0,0,0,.08)]">
+              <div className="absolute inset-x-0 top-0 h-[9.52%] bg-[#FE2C55]/65" />
+              <div className="absolute inset-x-0 bottom-0 h-[52%] bg-gradient-to-b from-transparent to-[#FE2C55]/38" />
+              <span className="absolute bottom-2 left-2 rounded bg-black/45 px-1.5 py-0.5 text-[11px] font-medium text-white">{topicBackground?.logicalSize.width} × {topicBackground?.logicalSize.height}</span>
+            </div>
+            <div className="mt-2 flex h-7 items-center justify-between rounded-md border border-[#D4D4D8] bg-[linear-gradient(100deg,#F9E5D0,#6BD13C)] px-2.5 text-[11px] font-medium text-[#1C1F23]">
+              <span>话题页 Banner</span><span>{topicBanner?.logicalSize.width} × {topicBanner?.logicalSize.height}</span>
+            </div>
+          </div>
+          <div className="relative aspect-[183/244] overflow-hidden rounded-lg border border-[#D4D4D8] bg-[linear-gradient(150deg,#2F2A5C,#D85D66)] shadow-[0_1px_3px_rgba(0,0,0,.08)]">
+            <div className="absolute inset-x-2 bottom-2 rounded-md bg-white/92 px-1.5 py-1.5 text-center text-[11px] font-medium text-[#1C1F23]">活动卡片</div>
+            <span className="absolute left-2 top-2 text-[11px] font-medium text-white">{activityCard?.logicalSize.width} × {activityCard?.logicalSize.height}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (item.brandKitProfile) {
+    const { presentation } = item.brandKitProfile
+    const palette = item.brandKitProfile.colors
+    return (
+      <div className={`group/brand relative overflow-hidden rounded-xl bg-[#F4F4F5] ${compact ? 'h-full' : height}`}>
+        <img src={presentation.cardImage} alt="" className="size-full object-cover object-center transition duration-500 group-hover/brand:scale-[1.01]" />
+        <div className="absolute left-3 top-3 rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-xs font-medium text-[#1C1F23] shadow-[0_1px_4px_rgba(0,0,0,.08)] backdrop-blur-sm">Brand Kit</div>
+        <div className="absolute bottom-3 right-3 flex rounded-full border border-white/80 bg-white/90 p-1 shadow-[0_1px_4px_rgba(0,0,0,.08)] backdrop-blur-sm">
+          {palette.filter((token) => token.value !== '#FFFFFF').slice(0, 5).map((token) => <span key={token.value} className="size-4 rounded-full border border-black/10" style={{ backgroundColor: token.value }} title={`${token.name} ${token.value}`} />)}
+        </div>
+      </div>
+    )
+  }
+
+  if (item.ipKitProfile) {
+    const { presentation } = item.ipKitProfile
+    return (
+      <div className={`group/ip relative overflow-hidden rounded-xl bg-[#F5F7FA] ${compact ? 'h-full' : height}`}>
+        <img src={presentation.heroImage} alt="" className="absolute inset-x-[12%] bottom-0 h-[calc(100%_-_12px)] w-[76%] object-contain object-bottom drop-shadow-[0_12px_16px_rgba(167,40,40,0.13)] transition duration-500 group-hover/ip:scale-[1.01]" />
+        <span className="absolute left-3 top-3 rounded-full border border-[#E4E4E7] bg-white/92 px-2.5 py-1 text-xs font-medium text-[#71717A] shadow-[0_1px_4px_rgba(0,0,0,.06)] backdrop-blur-sm">IP 资产</span>
+        <div className="absolute bottom-3 right-3 flex rounded-full border border-white/80 bg-white/90 p-1 shadow-[0_1px_4px_rgba(0,0,0,.08)] backdrop-blur-sm">
+          {item.ipKitProfile.colors.slice(0, 5).map((token) => <span key={token.value} className="size-4 rounded-full border border-black/10" style={{ backgroundColor: token.value }} title={`${token.name} ${token.value}`} />)}
+        </div>
+      </div>
+    )
+  }
+
+  if (item.gameplayProfile) {
+    const profile = item.gameplayProfile
+    const stages = profile.preset.stages
+    return (
+      <div className={`group/gameplay relative overflow-hidden rounded-xl bg-[#FFF4F6] text-[#1C1F23] ${compact ? 'h-full' : height}`}>
+        <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-3">
+          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[#C93553] shadow-[0_1px_4px_rgba(0,0,0,.06)]">限时找物</span>
+          <span className="text-xs text-[#71717A]">{stages.length} 关 · {profile.preset.totalTargets} 个目标</span>
+        </div>
+        <div className="absolute inset-x-4 bottom-4 top-12 flex flex-col justify-end">
+          <div className="flex items-end gap-2">
+            {stages.map((count, index) => <span key={index} className={`flex min-w-0 flex-1 items-end justify-center rounded-t-md pb-1.5 text-xs font-semibold ${index === 2 || index === 6 ? 'bg-[#F6C466] text-[#7C4A00]' : 'bg-[#FFDCE4] text-[#A52B47]'}`} style={{ height: 28 + index * 5 }}>{count}</span>)}
+          </div>
+          <div className="mt-3 flex items-end justify-between gap-4 border-t border-[#F1DCE1] pt-3">
+            <div className="min-w-0"><p className="truncate text-sm font-semibold">{profile.presentation.headline}</p><p className="mt-1 truncate text-xs text-[#71717A]">90 秒 · 任务回流 · 里程碑奖励</p></div>
+            <span className="shrink-0 text-xs text-[#71717A]">v{profile.capability.version}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (primaryReference) {
+    if (compact && item.category === 'material-template') {
+      return (
+        <div className="group/media relative overflow-hidden rounded-xl bg-[#E9EBEF]">
+          <button type="button" onClick={() => onPreview?.(primaryReference)} aria-label={`放大预览：${primaryReference.label}`} className="relative block w-full cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#357EF8]">
+            <img src={primaryReference.src} alt="" className="block h-auto w-full transition duration-500 group-hover/media:scale-[1.008]" />
+          </button>
+        </div>
+      )
+    }
+    return (
+      <AssetMediaSurface
+        reference={primaryReference}
+        onPreview={onPreview}
+        className={`${height} rounded-xl border border-black/[0.06]`}
+        imageClassName="drop-shadow-[0_5px_12px_rgba(22,24,35,0.08)]"
+      />
+    )
+  }
 
   if (item.assetClass === 'activity-template') {
     const nodes = [
@@ -88,7 +223,7 @@ function AssetPreview({ item, compact = false }: { item: AssetCatalogItem; compa
     return (
       <div className={`relative overflow-hidden rounded-xl border border-[#E7E2DC] bg-[#FBF8F4] ${height} ${compact ? 'px-3 py-2.5' : 'px-4 py-3.5'}`}>
         <div className="flex items-center justify-between">
-          <span className="rounded-md bg-[#EA5B34]/10 px-2 py-1 text-[8px] font-semibold text-[#B64627]">ACTIVITY TEMPLATE</span>
+          <span className="rounded-md bg-[#EA5B34]/10 px-2 py-1 text-xs font-semibold text-[#B64627]">活动项目模板</span>
           <span className="text-[8px] text-[#161823]/32">4 个阶段</span>
         </div>
         {!compact ? <p className="mt-2 truncate text-[8px] font-medium text-[#161823]/52">主流程：双会场分流 · 榜单参与 · 阶段回流</p> : null}
@@ -123,9 +258,9 @@ function AssetPreview({ item, compact = false }: { item: AssetCatalogItem; compa
       <div className={`relative overflow-hidden rounded-xl bg-[linear-gradient(135deg,#FFF0EA_0%,#FFE5E7_54%,#F7F4F4_100%)] ${height}`}>
         <div className={`${compact ? 'left-3 top-3' : 'left-4 top-4'} absolute z-10`}>
           <span className="rounded-md bg-white/80 px-2 py-1 text-[9px] font-medium text-[#B52D33] shadow-sm backdrop-blur-sm">官方角色资产</span>
-          <p className={`${compact ? 'mt-2 text-[10px]' : 'mt-3 text-[12px]'} font-medium text-[#6D262A]`}>6 标准形象 · 30 动作 · 15 表情</p>
+          <p className={`${compact ? 'mt-2 text-[10px]' : 'mt-3 text-[12px]'} font-medium text-[#6D262A]`}>{item.metrics.map((metric) => `${metric.value} ${metric.label}`).join(' · ')}</p>
         </div>
-        {item.thumbnail ? <img src={item.thumbnail} alt="心仔角色预览" className="absolute bottom-[-6%] right-[6%] h-[105%] object-contain drop-shadow-[0_10px_14px_rgba(126,37,37,0.16)]" /> : null}
+        {item.thumbnail ? <img src={item.thumbnail} alt={`${item.name}预览`} className="absolute bottom-[-6%] right-[6%] h-[105%] object-contain drop-shadow-[0_10px_14px_rgba(126,37,37,0.16)]" /> : null}
       </div>
     )
   }
@@ -202,7 +337,7 @@ function AssetPreview({ item, compact = false }: { item: AssetCatalogItem; compa
         {item.thumbnail ? <img src={item.thumbnail} alt="风格样例预览" className="size-full object-cover" /> : <div className="size-full" style={{ backgroundColor: item.accent }} />}
         <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/5 to-transparent" />
         <div className={`${compact ? 'left-3 top-3' : 'left-4 top-4'} absolute text-white`}>
-          <span className="rounded bg-white/18 px-1.5 py-0.5 text-[8px] font-semibold backdrop-blur-sm">STYLE BIBLE</span>
+          <span className="rounded bg-white/18 px-1.5 py-0.5 text-xs font-semibold backdrop-blur-sm">视觉风格</span>
           <p className={`${compact ? 'mt-2 text-[10px]' : 'mt-3 text-[12px]'} max-w-[150px] font-medium leading-4`}>{item.tags.slice(0, 3).join(' · ')}</p>
         </div>
       </div>
@@ -220,7 +355,7 @@ function AssetPreview({ item, compact = false }: { item: AssetCatalogItem; compa
             </div>
           ))}
         </div>
-        <span className="absolute left-4 top-4 rounded-md bg-[#6C5CE7] px-2 py-1 text-[8px] font-semibold text-white shadow-sm">LAYER TEMPLATE</span>
+        <span className="absolute left-4 top-4 rounded-md bg-[#6C5CE7] px-2 py-1 text-xs font-semibold text-white shadow-sm">图层模板</span>
       </div>
     )
   }
@@ -239,205 +374,55 @@ function AssetPreview({ item, compact = false }: { item: AssetCatalogItem; compa
   )
 }
 
-function AssetCard({ item, selected, onSelect }: { item: AssetCatalogItem; selected: boolean; onSelect: () => void }) {
+function AssetCard({
+  item,
+  onOpen,
+  onPreview,
+}: {
+  item: AssetCatalogItem
+  onOpen: () => void
+  onPreview: (reference: NonNullable<AssetCatalogItem['visualReferences']>[number]) => void
+}) {
   const Icon = CLASS_ICON[item.assetClass]
+  const primaryReference = assetMediaReferences(item)[0]
+  const pageTemplate = item.assetClass === 'page-template'
+  const structuredBrandKit = Boolean(item.brandKitProfile || item.resourcePositionProfile)
+  const structuredIpKit = Boolean(item.ipKitProfile)
+  const structuredGameplayKit = Boolean(item.gameplayProfile)
+  const materialTemplate = item.category === 'material-template'
   return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      onClick={onSelect}
-      className={`min-w-0 rounded-2xl border bg-white p-3.5 text-left transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:shadow-[0_8px_20px_rgba(31,35,41,0.07)] ${selected ? 'border-[#161823]/28 shadow-[0_8px_20px_rgba(31,35,41,0.06)]' : 'border-[#EFF0F2]'}`}
-    >
-      <AssetPreview item={item} compact />
-      <div className="mt-3 flex min-w-0 items-start gap-2.5">
-        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#F3F3F5] text-[#161823]/62">
-          <Icon className="size-3.5" strokeWidth={1.8} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <h3 className="truncate text-[13px] font-medium text-[#161823]">{item.name}</h3>
-            <span className="shrink-0 text-[10px] text-[#161823]/35">v{item.version}</span>
-          </div>
-          <p className="mt-1 line-clamp-2 text-[11px] leading-[17px] text-[#161823]/44">{item.summary}</p>
+    <article className={`group min-w-0 break-inside-avoid overflow-hidden rounded-2xl border border-[#F2F2F7] bg-white transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_0_0_1px_rgba(124,246,254,0.1),0_18px_38px_-18px_rgba(124,246,254,0.28),0_12px_28px_-18px_rgba(246,111,17,0.14)] focus-within:ring-2 focus-within:ring-[#A1A1AA]/20 ${materialTemplate ? 'mb-4' : ''}`}>
+      <div className={`relative overflow-hidden border-b border-[#F2F2F7] bg-[#F4F4F5] [&>*]:!rounded-none [&>*]:!border-0 ${pageTemplate ? 'aspect-[9/16]' : materialTemplate ? '' : 'h-[216px] [&>*]:!h-full'}`}>
+        {pageTemplate || structuredBrandKit || structuredIpKit || structuredGameplayKit ? (
+          <button type="button" onClick={onOpen} aria-label={pageTemplate ? `打开真实页面：${item.name}` : structuredIpKit ? `打开 IP Kit：${item.name}` : structuredGameplayKit ? `打开玩法资产：${item.name}` : `打开 Brand Kit：${item.name}`} className="size-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#357EF8]"><AssetPreview item={item} compact /></button>
+        ) : primaryReference ? (
+          <AssetPreview item={item} compact onPreview={onPreview} />
+        ) : (
+          <button type="button" onClick={onOpen} className="size-full p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#357EF8]" aria-label={`从预览打开${item.name}详情`}>
+            <AssetPreview item={item} compact />
+          </button>
+        )}
+      </div>
+      <button type="button" onClick={onOpen} className="block w-full px-4 pb-4 pt-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#A1A1AA]/20" aria-label={`查看${item.name}详情`}>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="inline-flex h-5 shrink-0 items-center gap-1 rounded-md bg-[#F4F4F5] px-1.5 text-xs font-medium text-[#71717A]"><Icon className="size-3" strokeWidth={1.8} />{ASSET_CLASS_LABEL[item.assetClass]}</span>
+          <span className={`size-1.5 shrink-0 rounded-full ${item.status === '已发布' ? 'bg-emerald-500' : item.status === '草稿' ? 'bg-blue-500' : 'bg-violet-500'}`} />
+          <span className="truncate text-xs text-[#71717A]">{item.status} · v{item.version}</span>
         </div>
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-px overflow-hidden rounded-lg bg-[#ECEDEF]">
-        {item.metrics.slice(0, 3).map((metric) => (
-          <div key={metric.label} className="min-w-0 bg-[#F8F8FA] px-2 py-1.5">
-            <p className="truncate text-[8px] text-[#161823]/32">{metric.label}</p>
-            <p className="mt-0.5 truncate text-[10px] font-medium text-[#161823]/68">{metric.value}</p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 flex items-center justify-between border-t border-[#F2F2F4] pt-2.5 text-[10px] text-[#161823]/38">
-        <span className="inline-flex items-center gap-1"><Icon className="size-3" /> {ASSET_CLASS_LABEL[item.assetClass]}</span>
-        <span className={`inline-flex items-center gap-1 ${item.status === '待更新' ? 'text-amber-700' : item.status === '草稿' ? 'text-blue-700' : item.status === '内测中' ? 'text-violet-700' : 'text-emerald-700'}`}>
-          <span className={`size-1.5 rounded-full ${item.status === '待更新' ? 'bg-amber-500' : item.status === '草稿' ? 'bg-blue-500' : item.status === '内测中' ? 'bg-violet-500' : 'bg-emerald-500'}`} /> {item.status}
-        </span>
-      </div>
-    </button>
-  )
-}
-
-function DetailPanel({ item, projectName, onOpen, onCreateVersion, onUse }: { item: AssetCatalogItem; projectName?: string; onOpen: () => void; onCreateVersion: () => void; onUse: () => void }) {
-  const Icon = CLASS_ICON[item.assetClass]
-  return (
-    <aside className="flex h-full min-h-0 w-[38%] min-w-[320px] max-w-[400px] shrink-0 flex-col border-l border-[#E9EAED] bg-[#FAFAFB]">
-      <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-5 py-5">
-        <AssetPreview item={item} />
-        <div className="mt-4 flex items-start gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#161823]/64 shadow-[inset_0_0_0_1px_#E8E9EC]">
-            <Icon className="size-[17px]" strokeWidth={1.8} />
-          </span>
+        <div className="mt-3 flex min-w-0 items-start gap-3">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-[15px] font-semibold text-[#161823]">{item.name}</h2>
-              <span className="shrink-0 rounded-md bg-white px-1.5 py-0.5 text-[10px] text-[#161823]/45 shadow-[inset_0_0_0_1px_#E8E9EC]">v{item.version}</span>
-            </div>
-            <p className="mt-1 text-[11px] leading-[18px] text-[#161823]/48">{item.summary}</p>
+            <h3 className="truncate text-base font-semibold leading-[22px] text-[#222727]">{item.name}</h3>
+            <p className={`${materialTemplate ? 'line-clamp-1' : 'line-clamp-2 min-h-8'} mt-1.5 text-xs leading-4 text-[rgba(34,39,39,0.6)]`}>{item.summary}</p>
           </div>
+          <ChevronRight className="mt-0.5 size-4 shrink-0 text-[#A1A1AA] transition-transform group-hover:translate-x-0.5 group-hover:text-[#71717A]" />
         </div>
-
-        <div className="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-[#E8E9EC] bg-[#E8E9EC]">
-          {item.metrics.slice(0, 3).map((metric) => (
-            <div key={metric.label} className="min-w-0 bg-white px-2.5 py-2.5">
-              <p className="truncate text-[9px] text-[#161823]/34">{metric.label}</p>
-              <p className="mt-1 truncate text-[11px] font-semibold text-[#161823]/72">{metric.value}</p>
-            </div>
-          ))}
+        <div className="mt-3 flex items-center gap-2 border-t border-[#F4F4F5] pt-3 text-xs leading-4 text-[#A1A1AA]">
+          <span>{item.visualReferences?.length ? `${item.visualReferences.length} 个视觉文件` : primaryReference ? '1 个视觉文件' : `${item.parameterGroups.length} 组规则`}</span>
+          <span className="size-0.5 rounded-full bg-[#D4D4D8]" />
+          <span className="truncate">{item.updatedAt} 更新</span>
         </div>
-
-        <dl className="mt-3 grid grid-cols-2 gap-x-5 gap-y-3 rounded-xl border border-[#ECEDEF] bg-white px-3 py-3 text-[10px]">
-          {[
-            ['资产类型', ASSET_CLASS_LABEL[item.assetClass]],
-            ['归属团队', item.owner],
-            ['存储域', REGISTRY_LABEL[item.registry]],
-            ['更新时间', item.updatedAt],
-          ].map(([label, value]) => (
-            <div key={label} className="min-w-0">
-              <dt className="text-[#161823]/34">{label}</dt>
-              <dd className="mt-1 truncate font-medium text-[#161823]/68">{value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        <section className="mt-5">
-          <div className="flex items-center justify-between">
-            <h3 className="flex items-center gap-1.5 text-[12px] font-semibold text-[#161823]/80"><Box className="size-3.5" /> 参数与可变范围</h3>
-            <span className="text-[9px] text-[#161823]/34">按资产类型定义</span>
-          </div>
-          <div className="mt-2.5 space-y-2.5">
-            {item.parameterGroups.map((group) => (
-              <div key={group.name} className="overflow-hidden rounded-xl border border-[#E8E9EC] bg-white">
-                <div className="border-b border-[#F0F0F2] px-3 py-2.5">
-                  <p className="text-[11px] font-semibold text-[#161823]/76">{group.name}</p>
-                  <p className="mt-0.5 text-[9px] leading-[14px] text-[#161823]/36">{group.summary}</p>
-                </div>
-                <div className="divide-y divide-[#F2F2F4]">
-                  {group.parameters.map((parameter) => {
-                    const editable = parameter.mode !== '固定规则'
-                    return (
-                      <button
-                        key={parameter.label}
-                        type="button"
-                        onClick={() => editable ? onCreateVersion() : toast(`「${parameter.label}」由资产规则锁定`)}
-                        className="group flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-[#FAFAFB]"
-                      >
-                        <div className="w-[92px] shrink-0">
-                          <p className="text-[10px] font-medium text-[#161823]/58">{parameter.label}</p>
-                          <span className={`mt-1 inline-flex rounded px-1.5 py-0.5 text-[8px] ${MODE_STYLE[parameter.mode]}`}>{parameter.mode}</span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] leading-[16px] text-[#161823]/72">{parameter.value}</p>
-                          {parameter.note ? <p className="mt-0.5 text-[9px] leading-[14px] text-[#161823]/34">{parameter.note}</p> : null}
-                        </div>
-                        {editable ? <Pencil className="mt-0.5 size-3 shrink-0 text-[#161823]/18 group-hover:text-[#161823]/42" /> : <Lock className="mt-0.5 size-3 shrink-0 text-[#161823]/18" />}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-5">
-          <h3 className="flex items-center gap-1.5 text-[12px] font-semibold text-[#161823]/80"><Layers className="size-3.5" /> 资产组成与交付</h3>
-          <div className="mt-2.5 overflow-hidden rounded-xl border border-[#E8E9EC] bg-white">
-            {item.deliverables.map((deliverable, index) => (
-              <div key={deliverable.name} className={`flex items-start gap-2.5 px-3 py-2.5 ${index ? 'border-t border-[#F0F0F2]' : ''}`}>
-                <CheckCircle2 className={`mt-0.5 size-3.5 shrink-0 ${deliverable.required ? 'text-emerald-600' : 'text-[#161823]/24'}`} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-[10px] font-medium text-[#161823]/68">{deliverable.name}</p>
-                    <span className="text-[8px] text-[#161823]/30">{deliverable.required ? '必需' : '可选'}</span>
-                  </div>
-                  <p className="mt-0.5 text-[9px] leading-[14px] text-[#161823]/38">{deliverable.specification}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-5 rounded-xl border border-[#E8E9EC] bg-white px-3 py-3">
-          <div className="flex items-center justify-between">
-            <h3 className="flex items-center gap-1.5 text-[12px] font-semibold text-[#161823]/80"><Upload className="size-3.5" /> 可导入内容</h3>
-            <button type="button" onClick={onCreateVersion} className="text-[9px] font-medium text-blue-600 hover:text-blue-700">导入到新版本</button>
-          </div>
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {item.governance.importFormats.map((format) => <span key={format} className="rounded-md bg-[#F3F4F6] px-2 py-1 text-[9px] text-[#161823]/52">{format}</span>)}
-          </div>
-          <p className="mt-3 border-t border-[#F0F0F2] pt-2.5 text-[9px] leading-[15px] text-[#161823]/38">适用：{item.coverage.join(' · ')}</p>
-        </section>
-
-        <section className="mt-5">
-          <h3 className="flex items-center gap-1.5 text-[12px] font-semibold text-[#161823]/80"><ShieldCheck className="size-3.5" /> 发布门槛与使用边界</h3>
-          <ul className="mt-2.5 space-y-2 text-[10px] leading-[16px] text-[#161823]/48">
-            {item.constraints.map((constraint) => (
-              <li key={constraint} className="flex gap-2"><span className="mt-[6px] size-1 shrink-0 rounded-full bg-[#161823]/28" />{constraint}</li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="mt-5 overflow-hidden rounded-xl border border-[#E8E9EC] bg-white">
-          <div className="border-b border-[#F0F0F2] px-3 py-2.5">
-            <h3 className="text-[11px] font-semibold text-[#161823]/76">来源、证据与授权</h3>
-          </div>
-          <dl className="divide-y divide-[#F2F2F4] text-[9px] leading-[15px]">
-            {[
-              ['沉淀来源', item.governance.source],
-              ['可信证据', item.governance.evidence],
-              ['自动质检', item.governance.qualityGate],
-              ['授权范围', item.governance.rights],
-            ].map(([label, value]) => (
-              <div key={label} className="grid grid-cols-[62px_1fr] gap-2.5 px-3 py-2.5">
-                <dt className="text-[#161823]/34">{label}</dt>
-                <dd className="text-[#161823]/56">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-
-        <div className="mt-5 rounded-xl bg-[#F1F2F4] px-3 py-3">
-          <p className="text-[9px] text-[#161823]/34">当前引用情况</p>
-          <p className="mt-1 text-[10px] font-medium leading-[16px] text-[#161823]/62">{item.usage}</p>
-        </div>
-      </div>
-
-      <div className="shrink-0 border-t border-[#E6E7E9] bg-white px-5 py-3">
-        <div className="flex gap-2">
-          <button type="button" onClick={onOpen} className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[#E4E5E7] bg-white px-3 text-[10px] font-medium text-[#161823]/66 hover:bg-[#F7F7F8]">
-            <ExternalLink className="size-3.5" /> 完整详情
-          </button>
-          <button type="button" onClick={onUse} className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#161823] px-3 text-[10px] font-medium text-white hover:opacity-90">
-            <Plus className="size-3.5" /> <span className="truncate">用于{projectName ? `「${projectName}」` : '当前项目'}</span>
-          </button>
-          <button type="button" onClick={onCreateVersion} aria-label={item.status === '草稿' ? '继续编辑草稿' : '创建新版本'} className="flex size-8 items-center justify-center rounded-lg border border-[#E4E5E7] bg-white text-[#161823]/58 hover:bg-[#F7F7F8]">
-            <Pencil className="size-3.5" />
-          </button>
-        </div>
-      </div>
-    </aside>
+      </button>
+    </article>
   )
 }
 
@@ -448,20 +433,40 @@ interface AssetCenterPageProps {
   onUseAsset?: (item: AssetCatalogItem) => void
 }
 
+function categoryFromSearch(params: URLSearchParams): AssetCenterCategory {
+  const candidate = params.get('assetCategory')
+  if (['template', 'style', 'page-template', 'material-template', 'inspiration', 'activity-template'].includes(candidate ?? '')) return 'page-component'
+  return ASSET_CENTER_CATEGORIES.some((item) => item.id === candidate)
+    ? candidate as AssetCenterCategory
+    : 'page-component'
+}
+
+function isVisibleCategory(category: AssetCenterCategory) {
+  return ASSET_CENTER_CATEGORIES.some((item) => item.id === category)
+}
+
+function defaultAssetClassForCategory(category: AssetCenterCategory): AssetClass | 'all' {
+  return category === 'page-component' ? 'h5-component' : 'all'
+}
+
 export default function AssetCenterPage({
   activeProjectName,
   returnLabel,
   onReturn,
   onUseAsset,
 }: AssetCenterPageProps) {
-  const [view, setView] = useState<'catalog' | 'detail' | 'form'>('catalog')
-  const [category, setCategory] = useState<AssetCenterCategory>('template')
-  const [assetClass, setAssetClass] = useState<AssetClass | 'all'>('all')
+  const initialParams = typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search)
+  const initialAssetId = initialParams.get('asset')
+  const [view, setView] = useState<'catalog' | 'detail' | 'form'>(initialAssetId ? 'detail' : 'catalog')
+  const initialCategory = categoryFromSearch(initialParams)
+  const [category, setCategory] = useState<AssetCenterCategory>(initialCategory)
+  const [assetClass, setAssetClass] = useState<AssetClass | 'all'>(() => defaultAssetClassForCategory(initialCategory))
   const [keyword, setKeyword] = useState('')
-  const [selectedId, setSelectedId] = useState('template.ip-co-brand-dual-venue-event')
+  const [selectedId, setSelectedId] = useState(initialAssetId ?? 'template.page.acg-game-venue')
   const [draftAssets, setDraftAssets] = useState<AssetCatalogItem[]>(readStoredDrafts)
   const [formIntent, setFormIntent] = useState<AssetFormIntent>('create')
   const [formSourceId, setFormSourceId] = useState<string>()
+  const [previewImage, setPreviewImage] = useState<NonNullable<AssetCatalogItem['visualReferences']>[number] | null>(null)
 
   const allAssets = useMemo(() => [...draftAssets, ...ASSET_CATALOG], [draftAssets])
   const categoryConfig = ASSET_CENTER_CATEGORIES.find((item) => item.id === category)
@@ -491,12 +496,72 @@ export default function AssetCenterPage({
     window.localStorage.setItem(ASSET_DRAFT_STORAGE_KEY, JSON.stringify(draftAssets))
   }, [draftAssets])
 
-  const handleCategoryChange = (nextCategory: AssetCenterCategory) => {
+  useEffect(() => {
+    const syncDetailFromUrl = () => {
+      const params = new URLSearchParams(window.location.search)
+      const assetId = params.get('asset')
+      if (!assetId) {
+        const nextCategory = categoryFromSearch(params)
+        setCategory(nextCategory)
+        setAssetClass(defaultAssetClassForCategory(nextCategory))
+        setView((current) => current === 'form' ? current : 'catalog')
+        return
+      }
+      const asset = allAssets.find((item) => item.id === assetId)
+      if (!asset) {
+        const params = new URLSearchParams(window.location.search)
+        params.delete('asset')
+        window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
+        setView('catalog')
+        return
+      }
+      setSelectedId(asset.id)
+      setCategory(asset.category)
+      setView('detail')
+    }
+    syncDetailFromUrl()
+    window.addEventListener('popstate', syncDetailFromUrl)
+    return () => window.removeEventListener('popstate', syncDetailFromUrl)
+  }, [allAssets])
+
+  const openDetail = (item: AssetCatalogItem) => {
+    setSelectedId(item.id)
+    setCategory(item.category)
+    setView('detail')
+    const params = new URLSearchParams(window.location.search)
+    params.set('page', 'assets')
+    params.set('assetCategory', item.category)
+    params.set('asset', item.id)
+    window.history.pushState({ ...window.history.state, assetCenterEntry: item.id }, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
+  }
+
+  const closeDetail = () => {
+    if (window.history.state?.assetCenterEntry === selectedId) {
+      window.history.back()
+      return
+    }
+    const params = new URLSearchParams(window.location.search)
+    const nextCategory = isVisibleCategory(selected.category) ? selected.category : 'page-component'
+    params.delete('asset')
+    params.set('assetCategory', nextCategory)
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
     setCategory(nextCategory)
-    setAssetClass('all')
+    setAssetClass(defaultAssetClassForCategory(nextCategory))
+    setView('catalog')
+  }
+
+  const handleCategoryChange = (nextCategory: AssetCenterCategory) => {
+    if (nextCategory === category) return
+    setCategory(nextCategory)
+    setAssetClass(defaultAssetClassForCategory(nextCategory))
     setKeyword('')
     const firstItem = allAssets.find((item) => item.category === nextCategory)
     if (firstItem) setSelectedId(firstItem.id)
+    const params = new URLSearchParams(window.location.search)
+    params.set('page', 'assets')
+    params.set('assetCategory', nextCategory)
+    params.delete('asset')
+    window.history.pushState({ ...window.history.state, assetCenterCategory: nextCategory }, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
   }
 
   const openForm = (intent: AssetFormIntent, source?: AssetCatalogItem) => {
@@ -508,9 +573,14 @@ export default function AssetCenterPage({
   const handleSaveDraft = (asset: AssetCatalogItem) => {
     setDraftAssets((current) => [asset, ...current.filter((item) => item.id !== asset.id)])
     setCategory(asset.category)
-    setAssetClass('all')
+    setAssetClass(defaultAssetClassForCategory(asset.category))
     setKeyword('')
     setSelectedId(asset.id)
+    const params = new URLSearchParams(window.location.search)
+    params.set('page', 'assets')
+    params.set('assetCategory', asset.category)
+    params.set('asset', asset.id)
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
     setView('detail')
   }
 
@@ -537,7 +607,9 @@ export default function AssetCenterPage({
         item={selected}
         preview={<AssetPreview item={selected} />}
         registryLabel={REGISTRY_LABEL[selected.registry]}
-        onBack={() => setView('catalog')}
+        onBack={closeDetail}
+        onReturn={onReturn}
+        returnLabel={returnLabel}
         onCreateVersion={() => openForm('version', selected)}
         onCreateVariant={() => openForm('variant', selected)}
         onUse={() => handleUseAsset(selected)}
@@ -565,7 +637,7 @@ export default function AssetCenterPage({
             </>
           ) : null}
           <h1 className="shrink-0 text-[20px] font-semibold leading-6 tracking-[-0.08px] text-[#1C1F23]">资产中心</h1>
-          <nav aria-label="资产中心分类" className="flex min-w-0 flex-1 items-center gap-1">
+          <nav aria-label="资产中心分类" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {ASSET_CENTER_CATEGORIES.map((item) => {
               const active = item.id === category
               return (
@@ -588,16 +660,13 @@ export default function AssetCenterPage({
                 <input type="search" value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder={`搜索${categoryConfig?.label ?? '资产'}或参数`} className="h-8 w-full rounded-lg border border-[#E3E4E6] bg-white pl-8 pr-3 text-[12px] text-[#161823] outline-none placeholder:text-[#161823]/30 focus:border-[#161823]/28" />
               </label>
               <span className="text-[11px] text-[#161823]/38">{items.length} / {categoryItems.length} 项</span>
-              <button type="button" onClick={() => toast(`批量导入${categoryConfig?.label ?? '资产'}（演示）`)} className="ml-auto flex h-8 items-center gap-1.5 rounded-lg border border-[#E3E4E6] bg-white px-3 text-[11px] font-medium text-[#161823]/66 hover:bg-[#F7F7F8]">
-                <Upload className="size-3.5" /> 批量导入
-              </button>
-              <button type="button" onClick={() => openForm('create')} className="flex h-8 items-center gap-1.5 rounded-full bg-[#161823] px-3.5 text-[11px] font-medium text-white hover:opacity-90">
+              <button type="button" onClick={() => openForm('create')} className="ml-auto flex h-8 items-center gap-1.5 rounded-full bg-[#161823] px-3.5 text-[11px] font-medium text-white hover:opacity-90">
                 <Plus className="size-3.5" /> 新建资产
               </button>
             </div>
             {classOptions.length > 1 ? (
               <div className="mt-2 flex items-center gap-1.5" aria-label="资产类型筛选">
-                <button type="button" aria-pressed={assetClass === 'all'} onClick={() => setAssetClass('all')} className={`h-6 rounded-full px-2.5 text-[10px] transition-colors ${assetClass === 'all' ? 'bg-[#161823] text-white' : 'bg-[#F3F4F6] text-[#161823]/52 hover:bg-[#EDEEF0]'}`}>全部</button>
+                {category !== 'page-component' ? <button type="button" aria-pressed={assetClass === 'all'} onClick={() => setAssetClass('all')} className={`h-6 rounded-full px-2.5 text-[10px] transition-colors ${assetClass === 'all' ? 'bg-[#161823] text-white' : 'bg-[#F3F4F6] text-[#161823]/52 hover:bg-[#EDEEF0]'}`}>全部</button> : null}
                 {classOptions.map((itemClass) => (
                   <button key={itemClass} type="button" aria-pressed={assetClass === itemClass} onClick={() => setAssetClass(itemClass)} className={`h-6 rounded-full px-2.5 text-[10px] transition-colors ${assetClass === itemClass ? 'bg-[#161823] text-white' : 'bg-[#F3F4F6] text-[#161823]/52 hover:bg-[#EDEEF0]'}`}>
                     {ASSET_CLASS_LABEL[itemClass]}
@@ -608,31 +677,29 @@ export default function AssetCenterPage({
           </div>
 
           <div className="px-6 py-5">
-            <div className="mb-4 flex items-start justify-between gap-4">
+            <div className="mb-4 flex items-start gap-4">
               <div>
                 <h2 className="text-[15px] font-semibold text-[#161823]">{categoryConfig?.label}</h2>
                 <p className="mt-1 text-[11px] text-[#161823]/42">{categoryConfig?.description}</p>
-                <p className="mt-1.5 text-[10px] text-[#161823]/32">每项资产都包含可变参数、交付规格、来源证据、授权范围和发布门槛。</p>
               </div>
-              <button type="button" onClick={() => toast('查看资产分层与治理说明（演示）')} className="flex shrink-0 items-center gap-1.5 text-[11px] text-[#161823]/48 hover:text-[#161823]/76">
-                <BookOpen className="size-3.5" /> 资产治理说明
-              </button>
             </div>
             {items.length ? (
-              <div className="grid grid-cols-1 gap-3 min-[1080px]:grid-cols-2 min-[1640px]:grid-cols-3">
-                {items.map((item) => <AssetCard key={item.id} item={item} selected={item.id === selected?.id} onSelect={() => setSelectedId(item.id)} />)}
+              <div className={category === 'page-component'
+                ? 'grid grid-cols-1 gap-4 min-[760px]:grid-cols-2 min-[1120px]:grid-cols-3 min-[1560px]:grid-cols-4'
+                : 'grid grid-cols-1 gap-4 min-[1050px]:grid-cols-2 min-[1560px]:grid-cols-3'}>
+                {items.map((item) => <AssetCard key={item.id} item={item} onOpen={() => openDetail(item)} onPreview={setPreviewImage} />)}
               </div>
             ) : (
               <div className="flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#DCDDDF] text-center">
                 <Search className="size-5 text-[#161823]/22" />
                 <p className="mt-2 text-[12px] text-[#161823]/42">没有匹配的资产</p>
-                <button type="button" onClick={() => { setKeyword(''); setAssetClass('all') }} className="mt-2 text-[10px] text-blue-600">清除筛选</button>
+                <button type="button" onClick={() => { setKeyword(''); setAssetClass(defaultAssetClassForCategory(category)) }} className="mt-2 text-[10px] text-blue-600">清除筛选</button>
               </div>
             )}
           </div>
         </main>
-        {selected ? <DetailPanel item={selected} projectName={activeProjectName} onOpen={() => setView('detail')} onCreateVersion={() => openForm('version', selected)} onUse={() => handleUseAsset(selected)} /> : null}
       </div>
+      {previewImage ? <AssetImageDialog reference={previewImage} onClose={() => setPreviewImage(null)} /> : null}
     </div>
   )
 }
