@@ -2,7 +2,7 @@ export const DOCUMENTED_ACTIVITY_OVERVIEW = '交付总览'
 export const DOCUMENTED_ACTIVITY_PAGES = '页面'
 export const DOCUMENTED_ACTIVITY_MATERIALS = '素材库'
 
-export type DeliverableCategory = '页面' | '资源位' | '传播物料' | '直播物料' | '玩法视觉' | '结算物料'
+export type DeliverableCategory = '页面' | '资源位' | '头图' | 'IP 素材' | '传播物料' | '直播物料' | '玩法视觉' | '结算物料'
 
 export type DocumentedActivityDeliverable = {
   label: string
@@ -122,10 +122,10 @@ export const XIAHUA_CASE: DocumentedActivityCase = {
   projectName: XIAHUA_DOCUMENTED_PROJECT,
   shortName: '这夏夯爆了',
   code: 'CASE-UGC-SUMMER-2026',
-  summary: 'UGC 2026 H1 文件中的暑期最终 UI，覆盖玩水与夜食两条活动线、原生入口、收集页、交换/点亮状态和内容承接。',
+  summary: 'UGC 2026 H1 文件中的暑期最终 UI，覆盖玩水与夜食两条活动线、原生入口、收集页、交换/点亮状态和内容承接，另含资源位位型规范、玩水氛围头图与小马 IP 立绘。',
   sourceLabel: 'UGC 活动 2026H1 · Figma',
   sourceUrl: 'https://www.figma.com/design/kMedatdeXqtzmq0KOeG0qk/UGC%E6%B4%BB%E5%8A%A8-2026H1?node-id=7634-28341',
-  sourceEvidence: '从“暑期UI - 玩水 / 暑期UI - 美食”两个最终 UI 页提取，排除了暑期交互页中的过程方案与黑底拼接板。',
+  sourceEvidence: '从“暑期UI - 玩水 / 暑期UI - 美食”两个最终 UI 页与“暑期交互”页的资源位规范区提取，排除过程方案与黑底拼接板；资源位画面为同文件「年度足迹」活动真实图例，该文件不含直播间物料。',
   accent: '#168EBC', tint: '#E6F8FF', template: 'UGC 暑期节点 · 内容参与 + 收集玩法',
   deliverables: [
     xiahua({ label: 'H5 · 玩水主会场 A', id: 'DLV-XIA-001', category: '页面', surface: 'H5 长页', phase: '主推', summary: '玩水活动主会场完整版本 A。', preview: '/assets/figma-deliverables/xiahua/water-venue-a.png', previewAlt: '这夏夯爆了玩水主会场 A', responsibilities: ['主视觉', '任务', '内容承接'], page: '暑期UI - 玩水', nodeId: '7880:28626', nodeName: '会场', width: 390, height: 2320 }),
@@ -142,6 +142,19 @@ export const XIAHUA_CASE: DocumentedActivityCase = {
     xiahua({ label: 'H5 · 选择小马', id: 'DLV-XIA-012', category: '页面', surface: '选择页', phase: '主推', summary: '进入夜食线前的小马角色选择。', preview: '/assets/figma-deliverables/xiahua/select-horse.png', previewAlt: '这夏夯爆了选择小马', responsibilities: ['角色选择', '分支进入'], page: '暑期UI - 美食', nodeId: '9683:26518', nodeName: '选择马', width: 375, height: 812 }),
     xiahua({ label: 'H5 · 夜食 AR 会场', id: 'DLV-XIA-013', category: '页面', surface: '沉浸会场', phase: '主推', summary: '夜食主题沉浸入口与角色互动场景。', preview: '/assets/figma-deliverables/xiahua/food-ar-venue.png', previewAlt: '这夏夯爆了夜食 AR 会场', responsibilities: ['沉浸场景', '角色互动'], page: '暑期UI - 美食', nodeId: '9697:3607', nodeName: '会场', width: 375, height: 812 }),
     xiahua({ label: '玩法视觉 · 我的夜食', id: 'DLV-XIA-014', category: '玩法视觉', surface: '夜食卡图鉴', phase: '主推', summary: '夜食卡收集、已获得与未解锁状态。', preview: '/assets/figma-deliverables/xiahua/my-night-food.png', previewAlt: '这夏夯爆了我的夜食', responsibilities: ['夜食卡池', '图鉴状态'], page: '暑期UI - 美食', nodeId: '9834:33984', nodeName: '我的夜食', width: 375, height: 812 }),
+    xiahua({ label: '资源位 · 活动中心 Banner', id: 'DLV-XIA-015', category: '资源位', surface: '活动中心', phase: '规范', summary: '活动中心 343×140 位型规范；画面为同文件「年度足迹」活动真实图例，夏日版输出待设计。', preview: '/assets/figma-deliverables/xiahua/resource-activity-center-banner.png', previewAlt: '这夏夯爆了活动中心 Banner 位型规范', responsibilities: ['活动中心入口', '位型规范'], page: '暑期交互', nodeId: '6917:89837', nodeName: '活动中心banner', width: 343, height: 140, exportScale: 2 }),
+    xiahua({ label: '资源位 · 搜索卡背景', id: 'DLV-XIA-016', category: '资源位', surface: '搜索承接', phase: '规范', summary: '搜索卡 390×110 背景图位型规范；画面为「年度足迹」真实图例。', preview: '/assets/figma-deliverables/xiahua/resource-search-card-bg.png', previewAlt: '这夏夯爆了搜索卡背景位型规范', responsibilities: ['搜索承接', '位型规范'], page: '暑期交互', nodeId: '6917:90312', nodeName: '背景图', width: 390, height: 110, exportScale: 2 }),
+    xiahua({ label: '资源位 · 搜索卡活动封面', id: 'DLV-XIA-017', category: '资源位', surface: '搜索承接', phase: '规范', summary: '搜索卡 144×144 活动封面位型规范；画面为「年度足迹」真实图例。', preview: '/assets/figma-deliverables/xiahua/resource-search-card-cover.png', previewAlt: '这夏夯爆了搜索卡活动封面位型规范', responsibilities: ['搜索承接', '活动识别'], page: '暑期交互', nodeId: '6917:89977', nodeName: '活动封面', width: 144, height: 144, exportScale: 2 }),
+    xiahua({ label: '资源位 · 话题页 Banner', id: 'DLV-XIA-018', category: '资源位', surface: '话题页', phase: '规范', summary: '话题页 343×65 窄幅 Banner 位型规范；画面为「年度足迹」真实图例。', preview: '/assets/figma-deliverables/xiahua/resource-topic-banner.png', previewAlt: '这夏夯爆了话题页 Banner 位型规范', responsibilities: ['话题导流', '位型规范'], page: '暑期交互', nodeId: '6917:90868', nodeName: '话题页banner', width: 343, height: 65, exportScale: 2 }),
+    xiahua({ label: '资源位 · 评价页 Banner', id: 'DLV-XIA-019', category: '资源位', surface: '评价页', phase: '规范', summary: '评价页 343×80 Banner 位型规范；画面为「年度足迹」真实图例。', preview: '/assets/figma-deliverables/xiahua/resource-review-banner.png', previewAlt: '这夏夯爆了评价页 Banner 位型规范', responsibilities: ['评价场景', '位型规范'], page: '暑期交互', nodeId: '6917:91237', nodeName: 'A评价banner343x80@3x', width: 343, height: 80, exportScale: 2 }),
+    xiahua({ label: '资源位 · 团购 Banner', id: 'DLV-XIA-020', category: '资源位', surface: '团购频道', phase: '规范', summary: '团购频道 351×64 Banner 位型规范；画面为「年度足迹」真实图例。', preview: '/assets/figma-deliverables/xiahua/resource-groupbuy-banner.png', previewAlt: '这夏夯爆了团购 Banner 位型规范', responsibilities: ['团购导流', '位型规范'], page: '暑期交互', nodeId: '6917:91530', nodeName: '团购banner', width: 351, height: 64, exportScale: 2 }),
+    xiahua({ label: '资源位 · 城市 POI Banner', id: 'DLV-XIA-021', category: '资源位', surface: '城市 POI', phase: '规范', summary: '城市 POI 343×88 Banner 位型规范；画面为「年度足迹」真实图例。', preview: '/assets/figma-deliverables/xiahua/resource-poi-banner.png', previewAlt: '这夏夯爆了城市 POI Banner 位型规范', responsibilities: ['POI 场景', '位型规范'], page: '暑期交互', nodeId: '6917:92381', nodeName: '城市poi-banner输出@3x', width: 343, height: 88, exportScale: 2 }),
+    xiahua({ label: '资源位 · 创作者专区封面', id: 'DLV-XIA-022', category: '资源位', surface: '创作者专区', phase: '规范', summary: '创作者活动专区 549×549 封面位型规范；画面为「年度足迹」真实图例。', preview: '/assets/figma-deliverables/xiahua/resource-creator-zone-cover.png', previewAlt: '这夏夯爆了创作者专区封面位型规范', responsibilities: ['创作者入口', '位型规范'], page: '暑期交互', nodeId: '6917:92374', nodeName: '549x549', width: 183, height: 183, exportScale: 2 }),
+    xiahua({ label: '头图 · 玩水氛围场景', id: 'DLV-XIA-023', category: '头图', surface: '会场氛围头图', phase: '主推', summary: '玩水线沙滩与海面氛围场景设计稿，小马入水画面，作为会场头图素材来源。', preview: '/assets/figma-deliverables/xiahua/hero-beach-scene.png', previewAlt: '这夏夯爆了玩水氛围头图场景', responsibilities: ['会场氛围', '头图素材'], page: '暑期UI - 玩水', nodeId: '7955:6647', nodeName: 'Mask group', width: 390, height: 533, exportScale: 2 }),
+    xiahua({ label: 'IP · 小马「马卡龙」立绘', id: 'DLV-XIA-024', category: 'IP 素材', surface: '角色立绘', phase: '主推', summary: '选马页角色之一，粉色卷发造型完整立绘，透明底。', preview: '/assets/figma-deliverables/xiahua/ip-horse-macaron.png', previewAlt: '这夏夯爆了小马马卡龙立绘', responsibilities: ['IP 角色', '选马玩法'], page: '暑期UI - 美食', nodeId: '9683:26529', nodeName: '马卡龙', width: 93, height: 150, exportScale: 2 }),
+    xiahua({ label: 'IP · 小马「一字马」立绘', id: 'DLV-XIA-025', category: 'IP 素材', surface: '角色立绘', phase: '主推', summary: '选马页角色之一，健身造型完整立绘，透明底。', preview: '/assets/figma-deliverables/xiahua/ip-horse-yizima.png', previewAlt: '这夏夯爆了小马一字马立绘', responsibilities: ['IP 角色', '选马玩法'], page: '暑期UI - 美食', nodeId: '9683:26535', nodeName: '一字马', width: 115, height: 153, exportScale: 2 }),
+    xiahua({ label: 'IP · 小马「马上到」立绘', id: 'DLV-XIA-026', category: 'IP 素材', surface: '角色立绘', phase: '主推', summary: '选马页角色之一，红马白鸽连帽造型完整立绘，透明底。', preview: '/assets/figma-deliverables/xiahua/ip-horse-mashangdao.png', previewAlt: '这夏夯爆了小马马上到立绘', responsibilities: ['IP 角色', '选马玩法'], page: '暑期UI - 美食', nodeId: '9683:26542', nodeName: '马上到', width: 173, height: 253, exportScale: 2 }),
+    xiahua({ label: 'IP · 游泳马动作图', id: 'DLV-XIA-027', category: 'IP 素材', surface: '动作素材', phase: '主推', summary: '玩水线红马游泳动作素材，透明底，供会场与传播复用。', preview: '/assets/figma-deliverables/xiahua/ip-horse-swim.png', previewAlt: '这夏夯爆了游泳马动作图', responsibilities: ['IP 动作', '场景复用'], page: '暑期UI - 玩水', nodeId: '7955:6684', nodeName: '游泳马 1', width: 332, height: 215, exportScale: 2 }),
   ],
 }
 
@@ -210,9 +223,19 @@ const IMAGE_CANVAS_RULES: readonly Omit<DocumentedImageCanvas, 'items'>[] = [
     categories: ['资源位'],
   },
   {
+    label: '头图与主视觉',
+    description: '会场氛围头图与主视觉素材按场景集中校对。',
+    categories: ['头图'],
+  },
+  {
     label: '玩法与直播视觉',
     description: '玩法卡片、状态视觉和直播间包装按运行场景集中管理。',
     categories: ['玩法视觉', '直播物料'],
+  },
+  {
+    label: 'IP 与角色资产',
+    description: '小马 IP 立绘与动作素材，供玩法视觉与资源位复用。',
+    categories: ['IP 素材'],
   },
   {
     label: '传播与结算',
@@ -231,11 +254,9 @@ export function documentedImageCanvases(activityCase: DocumentedActivityCase): D
 export const documentedActivityLabels = (projectName: string) => {
   const activityCase = DOCUMENTED_ACTIVITY_CASES[projectName]
   if (!activityCase) return []
-  const imageCanvases = documentedImageCanvases(activityCase)
   return [
     DOCUMENTED_ACTIVITY_PAGES,
     DOCUMENTED_ACTIVITY_MATERIALS,
     ...activityCase.deliverables.filter((item) => item.category === '页面').map((item) => item.label),
-    ...imageCanvases.map((canvas) => canvas.label),
   ]
 }

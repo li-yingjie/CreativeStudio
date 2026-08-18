@@ -53,7 +53,7 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
       group: 'evidence',
       title: '核验需求与设计证据',
       lines: [
-        '从策划文档的设计参考链接进入 Figma，读取 5 个有效页面并定位 18 个正式交付节点。',
+        '从策划文档的设计参考中核对 5 个有效页面，并确认 18 项正式交付。',
         '排除脑暴、方向探索和外部战报参考，避免把过程稿误算成交付物或生成参考。',
         '归类得到：2 个互动 H5、10 个站内资源位、1 组玩法视觉、4 组传播物料和 1 张结算战报。',
       ],
@@ -65,7 +65,7 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
     id: 'acg-brief-ready',
     view: {
       kind: 'ai',
-      text: '我先没有套模板，而是根据这份策划文档及其中引用的设计证据整理了活动简报。当前可以确认：这是一个春节节点型内容活动，用游戏、二次元两个分会场承接榜单和助力互动，共有 18 项可核验交付。\n\n右侧把“策划中明确的事实”和“Agent 沿引用链接核验的证据”与“仍需业务确认的缺口”分开了。请先确认我对活动的理解，确认后我再推荐组织模板。',
+      text: '我先没有套模板，而是根据这份策划文档及其中引用的设计资料整理了活动简报。当前可以确认：这是一个春节节点型内容活动，用游戏、二次元两个分会场承接榜单和助力互动，共有 18 项可核验交付。\n\n右侧把“策划中明确的事实”“已核对的设计资料”和“仍需业务确认的缺口”分开了。请先确认我对活动的理解，确认后我再推荐组织模板。',
       cards: [
         {
           id: 'activity-brief',
@@ -95,7 +95,7 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
     id: 'acg-brief-gaps',
     view: {
       kind: 'ai',
-      text: '有四项：奖励与库存、助力频控、榜单冻结口径、战报数据字段。它们不会改变双会场和 18 项交付范围，因此可以先生成无奖励的会场骨架与资源位；但在 ActivitySpec 中会保持“待确认”，最终发布检查不会放行。',
+      text: '有四项：奖励与库存、助力频控、榜单冻结口径、战报数据字段。它们不会改变双会场和 18 项交付范围，因此可以先生成无奖励的会场骨架与资源位；这些内容会持续标记为“待确认”，正式发布前必须补齐。',
     },
     target: 'source-understanding',
     gate: {
@@ -133,8 +133,8 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
         },
         {
           title: '无模板创建',
-          eyebrow: '从空白 ActivitySpec 开始',
-          desc: '不继承既有组织形式，Agent 根据需求重新提出会场、玩法、阶段和交付结构，再由你逐项确认。',
+          eyebrow: '从空白活动结构开始',
+          desc: '不继承既有组织形式，系统根据需求重新提出会场、玩法、阶段和交付结构，再由你逐项确认。',
           facts: ['不继承固定结构', '多一轮结构确认', '适合新形态探索'],
           to: 'acg-no-template-selected',
         },
@@ -176,7 +176,7 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
     id: 'acg-no-template-applied',
     view: {
       kind: 'ai',
-      text: '已切换为无模板创建。本次不会继承任何会场数量、玩法组合或交付矩阵；我会把文档和 Figma 证据先整理成项目专属 ActivitySpec，再额外确认活动定位、组织规模和主流程。该结构只属于当前项目，成熟后才能另行沉淀为模板。',
+      text: '已切换为无模板创建。本次不会继承任何会场数量、玩法组合或交付清单；我会先根据文档和已核对的设计资料整理项目专属活动结构，再额外确认活动定位、组织规模和主流程。该结构只属于当前项目，成熟后才能另行沉淀为模板。',
     },
     target: 'activity-strategy',
     nextTo: 'acg-creative-input-choice',
@@ -213,7 +213,7 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
           title: '先看来源证据',
           eyebrow: '核对资产是否来自正式交付',
           desc: '查看 Brand、Style 和 IP 素材分别引用了哪些正式画板，以及仍待补齐的源文件。',
-          facts: ['排除探索稿', '保留 Figma 节点', '标出待校验源文件'],
+          facts: ['排除探索稿', '保留设计来源', '标出待校验源文件'],
           to: 'acg-creative-evidence-request',
         },
       ],
@@ -229,7 +229,7 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
     id: 'acg-creative-applied',
     view: {
       kind: 'ai',
-      text: '创意输入已确认：品牌身份、视觉语法和项目授权素材分别锁定版本。透明 Logo、标题字矢量源文件与 Figma 字体清单仍保持待校验，不会被演示数据伪装成已齐备。',
+      text: '创意输入已确认：品牌身份、视觉语法和项目授权素材分别锁定版本。透明 Logo、标题字矢量源文件与字体清单仍保持待校验，不会被演示数据伪装成已齐备。',
       cards: [
         {
           id: BRAND_ID,
@@ -309,7 +309,7 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
       title: '建立版本化资产绑定',
       lines: [
         '分别记录活动组织来源、品牌身份来源、Style Bible 与项目 IP Kit；选择“无模板”或“不使用 Brand Kit”时写入显式空值，不进行隐式兜底。',
-        '锁定内容榜单@1.0.0 与双动作助力@1.0.0 两个必选玩法包；按现有 Figma 实例保留集卡@0.9.4 与跃马攀峰@0.8.0，它们只影响玩法视觉件，不把状态数量误计成交付物数量。',
+        '锁定内容榜单与双动作助力两个必选玩法；按现有设计保留集卡与跃马攀峰，它们只影响玩法视觉，不把状态数量误计成交付物数量。',
         '把游戏/二次元群像标为 project-scoped 授权素材；奖励方案缺少证据，保持待确认。',
       ],
     },
@@ -321,11 +321,11 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
     view: {
       kind: 'think',
       group: 'compile-spec',
-      title: '编译 ActivitySpec 与交付矩阵',
+      title: '整理活动结构与交付清单',
       lines: [
         '活动主循环：资源位触达 → 主会场理解 → 游戏/二次元分流 → 榜单与助力 → 分享回流 → 结算战报。',
         '阶段拆成预热、主会场开启、分会场主推、结算传播 4 段；页面、状态变体和渠道变体分别计数。',
-        '18 项交付合同全部来自正式 Figma 节点；未提供的奖品、库存和结算数据只建占位字段，不臆造业务值。',
+        '18 项交付全部来自已确认的正式设计；未提供的奖品、库存和结算数据只标记待补充，不臆造业务值。',
       ],
     },
     target: 'activity-blueprint',
@@ -335,10 +335,10 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
     id: 'acg-spec-ready',
     view: {
       kind: 'ai',
-      text: 'ActivitySpec rev.12 已生成。这里先确认活动结构，不让视觉成稿掩盖业务问题：2 个分会场、榜单/助力为核心互动、18 项交付物；奖励保持待确认，不阻塞无奖励的会场与资源位生成。',
+      text: '活动结构 rev.12 已生成。这里先确认活动怎么组织，不让视觉成稿掩盖业务问题：2 个分会场、榜单/助力为核心互动、18 项交付物；奖励保持待确认，不阻塞无奖励的会场与资源位生成。',
       cards: [
-        { id: 'activity-spec', type: 'doc', badge: 'rev.12', title: 'ACG 新春会 ActivitySpec', desc: '4 阶段 · 2 分会场 · 榜单/助力 · 奖励待确认' },
-        { id: 'delivery-matrix', type: 'list', badge: '18 项', title: '交付矩阵', desc: '2 H5 · 10 资源位 · 1 玩法视觉 · 4 传播 · 1 战报' },
+        { id: 'activity-spec', type: 'doc', badge: 'rev.12', title: 'ACG 新春会活动结构', desc: '4 阶段 · 2 分会场 · 榜单/助力 · 奖励待确认' },
+        { id: 'delivery-matrix', type: 'list', badge: '18 项', title: '交付清单', desc: '2 H5 · 10 资源位 · 1 玩法视觉 · 4 传播 · 1 战报' },
         { id: 'gameplay.content-ranking', type: 'play', badge: '必选 v1.0.0', title: '内容榜单玩法包', desc: '内容池、分榜、排名、刷新冻结与 5 个运行状态' },
         { id: 'gameplay.dual-action-boost', type: 'play', badge: '必选 v1.0.0', title: '双动作助力玩法包', desc: '放你一马 / 好活加马 · 频控、反刷与榜单回写' },
       ],
@@ -362,9 +362,9 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
       group: 'venues',
       title: '生成代表性可交互会场',
       lines: [
-        '先只编译游戏分会场；榜单 Tab、助力按钮、任务与规则使用可点击运行态，不以截图替代。',
+        '先生成游戏分会场；榜单、助力按钮、任务与规则均可直接点击，不以截图替代。',
         '先应用 Brand Kit 的标题与身份层，再应用 Style Bible 的色彩/构图规则，最后注入本项目授权 IP 素材。',
-        '执行首屏信息优先级、安全区、空态和内容路由检查；设计对照继续保留 Figma node 作为证据。',
+        '执行首屏信息优先级、安全区、空态和内容路由检查；保留正式设计来源供验收时核对。',
       ],
     },
     target: 'activity-blueprint',
@@ -374,14 +374,14 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
     id: 'acg-venues-ready',
     view: {
       kind: 'ai',
-      text: '代表性会场已完成：游戏分会场是可点击运行态，右侧可以切榜单、助力并查看规则；同时保留“设计对照”核验 Figma 成稿。请先确认结构、交互和视觉方向，再生成二次元会场及其余 16 个图片交付。',
+      text: '代表性会场已完成：游戏分会场以真实运行态展示，可以直接切换榜单、助力并查看规则。请先确认结构、交互和视觉方向，再生成二次元会场及其余 16 个图片交付。',
       cards: [
         {
           id: 'deliverable:DLV-ACG-001',
           type: 'app',
           badge: '可交互',
           title: 'H5 · 游戏分会场长页',
-          desc: '榜单、助力、任务、规则与设计对照',
+          desc: '榜单、助力、任务与规则均可操作',
           preview: '/assets/figma-deliverables/acg/game-venue-long.png',
         },
       ],
@@ -406,7 +406,7 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
       title: '批量生成剩余交付物',
       lines: [
         '按已确认的页面合同生成二次元分会场，保留独立内容路由与状态。',
-        '按各 Surface 的真实尺寸重新排版，不对主 KV 做机械 center-crop：窄 Banner 缩减群像，竖版移动标题并避开脸部。',
+        '按各资源位的真实尺寸重新排版，不对主视觉做机械裁切：窄 Banner 缩减群像，竖版移动标题并避开脸部。',
         '生成 10 个站内资源位，并逐项检查标题识别、日期、IP 授权会场与安全区。',
         '继续生成玩法头图、合作海报、横/竖主 KV 和节目单；人工调整过的节点自动锁定。',
       ],
@@ -418,10 +418,10 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
     id: 'acg-resource-batch-ready',
     view: {
       kind: 'ai',
-      text: '剩余 17 项交付已完成。二次元分会场进入可交互运行态；每张图片成稿都保留源 Figma page、node ID、尺寸和下载入口，长图在右侧自然下滚查看。',
+      text: '剩余 17 项交付已完成。二次元分会场可以直接操作；每张图片成稿都保留来源、尺寸和下载入口，长图在右侧自然下滚查看。',
       image: {
         src: '/assets/figma-deliverables/acg/discovery-banner-1372x512.png',
-        caption: '正式交付 · 游戏中心发现页 Banner · node 2229:63622',
+        caption: '正式交付 · 游戏中心发现页 Banner',
       },
       cards: [
         { id: 'delivery-overview', type: 'list', badge: '18/18', title: '完整交付批次', desc: '2 H5 · 10 资源位 · 1 玩法视觉 · 4 传播 · 1 战报' },
@@ -439,7 +439,7 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
       lines: [
         '汇总 18 项状态：2 个可交互 H5 与 16 个图片交付全部可定位、可预览、可下载。',
         '结算战报沿用真实设计结构，业务数据保持待接入；不填造假的曝光、投稿或互动数字。',
-        '记录 CompileRun、ActivitySpec rev.12、资产版本和人工锁定节点，形成可追溯回放。',
+        '记录活动结构版本、资产版本和人工锁定内容，形成可追溯的生成记录。',
       ],
     },
     target: 'delivery-overview',
@@ -449,11 +449,11 @@ export const ACG_GENERATION_REPLAY_SCRIPT: AcgReplayStep[] = [
     id: 'acg-complete',
     view: {
       kind: 'ai',
-      text: '本次生成完成：18 项交付物已经落到项目目录。\n\n其中 2 个 H5 可直接切到运行态试玩；16 个图片交付来自已核验的正式 Figma 节点，可在无限画布查看和下载。奖励配置、战报业务数据、透明 Logo/标题字源文件与字体清单仍明确标为待确认，没有被演示数据伪装成已完成。',
+      text: '本次生成完成：18 项交付物已经落到项目目录。\n\n其中 2 个 H5 可直接试玩；16 个图片交付来自已核验的正式设计，可在无限画布查看和下载。奖励配置、战报业务数据、透明 Logo、标题字源文件与字体清单仍明确标为待确认，没有被演示数据伪装成已完成。',
       cards: [
-        { id: 'delivery-overview', type: 'list', badge: '18 项', title: '查看全部交付物', desc: '按 Surface、阶段、源节点与状态验收' },
-        { id: 'deliverable:DLV-ACG-001', type: 'app', badge: '可交互', title: '试玩游戏分会场', desc: '运行态 / 设计对照可切换' },
-        { id: 'activity-spec', type: 'doc', badge: 'rev.12', title: '查看 ActivitySpec 与资产绑定', desc: '模板、Brand Kit、Style 与项目素材可追溯' },
+        { id: 'delivery-overview', type: 'list', badge: '18 项', title: '查看全部交付物', desc: '按类型、阶段、来源与状态验收' },
+        { id: 'deliverable:DLV-ACG-001', type: 'app', badge: '可交互', title: '试玩游戏分会场', desc: '真实页面运行预览' },
+        { id: 'activity-spec', type: 'doc', badge: 'rev.12', title: '查看活动结构与资产绑定', desc: '活动模板、品牌、风格与项目素材可追溯' },
       ],
     },
     target: 'delivery-overview',

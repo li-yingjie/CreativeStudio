@@ -67,6 +67,8 @@ import type { AcgReplayTarget } from './AcgGenerationReplayScript'
 import AcgReplayWorkspace from './AcgReplayWorkspace'
 import type { BuildCard } from './XiahuaChatUI'
 import SummerSurfConversationMock from './SummerSurfConversationMock'
+import AssetOnlyProjectConversation from './AssetOnlyProjectConversation'
+import { getAssetOnlyProjectConversation } from './data/asset-only-project-conversations'
 import {
   LEGACY_XIAHUA_TEMPLATE_TOKEN,
   TEMPLATE_CLONE_PROJECT,
@@ -109,15 +111,18 @@ import GarudaAssetsView, {
 import {
   ACG_NEW_YEAR_ASSET_GROUPS,
   EVERNIGHT_ASSET_GROUPS,
+  HOT_TOPIC_BANNER_ASSET_GROUPS,
+  JINGXIN_LIVESTREAM_ASSET_GROUPS,
+  LIFE_SERVICE_RESOURCE_POSITION_ASSET_GROUPS,
+  MAGICX_HEADER_ASSET_GROUPS,
   SPRING_GALA_ASSET_GROUPS,
   SUMMER_SURF_ASSET_GROUPS,
+  XINZAI_IP_ASSET_GROUPS,
   XIAHUA_ASSET_GROUPS,
 } from './ProjectAssetCatalog'
 import DocumentedActivityWorkspace from './DocumentedActivityWorkspace'
-import HotTopicBannerWorkspace from './HotTopicBannerWorkspace'
 import {
   DOCUMENTED_ACTIVITY_CASES,
-  DOCUMENTED_ACTIVITY_OVERVIEW,
   EVERNIGHT_PROJECT,
   SPRING_GALA_PROJECT,
   documentedActivityLabels,
@@ -241,10 +246,14 @@ import {
   DATABASE_LABEL,
   FINISHED_PAGES_LABEL,
   H5_GAMEPLAY_CONFIG_LABEL,
+  JINGXIN_LIVESTREAM_ASSET_PROJECT,
   INTEREST_CARD_CONFIG_LABEL,
+  LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
+  MAGICX_HEADER_ASSET_PROJECT,
   GAMEPLAY_CONFIG_LABEL,
   getDeliverableIcon,
   getProductPages,
+  isAssetOnlyProject,
   PAGE_CONFIG_LABEL,
   PERSONA_CONFIG_LABEL,
   PROJECT_DOCUMENT_LABEL,
@@ -253,6 +262,7 @@ import {
   PRODUCT_CATEGORY_BADGES,
   TRIGGER_CONFIG_LABEL,
   WEB_PAGES,
+  XINZAI_IP_ASSET_PROJECT,
   type FileNode,
   type ProjectKind,
 } from './ProjectProductView'
@@ -1264,6 +1274,10 @@ function PlatformSidebar({
     EVERNIGHT_PROJECT,
     SUMMER_SURF_PROJECT,
     HOT_TOPIC_BANNER_PROJECT,
+    XINZAI_IP_ASSET_PROJECT,
+    JINGXIN_LIVESTREAM_ASSET_PROJECT,
+    LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
+    MAGICX_HEADER_ASSET_PROJECT,
     '射击小游戏',
     TAROT_INTEREST_CARD_PROJECT,
     // '抖音 AI 工坊设计探索' — 暂隐藏，保留配置与文件树供后续恢复。
@@ -2128,6 +2142,23 @@ const TAROT_INTEREST_CARD_PROJECT = '塔罗兴趣卡'
 const ACG_NEW_YEAR_PROJECT = '2026 抖音 ACG 新春会'
 const SUMMER_SURF_PROJECT = '夏日冲浪 · 顺风顺水'
 const HOT_TOPIC_BANNER_PROJECT = '生服热点 Banner'
+const assetGroupsForProject = (projectName: string): AssetGroup[] => {
+  if (projectName === HOT_TOPIC_BANNER_PROJECT)
+    return HOT_TOPIC_BANNER_ASSET_GROUPS
+  if (projectName === XINZAI_IP_ASSET_PROJECT)
+    return XINZAI_IP_ASSET_GROUPS
+  if (projectName === JINGXIN_LIVESTREAM_ASSET_PROJECT)
+    return JINGXIN_LIVESTREAM_ASSET_GROUPS
+  if (projectName === LIFE_SERVICE_RESOURCE_POSITION_PROJECT)
+    return LIFE_SERVICE_RESOURCE_POSITION_ASSET_GROUPS
+  if (projectName === MAGICX_HEADER_ASSET_PROJECT)
+    return MAGICX_HEADER_ASSET_GROUPS
+  if (projectName === SPRING_GALA_PROJECT) return SPRING_GALA_ASSET_GROUPS
+  if (projectName === EVERNIGHT_PROJECT) return EVERNIGHT_ASSET_GROUPS
+  if (projectName === SUMMER_SURF_PROJECT) return SUMMER_SURF_ASSET_GROUPS
+  if (isXiahuaFamily(projectName)) return XIAHUA_ASSET_GROUPS
+  return ACG_NEW_YEAR_ASSET_GROUPS
+}
 /** 已经做完并上线的那一版活动 —— 侧栏里的成品样板，也是模板的来源。 */
 const XIAHUA_PROJECT = '夯爆了 已上线'
 /** 首页传策划文档进来时新建的活动 —— 0→1 全过程在它身上从零跑一遍。 */
@@ -2138,8 +2169,8 @@ const XIAHUA_CLONE_PROJECT = TEMPLATE_CLONE_PROJECT
 /** 这两个项目共用「这夏夯爆了」这套活动预览/搭建机制（成品、新建）。 */
 const isXiahuaFamily = (t: string) =>
   t === XIAHUA_PROJECT || t === XIAHUA_BUILD_PROJECT
-const isMarketingFinishedPageTab = (label?: string) =>
-  label === FINISHED_PAGES_LABEL || label === '预览'
+const isMarketingPageCollectionTab = (label?: string) =>
+  label === FINISHED_PAGES_LABEL
 /** 「数据库」节点的表结构 —— 全部从当前玩法配置推导：卡池、档位、任务、
  *  抽卡参数改了行就跟着变，不存在一份写死的终态副本。 */
 const xiahuaDatabaseContent = (
@@ -2578,7 +2609,11 @@ export default function VibeCodingPage({
   )
   /* Chat session list — the header's conversation-name button opens a
    * dropdown of these, and the + button creates a fresh empty session. */
-  type ChatSession = { id: string; name: string }
+  type ChatSession = {
+    id: string
+    name: string
+    seededHistory?: 'asset-only'
+  }
   /* Sessions belong to the active project. Project switches snapshot
    * the array (and the matching `activeSessionId`) into projectChatsRef
    * and restore the target project's own list. Each project starts with
@@ -3538,13 +3573,14 @@ export default function VibeCodingPage({
     projectKind: ProjectKind = kindOf(name),
   ) => {
     const k = projectKind
-    if (name === HOT_TOPIC_BANNER_PROJECT)
+    if (isAssetOnlyProject(name))
       return [
         { label: ASSET_LIBRARY_LABEL, closable: false },
         { label: PROJECT_DOCUMENT_LABEL, closable: false },
       ]
     if (k === 'marketing-h5')
       return [
+        { label: '预览', closable: false },
         { label: FINISHED_PAGES_LABEL, closable: false },
         { label: PROJECT_DOCUMENT_LABEL, closable: false },
         { label: H5_GAMEPLAY_CONFIG_LABEL, closable: false },
@@ -3584,8 +3620,15 @@ export default function VibeCodingPage({
     seedProposal = true,
   ) => {
     const sid = `s-${Date.now()}`
+    const assetConversation = getAssetOnlyProjectConversation(name)
     sessionChatsRef.current.set(name, new Map())
-    setSessions([{ id: sid, name: '新会话' }])
+    setSessions([
+      {
+        id: sid,
+        name: assetConversation?.sessionTitle ?? '新会话',
+        seededHistory: assetConversation ? 'asset-only' : undefined,
+      },
+    ])
     setActiveSessionId(sid)
     // The composer is an uncontrolled contentEditable node. Reset both its
     // DOM and mirrored state when entering a project for the first time so a
@@ -3747,24 +3790,13 @@ export default function VibeCodingPage({
       }
     }
     const focusMarketingPages =
-      kindOf(name) === 'marketing-h5' && name !== HOT_TOPIC_BANNER_PROJECT
+      kindOf(name) === 'marketing-h5' && !isAssetOnlyProject(name)
     const focusProjectEntry = (
-      tabs: { label: string; closable: boolean }[],
       target: '预览' | typeof FINISHED_PAGES_LABEL,
     ) => {
-      const compatibleTabs = target === FINISHED_PAGES_LABEL
-        ? [
-            ...defaultTabsForKind(name, 'marketing-h5'),
-            ...tabs.filter((tab) => ![
-              '预览',
-              DOCUMENTED_ACTIVITY_OVERVIEW,
-              FINISHED_PAGES_LABEL,
-              PROJECT_DOCUMENT_LABEL,
-              H5_GAMEPLAY_CONFIG_LABEL,
-              ASSET_LIBRARY_LABEL,
-            ].includes(tab.label)),
-          ]
-        : tabs
+      // 活动项目顶栏只保留五个项目级入口。旧快照中的 H5 / Lynx
+      // 单页 Tab 不继续恢复；具体页面统一在「页面」内部选择。
+      const compatibleTabs = defaultTabsForKind(name, 'marketing-h5')
       const existingIndex = compatibleTabs.findIndex((tab) => tab.label === target)
       const nextTabs =
         existingIndex >= 0
@@ -3792,9 +3824,9 @@ export default function VibeCodingPage({
       !platformDataOpsOpen &&
       platformPlaceholderPage === null
     ) {
-      // 项目名是稳定的成品入口；项目内其他工具页仍通过子节点进入。
-      if (focusMarketingPages) focusProjectEntry(openTabs, FINISHED_PAGES_LABEL)
-      else if (name === HOT_TOPIC_BANNER_PROJECT) {
+      // 项目名是稳定的最终预览入口；页面编辑等工具页仍通过子节点进入。
+      if (focusMarketingPages) focusProjectEntry('预览')
+      else if (isAssetOnlyProject(name)) {
         const index = openTabs.findIndex((tab) => tab.label === ASSET_LIBRARY_LABEL)
         setActivePreviewTab(index >= 0 ? index : 0)
       }
@@ -3817,13 +3849,13 @@ export default function VibeCodingPage({
     const prior = projectChatsRef.current.get(name)
     if (prior) {
       applyProjectSnapshot(name, prior)
-      if (focusMarketingPages) focusProjectEntry(prior.openTabs, FINISHED_PAGES_LABEL)
+      if (focusMarketingPages) focusProjectEntry('预览')
       return
     }
     initProjectDefaults(name)
     if (focusMarketingPages)
-      focusProjectEntry(defaultTabsForKind(name), FINISHED_PAGES_LABEL)
-    else if (name === HOT_TOPIC_BANNER_PROJECT) {
+      focusProjectEntry('预览')
+    else if (isAssetOnlyProject(name)) {
       setOpenTabs(defaultTabsForKind(name))
       setActivePreviewTab(0)
     }
@@ -5295,6 +5327,8 @@ export default function VibeCodingPage({
         type: 'dir',
         children: [
           { name: '热点话题Banner标准.md', type: 'file' },
+          { name: '案例战报海报标准.md', type: 'file' },
+          { name: 'report-poster.skill.md', type: 'file' },
           { name: '文案与字号门禁.md', type: 'file' },
           { name: '发布校验清单.md', type: 'file' },
         ],
@@ -5311,6 +5345,93 @@ export default function VibeCodingPage({
           { name: '抖音生活服务Logo.png', type: 'file' },
           { name: '方方先锋体.ttf', type: 'file' },
           { name: 'banner.layers.json', type: 'file' },
+          { name: '成都世园酒店案例战报-1620x6900.png', type: 'file' },
+          { name: 'hotel-report__imageHtml.json', type: 'file' },
+        ],
+      },
+    ],
+    [XINZAI_IP_ASSET_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '心仔城市生活季素材任务.md', type: 'file' }],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: '01-color-standard.png', type: 'file' },
+          { name: '02-character-anatomy.png', type: 'file' },
+          { name: '03-3d-front.png', type: 'file' },
+          { name: '04-2d-front.png', type: 'file' },
+          { name: '05-height-ratio.png', type: 'file' },
+          { name: '06-emotion-expect.png', type: 'file' },
+          { name: '07-emotion-angry.png', type: 'file' },
+          { name: '08-action-greeting.jpg', type: 'file' },
+          { name: '09-action-hotpot.png', type: 'file' },
+          { name: '10-action-karaoke.png', type: 'file' },
+          { name: '11-action-skateboard.png', type: 'file' },
+          { name: '12-action-plane.png', type: 'file' },
+          { name: '13-action-spring.png', type: 'file' },
+        ],
+      },
+    ],
+    [JINGXIN_LIVESTREAM_ASSET_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '静心采耳馆直播间贴片任务.md', type: 'file' }],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: 'jingxin-preview.png', type: 'file' },
+          { name: 'jingxin-background.jpg', type: 'file' },
+          { name: 'jingxin-title.png', type: 'file' },
+          { name: 'jingxin-brand.png', type: 'file' },
+          { name: 'jingxin-top-gradient.png', type: 'file' },
+          { name: 'jingxin-bottom-gradient.png', type: 'file' },
+          { name: 'jingxin-benefits.png', type: 'file' },
+          { name: 'jingxin-side-offer.png', type: 'file' },
+        ],
+      },
+    ],
+    [LIFE_SERVICE_RESOURCE_POSITION_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '生活服务热点资源位周更.md', type: 'file' }],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: 'ice-camp.png', type: 'file' },
+          { name: 'duck-camp.png', type: 'file' },
+          { name: 'autumn-milk-tea.png', type: 'file' },
+          { name: 'zibo-photo.png', type: 'file' },
+          { name: 'heat-escape.png', type: 'file' },
+          { name: 'chaoshan-beef.png', type: 'file' },
+          { name: 'bread-brain.png', type: 'file' },
+          { name: 'industry-showcase.png', type: 'file' },
+        ],
+      },
+    ],
+    [MAGICX_HEADER_ASSET_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '城市灵感活动头图提案.md', type: 'file' }],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: 'wunvzhou-romance-banner.png', type: 'file' },
+          { name: 'dou-says-jiangnan.png', type: 'file' },
+          { name: 'travel-guide-banner.png', type: 'file' },
+          { name: 'national-ice-contest.png', type: 'file' },
         ],
       },
     ],
@@ -5961,10 +6082,23 @@ export default function VibeCodingPage({
         filename === PROJECT_DOCUMENT_LABEL ||
         filename === '文档' ||
         filename === DATABASE_LABEL ||
+        filename === FINISHED_PAGES_LABEL ||
         filename === H5_GAMEPLAY_CONFIG_LABEL ||
         filename === ASSET_LIBRARY_LABEL)
     ) {
       openNamedTab(filename)
+      return
+    }
+    // 活动项目的具体 H5 / Lynx / 原生页是「页面」内的子对象，
+    // 不再在顶部创建额外单页 Tab。
+    if (
+      activeProjectKind === 'marketing-h5' &&
+      (documentedActivityLabels(projectTitle).includes(filename) ||
+        /^(H5|Lynx)\b/i.test(filename) ||
+        /^(?:原生|直播间)\s*·/.test(filename))
+    ) {
+      setPreviewRoute(filename)
+      focusPreviewTab(FINISHED_PAGES_LABEL)
       return
     }
     // Raw source trees can contain repeated basenames (for example several
@@ -6111,22 +6245,21 @@ export default function VibeCodingPage({
 
     const documentTab = { label: PROJECT_DOCUMENT_LABEL, closable: false }
     const gameplayTab = { label: H5_GAMEPLAY_CONFIG_LABEL, closable: false }
-    const venueTab = { label: 'H5 · 游戏分会场长页', closable: false }
     const assetTab = { label: ASSET_LIBRARY_LABEL, closable: false }
+    const previewTab = { label: '预览', closable: false }
     const finishedPagesTab = { label: FINISHED_PAGES_LABEL, closable: false }
-    const tabs =
-      target === 'delivery-overview'
-        ? [finishedPagesTab, documentTab, gameplayTab, venueTab, assetTab]
-        : target === 'game-runtime'
-          ? [documentTab, gameplayTab, venueTab]
-          : target === 'activity-blueprint'
-            ? [documentTab, gameplayTab]
-            : [documentTab]
+    const tabs = [
+      previewTab,
+      finishedPagesTab,
+      documentTab,
+      gameplayTab,
+      assetTab,
+    ]
     const activeLabel =
       target === 'delivery-overview'
         ? FINISHED_PAGES_LABEL
         : target === 'game-runtime'
-          ? venueTab.label
+          ? FINISHED_PAGES_LABEL
           : target === 'activity-blueprint'
             ? H5_GAMEPLAY_CONFIG_LABEL
             : PROJECT_DOCUMENT_LABEL
@@ -7901,6 +8034,31 @@ export default function VibeCodingPage({
         ? '2026 抖音 ACG 新春会'
         : WORKSHOP_DEFAULT_PROJECT),
   )
+  // A refresh can land directly on `?project=<asset project>` without going
+  // through openProject/initProjectDefaults. Upgrade only that untouched
+  // first session into the project's seeded delivery history; user-created
+  // “新会话” sessions and restored project snapshots remain empty as intended.
+  useEffect(() => {
+    const assetConversation = getAssetOnlyProjectConversation(projectTitle)
+    if (!assetConversation || projectChatsRef.current.has(projectTitle)) return
+    setSessions((current) => {
+      const [onlySession] = current
+      if (
+        current.length !== 1 ||
+        onlySession.name !== '新会话' ||
+        onlySession.seededHistory
+      ) {
+        return current
+      }
+      return [
+        {
+          ...onlySession,
+          name: assetConversation.sessionTitle,
+          seededHistory: 'asset-only',
+        },
+      ]
+    })
+  }, [projectTitle])
   // Latest active project — read inside async generation callbacks to avoid
   // seeding the wrong project's preview if the user navigated away.
   const projectTitleRef = useRef(projectTitle)
@@ -7915,39 +8073,23 @@ export default function VibeCodingPage({
       createdProjectKinds[projectTitle] ??
       'mini-program'
     if (projectKind !== 'marketing-h5') return
-    setOpenTabs((tabs) => {
-      if (projectTitle === HOT_TOPIC_BANNER_PROJECT) {
+    setOpenTabs(() => {
+      if (isAssetOnlyProject(projectTitle)) {
         const defaultTabs = [
           { label: ASSET_LIBRARY_LABEL, closable: false },
           { label: PROJECT_DOCUMENT_LABEL, closable: false },
         ]
-        const cleaned = tabs.filter(
-          (tab) =>
-            tab.label !== FINISHED_PAGES_LABEL &&
-            tab.label !== '预览' &&
-            tab.label !== DOCUMENTED_ACTIVITY_OVERVIEW &&
-            tab.label !== PROJECT_DOCUMENT_LABEL &&
-            tab.label !== H5_GAMEPLAY_CONFIG_LABEL &&
-            tab.label !== ASSET_LIBRARY_LABEL,
-        )
-        return [...defaultTabs, ...cleaned]
+        return defaultTabs
       }
       const defaultTabs = [
+        { label: '预览', closable: false },
         { label: FINISHED_PAGES_LABEL, closable: false },
         { label: PROJECT_DOCUMENT_LABEL, closable: false },
         { label: H5_GAMEPLAY_CONFIG_LABEL, closable: false },
         { label: ASSET_LIBRARY_LABEL, closable: false },
       ]
-      const cleaned = tabs.filter(
-        (tab) =>
-          tab.label !== FINISHED_PAGES_LABEL &&
-          tab.label !== '预览' &&
-          tab.label !== DOCUMENTED_ACTIVITY_OVERVIEW &&
-          tab.label !== PROJECT_DOCUMENT_LABEL &&
-          tab.label !== H5_GAMEPLAY_CONFIG_LABEL &&
-          tab.label !== ASSET_LIBRARY_LABEL,
-      )
-      return [...defaultTabs, ...cleaned]
+      // 不保留旧版单页 / 交付件 Tab；页面选择已收口到「页面」内部。
+      return defaultTabs
     })
     setActivePreviewTab(0)
   }, [createdProjectKinds, projectTitle])
@@ -8240,11 +8382,9 @@ export default function VibeCodingPage({
       // focusing 预览 while that same click is still opening 素材库/配置页。
       if (hasPendingProduct) return
       setActivePreviewTab((current) => {
-        const defaultLabel = projectTitle === HOT_TOPIC_BANNER_PROJECT
+        const defaultLabel = isAssetOnlyProject(projectTitle)
           ? ASSET_LIBRARY_LABEL
-          : kindOf(projectTitle) === 'marketing-h5'
-            ? FINISHED_PAGES_LABEL
-            : '预览'
+          : '预览'
         const index = openTabs.findIndex((tab) => tab.label === defaultLabel)
         return index >= 0 ? index : current
       })
@@ -8290,7 +8430,7 @@ export default function VibeCodingPage({
     activeProjectKind === 'marketing-h5' &&
     // 这夏夯爆了预览自包含玩法，不接 ACG 的画布编辑链路。
     !isXiahuaFamily(projectTitle) &&
-    isMarketingFinishedPageTab(openTabs[activePreviewTab]?.label)
+    isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label)
   const gameCanvasModeOpen =
     canvasEditOpen &&
     activeProjectKind === 'web-game' &&
@@ -8300,7 +8440,7 @@ export default function VibeCodingPage({
   const xiahuaEditMode =
     editPanelOpen &&
     isXiahuaFamily(projectTitle) &&
-    isMarketingFinishedPageTab(openTabs[activePreviewTab]?.label)
+    isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label)
   const projectSidebarHidden =
     sidebarFullyHidden || immersiveCanvasModeOpen || xiahuaEditMode
   const effectiveSidebarWidth =
@@ -8990,6 +9130,24 @@ export default function VibeCodingPage({
     />
   )
 
+  const activeSession = sessions.find(
+    (session) => session.id === activeSessionId,
+  )
+  const showAssetProjectHistory =
+    activeSession?.seededHistory === 'asset-only' &&
+    Boolean(getAssetOnlyProjectConversation(projectTitle))
+
+  // Existing projects open at the latest completed turn. The earlier request
+  // and source-analysis steps stay immediately above it and remain scrollable.
+  useEffect(() => {
+    if (!showAssetProjectHistory) return
+    const raf = requestAnimationFrame(() => {
+      const scroller = chatScrollRef.current
+      if (scroller) scroller.scrollTop = scroller.scrollHeight
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [activeSessionId, projectTitle, showAssetProjectHistory])
+
   /* ─── Render ─── */
   return (
     <motion.div
@@ -9672,12 +9830,18 @@ export default function VibeCodingPage({
                 proposalStep === 'idle' ? (
                   // 这夏夯爆了：空会话固定回放「生成过程」记录（模拟平台从策划
                   // 文档到可玩活动的对话链路）——它就是这个项目的历史。
+                  showAssetProjectHistory ||
                   projectTitle === ACG_NEW_YEAR_PROJECT ||
                   isXiahuaFamily(projectTitle) ||
                   buildFlowHere ||
                   projectTitle === SUMMER_SURF_PROJECT ? (
                     <div className="space-y-6">
-                      {projectTitle === ACG_NEW_YEAR_PROJECT ? (
+                      {showAssetProjectHistory ? (
+                        <AssetOnlyProjectConversation
+                          projectTitle={projectTitle}
+                          onOpen={focusPreviewTab}
+                        />
+                      ) : projectTitle === ACG_NEW_YEAR_PROJECT ? (
                         <AcgGenerationReplay
                           replayToken={acgReplayToken}
                           onPlaybackChange={setAcgReplayPlaying}
@@ -9768,6 +9932,12 @@ export default function VibeCodingPage({
                 ) : (
                   <>
                     {/* 这夏夯爆了：生成过程记录常驻在新消息上方，后续调整接着记。 */}
+                    {showAssetProjectHistory && (
+                      <AssetOnlyProjectConversation
+                        projectTitle={projectTitle}
+                        onOpen={focusPreviewTab}
+                      />
+                    )}
                     {projectTitle === XIAHUA_PROJECT && <XiahuaGenerationLog />}
                     {projectTitle === SUMMER_SURF_PROJECT && (
                       <SummerSurfConversationMock
@@ -11780,11 +11950,13 @@ export default function VibeCodingPage({
                         <ComposerLocalFileButton className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]" />
                         <button
                           type="button"
-                          onClick={openResourceLibraryPage}
+                          onClick={openMentionPicker}
+                          aria-expanded={Boolean(mentionAnchor)}
+                          aria-haspopup="dialog"
                           className="flex h-8 items-center gap-1 rounded-full border border-[var(--divider)] px-3 text-[13px] font-medium text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
                         >
                           <FolderCode size={14} strokeWidth={1.8} />
-                          扩展
+                          技能
                         </button>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -12478,12 +12650,11 @@ export default function VibeCodingPage({
                 >
                   <div className="tab-scroll flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto">
                     {openTabs.map((tab, i) => {
-                      const isActive =
-                        i === activePreviewTab ||
-                        (!tab.closable && productPinned)
+                      const isActive = i === activePreviewTab
                       const TabIcon = productLabelIcon(tab.label)
                       return (
                         <button
+                          type="button"
                           key={`${tab.label}-${i}`}
                           onClick={() => setActivePreviewTab(i)}
                           className={`group flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] whitespace-nowrap transition-colors ${
@@ -12576,7 +12747,10 @@ export default function VibeCodingPage({
                           // tab added from here (left directory + code on the right).
                           // Some product trees already surface a 项目文件 node, so only
                           // append when absent to avoid a duplicate row.
-                          if (!flat.some((f) => f.label === '项目文件')) {
+                          if (
+                            !isAssetOnlyProject(projectTitle) &&
+                            !flat.some((f) => f.label === '项目文件')
+                          ) {
                             flat.push({ label: '项目文件' })
                           }
                           // Drop rows already present as an open tab — no point
@@ -12686,7 +12860,7 @@ export default function VibeCodingPage({
                             isPageCategory(lbl) && isMultiChildCategory(lbl)
                           const isMarketingPageSurface =
                             activeProjectKind === 'marketing-h5' &&
-                            isMarketingFinishedPageTab(lbl)
+                            isMarketingPageCollectionTab(lbl)
                           const isUnifiedEditablePreview =
                             isMarketingPageSurface ||
                             (lbl === '预览' && activeProjectKind === 'web-game')
@@ -13131,7 +13305,7 @@ export default function VibeCodingPage({
                                     else setEditPanelOpen(true)
                                   }}
                                 />
-                              ) : isMarketingPageSurface ? (
+                              ) : activeProjectKind === 'marketing-h5' && lbl === '预览' ? null : isMarketingPageSurface ? (
                                 <div
                                   role="group"
                                   aria-label="编辑模式"
@@ -13200,12 +13374,14 @@ export default function VibeCodingPage({
                               <div
                                 ref={previewCanvasRef}
                                 data-h5-edit-canvas={
-                                  activeProjectKind === 'marketing-h5' ||
+                                  (activeProjectKind === 'marketing-h5' &&
+                                    isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label)) ||
                                   undefined
                                 }
                                 onPointerDownCapture={() => {
                                   if (
                                     activeProjectKind === 'marketing-h5' &&
+                                    isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label) &&
                                     !editPanelOpen
                                   ) {
                                     setCanvasEditOpen(false)
@@ -13660,17 +13836,34 @@ export default function VibeCodingPage({
                             })
                             const docValue =
                               activeProjectKind === 'marketing-h5'
-                                ? (proposalDocs['文档'] ??
-                                  (isXiahuaFamily(projectTitle)
-                                    ? XIAHUA_PLAN_MD
-                                    : (PROJECT_DOCS[projectTitle] ??
-                                      ACG_NEW_YEAR_PLAN_MD)))
+                                ? isXiahuaFamily(projectTitle)
+                                  ? (proposalDocs['文档'] ?? XIAHUA_PLAN_MD)
+                                  : (projectDocEdits[projectTitle] ??
+                                    PROJECT_DOCS[projectTitle] ??
+                                    ACG_NEW_YEAR_PLAN_MD)
                                 : (projectDocEdits[projectTitle] ??
                                   PROJECT_DOCS[projectTitle] ??
                                   buildDefaultProjectDoc(
                                     projectTitle,
                                     activeProjectKind,
                                   ))
+                            if (
+                              label === PROJECT_DOCUMENT_LABEL &&
+                              isAssetOnlyProject(projectTitle)
+                            ) {
+                              return (
+                                <MarketingDocEditor
+                                  title="项目文档 · Markdown"
+                                  value={docValue}
+                                  onChange={(next) =>
+                                    setProjectDocEdits((prev) => ({
+                                      ...prev,
+                                      [projectTitle]: next,
+                                    }))
+                                  }
+                                />
+                              )
+                            }
                             const basicInfo = miniProgramConfig ? (
                               <MiniProgramSettingsForm
                                 config={miniProgramConfig}
@@ -13695,7 +13888,10 @@ export default function VibeCodingPage({
                                 value={docValue}
                                 hideHeader
                                 onChange={(next) => {
-                                  if (activeProjectKind === 'marketing-h5') {
+                                  if (
+                                    activeProjectKind === 'marketing-h5' &&
+                                    isXiahuaFamily(projectTitle)
+                                  ) {
                                     setProposalDocs((prev) => ({
                                       ...prev,
                                       ['文档']: next,
@@ -13968,12 +14164,6 @@ export default function VibeCodingPage({
                           // marketing-h5 product-view sections.
                           if (activeProjectKind === 'marketing-h5') {
                             if (
-                              projectTitle === HOT_TOPIC_BANNER_PROJECT &&
-                              label === ASSET_LIBRARY_LABEL
-                            ) {
-                              return <HotTopicBannerWorkspace />
-                            }
-                            if (
                               projectTitle === ACG_NEW_YEAR_PROJECT &&
                               label === H5_GAMEPLAY_CONFIG_LABEL
                             ) {
@@ -13984,10 +14174,22 @@ export default function VibeCodingPage({
                               documentedActivityCase &&
                               documentedActivityLabels(projectTitle).includes(label)
                             ) {
+                              const documentedActiveLabel =
+                                label === FINISHED_PAGES_LABEL &&
+                                previewRoute &&
+                                documentedActivityLabels(projectTitle).includes(
+                                  previewRoute,
+                                )
+                                  ? previewRoute
+                                  : label
                               return (
                                 <DocumentedActivityWorkspace
+                                  key={projectTitle}
                                   activityCase={documentedActivityCase}
-                                  activeLabel={label}
+                                  activeLabel={documentedActiveLabel}
+                                  materialGroups={assetGroupsForProject(
+                                    projectTitle,
+                                  )}
                                   onOpen={(deliverableLabel) => openFileInTab(deliverableLabel)}
                                 />
                               )
@@ -14031,18 +14233,25 @@ export default function VibeCodingPage({
                                 <MarketingDocEditor
                                   title="文档"
                                   value={
-                                    proposalDocs['文档'] ??
-                                    (isXiahuaFamily(projectTitle)
-                                      ? XIAHUA_PLAN_MD
-                                      : (PROJECT_DOCS[projectTitle] ??
-                                        ACG_NEW_YEAR_PLAN_MD))
+                                    isXiahuaFamily(projectTitle)
+                                      ? (proposalDocs['文档'] ?? XIAHUA_PLAN_MD)
+                                      : (projectDocEdits[projectTitle] ??
+                                        PROJECT_DOCS[projectTitle] ??
+                                        ACG_NEW_YEAR_PLAN_MD)
                                   }
-                                  onChange={(next) =>
-                                    setProposalDocs((prev) => ({
+                                  onChange={(next) => {
+                                    if (isXiahuaFamily(projectTitle)) {
+                                      setProposalDocs((prev) => ({
+                                        ...prev,
+                                        ['文档']: next,
+                                      }))
+                                      return
+                                    }
+                                    setProjectDocEdits((prev) => ({
                                       ...prev,
-                                      ['文档']: next,
+                                      [projectTitle]: next,
                                     }))
-                                  }
+                                  }}
                                 />
                               )
                             }
@@ -14069,16 +14278,10 @@ export default function VibeCodingPage({
                               }
                               return (
                                 <GarudaAssetsView
-                                  groups={
-                                    projectTitle === SPRING_GALA_PROJECT
-                                      ? SPRING_GALA_ASSET_GROUPS
-                                      : projectTitle === EVERNIGHT_PROJECT
-                                        ? EVERNIGHT_ASSET_GROUPS
-                                        : projectTitle === SUMMER_SURF_PROJECT
-                                      ? SUMMER_SURF_ASSET_GROUPS
-                                      : isXiahuaFamily(projectTitle)
-                                        ? XIAHUA_ASSET_GROUPS
-                                        : ACG_NEW_YEAR_ASSET_GROUPS
+                                  key={projectTitle}
+                                  groups={assetGroupsForProject(projectTitle)}
+                                  showPageUsage={
+                                    !isAssetOnlyProject(projectTitle)
                                   }
                                 />
                               )
@@ -14184,7 +14387,7 @@ export default function VibeCodingPage({
                           activeProjectKind === 'marketing-h5' &&
                           !isXiahuaFamily(projectTitle) &&
                           projectTitle !== SUMMER_SURF_PROJECT &&
-                          isMarketingFinishedPageTab(activeLabel) &&
+                          isMarketingPageCollectionTab(activeLabel) &&
                           canvasEditOpen
                         ) {
                           return (

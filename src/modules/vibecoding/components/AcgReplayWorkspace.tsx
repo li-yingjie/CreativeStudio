@@ -272,7 +272,7 @@ function ActivityStrategy({ stepId, pathIds }: { stepId: string; pathIds: string
             {noTemplate ? <span className="rounded bg-[#E8F1FF] px-1.5 py-0.5 text-[8px] font-medium text-[#357EF8]">已选择</span> : null}
           </div>
           <p className="mt-2 text-[9px] leading-[15px] text-[#161823]/48">
-            从空白 ActivitySpec 开始，不继承会场数量、玩法组合或交付矩阵。适合首次出现的新活动形态。
+            从空白活动配置开始，不继承会场数量、玩法组合或交付范围。适合首次出现的新活动形态。
           </p>
           <div className="mt-3 border-t border-black/[0.06] pt-3 text-[8px] leading-[14px] text-[#161823]/40">
             代价：需要额外确认组织规模、参与闭环和交付范围，不能隐式套用推荐模板。
@@ -286,7 +286,7 @@ function ActivityStrategy({ stepId, pathIds }: { stepId: string; pathIds: string
           {[
             ['会场结构', '保留游戏、二次元两个分会场；后续可增减内容路由。'],
             ['玩法组合', '榜单与双动作助力为主；集卡、跃马攀峰作为可选组件。'],
-            ['交付范围', '采用 Figma 已核验的 18 项，不把页面状态误算为独立交付。'],
+            ['交付范围', '采用已验收的 18 项成品，不把页面状态误算为独立交付。'],
           ].map(([label, value]) => (
             <div key={label} className="bg-white px-3.5 py-3">
               <div className="text-[8px] font-medium text-[#161823]/34">{label}</div>
@@ -307,7 +307,7 @@ function AssetBinding({ pathIds }: { pathIds: string[] }) {
   const rows = [
     {
       icon: Layers,
-      title: noTemplate ? '项目专属 ActivitySpec' : '新春会模板 @1.1.0',
+      title: noTemplate ? '项目专属活动配置' : '新春会模板 @1.1.0',
       role: '活动组织',
       detail: noTemplate ? '不继承公共模板，由当前策划材料生成组织结构' : '主/分会场关系、阶段、玩法槽位和交付规模',
       status: noTemplate ? '无模板' : '已绑定',
@@ -365,7 +365,7 @@ function AssetBinding({ pathIds }: { pathIds: string[] }) {
         <aside className="overflow-hidden rounded-xl border border-black/[0.08] bg-white">
           <img src="/assets/figma-deliverables/acg/topic-header-banner.png" alt="ACG 新春会品牌视觉" className="aspect-[4/1.55] w-full object-cover" />
           <div className="p-4">
-            <h3 className="text-[10px] font-semibold text-[#161823]">职责边界</h3>
+            <h3 className="text-[10px] font-semibold text-[#161823]">资产使用说明</h3>
             <ul className="mt-2.5 space-y-2 text-[8px] leading-[13px] text-[#161823]/46">
               <li>模板不携带 ACG 品牌或具体 IP。</li>
               <li>Brand Kit 不改变会场数量和玩法。</li>
@@ -384,7 +384,7 @@ function ActivityBlueprint() {
   return (
     <div className="mx-auto w-full max-w-[1180px] px-6 py-7">
       <SectionTitle
-        eyebrow={`ActivitySpec · ${revision}`}
+        eyebrow={`活动配置 · ${revision}`}
         title="活动骨架与交付范围"
         detail="先确认活动如何运作，再生成代表性会场；视觉成稿不会替代业务结构确认。"
       />

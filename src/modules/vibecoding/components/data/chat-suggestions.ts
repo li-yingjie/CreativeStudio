@@ -1,4 +1,10 @@
-import type { ProjectKind } from '../ProjectProductView'
+import {
+  JINGXIN_LIVESTREAM_ASSET_PROJECT,
+  LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
+  MAGICX_HEADER_ASSET_PROJECT,
+  XINZAI_IP_ASSET_PROJECT,
+  type ProjectKind,
+} from '../ProjectProductView'
 
 /** Rotating reply bank for plain (non-trigger) chat messages. Picked by
  *  index so repeated sends still feel varied without needing a real
@@ -102,6 +108,34 @@ export const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
     '检查搜索 Banner 双尺寸',
     '查看不同稀有度卡框',
     '定位全部 16 项交付',
+  ],
+  [XINZAI_IP_ASSET_PROJECT]: [
+    '检查心仔标准形象与比例',
+    '筛选适合餐饮场景的动作',
+    '核对线下物料品牌标识',
+    '为城市生活季补一组动作',
+    '导出供应商验收清单',
+  ],
+  [JINGXIN_LIVESTREAM_ASSET_PROJECT]: [
+    '预览七层贴片组合效果',
+    '检查透明 PNG 的边缘',
+    '调整套餐权益的可读性',
+    '锁定门店品牌贴片',
+    '按 1374×2437 导出',
+  ],
+  [LIFE_SERVICE_RESOURCE_POSITION_PROJECT]: [
+    '检查 8 张资源位文案',
+    '按语义色路由分组',
+    '验证 1170×330 尺寸',
+    '检查 Logo 与固定装饰',
+    '导出本周正式成图',
+  ],
+  [MAGICX_HEADER_ASSET_PROJECT]: [
+    '比较四种头图构图方向',
+    '筛选适合城市夜游的案例',
+    '标记人物与 IP 授权风险',
+    '整理头图评审说明',
+    '基于选中方向生成新版本',
   ],
   '沪上火锅·五一种草提案': CHAT_SUGGESTIONS_BY_KIND['ops-proposal'],
 }

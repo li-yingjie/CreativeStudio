@@ -100,7 +100,7 @@ function CollectionFields() {
         <Field label="稀有卡权重"><input className={inputClass} defaultValue="12%" /></Field>
         <Field label="保底"><input className={inputClass} defaultValue="8 次未出稀有则必出" /></Field>
       </Section>
-      <Section title="获取任务" summary="任务事件来自 ActivitySpec 的共享任务对象。">
+      <Section title="获取任务" summary="任务事件与项目里的任务配置保持一致。">
         <Field label="每日登录"><input className={inputClass} defaultValue="1 次抽卡" /></Field>
         <Field label="完成助力"><input className={inputClass} defaultValue="每 3 次助力获得 1 次" /></Field>
         <Field label="浏览双会场"><input className={inputClass} defaultValue="首次完成额外 1 次" /></Field>
@@ -175,12 +175,12 @@ export default function AcgGameplayComponentsWorkspace() {
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm"><ActiveIcon className="size-4" /></span>
               <div className="min-w-0"><div className="flex items-center gap-2"><h1 className="truncate text-[16px] font-semibold text-[#161823]">{active.name}</h1><span className="rounded bg-emerald-50 px-1.5 py-1 text-[8px] font-medium text-emerald-600">已启用</span></div><p className="mt-1 text-[9px] text-[#161823]/34">{active.package} · {active.mount}</p></div>
             </div>
-            <button type="button" onClick={() => toast.success(`${active.name}已保存`, { description: '参数已写回 ActivitySpec rev.19，将只重编译受影响交付物。' })} className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[#161823] px-3 text-[9px] font-medium text-white"><Save className="size-3.5" />保存参数</button>
+            <button type="button" onClick={() => toast.success(`${active.name}已保存`, { description: '当前修改已同步到相关页面。' })} className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[#161823] px-3 text-[9px] font-medium text-white"><Save className="size-3.5" />保存参数</button>
           </div>
 
           <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3.5 py-2.5 text-[9px] text-emerald-800/64">
             <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
-            <span>契约已通过：挂载点、事件回写、素材引用和结算口径均可解析。</span>
+            <span>配置检查通过：页面入口、状态反馈、素材和结算规则均已关联。</span>
           </div>
 
           <div className="mt-4 space-y-3">

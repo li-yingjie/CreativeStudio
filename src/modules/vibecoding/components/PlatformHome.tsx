@@ -25,7 +25,6 @@ import {
   Puzzle,
   RefreshCw,
   Scissors,
-  Search,
   ShieldCheck,
   Smartphone,
   Sparkles,
@@ -38,7 +37,7 @@ import AsciiTexture from './AsciiTexture'
 import InterestCardShowcase from './InterestCardShowcase'
 import MentionPicker, { type MentionItem, type MentionTab } from './MentionPicker'
 import { XIAHUA_TEMPLATE_TOKEN } from './XiahuaBuildScript'
-import { skills as CREATIVE_STUDIO_SKILLS, type SkillItem } from './skills/skills-data'
+import { skills as CREATIVE_STUDIO_SKILLS } from './skills/skills-data'
 import { resources as CREATIVE_STUDIO_RESOURCES } from './resources/resources-data'
 
 /* ─── AI 工坊首页 — 方案 7 按 Figma 探索 490:13302 实现 ───
@@ -395,6 +394,10 @@ const STANDALONE_HERO_EFFECT_FRAMES = [
   'left-[548.47px] top-[65.74px] size-[108.53px]',
 ] as const
 
+const MAGICX_CASES = '/assets/workshop/magicx-cases'
+const MAGICX_OFFICIAL_AVATAR =
+  '/assets/workshop/figma-scenes/people/avatar/avatar-marketing-magicx.png'
+
 /** 内部工作台的四类核心场景；入口、输入和案例共用同一份配置。 */
 const STANDALONE_BASE_SCENES: readonly StandaloneScene[] = [
   {
@@ -454,6 +457,46 @@ const STANDALONE_BASE_SCENES: readonly StandaloneScene[] = [
         avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-marketing-musician.png',
         views: 1,
         prompt: '参考商演乐手开播计划，帮我生成一套音乐人招募活动',
+      },
+      {
+        id: 'h5-pet-fan-festival',
+        title: '盛夏宠粉游戏狂欢节',
+        description: '宠粉任务、游戏互动与奖励领取的一体化活动',
+        cover: `${MAGICX_CASES}/h5-pet-fan-festival.jpg`,
+        author: 'MagicX 官方案例',
+        avatar: MAGICX_OFFICIAL_AVATAR,
+        views: 18,
+        prompt: '参考盛夏宠粉游戏狂欢节，帮我生成一套夏日宠粉互动活动',
+      },
+      {
+        id: 'h5-singing-duel',
+        title: '歌声隔空对决',
+        description: '双人歌声对决、拉票互动与榜单激励活动',
+        cover: `${MAGICX_CASES}/h5-singing-duel.jpg`,
+        author: 'MagicX 官方案例',
+        avatar: MAGICX_OFFICIAL_AVATAR,
+        views: 14,
+        prompt: '参考歌声隔空对决，帮我生成一套音乐对战互动活动',
+      },
+      {
+        id: 'h5-emotion-host-recruit',
+        title: '情感新主播招募计划',
+        description: '主播报名、成长任务与阶段奖励活动',
+        cover: `${MAGICX_CASES}/h5-emotion-host-recruit.jpg`,
+        author: 'MagicX 官方案例',
+        avatar: MAGICX_OFFICIAL_AVATAR,
+        views: 11,
+        prompt: '参考情感新主播招募计划，帮我生成一套主播招募活动',
+      },
+      {
+        id: 'h5-new-voice-plan',
+        title: '新声发光计划',
+        description: '新主播成长任务、权益解锁与阶段激励活动',
+        cover: `${MAGICX_CASES}/h5-new-voice-plan.jpg`,
+        author: 'MagicX 官方案例',
+        avatar: MAGICX_OFFICIAL_AVATAR,
+        views: 9,
+        prompt: '参考新声发光计划，帮我生成一套新主播成长激励活动',
       },
     ],
   },
@@ -574,6 +617,46 @@ const STANDALONE_BASE_SCENES: readonly StandaloneScene[] = [
         avatar: '/assets/workshop/figma-scenes/people/avatar/avatar-creative-diamond.png',
         views: 4,
         prompt: '参考星星钻石微闪动图，帮我生成一张同风格动效素材',
+      },
+      {
+        id: 'poster-birthday',
+        title: '主播生日海报',
+        description: '高识别度生日主题主播宣传海报',
+        cover: `${MAGICX_CASES}/poster-birthday.jpg`,
+        author: 'MagicX 官方案例',
+        avatar: MAGICX_OFFICIAL_AVATAR,
+        views: 38,
+        prompt: '参考主播生日海报，帮我生成一张同风格生日活动海报',
+      },
+      {
+        id: 'poster-newyear',
+        title: '抖音跨年海报',
+        description: '跨年氛围与平台品牌结合的活动主视觉',
+        cover: `${MAGICX_CASES}/poster-newyear.jpg`,
+        author: 'MagicX 官方案例',
+        avatar: MAGICX_OFFICIAL_AVATAR,
+        views: 23,
+        prompt: '参考抖音跨年海报，帮我生成一张跨年活动主视觉',
+      },
+      {
+        id: 'poster-redfox',
+        title: '红狐奇幻夜活动',
+        description: '奇幻角色与夜色氛围结合的活动海报',
+        cover: `${MAGICX_CASES}/poster-redfox.jpg`,
+        author: 'MagicX 官方案例',
+        avatar: MAGICX_OFFICIAL_AVATAR,
+        views: 16,
+        prompt: '参考红狐奇幻夜活动，帮我生成一张奇幻主题活动海报',
+      },
+      {
+        id: 'poster-shopping-festival',
+        title: '购物节主视觉',
+        description: '促销信息、商品氛围与品牌识别兼顾的活动海报',
+        cover: `${MAGICX_CASES}/poster-shopping-festival.jpg`,
+        author: 'MagicX 官方案例',
+        avatar: MAGICX_OFFICIAL_AVATAR,
+        views: 12,
+        prompt: '参考购物节主视觉，帮我生成一张大促活动海报',
       },
     ],
   },
@@ -804,53 +887,9 @@ const SCHEME_TWO_SKILL_DESCRIPTIONS: Record<string, string> = {
   'game-ui': '设计主界面、战斗 HUD 与按钮图标',
 }
 
-const MAGICX_CASES = '/assets/workshop/magicx-cases'
-const MAGICX_OFFICIAL_AVATAR =
-  '/assets/workshop/figma-scenes/people/avatar/avatar-marketing-magicx.png'
-
-/** 方案 2 的 Skill 推荐只取 MagicX 案例；每类至少两组，供「换一换」轮播。 */
+/** Skill 推荐沿用首页已核验的真实案例。 */
 const MAGICX_H5_CASES: readonly StandaloneSceneCase[] = [
   ...STANDALONE_BASE_SCENES[0].cases,
-  {
-    id: 'h5-pet-fan-festival',
-    title: '盛夏宠粉游戏狂欢节',
-    description: '夏日宠粉任务与游戏互动活动',
-    cover: `${MAGICX_CASES}/h5-pet-fan-festival.jpg`,
-    author: '孙思媛',
-    avatar: MAGICX_OFFICIAL_AVATAR,
-    views: 0,
-    prompt: '参考盛夏宠粉游戏狂欢节，帮我生成一套夏日宠粉互动活动',
-  },
-  {
-    id: 'h5-singing-duel',
-    title: '歌声隔空对决',
-    description: '双人歌声对决与拉票互动活动',
-    cover: `${MAGICX_CASES}/h5-singing-duel.jpg`,
-    author: '孙思媛',
-    avatar: MAGICX_OFFICIAL_AVATAR,
-    views: 1,
-    prompt: '参考歌声隔空对决，帮我生成一套音乐对战互动活动',
-  },
-  {
-    id: 'h5-emotion-host-recruit',
-    title: '情感新主播招募计划',
-    description: '主播招募、任务成长与报名转化活动',
-    cover: `${MAGICX_CASES}/h5-emotion-host-recruit.jpg`,
-    author: '洛柒清',
-    avatar: MAGICX_OFFICIAL_AVATAR,
-    views: 0,
-    prompt: '参考情感新主播招募计划，帮我生成一套主播招募活动',
-  },
-  {
-    id: 'h5-new-voice-plan',
-    title: '新声发光计划',
-    description: '新主播成长任务与阶段激励活动',
-    cover: `${MAGICX_CASES}/h5-new-voice-plan.jpg`,
-    author: '吴亚楠',
-    avatar: MAGICX_OFFICIAL_AVATAR,
-    views: 0,
-    prompt: '参考新声发光计划，帮我生成一套新主播成长激励活动',
-  },
 ]
 
 const MAGICX_NATIVE_CASES: readonly StandaloneSceneCase[] = [
@@ -938,46 +977,6 @@ const MAGICX_NATIVE_CASES: readonly StandaloneSceneCase[] = [
 
 const MAGICX_POSTER_CASES: readonly StandaloneSceneCase[] = [
   ...STANDALONE_BASE_SCENES[2].cases,
-  {
-    id: 'poster-birthday',
-    title: '主播生日海报',
-    description: '高识别度生日主题主播宣传海报',
-    cover: `${MAGICX_CASES}/poster-birthday.jpg`,
-    author: '官方案例',
-    avatar: MAGICX_OFFICIAL_AVATAR,
-    views: 38,
-    prompt: '参考主播生日海报，帮我生成一张同风格生日活动海报',
-  },
-  {
-    id: 'poster-newyear',
-    title: '抖音跨年海报',
-    description: '跨年氛围与平台品牌结合的活动主视觉',
-    cover: `${MAGICX_CASES}/poster-newyear.jpg`,
-    author: '官方案例',
-    avatar: MAGICX_OFFICIAL_AVATAR,
-    views: 3,
-    prompt: '参考抖音跨年海报，帮我生成一张跨年活动主视觉',
-  },
-  {
-    id: 'poster-redfox',
-    title: '红狐奇幻夜活动',
-    description: '奇幻角色与夜色氛围结合的活动海报',
-    cover: `${MAGICX_CASES}/poster-redfox.jpg`,
-    author: '官方案例',
-    avatar: MAGICX_OFFICIAL_AVATAR,
-    views: 1,
-    prompt: '参考红狐奇幻夜活动，帮我生成一张奇幻主题活动海报',
-  },
-  {
-    id: 'poster-shopping-festival',
-    title: '2025 购物节主视觉',
-    description: '购物节促销信息与品牌氛围主视觉',
-    cover: `${MAGICX_CASES}/poster-shopping-festival.jpg`,
-    author: '官方案例',
-    avatar: MAGICX_OFFICIAL_AVATAR,
-    views: 0,
-    prompt: '参考 2025 购物节主视觉，帮我生成一张大促活动海报',
-  },
 ]
 
 const SCHEME_TWO_RECOMMENDED_CASES: Readonly<
@@ -1846,15 +1845,9 @@ const APPROVAL_MODES = [
 ] as const
 
 type ApprovalMode = (typeof APPROVAL_MODES)[number]['value']
-type HomeSkill = SkillItem
-type HomeSkillFilter = 'all' | 'brand' | 'ip'
+type HomeCapability = MentionItem & { tab: MentionTab }
 
 const HOME_SKILLS = CREATIVE_STUDIO_SKILLS.filter((skill) => skill.status === '已有')
-const HOME_SKILL_FILTERS: Array<{ key: HomeSkillFilter; label: string }> = [
-  { key: 'all', label: '全部技能' },
-  { key: 'brand', label: 'Brand Kit' },
-  { key: 'ip', label: 'IP' },
-]
 
 const HOME_MENTION_SKILLS: MentionItem[] = HOME_SKILLS.map((skill) => ({
   id: skill.id,
@@ -1982,61 +1975,59 @@ function ApprovalModeSelect({
 function HomeSkillSelect({
   selected,
   onChange,
+  anchorRef,
 }: {
-  selected: HomeSkill | null
-  onChange: (skill: HomeSkill | null) => void
+  selected: HomeCapability | null
+  onChange: (capability: HomeCapability | null) => void
+  anchorRef: { readonly current: HTMLDivElement | null }
 }) {
-  const { open, setOpen, ref } = usePopover()
-  const [query, setQuery] = useState('')
-  const [skillFilter, setSkillFilter] = useState<HomeSkillFilter>('all')
-  const [panelMaxHeight, setPanelMaxHeight] = useState(420)
-  const normalizedQuery = query.trim().toLocaleLowerCase()
-  const filteredSkills = HOME_SKILLS.filter((skill) => {
-    if (skillFilter === 'brand' && skill.category !== 'Brand Kit') return false
-    if (skillFilter === 'ip' && skill.category !== 'IP 资产') return false
-    return normalizedQuery
-      ? [skill.name, skill.description, skill.category, ...(skill.sourceAsset?.tags ?? [])]
-          .join(' ')
-          .toLocaleLowerCase()
-          .includes(normalizedQuery)
-      : true
-  })
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const [anchor, setAnchor] = useState<{
+    left: number
+    top: number
+    width: number
+  } | null>(null)
 
   useEffect(() => {
     if (!open) return
 
-    const updatePanelHeight = () => {
-      const triggerBottom = ref.current?.getBoundingClientRect().bottom ?? 0
-      const availableHeight = Math.max(0, window.innerHeight - triggerBottom - 16)
-      setPanelMaxHeight(Math.min(568, availableHeight))
+    const updateAnchor = () => {
+      const rect = (anchorRef.current ?? ref.current)?.getBoundingClientRect()
+      if (!rect) return
+      setAnchor({ left: rect.left, top: rect.bottom, width: rect.width })
     }
 
-    const ensureDownwardSpace = () => {
-      const triggerBottom = ref.current?.getBoundingClientRect().bottom ?? 0
-      if (window.innerHeight - triggerBottom < 360) {
-        ref.current?.scrollIntoView({ block: 'center', inline: 'nearest' })
-      }
-      requestAnimationFrame(updatePanelHeight)
-    }
-
-    const frame = requestAnimationFrame(ensureDownwardSpace)
-    window.addEventListener('resize', updatePanelHeight)
-    document.addEventListener('scroll', updatePanelHeight, true)
+    updateAnchor()
+    window.addEventListener('resize', updateAnchor)
+    document.addEventListener('scroll', updateAnchor, true)
     return () => {
-      cancelAnimationFrame(frame)
-      window.removeEventListener('resize', updatePanelHeight)
-      document.removeEventListener('scroll', updatePanelHeight, true)
+      window.removeEventListener('resize', updateAnchor)
+      document.removeEventListener('scroll', updateAnchor, true)
     }
-  }, [open, ref])
+  }, [anchorRef, open])
+
+  const togglePicker = () => {
+    if (open) {
+      setOpen(false)
+      return
+    }
+    const rect = (anchorRef.current ?? ref.current)?.getBoundingClientRect()
+    if (rect) {
+      setAnchor({ left: rect.left, top: rect.bottom, width: rect.width })
+    }
+    setOpen(true)
+  }
 
   return (
     <div ref={ref} className="relative shrink-0">
       <button
         type="button"
-        aria-label="选择技能"
-        aria-haspopup="menu"
+        aria-label="选择技能、工具或知识库"
+        aria-haspopup="dialog"
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={togglePicker}
         className={`flex h-9 items-center gap-1 rounded-full px-4 text-[14px] font-semibold text-[#1c1f23]/80 transition-colors hover:bg-black/5 hover:text-[#1c1f23] ${
           open ? 'bg-black/5' : ''
         }`}
@@ -2044,88 +2035,27 @@ function HomeSkillSelect({
         <FolderCode size={16} strokeWidth={1.8} />
         技能
       </button>
-      {open && (
-        <div
-          className="absolute left-0 top-full z-50 mt-2 w-[min(440px,calc(100vw-32px))] overflow-hidden rounded-[14px] border border-black/[0.07] bg-white p-2 shadow-[0_12px_38px_rgba(30,31,35,0.16)]"
-          style={{ maxHeight: panelMaxHeight }}
-        >
-          <div className="flex h-9 items-center gap-2 rounded-[8px] bg-black/[0.035] px-2.5 text-[#1c1f23]/45">
-            <Search size={15} strokeWidth={1.8} className="shrink-0" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              aria-label="搜索技能"
-              placeholder="搜索技能"
-              className="min-w-0 flex-1 bg-transparent text-[13px] text-[#1c1f23] outline-none placeholder:text-[#1c1f23]/35"
-            />
-          </div>
-          <div className="flex items-center gap-1.5 border-b border-black/[0.06] px-0.5 py-2">
-            {HOME_SKILL_FILTERS.map((filter) => (
-              <button
-                key={filter.key}
-                type="button"
-                onClick={() => setSkillFilter(filter.key)}
-                className={`h-7 rounded-lg px-2.5 text-[11px] transition-colors ${skillFilter === filter.key ? 'bg-[#161823] font-medium text-white' : 'bg-[#F2F3F5] text-[#161823]/58 hover:text-[#161823]'}`}
-              >
-                {filter.label}
-              </button>
-            ))}
-            <span className="ml-auto pr-1 text-[10px] tabular-nums text-[#161823]/30">{filteredSkills.length} 项</span>
-          </div>
-          <div
-            role="menu"
-            aria-label="技能列表"
-            className="mt-1 overscroll-contain overflow-y-auto"
-            style={{ maxHeight: Math.max(0, panelMaxHeight - 92) }}
-          >
-            {filteredSkills.length > 0 ? (
-              filteredSkills.map((skill) => (
-                <button
-                  key={skill.id}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={selected?.id === skill.id}
-                  onClick={() => {
-                    onChange(skill)
-                    setOpen(false)
-                    setQuery('')
-                  }}
-                  className="flex w-full items-start gap-2.5 rounded-[8px] px-2.5 py-2 text-left transition-colors hover:bg-black/5"
-                >
-                  <span className={`mt-0.5 flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[8px] ${skill.category === 'Brand Kit' ? 'bg-[#FFF3ED] text-[#F05A28]' : skill.category === 'IP 资产' ? 'bg-[#F1F0FF] text-[#6254D8]' : 'bg-[#EAF4FF] text-[#2e90fa]'}`}>
-                    {skill.sourceAsset?.thumbnail || skill.sourceAsset?.preview ? (
-                      <img src={skill.sourceAsset.thumbnail ?? skill.sourceAsset.preview} alt="" className="size-full object-cover" />
-                    ) : (
-                      <FolderCode size={14} strokeWidth={1.8} />
-                    )}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="min-w-0 truncate text-[13px] font-medium leading-[18px] text-[#1c1f23]">{skill.name}</span>
-                      <span className="shrink-0 rounded bg-[#F2F3F5] px-1.5 py-0.5 text-[9px] text-[#161823]/45">{skill.category}</span>
-                    </span>
-                    <span className="mt-0.5 block truncate text-[11px] leading-[16px] text-[#1c1f23]/45">{skill.description}</span>
-                  </span>
-                  {selected?.id === skill.id && (
-                    <Check size={14} strokeWidth={2.2} className="mt-1 shrink-0 text-[#2e90fa]" />
-                  )}
-                </button>
-              ))
-            ) : (
-              <div className="flex flex-col items-center px-4 py-6 text-center">
-                <span className="text-[13px] text-[#1c1f23]/55">没有匹配的技能</span>
-                <button
-                  type="button"
-                  onClick={() => setQuery('')}
-                  className="mt-2 text-[12px] text-[#2e90fa]"
-                >
-                  清除搜索
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <MentionPicker
+        open={open}
+        anchor={anchor}
+        placement="below"
+        maxWidth={800}
+        maxHeight={420}
+        matchAnchorWidth
+        skills={HOME_MENTION_SKILLS}
+        tools={HOME_MENTION_TOOLS}
+        knowledge={HOME_MENTION_KNOWLEDGE}
+        selectedKeys={selected ? [`${selected.tab}:${selected.id}`] : []}
+        onInsert={(item, tab) => {
+          onChange(
+            selected?.id === item.id && selected.tab === tab
+              ? null
+              : { ...item, tab },
+          )
+        }}
+        onResetSelection={() => onChange(null)}
+        onClose={() => setOpen(false)}
+      />
     </div>
   )
 }
@@ -2271,8 +2201,15 @@ export default function PlatformHome({
     useState<ResourceSlotInstructionSlots>(() => ({
       ...DEFAULT_RESOURCE_SLOT_INSTRUCTION_SLOTS,
     }))
-  const [selectedHomeSkill, setSelectedHomeSkill] = useState<HomeSkill | null>(null)
+  const [selectedHomeCapability, setSelectedHomeCapability] =
+    useState<HomeCapability | null>(null)
   const [approvalMode, setApprovalMode] = useState<ApprovalMode>('ask')
+  const [sameStyleCase, setSameStyleCase] = useState<{
+    title: string
+    prompt: string
+  } | null>(null)
+  const [sameStyleDraft, setSameStyleDraft] = useState('')
+  const sameStyleComposerRef = useRef<HTMLTextAreaElement>(null)
   const activeSceneConfig =
     STANDALONE_SCENES.find((scene) => scene.key === activeScene) ??
     STANDALONE_SCENES[0]
@@ -2280,8 +2217,15 @@ export default function PlatformHome({
     activeScene === 'marketing'
       ? STANDALONE_SUBSCENES
       : STANDALONE_SCENE_SUGGESTIONS[activeScene]
+  const selectedHomeCapabilityLabel = selectedHomeCapability
+    ? selectedHomeCapability.tab === 'skills'
+      ? '技能'
+      : selectedHomeCapability.tab === 'tools'
+        ? '工具'
+        : '知识库'
+    : ''
   const showsComposerPrefix =
-    (!schemeTwo && Boolean(selectedSubscene)) || Boolean(selectedHomeSkill)
+    (!schemeTwo && Boolean(selectedSubscene)) || Boolean(selectedHomeCapability)
   const [activeTab, setActiveTab] = useState('游戏卡牌')
   /* 快捷入口：选中一个类型后，右侧换成它自己的下拉槽位。 */
   const [tool, setTool] = useState<Tool | null>(null)
@@ -2313,9 +2257,7 @@ export default function PlatformHome({
 
   const insertHomeMention = (item: MentionItem, tab: MentionTab) => {
     setDraft(`${draft.replace(/@[^\s]*$/u, '')}@${item.name} `)
-    if (tab === 'skills') {
-      setSelectedHomeSkill(HOME_SKILLS.find((skill) => skill.id === item.id) ?? null)
-    }
+    setSelectedHomeCapability({ ...item, tab })
     setMentionAnchor(null)
   }
 
@@ -2416,37 +2358,37 @@ export default function PlatformHome({
       <H5InstructionEditor
         subscene={selectedSubscene}
         slots={h5InstructionSlots}
-        selectedSkill={selectedHomeSkill}
+        selectedSkill={selectedHomeCapability}
         onSlotChange={updateH5InstructionSlot}
         onRemoveSubscene={removeSelectedSubscene}
-        onRemoveSkill={() => setSelectedHomeSkill(null)}
+        onRemoveSkill={() => setSelectedHomeCapability(null)}
       />
     ) : activeSlotInstruction === 'creative-poster' ? (
       <CreativePosterInstructionEditor
         subscene={selectedSubscene}
         slots={creativePosterInstructionSlots}
-        selectedSkill={selectedHomeSkill}
+        selectedSkill={selectedHomeCapability}
         onSlotChange={updateCreativePosterInstructionSlot}
         onRemoveSubscene={removeSelectedSubscene}
-        onRemoveSkill={() => setSelectedHomeSkill(null)}
+        onRemoveSkill={() => setSelectedHomeCapability(null)}
       />
     ) : activeSlotInstruction === 'planning' ? (
       <PlanningInstructionEditor
         subscene={selectedSubscene}
         slots={planningInstructionSlots}
-        selectedSkill={selectedHomeSkill}
+        selectedSkill={selectedHomeCapability}
         onSlotChange={updatePlanningInstructionSlot}
         onRemoveSubscene={removeSelectedSubscene}
-        onRemoveSkill={() => setSelectedHomeSkill(null)}
+        onRemoveSkill={() => setSelectedHomeCapability(null)}
       />
     ) : activeSlotInstruction === 'resource-slot' ? (
       <ResourceSlotInstructionEditor
         subscene={selectedSubscene}
         slots={resourceSlotInstructionSlots}
-        selectedSkill={selectedHomeSkill}
+        selectedSkill={selectedHomeCapability}
         onSlotChange={updateResourceSlotInstructionSlot}
         onRemoveSubscene={removeSelectedSubscene}
-        onRemoveSkill={() => setSelectedHomeSkill(null)}
+        onRemoveSkill={() => setSelectedHomeCapability(null)}
       />
     ) : undefined
   ) : undefined
@@ -2488,8 +2430,8 @@ export default function PlatformHome({
         ? `｜${selectedParamValues.join(' / ')}`
         : ''
       const scope = `${selectedSubscene?.label ?? activeSceneConfig.label}${paramScope}`
-      const selectedSkillScope = selectedHomeSkill
-        ? `｜技能：${selectedHomeSkill.name}`
+      const selectedSkillScope = selectedHomeCapability
+        ? `｜${selectedHomeCapabilityLabel}：${selectedHomeCapability.name}`
         : ''
       return onSubmit(`【${scope}${selectedSkillScope}】${request}`, attachment)
     }
@@ -2503,6 +2445,34 @@ export default function PlatformHome({
     const scope = ps ? `【${tool.label}｜${ps}】` : `【${tool.label}】`
     onSubmit(`${scope}${body}`, attachment)
   }
+
+  const openSameStyleComposer = (title: string, prompt: string) => {
+    setSameStyleCase({ title, prompt })
+    setSameStyleDraft(prompt)
+  }
+
+  const closeSameStyleComposer = () => {
+    setSameStyleCase(null)
+    setSameStyleDraft('')
+  }
+
+  const submitSameStyle = () => {
+    if (!sameStyleCase || !sameStyleDraft.trim()) return
+    submit(sameStyleDraft)
+  }
+
+  useEffect(() => {
+    if (!sameStyleCase) return
+    const frame = requestAnimationFrame(() => sameStyleComposerRef.current?.focus())
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeSameStyleComposer()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [sameStyleCase])
 
   return (
     <motion.div
@@ -2643,6 +2613,7 @@ export default function PlatformHome({
               外阴影会被裁在 border-box 之外，不会从磨砂输入框里透出来。 */}
           <div
             ref={composerShellRef}
+            data-testid="home-composer-shell"
             className={
               standaloneWorkshopLayout && schemeTwo
                 ? 'relative z-0 mx-auto w-full max-w-[800px] overflow-visible'
@@ -2704,7 +2675,7 @@ export default function PlatformHome({
               inputContent={schemeTwo ? undefined : slotInstructionEditor}
               inputPrefix={
                 !activeSlotInstruction &&
-                ((!schemeTwo && selectedSubscene) || selectedHomeSkill) && (
+                ((!schemeTwo && selectedSubscene) || selectedHomeCapability) && (
                   <span className="ml-3 mt-2 inline-flex shrink-0 items-center gap-1">
                     {!schemeTwo && selectedSubscene && (
                       <span className="inline-flex h-7 shrink-0 items-center gap-2 rounded-[10px] bg-[#d5ebfe] px-2 text-[14px] font-normal leading-5 text-[#2e90fa]">
@@ -2727,14 +2698,14 @@ export default function PlatformHome({
                         </button>
                       </span>
                     )}
-                    {selectedHomeSkill && (
+                    {selectedHomeCapability && (
                       <span className="inline-flex h-7 shrink-0 items-center gap-2 rounded-[10px] bg-[#d5ebfe] px-2 text-[14px] font-normal leading-5 text-[#2e90fa]">
                         <FolderCode size={12} strokeWidth={1.8} />
-                        <span className="max-w-[140px] truncate">{selectedHomeSkill.name}</span>
+                        <span className="max-w-[140px] truncate">{selectedHomeCapability.name}</span>
                         <button
                           type="button"
-                          aria-label={`移除${selectedHomeSkill.name}技能`}
-                          onClick={() => setSelectedHomeSkill(null)}
+                          aria-label={`移除${selectedHomeCapability.name}${selectedHomeCapabilityLabel}`}
+                          onClick={() => setSelectedHomeCapability(null)}
                           className="relative size-3 shrink-0 overflow-hidden"
                         >
                           <img
@@ -2803,8 +2774,9 @@ export default function PlatformHome({
                   {standaloneWorkshopLayout && (
                     <>
                       <HomeSkillSelect
-                        selected={selectedHomeSkill}
-                        onChange={setSelectedHomeSkill}
+                        selected={selectedHomeCapability}
+                        onChange={setSelectedHomeCapability}
+                        anchorRef={composerShellRef}
                       />
                       <ApprovalModeSelect
                         value={approvalMode}
@@ -2941,7 +2913,11 @@ export default function PlatformHome({
                   }
                   onPick={(prompt) => {
                     setActiveSlotInstruction(null)
-                    setDraft(prompt)
+                    const cases =
+                      SCHEME_TWO_RECOMMENDED_CASES[selectedSubscene.key] ??
+                      activeSceneConfig.cases
+                    const item = cases.find((candidate) => candidate.prompt === prompt)
+                    openSameStyleComposer(item?.title ?? selectedSubscene.label, prompt)
                   }}
                 />
               )}
@@ -2976,7 +2952,10 @@ export default function PlatformHome({
         {standaloneWorkshopLayout && !schemeTwo ? (
           <StandaloneSceneCases
             scene={activeSceneConfig}
-            onPick={submit}
+            onPick={(prompt) => {
+              const item = activeSceneConfig.cases.find((candidate) => candidate.prompt === prompt)
+              openSameStyleComposer(item?.title ?? activeSceneConfig.label, prompt)
+            }}
           />
         ) : !standaloneWorkshopLayout ? (
           <div className="mt-[72px] w-full">
@@ -3003,9 +2982,10 @@ export default function PlatformHome({
           {activeTab === '兴趣卡模板' ? (
             <div className="mt-2">
               <InterestCardShowcase
-                onPick={({ title }) =>
-                  onSubmit(`参考「${title}」这张兴趣卡，帮我做同款`)
-                }
+                onPick={({ title }) => openSameStyleComposer(
+                  title,
+                  `参考「${title}」这张兴趣卡，帮我做同款`,
+                )}
               />
             </div>
           ) : (
@@ -3060,8 +3040,14 @@ export default function PlatformHome({
                   type="button"
                   onClick={() =>
                     w.template
-                      ? onSubmit(`${XIAHUA_TEMPLATE_TOKEN} 参考这个模板帮我生成一个新活动`)
-                      : onSubmit(`参考这张卡面，帮我做同款「${activeTab}」`)
+                      ? openSameStyleComposer(
+                          w.author,
+                          `${XIAHUA_TEMPLATE_TOKEN} 参考这个模板帮我生成一个新活动`,
+                        )
+                      : openSameStyleComposer(
+                          activeTab,
+                          `参考这张卡面，帮我做同款「${activeTab}」`,
+                        )
                   }
                   className="absolute inset-x-[13px] bottom-[13px] flex h-10 translate-y-2 items-center justify-center gap-2 rounded-[100px] bg-[#1C1F23] text-[14px] font-medium text-[#F5F7FA] opacity-0 transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none"
                 >
@@ -3075,6 +3061,45 @@ export default function PlatformHome({
           </div>
         ) : null}
       </div>
+
+      {sameStyleCase ? (
+        <div className="pointer-events-none fixed bottom-4 left-[244px] right-6 z-[80] flex justify-center max-md:left-4 max-md:right-4">
+          <div className="pointer-events-auto w-full max-w-[720px]">
+            <ChatComposer
+              value={sameStyleDraft}
+              onChange={setSameStyleDraft}
+              onSend={submitSameStyle}
+              placeholder="补充你希望调整的内容"
+              ariaLabel="做同款提示词"
+              textareaRef={sameStyleComposerRef}
+              height={146}
+              skinClassName="rounded-[18px] border border-black/[0.10] bg-white shadow-[0_18px_50px_-20px_rgba(22,24,35,0.36)]"
+              inputClassName="text-[13px] leading-[20px] text-[#161823] placeholder:text-[#161823]/30"
+              sendButtonClassName="size-8 bg-[#161823] text-white hover:bg-[#2C2D35]"
+              footerLeft={(
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full bg-[#161823] px-2.5 text-[11px] font-medium text-white">
+                    <Sparkles size={12} strokeWidth={1.8} /> 做同款
+                  </span>
+                  <span className="max-w-[320px] truncate text-[11px] text-[#161823]/42">
+                    {sameStyleCase.title}
+                  </span>
+                </div>
+              )}
+              footerExtra={(
+                <button
+                  type="button"
+                  aria-label="关闭做同款对话框"
+                  onClick={closeSameStyleComposer}
+                  className="grid size-8 place-items-center rounded-full text-[#161823]/42 hover:bg-[#F2F3F5] hover:text-[#161823]"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            />
+          </div>
+        </div>
+      ) : null}
     </motion.div>
   )
 }

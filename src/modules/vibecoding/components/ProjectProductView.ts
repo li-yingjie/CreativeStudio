@@ -74,6 +74,26 @@ export const H5_GAMEPLAY_CONFIG_LABEL = '玩法配置'
 export const GAME_GAMEPLAY_CONFIG_LABEL = '游戏玩法配置'
 export const INTEREST_CARD_CONFIG_LABEL = '兴趣卡配置'
 export const PROJECT_MEMORY_LABEL = '项目记忆'
+/** 纯设计资产项目没有可运行页面：项目树与顶部 Tab 只展示任务文档和素材库。 */
+export const XINZAI_IP_ASSET_PROJECT = '心仔城市生活季 · IP 素材包'
+export const JINGXIN_LIVESTREAM_ASSET_PROJECT = '静心采耳馆 · 直播间贴片'
+export const LIFE_SERVICE_RESOURCE_POSITION_PROJECT = '生活服务热点 · 资源位周更'
+export const MAGICX_HEADER_ASSET_PROJECT = '城市灵感 · 活动头图提案'
+
+export const ASSET_ONLY_PROJECTS = [
+  '生服热点 Banner',
+  XINZAI_IP_ASSET_PROJECT,
+  JINGXIN_LIVESTREAM_ASSET_PROJECT,
+  LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
+  MAGICX_HEADER_ASSET_PROJECT,
+] as const
+
+export function isAssetOnlyProject(projectName?: string): boolean {
+  return Boolean(
+    projectName &&
+      (ASSET_ONLY_PROJECTS as readonly string[]).includes(projectName),
+  )
+}
 /** AI 分身用自己的一套模块名，与左侧栏入口一字不差（技能库 / 触发器）。 */
 export const AVATAR_SKILL_LABEL = '技能库'
 export const AVATAR_TRIGGER_LABEL = '触发器'
@@ -181,6 +201,7 @@ export function getDeliverableIcon(label: string): LucideIcon | undefined {
  *  579-57535；其余业务节点继续使用各自的 Semi light-1 tint。 */
 export const PRODUCT_CATEGORY_BADGES: Record<string, { bg: string; fg: string }> = {
   预览: { bg: '#e0ecff', fg: '#3370ff' },
+  [FINISHED_PAGES_LABEL]: { bg: '#e0ecff', fg: '#3370ff' },
   [PAGE_CONFIG_LABEL]: { bg: '#e0ecff', fg: '#3370ff' },
   界面: { bg: '#e0ecff', fg: '#3370ff' },
   [BASIC_INFO_LABEL]: { bg: '#d9f4f4', fg: '#0e9c9c' },
@@ -328,16 +349,17 @@ export function buildProductView(
     case 'web-game':
       return gameView(tree)
     case 'marketing-h5': {
-      // 项目名本身就是成品入口，不再在项目树里重复一层「交付物」。
-      // 页面从项目名直接进入成品画布；图片、资源位和传播物料统一在素材库管理。
+      // 项目名进入最终预览；「页面」是页面产物的管理与编辑入口。
+      // 图片、资源位和传播物料继续统一在素材库管理。
       void tree
-      if (projectName === '生服热点 Banner') {
+      if (isAssetOnlyProject(projectName)) {
         return [
           { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
           { name: ASSET_LIBRARY_LABEL, type: 'file' },
         ]
       }
       return [
+        { name: FINISHED_PAGES_LABEL, type: 'file' },
         { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
         { name: H5_GAMEPLAY_CONFIG_LABEL, type: 'file' },
         { name: ASSET_LIBRARY_LABEL, type: 'file' },

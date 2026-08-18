@@ -1,19 +1,32 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
+  Activity,
   ArrowLeft,
+  ArrowUpRight,
+  BarChart3,
   BookOpen,
   Box,
+  Calendar,
+  Check,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   Code2,
   Cpu,
   Database,
+  FileText,
+  Headphones,
   Image,
+  RefreshCw,
   Search,
   Sparkles,
+  Users,
 } from '@/shared/icons'
 import {
+  type KnowledgeFileItem,
+  type ModelResourceDetail,
   type ResourceItem,
+  type ResourceParameter,
   type ResourceTabKey,
   resourceTabOptions,
   resources,
@@ -91,58 +104,112 @@ function ResourceCover({ item }: { item: ResourceItem }) {
   )
 }
 
-function ResourceDetail({ item, onBack, onUse }: { item: ResourceItem; onBack: () => void; onUse?: (reference: ResourceReference) => void }) {
-  const style = styleFor(item)
-  const asset = item.sourceAsset
-  const image = asset?.thumbnail ?? asset?.visualReferences?.[0]?.src
+function DetailShell({ children }: { children: ReactNode }) {
+  return <div className="thin-scroll h-full overflow-y-auto bg-[#F3F4F7] p-3"><article className="min-h-full rounded-2xl bg-white px-7 pb-10 pt-5">{children}</article></div>
+}
+
+function DetailIcon({ item }: { item: ResourceItem }) {
+  return <span className="flex size-[78px] shrink-0 items-center justify-center rounded-2xl bg-[#E3E7FF] text-[#5968DF]"><ResourceIcon item={item} size={34} /></span>
+}
+
+function ParameterTable({ parameters }: { parameters: readonly ResourceParameter[] }) {
   return (
-    <div className="thin-scroll h-full overflow-y-auto bg-[#F7F8FA] px-8 py-6">
-      <div className="mx-auto max-w-[920px]">
-        <button type="button" onClick={onBack} className="mb-4 inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] text-[#1C1F23]/65 hover:bg-black/[0.04] hover:text-[#1C1F23]"><ArrowLeft size={15} />返回{TAB_META[item.tab].label}</button>
-        <article className="overflow-hidden rounded-2xl border border-[rgba(45,66,107,0.10)] bg-white">
-          <header className="flex min-h-[176px] items-end justify-between gap-8 px-8 py-7" style={{ background: style.bg }}>
-            <div>
-              <div className="mb-4 text-[12px] font-medium" style={{ color: style.ink }}>{item.group} / {item.category}</div>
-              <h1 className="text-[30px] font-semibold tracking-[-0.7px] text-[#1C1F23]">{item.title}</h1>
-            </div>
-            {image ? <img src={image} alt="" className="h-[116px] w-[206px] shrink-0 rounded-xl object-cover shadow-[0_5px_18px_rgba(31,35,41,0.10)]" /> : <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white shadow-[0_5px_18px_rgba(31,35,41,0.08)]" style={{ color: style.ink }}><ResourceIcon item={item} size={28} /></span>}
-          </header>
-          <div className="grid grid-cols-1 gap-8 p-8 md:grid-cols-[minmax(0,1fr)_260px] md:gap-10">
-            <section>
-              {item.summary ? <><h2 className="text-[15px] font-semibold text-[#1C1F23]">知识说明</h2><p className="mt-3 text-[14px] leading-7 text-[#1C1F23]/72">{item.summary}</p></> : <div className="flex h-24 items-center text-[13px] text-[#1C1F23]/42">暂无补充说明</div>}
-              {asset?.parameterGroups.map((group) => (
-                <div key={group.name} className="mt-7 border-t border-[rgba(45,66,107,0.10)] pt-6">
-                  <h2 className="text-[15px] font-semibold text-[#1C1F23]">{group.name}</h2>
-                  <p className="mt-1.5 text-[12px] leading-5 text-[#1C1F23]/50">{group.summary}</p>
-                  <dl className="mt-4 divide-y divide-[rgba(45,66,107,0.08)] rounded-xl border border-[rgba(45,66,107,0.10)]">
-                    {group.parameters.map((parameter) => (
-                      <div key={parameter.label} className="grid grid-cols-[132px_minmax(0,1fr)] gap-4 px-4 py-3 text-[12px] leading-5">
-                        <dt className="font-medium text-[#1C1F23]/64">{parameter.label}</dt><dd className="text-[#1C1F23]">{parameter.value}<span className="ml-2 text-[10px] text-[#1C1F23]/38">{parameter.mode}</span></dd>
-                      </div>
-                    ))}
-                  </dl>
-                </div>
-              ))}
-              {asset?.constraints.length ? <div className="mt-7 border-t border-[rgba(45,66,107,0.10)] pt-6"><h2 className="text-[15px] font-semibold text-[#1C1F23]">使用边界</h2><ul className="mt-3 space-y-2 text-[13px] leading-6 text-[#1C1F23]/68">{asset.constraints.map((rule) => <li key={rule} className="flex gap-2"><span className="mt-[9px] size-1 shrink-0 rounded-full bg-[#1C1F23]/35" />{rule}</li>)}</ul></div> : null}
-            </section>
-            <aside className="border-t border-[rgba(45,66,107,0.10)] pt-7 md:border-l md:border-t-0 md:pl-7 md:pt-0">
-              <dl className="space-y-5">
-                <div><dt className="text-[12px] text-[#1C1F23]/45">资源类型</dt><dd className="mt-1.5 text-[13px] text-[#1C1F23]">{TAB_META[item.tab].singular}</dd></div>
-                <div><dt className="text-[12px] text-[#1C1F23]/45">分类</dt><dd className="mt-1.5 text-[13px] text-[#1C1F23]">{item.group} · {item.category}</dd></div>
-                {asset && <div><dt className="text-[12px] text-[#1C1F23]/45">版本</dt><dd className="mt-1.5 text-[13px] text-[#1C1F23]">v{asset.version} · {asset.status}</dd></div>}
-                {asset?.metrics.map((metric) => <div key={metric.label}><dt className="text-[12px] text-[#1C1F23]/45">{metric.label}</dt><dd className="mt-1.5 text-[13px] text-[#1C1F23]">{metric.value}</dd></div>)}
-                {item.state && <div><dt className="text-[12px] text-[#1C1F23]/45">沉淀状态</dt><dd className="mt-1.5"><StateTag state={item.state} /></dd></div>}
-              </dl>
-              {onUse && <button type="button" onClick={() => onUse({ id: item.id, name: item.title, kind: item.tab })} className="mt-7 h-9 w-full rounded-full bg-[#1C1F23] text-[13px] font-medium text-white hover:bg-[#303238]">在对话中引用</button>}
-            </aside>
+    <div className="overflow-hidden rounded-xl border border-[rgba(45,66,107,0.14)]">
+      <div className="grid grid-cols-[280px_188px_minmax(320px,1fr)] border-b border-[rgba(45,66,107,0.12)] bg-[#FAFAFB] px-4 py-3 text-[12px] font-medium text-[#1C1F23]/58">
+        <span>参数名称</span><span>参数类型</span><span>描述</span>
+      </div>
+      {parameters.length ? parameters.map((parameter) => (
+        <div key={parameter.name} className="grid min-h-[62px] grid-cols-[280px_188px_minmax(320px,1fr)] items-center border-b border-[rgba(45,66,107,0.10)] px-4 text-[13px] text-[#1C1F23] last:border-b-0">
+          <span className="flex items-center gap-2 font-mono">{parameter.expandable ? <ChevronRight size={13} className="text-[#1C1F23]/45" /> : <span className="w-[13px]" />}{parameter.name}{parameter.required && <b className="font-sans font-medium text-[#F05252]">*</b>}</span>
+          <span><em className="rounded-md border border-[rgba(45,66,107,0.14)] bg-[#FAFAFB] px-2 py-1 font-mono text-[11px] not-italic">{parameter.type}</em></span>
+          <span className="leading-5 text-[#1C1F23]/78">{parameter.description}</span>
+        </div>
+      )) : <div className="flex h-[90px] items-center justify-center text-[12px] text-[#1C1F23]/38">暂无参数</div>}
+    </div>
+  )
+}
+
+function ToolResourceDetail({ item, onBack }: { item: ResourceItem; onBack: () => void }) {
+  return (
+    <DetailShell>
+      <div className="flex items-center justify-between">
+        <button type="button" onClick={onBack} className="inline-flex h-8 items-center gap-2 rounded-lg px-1.5 text-[13px] text-[#1C1F23]/55 hover:bg-black/[0.04]"><span>工具箱</span><ChevronRight size={13} /><span className="max-w-[280px] truncate text-[#1C1F23]/75">{item.title}</span></button>
+        <button type="button" aria-label="帮助与支持" className="flex size-8 items-center justify-center rounded-lg text-[#1C1F23]/70 hover:bg-black/[0.04]"><Headphones size={17} /></button>
+      </div>
+      <header className="mt-8 flex items-start gap-5">
+        <DetailIcon item={item} />
+        <div className="min-w-0 pt-0.5">
+          <h1 className="text-[20px] font-semibold tracking-[-0.2px] text-[#1C1F23]">{item.title}</h1>
+          <p className="mt-2 max-w-[1100px] text-[13px] leading-6 text-[#1C1F23]/62">{item.summary ?? '暂无描述'}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#1C1F23]/48">
+            <span>ID: {item.externalId ?? item.id}</span><i className="h-3 w-px bg-[#1C1F23]/12" />
+            {item.provider && <><span className="inline-flex items-center gap-1.5"><span className="flex size-4 items-center justify-center rounded-full bg-black text-[9px] font-bold text-white">♪</span>{item.provider}</span><i className="h-3 w-px bg-[#1C1F23]/12" /></>}
+            {item.updatedAt && <><span>{item.updatedAt}</span><i className="h-3 w-px bg-[#1C1F23]/12" /></>}
+            {(item.metrics ?? []).map((metric, index) => <span key={`${metric}-${index}`} className="inline-flex items-center gap-1.5">{index === 0 ? <Calendar size={13} /> : index === 1 ? <ArrowUpRight size={13} /> : <CheckCircle2 size={13} />}{metric}</span>)}
           </div>
-        </article>
+        </div>
+      </header>
+      <div className="mt-9 inline-flex h-9 items-center gap-2 rounded-full bg-[#F3F4F6] px-4 text-[13px] font-medium text-[#1C1F23]"><Activity size={15} />{item.title}</div>
+      <div className="mt-3 rounded-xl border border-[rgba(45,66,107,0.14)] px-5 py-4">
+        <dl className="grid grid-cols-[100px_minmax(0,1fr)] text-[13px]"><dt className="text-[#1C1F23]/48">工具ID</dt><dd className="text-[#1C1F23]">{item.toolId ?? '暂无'}</dd></dl>
+      </div>
+      <section className="mt-7"><h2 className="mb-4 text-[15px] font-semibold text-[#1C1F23]">输入参数</h2><ParameterTable parameters={item.inputParameters ?? []} /></section>
+      <section className="mt-7"><h2 className="mb-4 text-[15px] font-semibold text-[#1C1F23]">输出参数</h2><ParameterTable parameters={item.outputParameters ?? []} /></section>
+    </DetailShell>
+  )
+}
+
+function KnowledgeFileTable({ files }: { files: readonly KnowledgeFileItem[] }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border border-[rgba(45,66,107,0.14)]">
+      <div className="min-w-[1040px]">
+        <div className="grid grid-cols-[2fr_120px_130px_100px_1.3fr_1.3fr] border-b border-[rgba(45,66,107,0.12)] bg-[#FAFAFB] px-4 py-3 text-[12px] font-medium text-[#1C1F23]/58"><span>文件名称</span><span>文件状态</span><span>自动更新状态</span><span>是否启用</span><span>创建人</span><span>更新人</span></div>
+        {files.length ? files.map((file) => <div key={file.name} className="grid min-h-[76px] grid-cols-[2fr_120px_130px_100px_1.3fr_1.3fr] items-center px-4 text-[12px] text-[#1C1F23]">
+          <span className="inline-flex items-center gap-2 font-medium"><FileText size={16} className="text-[#667085]" />{file.name}</span><span className="text-[#1C1F23]/62">{file.status}</span><span className="text-[#1C1F23]/62">{file.autoUpdate}</span>
+          <span aria-label={file.enabled ? '已启用' : '未启用'} className={`relative h-5 w-9 rounded-full ${file.enabled ? 'bg-[#3370FF]' : 'bg-[#D9DCE3]'}`}><i className={`absolute top-0.5 size-4 rounded-full bg-white transition ${file.enabled ? 'left-[18px]' : 'left-0.5'}`} /></span>
+          <span><b className="block font-normal">{file.createdBy}</b><small className="mt-1 block text-[10px] text-[#1C1F23]/42">创建于 {file.createdAt}</small></span><span><b className="block font-normal">{file.updatedBy}</b><small className="mt-1 block text-[10px] text-[#1C1F23]/42">更新于 {file.updatedAt}</small></span>
+        </div>) : <div className="flex h-[140px] items-center justify-center text-[12px] text-[#1C1F23]/38">暂无文件</div>}
       </div>
     </div>
   )
 }
 
-function ResourcePane({ tab, onUseResource }: { tab: ResourceTabKey; onUseResource?: (reference: ResourceReference) => void }) {
+function KnowledgeResourceDetail({ item, onBack }: { item: ResourceItem; onBack: () => void }) {
+  const [view, setView] = useState<'files' | 'recall'>('files')
+  return (
+    <DetailShell>
+      <div className="flex items-center justify-between"><button type="button" onClick={onBack} className="inline-flex h-8 items-center gap-2 rounded-lg px-1.5 text-[13px] text-[#1C1F23] hover:bg-black/[0.04]"><ArrowLeft size={15} />知识库</button><div className="flex items-center gap-1"><button type="button" aria-label="刷新" className="flex size-8 items-center justify-center rounded-lg text-[#1C1F23]/62 hover:bg-black/[0.04]"><RefreshCw size={16} /></button><button type="button" aria-label="帮助与支持" className="flex size-8 items-center justify-center rounded-lg text-[#1C1F23]/62 hover:bg-black/[0.04]"><Headphones size={16} /></button></div></div>
+      <header className="mt-8 flex items-start gap-5"><DetailIcon item={item} /><div className="pt-0.5"><div className="flex items-center gap-2"><h1 className="text-[20px] font-semibold text-[#1C1F23]">{item.title}</h1><span className="rounded-md bg-[#F1F2F4] px-2 py-1 text-[11px] text-[#1C1F23]/58">{item.knowledgeKind ?? '知识'}</span></div><p className="mt-2 max-w-[1000px] text-[13px] leading-6 text-[#1C1F23]/62">{item.summary ?? '暂无描述'}</p></div></header>
+      <nav className="mt-9 flex h-10 items-center gap-7 border-b border-[rgba(45,66,107,0.12)]" aria-label="知识库详情"><button type="button" onClick={() => setView('files')} className={`relative h-10 text-[13px] ${view === 'files' ? 'font-medium text-[#1C1F23]' : 'text-[#1C1F23]/48'}`}>文件列表{view === 'files' && <i className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#1C1F23]" />}</button><button type="button" onClick={() => setView('recall')} className={`relative h-10 text-[13px] ${view === 'recall' ? 'font-medium text-[#1C1F23]' : 'text-[#1C1F23]/48'}`}>召回测试{view === 'recall' && <i className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#1C1F23]" />}</button></nav>
+      {view === 'files' ? <section className="mt-7"><div className="mb-4 flex items-center justify-between"><h2 className="text-[15px] font-semibold text-[#1C1F23]">文件列表</h2><label className="relative w-[260px]"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1C1F23]/35" /><input type="search" aria-label="文件名称" placeholder="文件名称" className="h-8 w-full rounded-lg border border-[rgba(45,66,107,0.14)] pl-8 pr-3 text-[12px] outline-none" /></label></div><KnowledgeFileTable files={item.knowledgeFiles ?? []} /></section> : <section className="mt-7"><h2 className="text-[15px] font-semibold text-[#1C1F23]">召回测试</h2><div className="mt-4 rounded-xl border border-[rgba(45,66,107,0.14)] p-5"><label className="block text-[12px] text-[#1C1F23]/55">测试问题</label><div className="mt-3 flex gap-2"><input aria-label="测试问题" placeholder="输入问题，验证知识召回结果" className="h-9 min-w-0 flex-1 rounded-lg border border-[rgba(45,66,107,0.14)] px-3 text-[13px] outline-none" /><button type="button" className="h-9 rounded-lg bg-[#1C1F23] px-5 text-[12px] font-medium text-white">开始测试</button></div><div className="mt-5 flex h-[150px] items-center justify-center rounded-lg bg-[#FAFAFB] text-[12px] text-[#1C1F23]/38">请输入测试问题</div></div></section>}
+    </DetailShell>
+  )
+}
+
+const MODEL_INFO_FIELDS: Array<{ key: keyof ModelResourceDetail; label: string }> = [
+  { key: 'serviceAgents', label: '服务智能体' }, { key: 'totalCalls', label: '累计调用' }, { key: 'permission', label: '模型权限' }, { key: 'generationType', label: '生成类型' }, { key: 'contextLength', label: '上下文长度' }, { key: 'maxOutput', label: '最大回复长度' }, { key: 'baseModel', label: '基座' }, { key: 'modelKey', label: '模型Key' }, { key: 'endpoint', label: 'Endpoint' }, { key: 'createdAt', label: '创建时间' }, { key: 'updatedAt', label: '更新时间' }, { key: 'updatedBy', label: '更新人' },
+]
+
+function ModelResourceDetailView({ item, onBack }: { item: ResourceItem; onBack: () => void }) {
+  const [view, setView] = useState<'info' | 'performance' | 'usage'>('info')
+  const detail = item.modelDetail
+  return (
+    <DetailShell>
+      <div className="flex items-center justify-between"><button type="button" onClick={onBack} className="inline-flex h-8 items-center gap-2 rounded-lg px-1.5 text-[13px] text-[#1C1F23] hover:bg-black/[0.04]"><ArrowLeft size={15} />模型</button><button type="button" className="h-8 rounded-lg border border-[rgba(45,66,107,0.16)] px-4 text-[12px] font-medium text-[#1C1F23] hover:bg-black/[0.03]">申请协作</button></div>
+      <header className="mt-8 flex items-start gap-5"><DetailIcon item={item} /><div className="min-w-0 pt-0.5"><div className="flex items-center gap-2"><h1 className="text-[20px] font-semibold text-[#1C1F23]">{item.title}</h1>{detail?.status && <span className="inline-flex items-center gap-1 rounded-md bg-[#E7F6EF] px-2 py-1 text-[11px] font-medium text-[#137A52]"><Check size={12} />{detail.status}</span>}</div><p className="mt-2 max-w-[1120px] text-[13px] leading-6 text-[#1C1F23]/62">{item.summary ?? '暂无描述'}</p></div></header>
+      <nav className="mt-9 flex h-10 items-center gap-7 border-b border-[rgba(45,66,107,0.12)]" aria-label="模型详情">{([['info', '模型信息'], ['performance', '模型性能'], ['usage', '用量统计']] as const).map(([key, label]) => <button key={key} type="button" onClick={() => setView(key)} className={`relative h-10 text-[13px] ${view === key ? 'font-medium text-[#1C1F23]' : 'text-[#1C1F23]/48'}`}>{label}{view === key && <i className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#1C1F23]" />}</button>)}</nav>
+      {view === 'info' ? <section className="mt-7"><h2 className="mb-4 text-[15px] font-semibold text-[#1C1F23]">模型信息</h2>{detail ? <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-[rgba(45,66,107,0.14)]">{MODEL_INFO_FIELDS.map(({ key, label }) => <dl key={key} className="min-h-[76px] border-b border-r border-[rgba(45,66,107,0.10)] px-5 py-4"><dt className="text-[11px] text-[#1C1F23]/42">{label}</dt><dd className="mt-2 break-all text-[13px] text-[#1C1F23]">{detail[key]}</dd></dl>)}<dl className="min-h-[76px] border-r border-[rgba(45,66,107,0.10)] px-5 py-4"><dt className="text-[11px] text-[#1C1F23]/42">输入模态</dt><dd className="mt-2 flex gap-1.5">{detail.inputModalities.map((value) => <span key={value} className="rounded-md bg-[#F1F2F4] px-2 py-1 text-[11px]">{value}</span>)}</dd></dl><dl className="min-h-[76px] border-r border-[rgba(45,66,107,0.10)] px-5 py-4"><dt className="text-[11px] text-[#1C1F23]/42">能力标签</dt><dd className="mt-2 flex gap-1.5">{detail.capabilityTags.map((value) => <span key={value} className="rounded-md bg-[#F1F2F4] px-2 py-1 text-[11px]">{value}</span>)}</dd></dl><dl className="min-h-[76px] px-5 py-4"><dt className="text-[11px] text-[#1C1F23]/42">模型报告</dt><dd className="mt-2 text-[13px] text-[#3370FF]">审核评估信息</dd></dl></div> : <div className="flex h-[180px] items-center justify-center rounded-xl border border-[rgba(45,66,107,0.14)] text-[12px] text-[#1C1F23]/38">暂无模型信息</div>}</section> : <section className="mt-7"><div className="flex items-center justify-between"><h2 className="text-[15px] font-semibold text-[#1C1F23]">{view === 'performance' ? '模型性能' : '用量统计'}</h2><div className="flex gap-1 rounded-lg bg-[#F3F4F6] p-1"><button type="button" className="h-7 rounded-md bg-white px-3 text-[11px] shadow-sm">近1天</button><button type="button" className="h-7 px-3 text-[11px] text-[#1C1F23]/48">近7天</button><button type="button" className="h-7 px-3 text-[11px] text-[#1C1F23]/48">近14天</button></div></div><div className="mt-4 grid grid-cols-3 gap-3">{[{ icon: Users, label: view === 'performance' ? '服务智能体' : '调用用户' }, { icon: BarChart3, label: view === 'performance' ? '成功率' : '累计调用' }, { icon: Activity, label: view === 'performance' ? '平均耗时' : 'Token 用量' }].map(({ icon: Icon, label }) => <div key={label} className="rounded-xl border border-[rgba(45,66,107,0.14)] p-5"><span className="flex size-8 items-center justify-center rounded-lg bg-[#F3F4F6] text-[#1C1F23]/58"><Icon size={16} /></span><p className="mt-4 text-[11px] text-[#1C1F23]/42">{label}</p><strong className="mt-2 block text-[20px] font-medium text-[#1C1F23]/36">--</strong></div>)}</div><div className="mt-3 flex h-[220px] items-center justify-center rounded-xl border border-[rgba(45,66,107,0.14)] text-[12px] text-[#1C1F23]/38">暂无数据</div></section>}
+    </DetailShell>
+  )
+}
+
+function ResourceDetail({ item, onBack }: { item: ResourceItem; onBack: () => void }) {
+  if (item.tab === 'toolbox') return <ToolResourceDetail item={item} onBack={onBack} />
+  if (item.tab === 'knowledge') return <KnowledgeResourceDetail item={item} onBack={onBack} />
+  return <ModelResourceDetailView item={item} onBack={onBack} />
+}
+
+function ResourcePane({ tab }: { tab: ResourceTabKey }) {
   const allItems = useMemo(() => resourcesForTab(tab), [tab])
   const [keyword, setKeyword] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -178,7 +245,7 @@ function ResourcePane({ tab, onUseResource }: { tab: ResourceTabKey; onUseResour
     })
   }, [allItems, keyword, selectedCategory])
 
-  if (selected) return <ResourceDetail item={selected} onBack={() => selectResource(null)} onUse={onUseResource} />
+  if (selected) return <ResourceDetail item={selected} onBack={() => selectResource(null)} />
 
   return (
     <div className="flex h-full min-h-0">
@@ -232,7 +299,7 @@ const getInitialTab = (fallback: ResourceTabKey): ResourceTabKey => {
   return value === 'toolbox' || value === 'knowledge' || value === 'model' ? value : fallback
 }
 
-export default function ResourceLibraryPage({ initialTab = 'toolbox', onUseResource }: { initialTab?: ResourceTabKey; onUseResource?: (reference: ResourceReference) => void }) {
+export default function ResourceLibraryPage({ initialTab = 'toolbox' }: { initialTab?: ResourceTabKey; onUseResource?: (reference: ResourceReference) => void }) {
   const [tab, setTab] = useState<ResourceTabKey>(() => getInitialTab(initialTab))
 
   const selectTab = (next: ResourceTabKey) => {
@@ -258,7 +325,7 @@ export default function ResourceLibraryPage({ initialTab = 'toolbox', onUseResou
         </nav>
         <span className="ml-auto text-[12px] text-[#1C1F23]/40">{resources.length} 项资源</span>
       </header>
-      <div className="min-h-0 flex-1"><ResourcePane key={tab} tab={tab} onUseResource={onUseResource} /></div>
+      <div className="min-h-0 flex-1"><ResourcePane key={tab} tab={tab} /></div>
     </div>
   )
 }

@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { toast } from 'sonner'
+import { RotateCcw, Save } from '@/shared/icons'
 import {
   DATA_CONFIG_LABEL,
   DATABASE_LABEL,
@@ -363,7 +365,7 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
     },
     [GAMEPLAY_CONFIG_LABEL]: {
       type: 'cards',
-      note: '玩法组件服务于节目盛典主流程；奖池、次数、祝福卡和分享分别维护，不把整场活动压成一张“抽奖配置表”。',
+      note: '分别维护直播状态、奖池与次数、祝福卡和节目单参数。',
       items: [
         { icon: '📺', title: '直播承接', desc: '主会场首屏展示直播状态、直播画面与节目单入口；未开播、直播中和结束态分别配置。', meta: '主流程节点' },
         { icon: '🎁', title: '任务抽奖', desc: '展示奖品池、剩余次数与中奖播报，抽取结果进入统一履约记录。', meta: 'H5 组件' },
@@ -827,6 +829,165 @@ function CardsView({ c }: { c: CardsContent }) {
   )
 }
 
+type GameplayDraft = Record<
+  string,
+  { enabled: boolean; description: string; parameter: string }
+>
+
+function gameplayDefaults(c: CardsContent): GameplayDraft {
+  return Object.fromEntries(
+    c.items.map((item) => [
+      item.title,
+      {
+        enabled: true,
+        description: item.desc,
+        parameter: item.meta ?? '',
+      },
+    ]),
+  )
+}
+
+function GameplayCardsEditor({
+  c,
+  projectTitle,
+}: {
+  c: CardsContent
+  projectTitle: string
+}) {
+  const storageKey = `creative-studio:gameplay-config:${projectTitle}`
+  const [initial] = useState<GameplayDraft>(() => {
+    const defaults = gameplayDefaults(c)
+    if (typeof window === 'undefined') return defaults
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(storageKey) ?? 'null') as
+        | GameplayDraft
+        | null
+      if (!saved) return defaults
+      const valid = c.items.every((item) => {
+        const entry = saved[item.title]
+        return (
+          entry &&
+          typeof entry.enabled === 'boolean' &&
+          typeof entry.description === 'string' &&
+          typeof entry.parameter === 'string'
+        )
+      })
+      return valid ? saved : defaults
+    } catch {
+      return defaults
+    }
+  })
+  const [saved, setSaved] = useState<GameplayDraft>(initial)
+  const [draft, setDraft] = useState<GameplayDraft>(initial)
+  const dirty = JSON.stringify(draft) !== JSON.stringify(saved)
+  const enabledCount = c.items.filter((item) => draft[item.title]?.enabled).length
+
+  const update = (
+    title: string,
+    patch: Partial<GameplayDraft[string]>,
+  ) => {
+    setDraft((current) => ({
+      ...current,
+      [title]: { ...current[title], ...patch },
+    }))
+  }
+
+  const save = () => {
+    if (!enabledCount) {
+      toast.error('至少保留一个启用的玩法实例')
+      return
+    }
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(draft))
+      setSaved(draft)
+      toast.success('玩法配置已保存', {
+        description: `${enabledCount} 个实例已启用。`,
+      })
+    } catch {
+      toast.error('浏览器存储不可用，修改仍保留在当前会话')
+    }
+  }
+
+  return (
+    <div className="thin-scroll flex min-h-0 flex-1 flex-col overflow-y-auto bg-[var(--color-surface-0)]">
+      <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-3 border-b border-[var(--divider-soft)] bg-white/95 px-5 backdrop-blur">
+        <div className="min-w-0 flex-1">
+          <p className="text-[12px] font-semibold text-[var(--color-ink)]">玩法实例</p>
+          <p className="mt-0.5 text-[8px] text-[var(--color-ink)]/38">{enabledCount} / {c.items.length} 已启用{dirty ? ' · 有未保存修改' : ' · 已保存'}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setDraft(gameplayDefaults(c))}
+          className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[8px] text-[var(--color-ink)]/52 hover:bg-[var(--fill-subtle)]"
+        >
+          <RotateCcw className="size-3" />恢复默认
+        </button>
+        <button
+          type="button"
+          onClick={save}
+          disabled={!dirty}
+          className="flex h-7 items-center gap-1.5 rounded-lg bg-[var(--color-ink)] px-3 text-[8px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-35"
+        >
+          <Save className="size-3" />保存玩法配置
+        </button>
+      </header>
+      <div className="mx-auto flex w-full max-w-[900px] flex-col px-8 py-7">
+        {c.note ? <p className="mb-4 text-[12px] leading-[1.65] text-[var(--color-ink)]/52">{c.note}</p> : null}
+        <div className="grid grid-cols-2 gap-3">
+          {c.items.map((item) => {
+            const entry = draft[item.title]
+            return (
+              <section
+                key={item.title}
+                className={`rounded-xl border p-3.5 transition-colors ${entry.enabled ? 'border-[var(--divider-soft)] bg-white' : 'border-transparent bg-[var(--fill-subtle)] opacity-65'}`}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--fill-subtle)] text-[18px]">{item.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium text-[var(--color-ink)]">{item.title}</p>
+                    <p className="mt-0.5 text-[8px] text-[var(--color-ink)]/36">项目级玩法实例</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={entry.enabled}
+                    aria-label={`${entry.enabled ? '停用' : '启用'}${item.title}`}
+                    onClick={() => update(item.title, { enabled: !entry.enabled })}
+                    className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${entry.enabled ? 'bg-[#3370FF]' : 'bg-black/15'}`}
+                  >
+                    <span className={`absolute top-0.5 size-4 rounded-full bg-white shadow-sm transition-transform ${entry.enabled ? 'left-[18px]' : 'left-0.5'}`} />
+                  </button>
+                </div>
+                <label className="mt-3 block">
+                  <span className="text-[8px] font-medium text-[var(--color-ink)]/45">规则说明</span>
+                  <textarea
+                    value={entry.description}
+                    disabled={!entry.enabled}
+                    onChange={(event) => update(item.title, { description: event.target.value })}
+                    rows={3}
+                    className="mt-1.5 w-full resize-none rounded-lg border border-black/[0.08] bg-white px-2.5 py-2 text-[9px] leading-[14px] text-[var(--color-ink)] outline-none focus:border-[#3370FF]/45 focus:ring-2 focus:ring-[#3370FF]/10 disabled:bg-transparent"
+                  />
+                </label>
+                <label className="mt-2.5 block">
+                  <span className="text-[8px] font-medium text-[var(--color-ink)]/45">实例参数</span>
+                  <input
+                    value={entry.parameter}
+                    disabled={!entry.enabled}
+                    onChange={(event) => update(item.title, { parameter: event.target.value })}
+                    placeholder="例如：直播中 / 每日 3 次 / 7 张卡"
+                    className="mt-1.5 h-8 w-full rounded-lg border border-black/[0.08] bg-white px-2.5 text-[9px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/22 focus:border-[#3370FF]/45 focus:ring-2 focus:ring-[#3370FF]/10 disabled:bg-transparent"
+                  />
+                </label>
+              </section>
+            )
+          })}
+        </div>
+        <p className="mt-4 rounded-lg bg-[var(--fill-subtle)] px-3 py-2.5 text-[8px] leading-[14px] text-[var(--color-ink)]/38">这里维护项目级玩法参数；页面内是否展示某个模块，继续由对应页面编辑器控制。</p>
+      </div>
+    </div>
+  )
+}
+
 /** Render a project's object content, or null when there's no tailored mock
  *  (caller then falls back to the doc / code views). `kind` is accepted for
  *  future per-kind defaults but content is currently keyed by project. */
@@ -847,7 +1008,11 @@ export function ProjectObjectView({
     case 'database':
       return <DatabaseView c={c} />
     case 'cards':
-      return <CardsView c={c} />
+      return normalizedLabel === GAMEPLAY_CONFIG_LABEL ? (
+        <GameplayCardsEditor key={projectTitle} c={c} projectTitle={projectTitle} />
+      ) : (
+        <CardsView c={c} />
+      )
     default:
       return null
   }

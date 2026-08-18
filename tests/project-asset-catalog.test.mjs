@@ -5,10 +5,27 @@ import test from 'node:test'
 
 import {
   ACG_NEW_YEAR_ASSET_GROUPS,
+  EVERNIGHT_ASSET_GROUPS,
   GARUDA_ASSET_GROUPS,
+  HOT_TOPIC_BANNER_ASSET_GROUPS,
+  JINGXIN_LIVESTREAM_ASSET_GROUPS,
+  LIFE_SERVICE_RESOURCE_POSITION_ASSET_GROUPS,
+  MAGICX_HEADER_ASSET_GROUPS,
+  SPRING_GALA_ASSET_GROUPS,
+  XINZAI_IP_ASSET_GROUPS,
+  XIAHUA_ASSET_GROUPS,
   resolveAssetPrompt,
 } from '../src/modules/vibecoding/components/ProjectAssetCatalog.ts'
 import { ASSET_CATALOG, ASSET_CENTER_CATEGORIES } from '../src/modules/vibecoding/assets/assetCatalog.ts'
+import { resources } from '../src/modules/vibecoding/components/resources/resources-data.ts'
+import { skills } from '../src/modules/vibecoding/components/skills/skills-data.ts'
+import { ASSET_ONLY_PROJECT_CONVERSATIONS } from '../src/modules/vibecoding/components/data/asset-only-project-conversations.ts'
+import {
+  JINGXIN_LIVESTREAM_ASSET_PROJECT,
+  LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
+  MAGICX_HEADER_ASSET_PROJECT,
+  XINZAI_IP_ASSET_PROJECT,
+} from '../src/modules/vibecoding/components/ProjectProductView.ts'
 
 function publicPath(src) {
   return fileURLToPath(new URL(`../public${src}`, import.meta.url))
@@ -71,11 +88,113 @@ test('Garuda catalog keeps every logical asset addressable by one Prompt', () =>
 })
 
 test('catalog ids stay unique across projects', () => {
-  const ids = [ACG_NEW_YEAR_ASSET_GROUPS, GARUDA_ASSET_GROUPS]
+  const ids = [
+    ACG_NEW_YEAR_ASSET_GROUPS,
+    GARUDA_ASSET_GROUPS,
+    HOT_TOPIC_BANNER_ASSET_GROUPS,
+    XINZAI_IP_ASSET_GROUPS,
+    JINGXIN_LIVESTREAM_ASSET_GROUPS,
+    LIFE_SERVICE_RESOURCE_POSITION_ASSET_GROUPS,
+    MAGICX_HEADER_ASSET_GROUPS,
+  ]
     .flatMap((groups) => groups)
     .flatMap((group) => group.items)
     .map((item) => item.id)
   assert.equal(new Set(ids).size, ids.length)
+})
+
+test('asset-only projects use source-backed files with complete project counts', () => {
+  assert.equal(verifyCatalog(XINZAI_IP_ASSET_GROUPS).length, 13)
+  assert.equal(verifyCatalog(JINGXIN_LIVESTREAM_ASSET_GROUPS).length, 8)
+  assert.equal(
+    verifyCatalog(LIFE_SERVICE_RESOURCE_POSITION_ASSET_GROUPS).length,
+    8,
+  )
+  assert.equal(verifyCatalog(MAGICX_HEADER_ASSET_GROUPS).length, 4)
+
+  const livestreamPreview = JINGXIN_LIVESTREAM_ASSET_GROUPS
+    .flatMap((group) => group.items)
+    .find((item) => item.id === 'jingxin-live-preview')
+  assert.ok((livestreamPreview?.layerManifest?.layers.length ?? 0) > 1)
+  assert.equal(livestreamPreview.layerManifest.layers[0].locked, true)
+})
+
+test('asset-only projects keep a traceable completed conversation instead of an empty chat', () => {
+  const expectedProjects = [
+    '生服热点 Banner',
+    XINZAI_IP_ASSET_PROJECT,
+    JINGXIN_LIVESTREAM_ASSET_PROJECT,
+    LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
+    MAGICX_HEADER_ASSET_PROJECT,
+  ]
+
+  assert.deepEqual(
+    Object.keys(ASSET_ONLY_PROJECT_CONVERSATIONS).sort(),
+    expectedProjects.sort(),
+  )
+  expectedProjects.forEach((project) => {
+    const conversation = ASSET_ONLY_PROJECT_CONVERSATIONS[project]
+    assert.notEqual(conversation.sessionTitle, '新会话')
+    assert.ok(conversation.request.length > 20)
+    assert.ok(conversation.sourceCheck.length >= 3)
+    assert.ok(conversation.productionCheck.length >= 3)
+    assert.deepEqual(
+      [conversation.documentCard.type, conversation.assetCard.type],
+      ['doc', 'asset'],
+    )
+  })
+})
+
+test('several project libraries contain honest multi-layer examples', () => {
+  const expected = [
+    [HOT_TOPIC_BANNER_ASSET_GROUPS, 'hot-topic-industry-layered'],
+    [ACG_NEW_YEAR_ASSET_GROUPS, 'acg-discovery-banner'],
+    [SPRING_GALA_ASSET_GROUPS, 'gala-banner'],
+    [EVERNIGHT_ASSET_GROUPS, 'evernight-banner'],
+    [XIAHUA_ASSET_GROUPS, 'xh-kv-head'],
+  ]
+
+  expected.forEach(([groups, id]) => {
+    const item = groups.flatMap((group) => group.items).find((candidate) => candidate.id === id)
+    assert.ok(item, `${id} should exist`)
+    assert.ok((item.layerManifest?.layers.length ?? 0) > 1, `${id} should expose a multi-layer manifest`)
+  })
+
+  for (const [groups, id] of expected.slice(1, 4)) {
+    const item = groups.flatMap((group) => group.items).find((candidate) => candidate.id === id)
+    assert.equal(item.layerManifest.templateRef.name, '智能分层编辑源')
+    assert.match(item.layerManifest.layers[0].name, /像素保护基线/)
+    assert.equal(item.layerManifest.layers[0].locked, true)
+  }
+})
+
+test('resource detail references keep AI workbench fields per resource type', () => {
+  const tool = resources.find((item) => item.id === 'kit-platform-headline-creator-tool')
+  assert.equal(tool.externalId, 'KIT_PLATFORM-HEADLINE_CREATOR-TOOL-7633721570092845862')
+  assert.deepEqual(tool.inputParameters.map((item) => item.name), ['paramMap', 'businessScene', 'abilityIDs'])
+  assert.equal(tool.outputParameters[0].name, 'data')
+
+  const knowledge = resources.find((item) => item.id === 'ai-workbench-knowledge-base')
+  assert.equal(knowledge.knowledgeFiles.length, 1)
+  assert.equal(knowledge.knowledgeFiles[0].status, '解析完成')
+
+  const model = resources.find((item) => item.id === 'doubao-1-5-vision-pro-32k')
+  assert.equal(model.modelDetail.status, '已上线')
+  assert.equal(model.modelDetail.maxOutput, '12k')
+  assert.equal(model.modelDetail.endpoint, 'ep-20250804145050-gnzfd')
+})
+
+test('POI skill keeps the AI workbench detail metadata and package source together', () => {
+  const poiSkill = skills.find((item) => item.id === 'comment-poi-info-component-skill')
+
+  assert.ok(poiSkill)
+  assert.equal(poiSkill.provider, '抖音官方')
+  assert.equal(poiSkill.updatedAt, '5-14 更新')
+  assert.deepEqual(poiSkill.metrics?.map((metric) => metric.value), ['185', '2K', '86%'])
+  assert.deepEqual(poiSkill.tools, ['地址信息获取工具', '评论组件'])
+  assert.equal(poiSkill.skillPackage?.files[0]?.name, 'SKILL.md')
+  assert.match(poiSkill.skillPackage?.files[0]?.content ?? '', /# POI 评论组件 Skill/)
+  assert.match(poiSkill.skillPackage?.files[0]?.content ?? '', /get_comment_poi/)
 })
 
 test('activity templates describe organization and support zero-page delivery patterns', () => {

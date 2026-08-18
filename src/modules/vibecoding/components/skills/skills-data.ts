@@ -1,9 +1,25 @@
 import {
   ASSET_CATALOG,
   type AssetCatalogItem,
-} from '../../assets/assetCatalog'
+} from '../../assets/assetCatalog.ts'
 
 export type SkillStatus = '已有' | '待抽象'
+
+export interface SkillMetric {
+  label: string
+  value: string
+  icon: 'calendar' | 'trend' | 'quality'
+}
+
+export interface SkillPackageFile {
+  name: string
+  content: string
+}
+
+export interface SkillPackage {
+  folderName: string
+  files: readonly SkillPackageFile[]
+}
 
 export interface SkillItem {
   id: string
@@ -13,7 +29,14 @@ export interface SkillItem {
   category: 'Brand Kit' | 'IP 资产' | '活动设计' | '素材设计' | '游戏设计' | '产品设计' | '数据复盘' | '知识管理' | '搜索'
   status: SkillStatus
   invocation?: string
-  provider?: '设计团队 Skill'
+  provider?: string
+  updatedAt?: string
+  metrics?: readonly SkillMetric[]
+  tools?: readonly string[]
+  knowledgeBases?: readonly string[]
+  skillPackage?: SkillPackage
+  detailIcon?: 'wrench'
+  detailTone?: { bg: string; ink: string }
   sourceAsset?: AssetCatalogItem
 }
 
@@ -31,6 +54,67 @@ export interface SkillCategory {
  * 这里是产品目录数据，不补写来源文档没有提供的作者、用量或更新时间。
  */
 const workflowSkills: SkillItem[] = [
+  {
+    id: 'comment-poi-info-component-skill',
+    name: 'POI组件',
+    description: '在评论区回评场景，当用户艾特AI分身咨询相关地址、景点、位置、地点名称等时，调用工具获取地址并选择不超过五个地址生成回评并展示。',
+    group: '通用能力',
+    category: '搜索',
+    status: '已有',
+    invocation: 'comment-poi-info-component-skill',
+    provider: '抖音官方',
+    updatedAt: '5-14 更新',
+    metrics: [
+      { label: '使用量', value: '185', icon: 'calendar' },
+      { label: '调用量', value: '2K', icon: 'trend' },
+      { label: '成功率', value: '86%', icon: 'quality' },
+    ],
+    tools: ['地址信息获取工具', '评论组件'],
+    knowledgeBases: [],
+    detailIcon: 'wrench',
+    detailTone: { bg: '#E3E8FF', ink: '#5B6CFF' },
+    skillPackage: {
+      folderName: 'avatar_comment_poi.skill',
+      files: [
+        {
+          name: 'SKILL.md',
+          content: `---
+name: comment-poi-info-component-skill
+description: 在评论区回评场景，当用户艾特AI分身咨询相关地址、景点、位置、地点名称等时，调用工具获取地址并选择不超过五个地址生成回评并展示。
+---
+
+# POI 评论组件 Skill
+
+本 Skill 旨在指导 AI Agent 在评论回复场景中处理用户关于地理位置的询问。Agent 应遵循本指南描述的工具调用流程与逻辑，完成 POI (Point of Interest) 信息的获取、回复文案的生成及相应组件的触发，无需依赖外部脚本。
+
+## 适用场景
+
+仅当上游意图判断用户的评论为“询问相关地址、景点、位置、地点等”时（例如：“视频这个地方在哪里”、“帮我整理视频里提到的街道地点”、“视频里有哪些景点”），方可触发本 Skill。
+
+## 入参
+
+| 参数 | 类型 | 描述 |
+|---|---|---|
+| \`user_id\` | 字符串 | 需要进行回复的分身账号的用户 ID。 |
+| \`video_item_id\` | 字符串 | 用户发表评论所在的视频 ID。 |
+
+## 执行流程与重试策略
+
+### 1. 使用地址信息获取工具获取地址信息
+
+首先，调用 \`get_comment_poi\` 工具获取与视频相关的地理位置信息。
+
+- **工具 ID**：\`7632244494637222694\`
+- **输入参数**：\`user_id\`、\`video_item_id\`
+- **结果处理**：选择不超过五个与用户问题最相关的地址。
+
+### 2. 生成回评文案并展示评论组件
+
+基于工具返回的地址信息生成简洁回复，并调用评论组件完成展示。`,
+        },
+      ],
+    },
+  },
   {
     id: 'h5-page-generation',
     name: 'H5活动页生成（coding）',
@@ -267,6 +351,14 @@ const governedAssetSkills: SkillItem[] = ASSET_CATALOG
     category: item.category === 'brand' ? 'Brand Kit' : 'IP 资产',
     status: '已有',
     invocation: `asset-skill:${item.id}@${item.version}`,
+    provider: item.owner,
+    updatedAt: `${item.updatedAt} 更新`,
+    metrics: item.metrics.slice(0, 3).map((metric, index) => ({
+      label: metric.label,
+      value: metric.value,
+      icon: index === 0 ? 'calendar' : index === 1 ? 'trend' : 'quality',
+    })),
+    tools: [`asset-skill:${item.id}@${item.version}`],
     sourceAsset: item,
   }))
 

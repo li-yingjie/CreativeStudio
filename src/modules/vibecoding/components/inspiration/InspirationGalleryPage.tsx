@@ -40,6 +40,7 @@ export interface InspirationItem {
 }
 
 const inspirations = inspirationData as InspirationItem[]
+const FAVORITE_STORAGE_KEY = 'creative-studio-inspiration-favorites-v1'
 
 type InspirationOrder = 'newest' | 'oldest'
 type InspirationDomain = 'marketing' | 'game' | 'activity-assets' | 'game-assets'
@@ -154,7 +155,15 @@ export default function InspirationGalleryPage({
   const [order, setOrder] = useState<InspirationOrder>('newest')
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [mineOnly, setMineOnly] = useState(false)
-  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set())
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set()
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(FAVORITE_STORAGE_KEY) ?? '[]')
+      return new Set(Array.isArray(saved) ? saved.filter((item): item is string => typeof item === 'string') : [])
+    } catch {
+      return new Set()
+    }
+  })
   const [selected, setSelected] = useState<InspirationItem | null>(null)
   const [composerItem, setComposerItem] = useState<InspirationItem | null>(null)
   const [composerDraft, setComposerDraft] = useState('')
@@ -183,8 +192,26 @@ export default function InspirationGalleryPage({
   useEffect(() => {
     if (!composerItem) return
     const frame = requestAnimationFrame(() => composerRef.current?.focus())
-    return () => cancelAnimationFrame(frame)
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setComposerItem(null)
+        setComposerDraft('')
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [composerItem])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(FAVORITE_STORAGE_KEY, JSON.stringify([...favoriteIds]))
+    } catch {
+      // 收藏仍保留在当前会话；浏览器禁用存储时不阻断浏览和做同款。
+    }
+  }, [favoriteIds])
 
   const selectDomain = (domain: InspirationDomain) => {
     setActiveDomain(domain)
@@ -270,18 +297,13 @@ export default function InspirationGalleryPage({
                 key={`${item.slug}-${item.title}`}
                 className="group mb-4 inline-block w-full break-inside-avoid overflow-hidden rounded-[14px] border border-black/[0.07] bg-white shadow-[0_1px_2px_rgba(22,24,35,0.03)] transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-16px_rgba(22,24,35,0.3)]"
               >
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelected(item)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      setSelected(item)
-                    }
-                  }}
-                  className="block w-full cursor-pointer text-left outline-none focus-visible:ring-2 focus-visible:ring-[#3370FF]/35"
-                >
+                <div className="relative block w-full text-left">
+                  <button
+                    type="button"
+                    aria-label={`查看灵感：${item.title}`}
+                    onClick={() => setSelected(item)}
+                    className="absolute inset-0 z-10 rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#3370FF]"
+                  />
                   <div className="relative overflow-hidden bg-[#ECEDEF]" style={{ aspectRatio: `${item.width} / ${item.height}` }}>
                     <img
                       src={item.imageUrl}
@@ -295,8 +317,8 @@ export default function InspirationGalleryPage({
                     <button
                       type="button"
                       aria-label={favoriteIds.has(item.imageUrl) ? `取消收藏${item.title}` : `收藏${item.title}`}
-                      onClick={(event) => { event.stopPropagation(); toggleFavorite(item) }}
-                      className={`absolute right-2 top-2 grid size-7 place-items-center rounded-full shadow-sm backdrop-blur transition-colors ${favoriteIds.has(item.imageUrl) ? 'bg-[#161823] text-white' : 'bg-white/92 text-[#161823]/55 hover:text-[#161823]'}`}
+                      onClick={() => toggleFavorite(item)}
+                      className={`absolute right-2 top-2 z-20 grid size-7 place-items-center rounded-full shadow-sm backdrop-blur transition-colors ${favoriteIds.has(item.imageUrl) ? 'bg-[#161823] text-white' : 'bg-white/92 text-[#161823]/55 hover:text-[#161823]'}`}
                     >
                       <Star size={13} fill={favoriteIds.has(item.imageUrl) ? 'currentColor' : 'none'} />
                     </button>

@@ -817,8 +817,17 @@ function SelectableElement({
   className?: string
   style?: CSSProperties
 }) {
+  if (!editing) {
+    return (
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute border-0 bg-transparent p-0 ${className}`}
+        style={style}
+      />
+    )
+  }
+
   const active =
-    editing &&
     selected?.type === 'element' &&
     selected.el.id === element.id
 
@@ -832,11 +841,7 @@ function SelectableElement({
         event.stopPropagation()
         onSelect?.({ type: 'element', el: element })
       }}
-      className={`absolute border-0 bg-transparent p-0 ${
-        editing
-          ? 'pointer-events-auto cursor-pointer hover:ring-1 hover:ring-inset hover:ring-[#7c5cff]/70'
-          : 'pointer-events-auto cursor-pointer'
-      } ${active ? 'ring-2 ring-inset ring-[#7c5cff]' : ''} ${className}`}
+      className={`pointer-events-auto absolute cursor-pointer border-0 bg-transparent p-0 hover:ring-1 hover:ring-inset hover:ring-[#7c5cff]/70 ${active ? 'ring-2 ring-inset ring-[#7c5cff]' : ''} ${className}`}
       style={style}
     >
       {active && (
@@ -867,6 +872,14 @@ function SelectableLayer({
   style?: CSSProperties
   children: ReactNode
 }) {
+  if (!editing) {
+    return (
+      <div className={`absolute ${className}`} style={style}>
+        {children}
+      </div>
+    )
+  }
+
   const active = editing && selected?.type === 'layer' && selected.layer === id
   const containsActiveElement =
     editing && selected?.type === 'element' && selected.el.layer === id

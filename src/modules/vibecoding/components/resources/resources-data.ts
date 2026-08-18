@@ -1,7 +1,44 @@
 import {
   ASSET_CATALOG,
   type AssetCatalogItem,
-} from '../../assets/assetCatalog'
+} from '../../assets/assetCatalog.ts'
+
+export interface ResourceParameter {
+  name: string
+  type: string
+  description: string
+  required?: boolean
+  expandable?: boolean
+}
+
+export interface KnowledgeFileItem {
+  name: string
+  status: string
+  autoUpdate: string
+  enabled: boolean
+  createdBy: string
+  createdAt: string
+  updatedBy: string
+  updatedAt: string
+}
+
+export interface ModelResourceDetail {
+  status: string
+  serviceAgents: string
+  totalCalls: string
+  permission: string
+  generationType: string
+  inputModalities: readonly string[]
+  capabilityTags: readonly string[]
+  contextLength: string
+  maxOutput: string
+  baseModel: string
+  modelKey: string
+  endpoint: string
+  createdAt: string
+  updatedAt: string
+  updatedBy: string
+}
 
 export type ResourceTabKey = 'toolbox' | 'knowledge' | 'model'
 
@@ -13,6 +50,16 @@ export interface ResourceItem {
   group: string
   category: string
   state?: string
+  externalId?: string
+  provider?: string
+  updatedAt?: string
+  metrics?: readonly string[]
+  toolId?: string
+  inputParameters?: readonly ResourceParameter[]
+  outputParameters?: readonly ResourceParameter[]
+  knowledgeKind?: string
+  knowledgeFiles?: readonly KnowledgeFileItem[]
+  modelDetail?: ModelResourceDetail
   sourceAsset?: AssetCatalogItem
 }
 
@@ -30,6 +77,47 @@ export const resourceTabOptions: Array<{
  * 不引入参考站 mock 中的 Plugin、发布器、触发器、作者、用量等字段。
  */
 const baseResources: ResourceItem[] = [
+  {
+    id: 'kit-platform-headline-creator-tool',
+    title: '账号_投放_加油包投放效果不好',
+    summary: '根据已投放量级和目标投放量级的比较结果判断投放状态，返回“是”、“否”或“未投放”。',
+    tab: 'toolbox',
+    group: '抖音',
+    category: '投放工具',
+    externalId: 'KIT_PLATFORM-HEADLINE_CREATOR-TOOL-7633721570092845862',
+    provider: 'kit客服平台',
+    updatedAt: '08-10 更新',
+    metrics: ['0', '0', '--'],
+    toolId: '0',
+    inputParameters: [
+      {
+        name: 'paramMap',
+        type: 'object',
+        description: 'map[string]string 入参，key 有 item_id（视频或图集 id）、user_id（用户 ID）',
+        required: true,
+      },
+      {
+        name: 'businessScene',
+        type: 'string',
+        description: '固定值：asset_center',
+        required: true,
+      },
+      {
+        name: 'abilityIDs',
+        type: 'array',
+        description: '能力 ID 列表，固定值 [1007389]',
+        required: true,
+        expandable: true,
+      },
+    ],
+    outputParameters: [
+      {
+        name: 'data',
+        type: 'object',
+        description: 'key 为 abilityID，value 为执行结果',
+      },
+    ],
+  },
   {
     id: 'douyin-media-search',
     title: '抖音媒体搜索',
@@ -148,6 +236,27 @@ const baseResources: ResourceItem[] = [
     state: '已有',
   },
   {
+    id: 'ai-workbench-knowledge-base',
+    title: 'AI工作台知识库',
+    summary: '知识库是智能体“资料库”，含分类及使用示例，能提升智能体回复准确性等。',
+    tab: 'knowledge',
+    group: '通用能力',
+    category: '团队知识',
+    knowledgeKind: '文件',
+    knowledgeFiles: [
+      {
+        name: 'AI工作台丨基础功能 知识库',
+        status: '解析完成',
+        autoUpdate: '未开启',
+        enabled: true,
+        createdBy: '刘学涛',
+        createdAt: '2026-08-14 03:39:11',
+        updatedBy: '刘学涛',
+        updatedAt: '2026-08-14 03:40:43',
+      },
+    ],
+  },
+  {
     id: 'magicx-component-knowledge',
     title: 'MagicX 组件知识库',
     summary: '沉淀 MagicX 组件目录、业务语义、属性、默认值、使用限制和玩法绑定关系，支持组件选型及页面 Schema 生成。',
@@ -218,6 +327,31 @@ const baseResources: ResourceItem[] = [
     group: '通用能力',
     category: '团队知识',
     state: '已有基础设施，内容待核',
+  },
+  {
+    id: 'doubao-1-5-vision-pro-32k',
+    title: 'Doubao-1.5-vision-pro-32k',
+    summary: 'Doubao-1.5-vision-pro 全新升级的多模态大模型，支持任意分辨率和极端长宽比图像识别，增强视觉推理、文档识别、细节信息理解和指令遵循能力。支持 32k 上下文窗口，输出长度支持最大 12k tokens。',
+    tab: 'model',
+    group: '基础模型',
+    category: '豆包系列',
+    modelDetail: {
+      status: '已上线',
+      serviceAgents: '43',
+      totalCalls: '6K',
+      permission: '共享',
+      generationType: '文本生成',
+      inputModalities: ['文本'],
+      capabilityTags: ['大语言模型', '工具调用'],
+      contextLength: '--',
+      maxOutput: '12k',
+      baseModel: '豆包',
+      modelKey: 'Doubao-1.5-vision-pro-32k',
+      endpoint: 'ep-20250804145050-gnzfd',
+      createdAt: '2025-08-21 18:43:22',
+      updatedAt: '2025-10-10 18:47:16',
+      updatedBy: '罗智佳',
+    },
   },
   { id: 'gpt-5-5', title: 'GPT-5.5', tab: 'model', group: '基础模型', category: 'GPT 系列' },
   { id: 'deepseek-v4-flash', title: 'DeepSeek-V4-flash', tab: 'model', group: '基础模型', category: 'DeepSeek 系列' },

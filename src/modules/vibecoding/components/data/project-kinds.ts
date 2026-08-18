@@ -1,4 +1,10 @@
-import type { ProjectKind } from '../ProjectProductView'
+import {
+  JINGXIN_LIVESTREAM_ASSET_PROJECT,
+  LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
+  MAGICX_HEADER_ASSET_PROJECT,
+  XINZAI_IP_ASSET_PROJECT,
+  type ProjectKind,
+} from '../ProjectProductView'
 
 export type OutputShape = 'app' | 'artifact' | 'code'
 
@@ -17,6 +23,10 @@ export const PROJECT_KINDS: Record<string, ProjectKind> = {
   '夯爆了 已上线': 'marketing-h5',
   '夏日冲浪 · 顺风顺水': 'marketing-h5',
   '生服热点 Banner': 'marketing-h5',
+  [XINZAI_IP_ASSET_PROJECT]: 'marketing-h5',
+  [JINGXIN_LIVESTREAM_ASSET_PROJECT]: 'marketing-h5',
+  [LIFE_SERVICE_RESOURCE_POSITION_PROJECT]: 'marketing-h5',
+  [MAGICX_HEADER_ASSET_PROJECT]: 'marketing-h5',
 }
 
 export const SHAPE_BY_KIND: Record<ProjectKind, OutputShape> = {

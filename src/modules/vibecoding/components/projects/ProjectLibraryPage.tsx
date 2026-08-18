@@ -431,7 +431,7 @@ export default function ProjectLibraryPage({ onOpenProject }: { onOpenProject?: 
             <section className="-mx-6 grid min-h-[168px] grid-cols-[minmax(0,1.15fr)_minmax(330px,0.85fr)] overflow-hidden border-b border-[#E7DDD5] bg-[#F8F4F0] max-[980px]:grid-cols-1">
               <div className="flex flex-col justify-center px-6 py-5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#EA5B34] px-2.5 py-1 text-[9px] font-semibold text-white">P0 · S 级高互动活动</span>
+                  <span className="rounded-full bg-[#EA5B34] px-2.5 py-1 text-[9px] font-semibold text-white">高互动活动</span>
                   <span className="text-[9px] text-[#1C1F23]/34">当前业务验证样板</span>
                 </div>
                 <h2 className="mt-3 text-[19px] font-semibold tracking-[-0.015em] text-[#1C1F23]">从需求、资产到可发布页面，先在 ACG 新春会跑通</h2>

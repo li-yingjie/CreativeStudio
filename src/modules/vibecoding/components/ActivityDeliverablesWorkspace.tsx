@@ -38,7 +38,7 @@ const DELIVERABLES: readonly Deliverable[] = [
     type: 'Lynx',
     phase: '主推',
     status: '人工编辑',
-    designSpec: 'Figma 设计框架 1688 × 4237',
+    designSpec: '设计稿 1688 × 4237',
     deliverySpec: 'Lynx 自适应页 · 原生状态栏与 DuxTitleBar',
     route: 'aweme://lynxview/?channel=acg-new-year&bundle=main',
     summary: '承载活动主身份、游戏/二次元双会场入口、阶段内容、嘉宾主理人与年度榜单导流。',
@@ -53,7 +53,7 @@ const DELIVERABLES: readonly Deliverable[] = [
       { label: '活动模板', value: '新春会模板 v1.1.0' },
       { label: 'Brand Kit', value: '抖音 ACG 新春会应用版 v1.1.0' },
       { label: 'Style Bible', value: '新春热力 · ACG v1.0.0' },
-      { label: '页面 Surface', value: 'Lynx 活动页 / DuxTitleBar v3' },
+      { label: '页面类型', value: 'Lynx 活动页 / DuxTitleBar v3' },
       { label: '素材引用', value: '主视觉 1 · 会场场景 2 · 主理人头像 6' },
     ],
     checks: ['原生返回/分享区安全距离通过', '双会场入口均已绑定有效路由', '人工调整的 Hero 构图已锁定'],
@@ -91,7 +91,7 @@ const DELIVERABLES: readonly Deliverable[] = [
     type: '资源位',
     phase: '预热',
     status: '待确认',
-    designSpec: 'Figma 画板名 780 × 220 · 当前画框 1029 × 195',
+    designSpec: '设计稿 780 × 220 · 当前画框 1029 × 195',
     deliverySpec: '待资源位 Owner 确认真实投放尺寸与安全区',
     route: 'douyin://topic-banner/acg-new-year',
     summary: '用于话题入口的窄幅活动识别物料；当前设计画板与画框尺寸不一致，发布前不可自动放行。',
@@ -104,7 +104,7 @@ const DELIVERABLES: readonly Deliverable[] = [
     ],
     bindings: [
       { label: 'Brand Kit', value: '抖音 ACG 新春会 · 窄资源位锁定件' },
-      { label: '资源位 Surface', value: '话题 Banner · spec 待确认' },
+      { label: '资源位规格', value: '话题 Banner · 尺寸待确认' },
       { label: '分层模板', value: '标题 / IP 群像 / 底景 / Logo' },
       { label: '素材引用', value: '主标题 1 · IP 角色 4 · 底景 1' },
     ],
@@ -172,7 +172,7 @@ const DELIVERABLES: readonly Deliverable[] = [
     designSpec: '1080 × 26668 超长版 · 多个渠道短版',
     deliverySpec: '数据快照 + 模板槽位 + 人工排版确认',
     route: 'asset://acg-2026/final-report',
-    summary: '汇总会场访问、内容热度、互动与代表性作品；P0 生成数据化章节，超长版允许人工编排后锁定。',
+    summary: '汇总会场访问、内容热度、互动与代表性作品；数据章节自动生成，超长版允许人工编排后锁定。',
     states: ['完整战报', '数据摘要', '作品榜单', '传播短版'],
     modules: ['核心数据', '会场表现', '内容榜单', '嘉宾与作品', '互动数据', '传播回顾', '结尾品牌'],
     editableFields: [
@@ -308,11 +308,11 @@ function Overview({ onOpen }: { onOpen?: (label: string) => void }) {
       <div className="mx-auto max-w-[1120px]">
         <div className="flex items-start justify-between gap-6">
           <div>
-            <div className="flex items-center gap-2"><span className="rounded-md bg-emerald-50 px-2 py-1 text-[9px] font-medium text-emerald-700">6 项交付物</span><span className="text-[10px] text-[#161823]/34">ActivitySpec rev.18</span></div>
+            <div className="flex items-center gap-2"><span className="rounded-md bg-emerald-50 px-2 py-1 text-[9px] font-medium text-emerald-700">6 项交付物</span><span className="text-[10px] text-[#161823]/34">活动配置 rev.18</span></div>
             <h1 className="mt-3 text-[22px] font-semibold tracking-[-0.02em] text-[#161823]">2026 抖音 ACG 新春会 · 交付物</h1>
             <p className="mt-1.5 text-[11px] text-[#161823]/44">这里仅展示需要验收和发布的页面与物料；脑暴、方向稿和外部参考留在项目文档与素材库。</p>
           </div>
-          <a href={ACG_FIGMA_URL} target="_blank" rel="noreferrer" className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[#DFE0E3] bg-white px-3 text-[9px] font-medium text-[#161823]/58 hover:border-[#C9CBCF] hover:text-[#161823]">查看 ACG Figma<ExternalLink className="size-3" /></a>
+          <a href={ACG_FIGMA_URL} target="_blank" rel="noreferrer" className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[#DFE0E3] bg-white px-3 text-[9px] font-medium text-[#161823]/58 hover:border-[#C9CBCF] hover:text-[#161823]">查看源文件<ExternalLink className="size-3" /></a>
         </div>
 
         <div className="mt-5 grid grid-cols-4 gap-3">
@@ -327,7 +327,7 @@ function Overview({ onOpen }: { onOpen?: (label: string) => void }) {
         </div>
 
         <section className="mt-5 overflow-hidden rounded-2xl border border-[#E4E5E7] bg-white">
-          <div className="flex items-end justify-between border-b border-[#ECEDEF] px-5 py-4"><div><h2 className="text-[14px] font-semibold text-[#161823]">交付清单</h2><p className="mt-1 text-[9px] text-[#161823]/34">页面数、状态数与渠道变体分别核算，避免把设计稿数量当成研发页面数。</p></div><span className="text-[9px] text-[#161823]/34">按阶段与 Surface 编译</span></div>
+          <div className="flex items-end justify-between border-b border-[#ECEDEF] px-5 py-4"><div><h2 className="text-[14px] font-semibold text-[#161823]">交付清单</h2><p className="mt-1 text-[9px] text-[#161823]/34">页面数、状态数与渠道变体分别核算，避免把设计稿数量当成研发页面数。</p></div><span className="text-[9px] text-[#161823]/34">按阶段与类型整理</span></div>
           <div className="grid grid-cols-[minmax(210px,1.25fr)_100px_120px_100px_90px_24px] gap-3 bg-[#FAFAFB] px-5 py-2 text-[9px] text-[#161823]/32"><span>交付物</span><span>阶段</span><span>设计规格</span><span>状态</span><span>完成度</span><span /></div>
           {DELIVERABLES.map((item) => {
             const Icon = TYPE_ICON[item.type]
