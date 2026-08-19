@@ -314,6 +314,31 @@ export default function BrandKitDetail({ item, onPreview }: { item: AssetCatalog
         </div>
       </section>
 
+      {profile.experienceSystem ? (
+        <section className="rounded-xl border border-[#E4E4E7] bg-white p-5">
+          <SectionHeading
+            title="页面体验语法"
+            description="从正式长页提炼的构图、玩法皮肤、素材分工与复杂度门槛；生成页面时必须真实调用。"
+            aside={`v${profile.experienceSystem.version}`}
+          />
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {profile.experienceSystem.compositionRules.map((rule, index) => (
+              <article key={rule.name} className="rounded-xl border border-[#E4E4E7] bg-[#FFF9F2] p-4">
+                <div className="flex items-start gap-3">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#FE2C55] text-xs font-semibold text-white">{index + 1}</span>
+                  <div><h3 className="text-sm font-semibold text-[#601619]">{rule.name}</h3><p className="mt-1 text-xs leading-5 text-[#8B5D5F]">{rule.intent}</p></div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">{rule.recipe.map((part) => <span key={part} className="rounded-md border border-[#FFD7C3] bg-white px-2 py-1 text-xs text-[#7B3034]">{part}</span>)}</div>
+              </article>
+            ))}
+          </div>
+          <div className="mt-3 grid gap-3 lg:grid-cols-[.8fr_1.2fr]">
+            <div className="rounded-xl border border-[#E4E4E7] p-4"><h3 className="text-sm font-semibold text-[#1C1F23]">七类素材槽位</h3><div className="mt-3 flex flex-wrap gap-1.5">{profile.experienceSystem.assetFamilies.map((family) => <span key={family} className="rounded-full bg-[#FFF2DE] px-2.5 py-1 text-xs text-[#601619]">{family}</span>)}</div></div>
+            <div className="rounded-xl border border-[#E4E4E7] p-4"><h3 className="text-sm font-semibold text-[#1C1F23]">高保真门槛</h3><ul className="mt-2 space-y-1.5 text-xs leading-5 text-[#71717A]">{profile.experienceSystem.complexityGate.map((rule) => <li key={rule}>• {rule}</li>)}</ul></div>
+          </div>
+        </section>
+      ) : null}
+
       {references.length ? (
         <section className="rounded-xl border border-[#E4E4E7] bg-white p-5">
           <SectionHeading title="参考图" description="来自正式交付的品牌应用画面。" aside={`${references.length} 张`} />

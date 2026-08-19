@@ -1,5 +1,17 @@
 // Project brief markdown docs + per-project lookup. Pure data extracted
 // from VibeCodingPage to keep that file smaller.
+import {
+  QIXI_BRIDGE_PLAN_MD,
+  QIXI_BRIDGE_PROJECT,
+} from '../QixiBridgeData'
+import {
+  ACG_REPLICA_PLAN_MD,
+  ACG_REPLICA_PROJECT,
+} from '../AcgReplicaData'
+import {
+  ACG_FROM_DOC_PLAN_MD,
+  ACG_FROM_DOC_PROJECT,
+} from '../AcgFromDocData'
 
 /* ─── 2026 抖音 ACG 新春会活动方案文档 ─── */
 export const ACG_NEW_YEAR_PLAN_MD = `# 2026 抖音 ACG 新春会 · 活动方案
@@ -335,6 +347,8 @@ export const XIAHUA_PLAN_MD = `# 夯爆了 已上线 · 生成交付文档
 `
 
 export const PROJECT_DOCS: Record<string, string> = {
+  [QIXI_BRIDGE_PROJECT]: QIXI_BRIDGE_PLAN_MD,
+  [ACG_REPLICA_PROJECT]: ACG_REPLICA_PLAN_MD,
   '心仔城市生活季 · IP 素材包': `# 心仔城市生活季 · IP 素材任务
 
 ## 一、真实任务
@@ -521,6 +535,7 @@ export const PROJECT_DOCS: Record<string, string> = {
   '抖音 AI 工坊设计探索': PORTFOLIO_DOC_MD,
   '射击小游戏': GARUDA_DOC_MD,
   '沪上火锅·五一种草提案': HOTPOT_PROPOSAL_DOC_MD,
+  [ACG_FROM_DOC_PROJECT]: ACG_FROM_DOC_PLAN_MD,
   '2026 抖音 ACG 新春会': ACG_NEW_YEAR_PLAN_MD,
   '2026 抖音春晚': `# 2026 抖音春晚 · 项目文档
 

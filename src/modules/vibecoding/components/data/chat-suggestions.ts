@@ -5,6 +5,9 @@ import {
   XINZAI_IP_ASSET_PROJECT,
   type ProjectKind,
 } from '../ProjectProductView'
+import { QIXI_BRIDGE_PROJECT } from '../QixiBridgeData'
+import { ACG_FROM_DOC_PROJECT } from '../AcgFromDocData'
+import { ACG_REPLICA_PROJECT } from '../AcgReplicaData'
 
 /** Rotating reply bank for plain (non-trigger) chat messages. Picked by
  *  index so repeated sends still feel varied without needing a real
@@ -73,6 +76,27 @@ export const CHAT_SUGGESTIONS_BY_KIND: Record<ProjectKind, string[]> = {
 
 /** Per-project overrides — finer-grained chips for specific projects. */
 export const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
+  [ACG_REPLICA_PROJECT]: [
+    '对照设计稿检查还原度',
+    '把任务区文案换成正式版',
+    '体验投票和关注反馈',
+    '用 AI 生成版素材替换切片',
+    '查看切片与坐标清单',
+  ],
+  [ACG_FROM_DOC_PROJECT]: [
+    '回放从需求到页面的生成过程',
+    '调整六篇章的顺序和文案',
+    '体验夯 / 拉投票反馈',
+    '编辑晚会许愿模块',
+    '查看三张风格候选图',
+  ],
+  [QIXI_BRIDGE_PROJECT]: [
+    '调整首页的信息层级',
+    '修改找喜鹊的关卡反馈',
+    '核对奖励与机会规则',
+    '预览异常和活动结束状态',
+    '进入视觉方向确认',
+  ],
   '夯爆了 已上线': [
     '补齐卤味和螺蛳粉的彩色卡面',
     '换一版深夜食堂主视觉',

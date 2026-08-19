@@ -40,6 +40,9 @@ function Options({
   if (g.choiceLayout === 'cards' || g.choices?.some((c) => c.input)) {
     return <ChoiceCard choices={g.choices} onPick={onPick} rich={g.choiceLayout === 'cards'} />
   }
+  if (g.choiceLayout === 'compact') {
+    return <ChoiceCard choices={g.choices} onPick={onPick} />
+  }
   if (g.choices?.length)
     return (
       <motion.div
@@ -146,6 +149,29 @@ function ChoiceCard({
             <span aria-hidden="true" className="flex w-7 shrink-0 items-center justify-center text-[18px] text-[var(--color-ink)]/22 transition-transform group-hover:translate-x-0.5 group-hover:text-[#357ef8]">›</span>
           </button>
         ))}
+        {custom ? (
+          <div className="flex items-center gap-2 rounded-[14px] border border-[var(--divider)] bg-[var(--color-surface-0)] p-2.5">
+            <input
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && draft.trim())
+                  onPick(custom.to, draft.trim())
+              }}
+              placeholder={custom.placeholder ?? custom.desc}
+              aria-label={custom.title}
+              className="min-w-0 flex-1 rounded-[9px] border border-[var(--divider-soft)] bg-[var(--color-surface-1)] px-3 py-2 text-[12.5px] text-[var(--color-ink)] outline-none focus:border-sky-400"
+            />
+            <button
+              type="button"
+              disabled={!draft.trim()}
+              onClick={() => draft.trim() && onPick(custom.to, draft.trim())}
+              className="h-8 shrink-0 cursor-pointer rounded-[8px] bg-[#357ef8] px-3 text-[12px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              发送
+            </button>
+          </div>
+        ) : null}
       </motion.div>
     )
   }
@@ -171,6 +197,11 @@ function ChoiceCard({
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5">
               <span className="text-[13px] font-medium text-[var(--color-ink)]">{c.title}</span>
+              {c.recommended && (
+                <span className="rounded-[4px] bg-[#357ef8]/10 px-1 text-[9px] leading-[15px] text-[#357ef8]">
+                  推荐
+                </span>
+              )}
               {c.tag && (
                 <span className="rounded-[4px] bg-[var(--color-ink)]/[0.06] px-1 text-[10px] leading-[15px] text-[var(--color-ink)]/50">
                   {c.tag}

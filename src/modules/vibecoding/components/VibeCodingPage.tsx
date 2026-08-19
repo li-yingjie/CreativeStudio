@@ -45,6 +45,38 @@ import PlatformPlaceholderView from './PlatformPlaceholderView'
 import XiaohuaFeedPreview from './XiaohuaFeedPreview'
 import AgentHubPreview from './AgentHubPreview'
 import MarketingH5Preview from './MarketingH5Preview'
+import QixiBridgeWireframe, {
+  QixiAssetPlaceholder,
+} from './QixiBridgeWireframe'
+import {
+  QIXI_PAGE_CONTENT_STORAGE_KEY,
+  getInitialQixiPageContent,
+  type QixiPageContent,
+  type QixiPageSelection,
+} from './QixiPageModel'
+import QixiPageEditPanel from './QixiPageEditPanel'
+import { QIXI_BRIDGE_PROJECT } from './QixiBridgeData'
+import QixiGenerationReplay from './QixiGenerationReplay'
+import type { QixiReplayTarget } from './QixiGenerationReplayScript'
+import QixiReplayWorkspace from './QixiReplayWorkspace'
+import AcgFromDocH5 from './AcgFromDocH5'
+import AcgReplicaH5 from './AcgReplicaH5'
+import { ACG_REPLICA_PROJECT } from './AcgReplicaData'
+import AcgFromDocEditPanel from './AcgFromDocEditPanel'
+import AcgFromDocGenerationReplay from './AcgFromDocGenerationReplay'
+import type { AcgFromDocReplayTarget } from './AcgFromDocGenerationReplayScript'
+import {
+  AcgFromDocDocumentsWorkspace,
+  AcgFromDocGameplayWorkspace,
+} from './AcgFromDocReplayWorkspace'
+import {
+  ACG_FROM_DOC_PAGE_CONTENT_STORAGE_KEY,
+  ACG_FROM_DOC_PROJECT,
+  getInitialAcgFromDocPageContent,
+  type AcgFromDocPageContent,
+  type AcgFromDocSelection,
+} from './AcgFromDocData'
+import { ACG_FROM_DOC_BRAND_KIT_CANDIDATES } from '../assets/acgExperienceBrandKit.ts'
 import SummerSurfH5Preview, {
   SUMMER_SURF_CONFIG_STORAGE_KEY,
   getInitialSummerSurfEditConfig,
@@ -115,6 +147,9 @@ import {
   JINGXIN_LIVESTREAM_ASSET_GROUPS,
   LIFE_SERVICE_RESOURCE_POSITION_ASSET_GROUPS,
   MAGICX_HEADER_ASSET_GROUPS,
+  ACG_FROM_DOC_ASSET_GROUPS,
+  ACG_REPLICA_ASSET_GROUPS,
+  QIXI_ASSET_GROUPS,
   SPRING_GALA_ASSET_GROUPS,
   SUMMER_SURF_ASSET_GROUPS,
   XINZAI_IP_ASSET_GROUPS,
@@ -1268,6 +1303,9 @@ function PlatformSidebar({
     // 粉丝互动机器人 / 探店视频创作助手 / 每日打卡小程序 are hidden —
     // config exists but there's no scripted demo flow for them yet.
     '陶白白 Sensei 分身',
+    QIXI_BRIDGE_PROJECT,
+    ACG_FROM_DOC_PROJECT,
+    ACG_REPLICA_PROJECT,
     ACG_NEW_YEAR_PROJECT,
     XIAHUA_PROJECT,
     SPRING_GALA_PROJECT,
@@ -2143,10 +2181,13 @@ const ACG_NEW_YEAR_PROJECT = '2026 抖音 ACG 新春会'
 const SUMMER_SURF_PROJECT = '夏日冲浪 · 顺风顺水'
 const HOT_TOPIC_BANNER_PROJECT = '生服热点 Banner'
 const assetGroupsForProject = (projectName: string): AssetGroup[] => {
+  if (projectName === QIXI_BRIDGE_PROJECT) return QIXI_ASSET_GROUPS
+  if (projectName === ACG_REPLICA_PROJECT) return ACG_REPLICA_ASSET_GROUPS
+  if (projectName === ACG_FROM_DOC_PROJECT)
+    return ACG_FROM_DOC_ASSET_GROUPS
   if (projectName === HOT_TOPIC_BANNER_PROJECT)
     return HOT_TOPIC_BANNER_ASSET_GROUPS
-  if (projectName === XINZAI_IP_ASSET_PROJECT)
-    return XINZAI_IP_ASSET_GROUPS
+  if (projectName === XINZAI_IP_ASSET_PROJECT) return XINZAI_IP_ASSET_GROUPS
   if (projectName === JINGXIN_LIVESTREAM_ASSET_PROJECT)
     return JINGXIN_LIVESTREAM_ASSET_GROUPS
   if (projectName === LIFE_SERVICE_RESOURCE_POSITION_PROJECT)
@@ -4094,6 +4135,42 @@ export default function VibeCodingPage({
   // The H5 layer currently selected in the preview (edit mode) — the 编辑
   // panel refreshes to match. null = no element selected → 整体活动配置.
   const [h5Selected, setH5Selected] = useState<H5Selection | null>(null)
+  const [qixiSelected, setQixiSelected] = useState<QixiPageSelection | null>(null)
+  const [qixiPageContent, setQixiPageContent] = useState<QixiPageContent>(
+    getInitialQixiPageContent,
+  )
+  const qixiStorageWarningShownRef = useRef(false)
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        QIXI_PAGE_CONTENT_STORAGE_KEY,
+        JSON.stringify(qixiPageContent),
+      )
+    } catch {
+      if (!qixiStorageWarningShownRef.current) {
+        qixiStorageWarningShownRef.current = true
+        toast.error('保存失败，页面修改仅保留在当前会话')
+      }
+    }
+  }, [qixiPageContent])
+  const [acgFromDocSelected, setAcgFromDocSelected] =
+    useState<AcgFromDocSelection | null>(null)
+  const [acgFromDocPageContent, setAcgFromDocPageContent] =
+    useState<AcgFromDocPageContent>(getInitialAcgFromDocPageContent)
+  const acgFromDocStorageWarningShownRef = useRef(false)
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        ACG_FROM_DOC_PAGE_CONTENT_STORAGE_KEY,
+        JSON.stringify(acgFromDocPageContent),
+      )
+    } catch {
+      if (!acgFromDocStorageWarningShownRef.current) {
+        acgFromDocStorageWarningShownRef.current = true
+        toast.error('保存失败，页面修改仅保留在当前会话')
+      }
+    }
+  }, [acgFromDocPageContent])
   // Summer Surf has its own activity sections and copy, so its right-side
   // editor keeps a separate selection/config model from the seeded H5 demo.
   const [summerSurfSelected, setSummerSurfSelected] =
@@ -4130,11 +4207,33 @@ export default function VibeCodingPage({
    * state or mutations with the legacy Xiahua 0→1 replay. */
   const [acgReplayToken, setAcgReplayToken] = useState(0)
   const [acgReplayPlaying, setAcgReplayPlaying] = useState(false)
+  const [acgFromDocReplayToken, setAcgFromDocReplayToken] = useState(0)
+  const [acgFromDocReplayPlaying, setAcgFromDocReplayPlaying] = useState(false)
+  const [qixiReplayToken, setQixiReplayToken] = useState(0)
+  const [qixiReplayPlaying, setQixiReplayPlaying] = useState(false)
+  const [qixiReplaySurface, setQixiReplaySurface] = useState<{
+    target: QixiReplayTarget
+    stepId: string
+    pathIds: string[]
+  }>({
+    target: 'current-result',
+    stepId: 'qixi-current-result',
+    pathIds: [],
+  })
   const [acgReplaySurface, setAcgReplaySurface] = useState<{
     target: AcgReplayTarget
     stepId: string
     pathIds: string[]
   }>({ target: 'delivery-overview', stepId: 'acg-complete', pathIds: [] })
+  const [acgFromDocReplaySurface, setAcgFromDocReplaySurface] = useState<{
+    target: AcgFromDocReplayTarget
+    stepId: string
+    pathIds: string[]
+  }>({
+    target: 'current-result',
+    stepId: 'acg-doc-current-result',
+    pathIds: [],
+  })
   const persistXiahuaEdits = useCallback(() => {
     try {
       window.localStorage.setItem(
@@ -5099,6 +5198,116 @@ export default function VibeCodingPage({
     [TAROT_INTEREST_CARD_PROJECT]: fileTree,
     '陶白白 Sensei 分身': aiPersonaFileTree,
     粉丝互动机器人: aiPersonaFileTree,
+    [ACG_REPLICA_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '一比一复刻说明.md', type: 'file' }],
+      },
+      {
+        name: 'src',
+        type: 'dir',
+        children: [
+          {
+            name: 'pages',
+            type: 'dir',
+            children: [{ name: 'main-hall.tsx', type: 'file' }],
+          },
+        ],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [{ name: 'strips', type: 'dir', children: [] }],
+      },
+    ],
+    [QIXI_BRIDGE_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '七夕搭鹊桥活动需求.md', type: 'file' }],
+      },
+      {
+        name: 'src',
+        type: 'dir',
+        children: [
+          {
+            name: 'pages',
+            type: 'dir',
+            children: [
+              { name: 'Home', type: 'dir', children: [] },
+              { name: 'FindMagpies', type: 'dir', children: [] },
+              { name: 'Lottery', type: 'dir', children: [] },
+              { name: 'ActivityDetails', type: 'dir', children: [] },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'config',
+        type: 'dir',
+        children: [{ name: 'gameplay.config.json', type: 'file' }],
+      },
+      { name: 'assets', type: 'dir', children: [] },
+    ],
+    [ACG_FROM_DOC_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [
+          { name: '需求原文.md', type: 'file' },
+          { name: '页面需求.md', type: 'file' },
+          { name: '确认结果.md', type: 'file' },
+        ],
+      },
+      {
+        name: 'src',
+        type: 'dir',
+        children: [
+          {
+            name: 'pages',
+            type: 'dir',
+            children: [
+              { name: 'MainVenue.tsx', type: 'file' },
+              { name: 'GameVenue.tsx', type: 'file' },
+              { name: 'AnimeVenue.tsx', type: 'file' },
+            ],
+          },
+          {
+            name: 'components',
+            type: 'dir',
+            children: [
+              { name: 'ChapterUnlockRoute.tsx', type: 'file' },
+              { name: 'ChapterHostCallout.tsx', type: 'file' },
+              { name: 'WorkDetailSheet.tsx', type: 'file' },
+              { name: 'HangLaVote.tsx', type: 'file' },
+              { name: 'DualRanking.tsx', type: 'file' },
+              { name: 'RandomWorkFeed.tsx', type: 'file' },
+              { name: 'WishWall.tsx', type: 'file' },
+              { name: 'BenefitTasks.tsx', type: 'file' },
+              { name: 'RulesSheet.tsx', type: 'file' },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'config',
+        type: 'dir',
+        children: [
+          { name: 'chapters.config.json', type: 'file' },
+          { name: 'gameplay.config.json', type: 'file' },
+        ],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: 'style-star-rail.webp', type: 'file' },
+          { name: 'style-manga-annual.webp', type: 'file' },
+          { name: 'style-candy-arcade.webp', type: 'file' },
+        ],
+      },
+    ],
     // 2026 抖音 ACG 新春会 — buildProductView('marketing-h5') will re-bucket
     // this raw tree into 4 product leaves, so the concrete file list
     // here is mostly a placeholder so the row stops at "暂无文件".
@@ -6266,6 +6475,183 @@ export default function VibeCodingPage({
 
     setOpenTabs(tabs)
     setActivePreviewTab(tabs.findIndex((tab) => tab.label === activeLabel))
+  }
+
+  const handleQixiReplayTarget = (
+    target: QixiReplayTarget,
+    stepId: string,
+    pathIds: string[],
+  ) => {
+    setQixiReplaySurface({ target, stepId, pathIds })
+    if (qixiReplayToken === 0) return
+
+    const reached = (...ids: string[]) => ids.some((id) => pathIds.includes(id))
+    const hasPages = reached(
+      'qixi-wireframe-choice',
+      'qixi-gameplay-choice',
+      'qixi-gameplay-baseline-selected',
+      'qixi-gameplay-fast-selected',
+      'qixi-gameplay-calm-selected',
+      'qixi-gameplay-custom-selected',
+      'qixi-visual-choice',
+      'qixi-current-build',
+      'qixi-current-result',
+    )
+    const hasGameplay = reached(
+      'qixi-gameplay-baseline-selected',
+      'qixi-gameplay-fast-selected',
+      'qixi-gameplay-calm-selected',
+      'qixi-gameplay-custom-selected',
+      'qixi-gameplay-baseline-applied',
+      'qixi-gameplay-fast-applied',
+      'qixi-gameplay-calm-applied',
+      'qixi-gameplay-custom-applied',
+      'qixi-visual-choice',
+      'qixi-current-build',
+      'qixi-current-result',
+    )
+    const hasAssets = reached(
+      'qixi-visual-choice',
+      'qixi-visual-eastern-selected',
+      'qixi-visual-sweet-selected',
+      'qixi-visual-real-selected',
+      'qixi-visual-custom-selected',
+      'qixi-current-build',
+      'qixi-current-result',
+    )
+    const hasPreview = reached('qixi-current-build', 'qixi-current-result')
+    const tabs = [
+      ...(hasPreview ? [{ label: '预览', closable: false }] : []),
+      ...(hasPages ? [{ label: FINISHED_PAGES_LABEL, closable: false }] : []),
+      { label: PROJECT_DOCUMENT_LABEL, closable: false },
+      ...(hasGameplay
+        ? [{ label: H5_GAMEPLAY_CONFIG_LABEL, closable: false }]
+        : []),
+      ...(hasAssets ? [{ label: ASSET_LIBRARY_LABEL, closable: false }] : []),
+    ]
+    // Replay updates the artifact contents but keeps the user's current surface
+    // stable. New artifacts are opened explicitly from their cards instead of
+    // forcing the right pane to jump on every narration step. The visual-style
+    // confirmation needs its candidate images, and the final delivery should
+    // land on the actual H5 for acceptance. Those are the only auto-switches.
+    const currentLabel = openTabs[activePreviewTab]?.label
+    const nextLabel =
+      stepId === 'qixi-visual-choice'
+        ? ASSET_LIBRARY_LABEL
+        : stepId === 'qixi-current-result'
+          ? '预览'
+          : tabs.some((tab) => tab.label === currentLabel)
+            ? currentLabel
+            : PROJECT_DOCUMENT_LABEL
+    setOpenTabs(tabs)
+    setActivePreviewTab(
+      Math.max(
+        0,
+        tabs.findIndex((tab) => tab.label === nextLabel),
+      ),
+    )
+  }
+
+  const handleAcgFromDocReplayTarget = (
+    target: AcgFromDocReplayTarget,
+    stepId: string,
+    pathIds: string[],
+  ) => {
+    setAcgFromDocReplaySurface({ target, stepId, pathIds })
+    if (acgFromDocReplayToken === 0) return
+
+    const reached = (...ids: string[]) => ids.some((id) => pathIds.includes(id))
+    const hasPages = reached(
+      'acg-doc-wireframe-ready',
+      'acg-doc-gameplay-choice',
+      'acg-doc-visual-choice',
+      'acg-doc-generate',
+      'acg-doc-current-result',
+    )
+    const hasGameplay = pathIds.some(
+      (id) =>
+        id.includes('acg-doc-gameplay-') &&
+        (id.endsWith('-selected') || id.endsWith('-applied')),
+    ) || reached('acg-doc-visual-choice', 'acg-doc-generate', 'acg-doc-current-result')
+    const hasAssets = reached(
+      'acg-doc-visual-choice',
+      'acg-doc-visual-star-selected',
+      'acg-doc-visual-manga-selected',
+      'acg-doc-visual-candy-selected',
+      'acg-doc-generate',
+      'acg-doc-current-result',
+    )
+    const hasPreview = reached(
+      'acg-doc-generate',
+      'acg-doc-review-applied',
+      'acg-doc-current-result',
+    )
+    const tabs = [
+      ...(hasPreview ? [{ label: '预览', closable: false }] : []),
+      ...(hasPages ? [{ label: FINISHED_PAGES_LABEL, closable: false }] : []),
+      { label: PROJECT_DOCUMENT_LABEL, closable: false },
+      ...(hasGameplay
+        ? [{ label: H5_GAMEPLAY_CONFIG_LABEL, closable: false }]
+        : []),
+      ...(hasAssets ? [{ label: ASSET_LIBRARY_LABEL, closable: false }] : []),
+    ]
+    const currentLabel = openTabs[activePreviewTab]?.label
+    const nextLabel =
+      stepId === 'acg-doc-visual-choice'
+        ? ASSET_LIBRARY_LABEL
+        : stepId === 'acg-doc-current-result'
+          ? '预览'
+          : tabs.some((tab) => tab.label === currentLabel)
+            ? currentLabel
+            : PROJECT_DOCUMENT_LABEL
+    setOpenTabs(tabs)
+    setActivePreviewTab(
+      Math.max(
+        0,
+        tabs.findIndex((tab) => tab.label === nextLabel),
+      ),
+    )
+  }
+
+  const handleQixiReplayCard = (card: BuildCard) => {
+    if (card.id === 'qixi-page-matrix' || card.id === 'qixi-page-canvas') {
+      focusPreviewTab(FINISHED_PAGES_LABEL)
+      return
+    }
+    if (card.id === 'qixi-playable') {
+      focusPreviewTab('预览')
+      return
+    }
+    if (card.id === 'qixi-visual-direction') {
+      focusPreviewTab(ASSET_LIBRARY_LABEL)
+      return
+    }
+    focusPreviewTab(PROJECT_DOCUMENT_LABEL)
+  }
+
+  const handleAcgFromDocReplayCard = (card: BuildCard) => {
+    if (card.id === 'acg-doc-final-preview') {
+      focusPreviewTab('预览')
+      return
+    }
+    if (card.id === 'acg-doc-page-canvas') {
+      focusPreviewTab(FINISHED_PAGES_LABEL)
+      return
+    }
+    if (card.id === 'acg-doc-gameplay') {
+      const gameplayConfirmed = acgFromDocReplaySurface.pathIds.some(
+        (id) =>
+          id.includes('acg-doc-gameplay-') &&
+          (id.endsWith('-selected') || id.endsWith('-applied')),
+      )
+      if (gameplayConfirmed) focusPreviewTab(H5_GAMEPLAY_CONFIG_LABEL)
+      return
+    }
+    if (card.id === 'acg-doc-style-board') {
+      focusPreviewTab(ASSET_LIBRARY_LABEL)
+      return
+    }
+    focusPreviewTab(PROJECT_DOCUMENT_LABEL)
   }
 
   const handleAcgReplayCard = (card: BuildCard) => {
@@ -8402,6 +8788,8 @@ export default function VibeCodingPage({
       setAvatarPromptEditing(false)
       setGameSelectedAsset(null)
       setH5Selected(null)
+      setQixiSelected(null)
+      setAcgFromDocSelected(null)
       setSummerSurfSelected(null)
       setGameSelectedObject(null)
       setTarotSelectedObject(null)
@@ -8414,6 +8802,7 @@ export default function VibeCodingPage({
     if (editPanelOpen) return
     const frame = requestAnimationFrame(() => {
       setH5Selected(null)
+      setAcgFromDocSelected(null)
       setSummerSurfSelected(null)
       setGameSelectedObject(null)
       setTarotSelectedObject(null)
@@ -8430,6 +8819,9 @@ export default function VibeCodingPage({
     activeProjectKind === 'marketing-h5' &&
     // 这夏夯爆了预览自包含玩法，不接 ACG 的画布编辑链路。
     !isXiahuaFamily(projectTitle) &&
+    projectTitle !== QIXI_BRIDGE_PROJECT &&
+    projectTitle !== ACG_FROM_DOC_PROJECT &&
+    projectTitle !== ACG_REPLICA_PROJECT &&
     isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label)
   const gameCanvasModeOpen =
     canvasEditOpen &&
@@ -8576,6 +8968,16 @@ export default function VibeCodingPage({
    * in the top strip); everything else keeps the phone frame. Stub
    * projects (no tree) show the empty state. Shared by all three layout
    * variants below. */
+  const selectedAcgFromDocBrandKit = acgFromDocReplaySurface.pathIds.some(
+    (id) => id.includes('acg-doc-visual-manga-'),
+  )
+    ? ACG_FROM_DOC_BRAND_KIT_CANDIDATES[1]
+    : acgFromDocReplaySurface.pathIds.some((id) =>
+          id.includes('acg-doc-visual-candy-'),
+        )
+      ? ACG_FROM_DOC_BRAND_KIT_CANDIDATES[2]
+      : ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0]
+
   const previewSurface = !activeProjectHasTree ? (
     emptyProjectPreview
   ) : activeProjectKind === 'web-game' ? (
@@ -8596,6 +8998,49 @@ export default function VibeCodingPage({
     <div className="@container relative min-h-0 w-full flex-1 overflow-hidden bg-white">
       <AgentHubPreview key={miniAppKey} />
     </div>
+  ) : projectTitle === ACG_FROM_DOC_PROJECT ? (
+    <PhoneMockup width={360} height={760} maxScale={1.4}>
+      <AcgFromDocH5
+        key={miniAppKey}
+        editing={
+          editPanelOpen &&
+          isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label)
+        }
+        selected={acgFromDocSelected}
+        onSelect={(selection) => {
+          setCanvasEditOpen(false)
+          setAcgFromDocSelected(selection)
+          if (selection) setEditPanelOpen(true)
+        }}
+        content={acgFromDocPageContent}
+        brandKitId={selectedAcgFromDocBrandKit.id}
+      />
+    </PhoneMockup>
+  ) : projectTitle === ACG_REPLICA_PROJECT ? (
+    // 设计稿 750×9776，机身 +6 内衬后内容区正好 375 宽（2 倍关系）。
+    <PhoneMockup width={381} height={818} maxScale={1.4}>
+      <AcgReplicaH5 key={miniAppKey} />
+    </PhoneMockup>
+  ) : projectTitle === QIXI_BRIDGE_PROJECT ? (
+    <PhoneMockup width={360} height={760} maxScale={1.4}>
+      <QixiBridgeWireframe
+        key={miniAppKey}
+        editing={isMarketingPageCollectionTab(
+          openTabs[activePreviewTab]?.label,
+        )}
+        selected={qixiSelected}
+        onSelect={(selection) => {
+          if (!selection) {
+            setQixiSelected(null)
+            return
+          }
+          setCanvasEditOpen(false)
+          setQixiSelected(selection)
+          setEditPanelOpen(true)
+        }}
+        content={qixiPageContent}
+      />
+    </PhoneMockup>
   ) : isXiahuaFamily(projectTitle) ? (
     // 产物都在自己的 tab 里（方案→项目文档、素材→素材库），预览位只放预览。
     // 其余阶段预览常驻，产物挂在右边那条栏里。
@@ -9724,6 +10169,87 @@ export default function VibeCodingPage({
                     <Play size={13} strokeWidth={1.8} />
                   </button>
                 )}
+                {projectTitle === ACG_FROM_DOC_PROJECT && (
+                  <button
+                    type="button"
+                    title={
+                      acgFromDocReplayPlaying
+                        ? '正在回放从需求到页面的生成过程'
+                        : '回放从需求到页面的生成过程'
+                    }
+                    aria-label="回放 ACG 新春会从需求到页面的生成过程"
+                    aria-pressed={acgFromDocReplayToken > 0}
+                    onClick={() => {
+                      setPreviewCollapsed(false)
+                      setAcgFromDocReplaySurface({
+                        target: 'source-understanding',
+                        stepId: 'acg-doc-request',
+                        pathIds: ['acg-doc-request'],
+                      })
+                      setOpenTabs([
+                        { label: PROJECT_DOCUMENT_LABEL, closable: false },
+                      ])
+                      setActivePreviewTab(0)
+                      setAcgFromDocReplayToken((token) => token + 1)
+                    }}
+                    className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                      acgFromDocReplayToken > 0
+                        ? 'bg-[var(--fill-hover)] text-[var(--color-ink)]/85'
+                        : 'text-[var(--color-ink)]/55 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
+                    }`}
+                  >
+                    <Play
+                      size={13}
+                      strokeWidth={1.8}
+                      className={acgFromDocReplayPlaying ? 'animate-pulse' : ''}
+                    />
+                  </button>
+                )}
+                {projectTitle === QIXI_BRIDGE_PROJECT && (
+                  <button
+                    type="button"
+                    title={
+                      qixiReplayPlaying
+                        ? '正在回放七夕活动生成过程'
+                        : '回放七夕活动生成过程'
+                    }
+                    aria-label="回放七夕活动生成过程"
+                    aria-pressed={qixiReplayToken > 0}
+                    onClick={() => {
+                      setPreviewCollapsed(false)
+                      setQixiReplaySurface({
+                        target: 'source-understanding',
+                        stepId: 'qixi-request',
+                        pathIds: ['qixi-request'],
+                      })
+                      const tabs = [
+                        { label: '预览', closable: false },
+                        { label: FINISHED_PAGES_LABEL, closable: false },
+                        { label: PROJECT_DOCUMENT_LABEL, closable: false },
+                        { label: H5_GAMEPLAY_CONFIG_LABEL, closable: false },
+                        { label: ASSET_LIBRARY_LABEL, closable: false },
+                      ]
+                      setOpenTabs(tabs)
+                      setActivePreviewTab(
+                        tabs.findIndex(
+                          (tab) => tab.label === PROJECT_DOCUMENT_LABEL,
+                        ),
+                      )
+                      setQixiReplayToken((token) => token + 1)
+                    }}
+                    className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                      qixiReplayToken > 0
+                        ? 'bg-[var(--fill-hover)] text-[var(--color-ink)]/85'
+                        : 'text-[var(--color-ink)]/55 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
+                    }`}
+                  >
+                    <Play
+                      size={13}
+                      strokeWidth={1.8}
+                      className={qixiReplayPlaying ? 'animate-pulse' : ''}
+                    />
+                  </button>
+                )}
                 {projectTitle === ACG_NEW_YEAR_PROJECT && (
                   <button
                     type="button"
@@ -9831,6 +10357,8 @@ export default function VibeCodingPage({
                   // 这夏夯爆了：空会话固定回放「生成过程」记录（模拟平台从策划
                   // 文档到可玩活动的对话链路）——它就是这个项目的历史。
                   showAssetProjectHistory ||
+                  projectTitle === ACG_FROM_DOC_PROJECT ||
+                  projectTitle === QIXI_BRIDGE_PROJECT ||
                   projectTitle === ACG_NEW_YEAR_PROJECT ||
                   isXiahuaFamily(projectTitle) ||
                   buildFlowHere ||
@@ -9840,6 +10368,35 @@ export default function VibeCodingPage({
                         <AssetOnlyProjectConversation
                           projectTitle={projectTitle}
                           onOpen={focusPreviewTab}
+                        />
+                      ) : projectTitle === ACG_FROM_DOC_PROJECT ? (
+                        <AcgFromDocGenerationReplay
+                          key="acg-from-doc-generation-replay-v1"
+                          replayToken={acgFromDocReplayToken}
+                          onPlaybackChange={setAcgFromDocReplayPlaying}
+                          onTarget={handleAcgFromDocReplayTarget}
+                          onOpenCard={handleAcgFromDocReplayCard}
+                          onReplayStart={() => {
+                            setPreviewCollapsed(false)
+                            setOpenTabs([
+                              {
+                                label: PROJECT_DOCUMENT_LABEL,
+                                closable: false,
+                              },
+                            ])
+                            setActivePreviewTab(0)
+                            setAcgFromDocReplayToken((token) =>
+                              token === 0 ? token + 1 : token,
+                            )
+                          }}
+                        />
+                      ) : projectTitle === QIXI_BRIDGE_PROJECT ? (
+                        <QixiGenerationReplay
+                          key="qixi-generation-replay-v6"
+                          replayToken={qixiReplayToken}
+                          onPlaybackChange={setQixiReplayPlaying}
+                          onTarget={handleQixiReplayTarget}
+                          onOpenCard={handleQixiReplayCard}
                         />
                       ) : projectTitle === ACG_NEW_YEAR_PROJECT ? (
                         <AcgGenerationReplay
@@ -9936,6 +10493,36 @@ export default function VibeCodingPage({
                       <AssetOnlyProjectConversation
                         projectTitle={projectTitle}
                         onOpen={focusPreviewTab}
+                      />
+                    )}
+                    {projectTitle === QIXI_BRIDGE_PROJECT && (
+                      <QixiGenerationReplay
+                        replayToken={qixiReplayToken}
+                        onPlaybackChange={setQixiReplayPlaying}
+                        onTarget={handleQixiReplayTarget}
+                        onOpenCard={handleQixiReplayCard}
+                      />
+                    )}
+                    {projectTitle === ACG_FROM_DOC_PROJECT && (
+                      <AcgFromDocGenerationReplay
+                        key="acg-from-doc-generation-replay-followup-v1"
+                        replayToken={acgFromDocReplayToken}
+                        onPlaybackChange={setAcgFromDocReplayPlaying}
+                        onTarget={handleAcgFromDocReplayTarget}
+                        onOpenCard={handleAcgFromDocReplayCard}
+                        onReplayStart={() => {
+                          setPreviewCollapsed(false)
+                          setOpenTabs([
+                            {
+                              label: PROJECT_DOCUMENT_LABEL,
+                              closable: false,
+                            },
+                          ])
+                          setActivePreviewTab(0)
+                          setAcgFromDocReplayToken((token) =>
+                            token === 0 ? token + 1 : token,
+                          )
+                        }}
                       />
                     )}
                     {projectTitle === XIAHUA_PROJECT && <XiahuaGenerationLog />}
@@ -13048,6 +13635,48 @@ export default function VibeCodingPage({
                                       </span>
                                       <span>编辑</span>
                                     </button>
+                                  ) : projectTitle === ACG_FROM_DOC_PROJECT ? (
+                                    <button
+                                      type="button"
+                                      aria-pressed={editPanelOpen}
+                                      title="编辑页面组件"
+                                      onClick={() => {
+                                        setCanvasEditOpen(false)
+                                        setAcgFromDocSelected(null)
+                                        setEditPanelOpen((open) => !open)
+                                      }}
+                                      className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa] aria-pressed:bg-[#d4ebff] aria-pressed:text-[#357ef8]"
+                                    >
+                                      <span className="flex size-4 items-center justify-center">
+                                        <img
+                                          src="/icons/h5-editor/quick-select.svg"
+                                          alt=""
+                                          className="size-[14.474px]"
+                                        />
+                                      </span>
+                                      <span>编辑</span>
+                                    </button>
+                                  ) : projectTitle === QIXI_BRIDGE_PROJECT ? (
+                                    <button
+                                      type="button"
+                                      aria-pressed={editPanelOpen}
+                                      title="编辑"
+                                      onClick={() => {
+                                        setCanvasEditOpen(false)
+                                        setQixiSelected(null)
+                                        setEditPanelOpen((open) => !open)
+                                      }}
+                                      className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa] aria-pressed:bg-[#d4ebff] aria-pressed:text-[#357ef8]"
+                                    >
+                                      <span className="flex size-4 items-center justify-center">
+                                        <img
+                                          src="/icons/h5-editor/quick-select.svg"
+                                          alt=""
+                                          className="size-[14.474px]"
+                                        />
+                                      </span>
+                                      <span>编辑</span>
+                                    </button>
                                   ) : projectTitle === SUMMER_SURF_PROJECT ? (
                                     <button
                                       type="button"
@@ -13291,10 +13920,15 @@ export default function VibeCodingPage({
                               {lbl === ASSET_LIBRARY_LABEL && (
                                 <ToolbarAction icon={Upload} label="上传" />
                               )}
-                              {xiahuaArtifactView ? null : isXiahuaFamily(
+                              {xiahuaArtifactView ||
+                              projectTitle === QIXI_BRIDGE_PROJECT ||
+                              projectTitle ===
+                                ACG_REPLICA_PROJECT ? null : isXiahuaFamily(
                                   projectTitle,
-                                ) && isMarketingPageSurface ? null : projectTitle ===
-                                  SUMMER_SURF_PROJECT && isMarketingPageSurface ? (
+                                ) &&
+                                isMarketingPageSurface ? null : projectTitle ===
+                                  SUMMER_SURF_PROJECT &&
+                                isMarketingPageSurface ? (
                                 <ToolbarAction
                                   icon={Pencil}
                                   label="编辑"
@@ -13763,6 +14397,100 @@ export default function VibeCodingPage({
 
                         const renderTab = (label: string) => {
                           if (label === DIFF_TAB_LABEL) return diffView
+                          if (projectTitle === ACG_FROM_DOC_PROJECT) {
+                            if (label === ASSET_LIBRARY_LABEL) {
+                              const productionAssetsReady =
+                                acgFromDocReplayToken === 0 ||
+                                acgFromDocReplaySurface.pathIds.some((id) =>
+                                  [
+                                    'acg-doc-assets-ready',
+                                    'acg-doc-generate',
+                                    'acg-doc-review-applied',
+                                    'acg-doc-current-result',
+                                  ].includes(id),
+                                )
+                              return (
+                                <GarudaAssetsView
+                                  key={`${projectTitle}:${productionAssetsReady ? 'full' : 'style'}`}
+                                  groups={
+                                    productionAssetsReady
+                                      ? ACG_FROM_DOC_ASSET_GROUPS
+                                      : ACG_FROM_DOC_ASSET_GROUPS.slice(0, 1)
+                                  }
+                                  showPageUsage
+                                />
+                              )
+                            }
+                            if (label === H5_GAMEPLAY_CONFIG_LABEL) {
+                              return <AcgFromDocGameplayWorkspace />
+                            }
+                            if (label === PROJECT_DOCUMENT_LABEL) {
+                              return (
+                                <AcgFromDocDocumentsWorkspace
+                                  target={acgFromDocReplaySurface.target}
+                                  stepId={acgFromDocReplaySurface.stepId}
+                                  pathIds={
+                                    acgFromDocReplayToken === 0
+                                      ? [
+                                          'acg-doc-scope-main-applied',
+                                          'acg-doc-wireframe-ready',
+                                          'acg-doc-gameplay-journey-applied',
+                                          'acg-doc-visual-star-applied',
+                                          'acg-doc-review-applied',
+                                        ]
+                                      : acgFromDocReplaySurface.pathIds
+                                  }
+                                />
+                              )
+                            }
+                          }
+                          if (projectTitle === QIXI_BRIDGE_PROJECT) {
+                            if (label === ASSET_LIBRARY_LABEL) {
+                              const directionLocked =
+                                qixiReplayToken === 0 ||
+                                qixiReplaySurface.pathIds.some((id) =>
+                                  [
+                                    'qixi-visual-eastern-applied',
+                                    'qixi-visual-sweet-applied',
+                                    'qixi-visual-real-applied',
+                                  ].includes(id),
+                                )
+                              const sampleReady =
+                                qixiReplayToken === 0 ||
+                                qixiReplaySurface.pathIds.some((id) =>
+                                  [
+                                    'qixi-sample-joint-generated',
+                                    'qixi-sample-joint-applied',
+                                    'qixi-current-build',
+                                    'qixi-current-result',
+                                  ].includes(id),
+                                )
+                              if (sampleReady) {
+                                return (
+                                  <GarudaAssetsView
+                                    key={projectTitle}
+                                    groups={QIXI_ASSET_GROUPS}
+                                    showPageUsage
+                                  />
+                                )
+                              }
+                              return (
+                                <QixiAssetPlaceholder
+                                  directionLocked={directionLocked}
+                                  sampleReady={false}
+                                />
+                              )
+                            }
+                            if (label === PROJECT_DOCUMENT_LABEL) {
+                              return (
+                                <QixiReplayWorkspace
+                                  target={qixiReplaySurface.target}
+                                  stepId={qixiReplaySurface.stepId}
+                                  pathIds={qixiReplaySurface.pathIds}
+                                />
+                              )
+                            }
+                          }
                           if (
                             projectTitle === ACG_NEW_YEAR_PROJECT &&
                             acgReplayToken > 0 &&
@@ -14387,6 +15115,9 @@ export default function VibeCodingPage({
                           activeProjectKind === 'marketing-h5' &&
                           !isXiahuaFamily(projectTitle) &&
                           projectTitle !== SUMMER_SURF_PROJECT &&
+                          projectTitle !== QIXI_BRIDGE_PROJECT &&
+                          projectTitle !== ACG_FROM_DOC_PROJECT &&
+                          projectTitle !== ACG_REPLICA_PROJECT &&
                           isMarketingPageCollectionTab(activeLabel) &&
                           canvasEditOpen
                         ) {
@@ -14781,6 +15512,28 @@ export default function VibeCodingPage({
                             onConfigChange={setSummerSurfConfig}
                             onClose={() => {
                               closeSummerSurfEditor()
+                            }}
+                          />
+                        ) : projectTitle === ACG_FROM_DOC_PROJECT ? (
+                          <AcgFromDocEditPanel
+                            value={acgFromDocPageContent}
+                            selection={acgFromDocSelected}
+                            onChange={setAcgFromDocPageContent}
+                            onSelect={setAcgFromDocSelected}
+                            onClose={() => {
+                              setAcgFromDocSelected(null)
+                              setEditPanelOpen(false)
+                            }}
+                          />
+                        ) : projectTitle === QIXI_BRIDGE_PROJECT ? (
+                          <QixiPageEditPanel
+                            value={qixiPageContent}
+                            selection={qixiSelected}
+                            onChange={setQixiPageContent}
+                            onSelect={setQixiSelected}
+                            onClose={() => {
+                              setQixiSelected(null)
+                              setEditPanelOpen(false)
                             }}
                           />
                         ) : activeProjectKind === 'marketing-h5' ? (

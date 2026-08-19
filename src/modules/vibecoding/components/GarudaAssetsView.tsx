@@ -199,6 +199,7 @@ const PAGE_USAGE_ORDER = [
   '焦点视频页',
   '内容榜单页',
   '活动入口',
+  '找喜鹊关卡',
   'Feed 兴趣卡',
   '塔罗落地页',
   '首页',
@@ -209,6 +210,9 @@ const PAGE_USAGE_ORDER = [
 
 function usagePagesFor(item: AssetItem, sourceGroup: string): string[] {
   const id = item.id ?? ''
+
+  if (id === 'qixi-home-kv-v1') return ['活动首页']
+  if (id === 'qixi-level-01-v1') return ['找喜鹊关卡']
 
   if (id === 'ui-button-rank') return ['开始页', '排行榜页']
   if (

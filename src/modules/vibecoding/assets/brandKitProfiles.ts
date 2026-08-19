@@ -1,3 +1,8 @@
+import {
+  ACG_EXPERIENCE_BRAND_KIT,
+  type AcgExperienceBrandKit,
+} from './acgExperienceBrandKit.ts'
+
 export type BrandKitEvidenceStatus = '已核验' | '工作规则' | '待归档'
 
 export interface BrandKitIdentityLevel {
@@ -52,6 +57,7 @@ export interface BrandKitPresentation {
 export interface BrandKitProfile {
   definition: string
   boundary: string
+  experienceSystem?: AcgExperienceBrandKit
   presentation: BrandKitPresentation
   source: {
     fileName: string
@@ -73,30 +79,31 @@ export interface BrandKitProfile {
 }
 
 export const ACG_NEW_YEAR_BRAND_KIT_PROFILE: BrandKitProfile = {
-  definition: '统一管理品牌身份、Logo 与活动标题组合、颜色和字体角色、跨画幅适配关系，以及发布前的使用检查。',
-  boundary: '本包只管理“身份可识别性”。春节氛围、天空与轨道构图属于关联 Style Bible；具体游戏与动漫角色属于项目 IP 资产；页面结构与交互属于页面或组件资产。',
+  definition: '统一管理品牌身份、活动标题、颜色和字体角色，并提供移动活动长页的舞台构图、玩法皮肤、素材分工与复杂度验收规则。',
+  boundary: 'Brand Kit 管理可复用的身份与体验语法，但不收纳具体游戏/动漫角色、作品封面或 Figma 成片；交互状态仍由真实页面组件实现。',
+  experienceSystem: ACG_EXPERIENCE_BRAND_KIT,
   presentation: {
-    accent: '#E65D24',
-    accentOnDark: '#FFB79F',
-    accentDeep: '#B6492C',
-    accentSoft: '#FFF6F2',
+    accent: '#FE2C55',
+    accentOnDark: '#FFD980',
+    accentDeep: '#601619',
+    accentSoft: '#FFF2DE',
     cardImage: '/assets/figma-deliverables/acg/discovery-banner-1372x512.png',
     cardTitle: '抖音 ACG · 新春会应用版',
-    cardSubtitle: '联名锁定 · 活动签名 · 字体角色 · 组件规则',
+    cardSubtitle: '联名锁定 · 活动签名 · 舞台语法 · 玩法皮肤',
     heroReferenceIndex: 1,
     heroTags: ['联名锁定', '完整活动签名', '横版适配'],
-    applicationColorTitle: '新春会活动应用色',
-    applicationColorDescription: '正式成稿工作采样，不等于永久品牌主色',
+    applicationColorTitle: '新春会体验应用色',
+    applicationColorDescription: '来自单页 Golden Reference 的正式工作采样，不等于永久品牌主色',
     typographySample: '2026 New Year',
   },
   source: {
-    fileName: '2026 抖音ACG新春会-创意',
-    fileKey: 'dATx52XsiA0xtpE2xpAeBC',
-    rootNode: '1690:13237',
-    url: 'https://www.figma.com/design/dATx52XsiA0xtpE2xpAeBC/2026-%E6%8A%96%E9%9F%B3ACG%E6%96%B0%E6%98%A5%E4%BC%9A-%E5%88%9B%E6%84%8F?node-id=1690-13237',
-    pageCount: '5 页，其中 3 页为正式交付证据',
-    evidenceCount: '18 个正式 Figma 节点',
-    excluded: '“脑暴”“方向聚焦”只用于过程回溯，不进入生成参考',
+    fileName: 'ACG 新春会 · 单页 Golden Reference',
+    fileKey: 'PxXGus8deG2BZ3xQLUFl0u',
+    rootNode: '1:369',
+    url: 'https://www.figma.com/design/PxXGus8deG2BZ3xQLUFl0u/Untitled?node-id=0-1',
+    pageCount: '1 页，1 张 750 × 9776 正式长页',
+    evidenceCount: 'Hero、内容橱窗、对抗投票、双榜、愿望墙、抽奖与任务共 7 类舞台证据',
+    excluded: '角色/IP、作者头像、作品封面与 Figma 成片仅作为视觉证据，不进入独立生成素材',
   },
   identityLevels: [
     {
@@ -124,12 +131,12 @@ export const ACG_NEW_YEAR_BRAND_KIT_PROFILE: BrandKitProfile = {
   colors: [
     { name: 'Identity Ink', value: '#161823', role: '平台 Logo、正文与高对比信息；不随活动主题重新着色', group: '核心身份色', status: '已核验' },
     { name: 'Reverse White', value: '#FFFFFF', role: '深色或高密画面上的反白身份、信息面与安全留白', group: '核心身份色', status: '已核验' },
-    { name: 'Kinetic Orange', value: '#E65D24', role: '活动标题外轮廓、行动强调与关键数据；来自正式交付采样', group: '活动应用色', status: '工作规则' },
-    { name: 'Rail Red', value: '#9B230D', role: '轨道、深色节庆背景与高层级容器；不可用于改色平台 Logo', group: '活动应用色', status: '工作规则' },
-    { name: 'Sky Blue', value: '#B0E2F8', role: '发现页、话题与大画幅的空间底色，负责建立开阔感', group: '活动应用色', status: '工作规则' },
-    { name: 'Highlight Cream', value: '#F3D5AA', role: '长页信息面、标题高光与暖色过渡，承接高密内容', group: '活动应用色', status: '工作规则' },
-    { name: 'Mist White', value: '#E8EAEA', role: '云雾、浅底分层和弱信息背景，不承载低对比正文', group: '活动应用色', status: '工作规则' },
-    { name: 'Info Brown', value: '#5E2B1C', role: '暖色信息卡正文、数字与细分标题，替代纯黑的生硬感', group: '活动应用色', status: '工作规则' },
+    { name: 'Douyin Red', value: '#FE2C55', role: '主行动、玩法强调、标题投影与状态高亮', group: '活动应用色', status: '已核验' },
+    { name: 'Carnival Coral', value: '#FF5A4D', role: '艺术字立体面、贴纸描边、红方投票与转场弧线', group: '活动应用色', status: '工作规则' },
+    { name: 'Clear Sky', value: '#39A9FF', role: 'Hero 天空、蓝方投票和冷色玩法反馈', group: '活动应用色', status: '工作规则' },
+    { name: 'Festival Cream', value: '#FFF2DE', role: '长页主画布与不同舞台之间的统一暖色基底', group: '活动应用色', status: '已核验' },
+    { name: 'Surface Ivory', value: '#FFF9F0', role: '榜单、任务与高密内容卡的可读信息面', group: '活动应用色', status: '工作规则' },
+    { name: 'Info Wine', value: '#601619', role: '暖色信息卡正文、数字与标题，替代生硬纯黑', group: '活动应用色', status: '已核验' },
   ],
   typography: [
     {
@@ -214,18 +221,38 @@ export const ACG_NEW_YEAR_BRAND_KIT_PROFILE: BrandKitProfile = {
       evidence: '节目单长图、结算战报、二次元会场',
       status: '工作规则',
     },
+    {
+      name: '玩法舞台皮肤',
+      purpose: '让对抗、榜单、心愿和抽奖凭视觉解剖直接可识别',
+      anatomy: ['贴纸式标题', '玩法专属底板', '核心动作组件', '反馈/状态区'],
+      fixed: '同一玩法内保持色彩与解剖一致；按钮、票数和状态必须是可编辑组件',
+      configurable: '业务文案、作品图、奖励图、榜单数量与玩法数据',
+      evidence: '抓马大战、抓马榜/赛场、春晚许愿、抽新春福利',
+      status: '已核验',
+    },
+    {
+      name: '舞台转场',
+      purpose: '将近万像素长页组织成连续节目旅程',
+      anatomy: ['弧形顶边', '暖白底板', '局部满版插画', '票券/云台缺口'],
+      fixed: '每 1–2 屏必须出现新的空间层次，禁止全页同一种卡片堆叠',
+      configurable: '转场高度、装饰密度与当前业务主题',
+      evidence: '750 × 9776 单页 Golden Reference',
+      status: '已核验',
+    },
   ],
   doList: [
     '先选择已核验的锁定版本，再按 Surface 选择完整签名或窄资源位签名。',
     '在照片或高密群像上使用黑/白高对比平台 Logo，并保留独立安全区。',
     '颜色 Token 必须记录“核心身份色”或“活动应用色”，生成时不可互相替代。',
     '所有外发成品记录所用 Brand Kit 版本、画幅尺寸和导出规格。',
+    '生成前先编译七类素材槽位，并在 375px 宽度验证图像焦点和交互可读性。',
   ],
   dontList: [
     '禁止拉伸、描边、重绘、镜像或用生成模型仿画平台 Logo 与活动标题字。',
     '禁止把天空、轨道、烟花或 IP 群像误登记为 Brand Kit 内容。',
     '禁止在没有授权证据时跨游戏/二次元会场混用角色。',
     '禁止把“脑暴”“方向聚焦”或外部参考当作 Golden Reference。',
+    '禁止全页复用同一白卡、圆角、阴影和标题样式伪装成高保真。',
   ],
   pending: [
     '活动标题字的 SVG/可编辑矢量源、反白与短标题变体。',

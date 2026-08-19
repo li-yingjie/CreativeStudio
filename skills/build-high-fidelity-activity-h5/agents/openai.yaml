@@ -1,0 +1,4 @@
+interface:
+  display_name: "高保真活动 H5 生产"
+  short_description: "从活动需求生成资产完整、可交互、可编辑的高保真移动 H5"
+  default_prompt: "Use $build-high-fidelity-activity-h5 to turn this activity brief into a high-fidelity, editable mobile H5 with a complete asset BOM and QA report."

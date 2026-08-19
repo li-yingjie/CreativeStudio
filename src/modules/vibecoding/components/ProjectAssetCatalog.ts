@@ -1,3 +1,5 @@
+import { ACG_FROM_DOC_BRAND_KIT_CANDIDATES } from '../assets/acgExperienceBrandKit.ts'
+
 export type AssetKind = 'image' | 'audio' | 'video'
 
 export type AssetLayerType = 'raster' | 'text' | 'vector' | 'upload'
@@ -248,6 +250,166 @@ export const GARUDA_ASSET_GROUPS: AssetGroup[] = [
     items: [
       gameVideo('video-menu', '/garuda/assets/garuda_menu.mp4', 'garuda_menu.mp4', '主角从云海中出现，机械羽翼逐层展开，镜头推近至主菜单定格'),
       gameVideo('video-start', '/garuda/assets/start_anime_compressed.mp4', 'start_anime.mp4', '主角冲出机库进入纵向战场，镜头从侧后方切换到俯视跟随'),
+    ],
+  },
+]
+
+export const QIXI_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '联合视觉样张',
+    desc: '当前仅保留已通过基础校验的 2 张样张；其余 6 关、奖励、抽奖与分享素材待生成',
+    items: [
+      {
+        id: 'qixi-home-kv-v1',
+        src: '/assets/qixi/home-kv-v1.webp',
+        label: '活动主视觉 KV · 月夜鹊桥',
+        prompt: {
+          text: '为七夕「搭鹊桥 · 找喜鹊」互动 H5 生成现代东方剪纸感主视觉：深黛蓝月夜、米白满月、鹊羽层叠成桥、少量朱砂红奖励节点；左上保留标题安全区，画面不生成任何文字、金额或水印。',
+          skillLabel: '七夕活动视觉 skill',
+          model: 'OpenAI ImageGen',
+        },
+      },
+      {
+        id: 'qixi-level-01-v1',
+        src: '/assets/qixi/level-01-v1.webp',
+        label: '找喜鹊第 1 关 · 月夜园林',
+        prompt: {
+          text: '为七夕找喜鹊玩法生成 2:3 竖版现代东方剪纸月夜园林场景，深黛蓝与米白为主，将恰好 5 只喜鹊自然隐入树枝、桥拱与云纹锚点，大小可辨但不突兀；不生成文字、按钮、热区标记或水印。',
+          skillLabel: '七夕找图场景 skill',
+          model: 'OpenAI ImageGen',
+        },
+      },
+    ],
+  },
+]
+
+export const ACG_REPLICA_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '主会场切片基线',
+    desc: '来自 ACG 新春会线上设计稿（750 × 9776）的原始分辨率切片，按纵向 1600px 分段；页面由切片装配，交互热区叠加在其上',
+    items: [1600, 1600, 1600, 1600, 1600, 1600, 176].map((h, i) => {
+      const start = i * 1600
+      return {
+        id: `acg-replica-strip-${i + 1}`,
+        src: `/assets/acg-replica/strip-${String(i + 1).padStart(2, '0')}.webp`,
+        label: `主会场切片 ${i + 1}（y ${start}–${start + h}）`,
+        prompt: {
+          text: `设计稿画板 1-369 纵向区段 y ${start}–${start + h}，原始分辨率导出后转 WebP；替换为 AI 生成版时保持 750 × ${h} 尺寸与同段内容布局。`,
+          skillLabel: '设计稿切片 skill',
+          model: 'Figma 渲染导出',
+        },
+      }
+    }),
+  },
+]
+
+function acgFromDocGeneratedAsset(
+  id: string,
+  file: string,
+  label: string,
+  subject: string,
+): AssetItem {
+  return {
+    id,
+    src: `/assets/acg-from-doc/generated/${file}`,
+    label,
+    prompt: {
+      text: `调用平台基础 Kit brand.douyin-acg-new-year-2026@1.2.0 与已选页面 Kit ${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0].id}@${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0].version}，为 2026 ACG 新春内容事件生成页面素材。用途与主体：${subject}。使用暖奶油画布、珊瑚红/抖音红、清亮天空蓝、橙色与暖金高光；保持大色块可读、平滑受控阴影、柔和定向光、连续渐变、清晰轮廓与克制微纹理，直接绑定页面组件。明确排除可见颗粒、斑驳、脏纹理、过锐光晕、混乱高频细节、过量粒子、已有 IP、Logo、水印和烘焙 UI 文字。`,
+      skillLabel: '抖音 ACG Brand Kit · Asset BOM 生成',
+      model: 'OpenAI ImageGen',
+    },
+  }
+}
+
+export const ACG_FROM_DOC_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '页面 Brand Kit 定调',
+    desc: '三套 Kit 都基于同一页面蓝图组装，并附代表素材图；比较的是主 KV、艺术字、色彩材质、玩法皮肤和生图合约，不是单张风格图',
+    items: [
+      {
+        id: 'acg-doc-style-star-rail',
+        src: ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0].previewSrc,
+        label: `${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0].name} · 已采用`,
+        prompt: {
+          text: `调用 Brand Kit ${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0].id}@${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0].version}，为中国 ACG 新春内容事件生成移动端 H5 主视觉：明亮天空与暖奶油云海中，珊瑚红金轨道连接六个原创幻想世界，原创旅行者群像乘幻想载具向新春游园入口出发；暖奶油、抖音红、珊瑚橙、清亮蓝与暖金。顶部与下部保留独立平台锁定、艺术字和按钮安全区。使用大色块、平滑阴影、连续渐变和克制微纹理；排除颗粒、斑驳、过锐、高频碎细节、文字、Logo、水印或已有 IP。`,
+          skillLabel: '页面 Brand Kit 编译',
+          model: 'OpenAI ImageGen',
+        },
+      },
+      {
+        id: 'acg-doc-style-manga-annual',
+        src: ACG_FROM_DOC_BRAND_KIT_CANDIDATES[1].previewSrc,
+        label: `${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[1].name} · 备选`,
+        prompt: {
+          text: `调用 Brand Kit ${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[1].id}@${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[1].version}，为中国 ACG 新春内容事件生成移动端 H5 风格样图：六个幻想篇章以漫画分镜组成旅行路径，一位原创旅行者从底部进入；暖象牙纸、朱红、墨黑与钴蓝，高级年刊编辑设计。网点只作为局部受控图形，不覆盖大面积肤色与渐变；排除可见噪点、斑驳、脏纹理、过锐、文字、Logo、水印或已有 IP。`,
+          skillLabel: '页面 Brand Kit 编译',
+          model: 'OpenAI ImageGen',
+        },
+      },
+      {
+        id: 'acg-doc-style-candy-arcade',
+        src: ACG_FROM_DOC_BRAND_KIT_CANDIDATES[2].previewSrc,
+        label: `${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[2].name} · 备选`,
+        prompt: {
+          text: `调用 Brand Kit ${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[2].id}@${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[2].version}，为中国 ACG 新春内容事件生成移动端 H5 风格样图：六个软胶潮玩幻想区由透明霓虹轨道连接，一位原创旅行者从底部进入；莓果紫、糖果珊瑚、发光青与奶油黄，高级 3D 微缩场景。表面干净、平滑着色、柔和光照、克制材质；排除颗粒、斑驳、过锐、高频碎细节、文字、Logo、水印或已有 IP。`,
+          skillLabel: '页面 Brand Kit 编译',
+          model: 'OpenAI ImageGen',
+        },
+      },
+    ],
+  },
+  {
+    title: '主视觉与活动身份',
+    desc: '设计风格确认后由 Agent 根据页面蓝图生成；主 KV 与艺术字分别保留，便于替换和多尺寸适配',
+    items: [
+      acgFromDocGeneratedAsset('acg-doc-hero-kv', 'hero-kv.webp', '主会场 KV · 星轨新春列车', '竖版主会场 KV，六个幻想世界与新春列车构成年度旅程，预留移动端品牌与操作安全区'),
+      acgFromDocGeneratedAsset('acg-doc-title-art', 'title-art.webp', '活动艺术字 · 次元新春漫游记', '透明背景中文艺术字，象牙金立体笔画与珊瑚漆红阴影，可叠加在复杂主视觉上'),
+    ],
+  },
+  {
+    title: '六大篇章场景',
+    desc: '每个篇章都有独立场景，不再用同一渐变色块区分',
+    items: [
+      acgFromDocGeneratedAsset('acg-doc-chapter-abstract', 'chapter-abstract.webp', '01 抽象奇境', '失重错位的新春幻想城，承担当前篇章头图与路线卡'),
+      acgFromDocGeneratedAsset('acg-doc-chapter-aesthetic', 'chapter-aesthetic.webp', '02 美学圣殿', '水晶乐器与月光舞台构成的美学圣殿'),
+      acgFromDocGeneratedAsset('acg-doc-chapter-joy', 'chapter-joy.webp', '03 欢愉乐园', '星轨摩天轮与游园会构成的快乐篇章'),
+      acgFromDocGeneratedAsset('acg-doc-chapter-healing', 'chapter-healing.webp', '04 治愈绿洲', '发光灵鹿与林间泉水构成的治愈场景'),
+      acgFromDocGeneratedAsset('acg-doc-chapter-battle', 'chapter-battle.webp', '05 燃斗竞技场', '赤红能量龙与圆形竞技场构成的热血篇章'),
+      acgFromDocGeneratedAsset('acg-doc-chapter-bond', 'chapter-bond.webp', '06 羁绊回响谷', '蓝色记忆河流与灯笼山谷构成的羁绊篇章'),
+    ],
+  },
+  {
+    title: '作品封面与主理人',
+    desc: '作品焦点位、双榜、随机 Feed、详情层和主理人卡使用真实内容视觉',
+    items: [
+      ...[
+        ['work-gravity.webp', '作品封面 · 重力失控 48 小时'],
+        ['work-moon.webp', '作品封面 · 纸月亮舞会'],
+        ['work-npc.webp', '作品封面 · NPC 决定今天休假'],
+        ['work-save.webp', '作品封面 · 给十年前的存档写封信'],
+        ['work-monster.webp', '作品封面 · 今天也要拯救小怪兽'],
+        ['work-combo.webp', '作品封面 · 必杀技也会放空'],
+        ['host-trickster.webp', '主理人 · 抽象奇境'],
+        ['host-musician.webp', '主理人 · 美学圣殿'],
+        ['host-inventor.webp', '主理人 · 欢愉乐园'],
+        ['host-keeper.webp', '主理人 · 治愈绿洲'],
+        ['host-director.webp', '主理人 · 燃斗竞技场'],
+        ['host-archivist.webp', '主理人 · 羁绊回响谷'],
+      ].map(([file, label], index) =>
+        acgFromDocGeneratedAsset(`acg-doc-content-${index + 1}`, file, label, index < 6 ? '原创 ACG 短片封面，用于作品卡、榜单和详情' : '原创篇章主理人肖像，用于主理人身份卡'),
+      ),
+    ],
+  },
+  {
+    title: '任务与奖励物件',
+    desc: '任务、抽奖、头像框、心愿与 Big Day 权益使用统一收藏级物件视觉',
+    items: [
+      acgFromDocGeneratedAsset('acg-doc-reward-red-packet', 'reward-red-packet.webp', '星轨新春红包', '珊瑚漆红红包与金色星徽'),
+      acgFromDocGeneratedAsset('acg-doc-reward-pass', 'reward-pass.webp', '六芒星旅行通行证', '篇章旅程通行证与薄荷晶体'),
+      acgFromDocGeneratedAsset('acg-doc-reward-frame', 'reward-frame.webp', '限定头像框', '新春鱼灯与星轨组成的头像框'),
+      acgFromDocGeneratedAsset('acg-doc-reward-firework', 'reward-firework.webp', '星火爆竹挂件', '投票任务对应的收藏级爆竹挂件'),
+      acgFromDocGeneratedAsset('acg-doc-reward-capsule', 'reward-capsule.webp', '幸运扭蛋', '用于抽奖次数和开奖结果的幸运扭蛋'),
+      acgFromDocGeneratedAsset('acg-doc-reward-ticket', 'reward-ticket.webp', 'Big Day 入场券', '连接许愿与 2 月 14 日晚会的活动入场券'),
     ],
   },
 ]

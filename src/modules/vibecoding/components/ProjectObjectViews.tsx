@@ -10,6 +10,8 @@ import {
   PROJECT_MEMORY_LABEL,
   type ProjectKind,
 } from './ProjectProductView'
+import { QIXI_BRIDGE_PROJECT } from './QixiBridgeData'
+import { ACG_REPLICA_PROJECT } from './AcgReplicaData'
 
 /**
  * 每个项目「产物对象」的真实化 mock 内容。
@@ -244,6 +246,42 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
             ['10002', '500', '首次参与', '2026-07-18 12:20'],
           ],
         },
+      ],
+    },
+  },
+
+  /* ── ACG 新春会 · 一比一复刻（切片装配 + 交互热区）── */
+  [ACG_REPLICA_PROJECT]: {
+    [GAMEPLAY_CONFIG_LABEL]: {
+      type: 'cards',
+      columns: 2,
+      note: '页面画面来自设计稿原始分辨率切片；下列交互全部为切片之上的前端热区，本地状态，不接后端。',
+      items: [
+        { icon: '🗳️', title: '抓马投票', desc: '抓马榜 TOP3 与赛场 5 张作品卡均可投票：好活加马 +3 马力、放你一马 -1 马力，点击有浮标反馈。', meta: '8 张卡 × 2 键' },
+        { icon: '⭐', title: '任务关注', desc: '做任务领抽奖机会共 6 项，点击去关注切换为已关注态并提示获得抽奖机会。', meta: '6 项任务' },
+        { icon: '🎰', title: '点击抽奖', desc: '扭蛋机主按钮触发抽奖演示反馈；查看奖池信息与我的奖品为独立热区。', meta: '演示态' },
+        { icon: '🌠', title: '许愿互动', desc: '许愿卡去点赞、我也要许愿、预约春晚直播均有反馈；倒计时数字为切片内容。', meta: '4 类操作' },
+        { icon: '🧭', title: '导航与入口', desc: '返回 / 分享 / 规则、档期轴切换、双会场入口、榜单入口与页脚搜索都可点击。', meta: '10+ 热区' },
+        { icon: '📐', title: '坐标系', desc: '全部热区按设计稿 750 宽像素定义，渲染时折半到 375 显示宽度，与切片逐像素对齐。', meta: '750 → 375' },
+      ],
+    },
+  },
+
+  /* ── 七夕搭鹊桥 · 找喜鹊（交互框架阶段）── */
+  [QIXI_BRIDGE_PROJECT]: {
+    [GAMEPLAY_CONFIG_LABEL]: {
+      type: 'cards',
+      columns: 2,
+      note: '当前配置只服务于前端灰模验证：主链路可完整点击，数据均为本地状态，不接后端接口。',
+      items: [
+        { icon: '🌉', title: '七关搭桥进度', desc: '7 个关卡复用同一套找喜鹊模板，目标数依次为 5 / 6 / 6 / 7 / 7 / 8 / 8。', meta: '7 关' },
+        { icon: '⏱️', title: '限时找喜鹊', desc: '每关默认 90 秒，点击场景内喜鹊累计进度；误点提供反馈，倒计时结束进入失败态。', meta: '90 秒 / 关' },
+        { icon: '🎟️', title: '阶段奖励', desc: '完成第 3、7 关分别解锁消费券；每次通关同步增加 1 次抽奖机会。', meta: '2 个券节点' },
+        { icon: '✅', title: '签到得机会', desc: '每日签到增加 2 次闯关机会；重复签到显示已完成反馈。', meta: '+2 次' },
+        { icon: '🤝', title: '好友助力', desc: '发起邀请并模拟好友回流，单个好友增加 2 次机会，每日最多 10 人。', meta: '2 次 / 人' },
+        { icon: '🎁', title: '通关抽奖', desc: '消耗通关获得的抽奖次数，展示中奖与未中奖结果，并同步我的奖品。', meta: '本地状态' },
+        { icon: '🧾', title: '活动明细', desc: '闯关、签到、助力和抽奖行为进入统一记录，首页进度与余额同步。', meta: '状态联动' },
+        { icon: '🛡️', title: '边际状态', desc: '提供加载中、网络异常、活动结束、风控兜底和主动退出二次确认。', meta: '5 类状态' },
       ],
     },
   },
