@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0",
+  "source": {
+    "type": "figma",
+    "fileKey": "PxXGus8deG2BZ3xQLUFl0u",
+    "pageNodeId": "0:1",
+    "rootNodeId": "1:369",
+    "rootSize": "750x9776",
+    "extractedAt": "2026-08-19"
+  },
+  "usage": "evidence-only",
+  "inheritIntoCampaign": false,
+  "rightsScope": "Internal Brand Kit evidence; campaign IP, creator imagery, copy, and finished pixels require their original authorization.",
+  "items": [
+    {
+      "id": "evidence.platform-lockup",
+      "path": "previews/figma-platform-lockup-1-959.png",
+      "label": "抖音游戏 × 抖音精选平台联名锁定",
+      "nodeId": "1:959",
+      "width": 287,
+      "height": 45,
+      "sha256": "8677721837b4f5f6e51b3556a550ba7335bf58ab987bce0a007be2d8d14afaee",
+      "demonstrates": ["Logo 顺序", "图标与字标比例", "同一基线", "彩色锁定版本"]
+    },
+    {
+      "id": "evidence.hero-kv",
+      "path": "previews/figma-hero-kv-1-371.png",
+      "label": "新春会主 KV 群像",
+      "nodeId": "1:371",
+      "width": 750,
+      "height": 439,
+      "sha256": "d6b06e07bcd6a12f176d989a25d041099e7389df852607d7bd4fae98a456c60c",
+      "demonstrates": ["红色轨道动势", "多 IP 群像层级", "明亮天空呼吸区", "标题覆盖安全区"]
+    },
+    {
+      "id": "evidence.chapter-stage",
+      "path": "previews/figma-chapter-stage-1-499.png",
+      "label": "篇章舞台与主理人区",
+      "nodeId": "1:499",
+      "width": 750,
+      "height": 972,
+      "sha256": "62003aeafa5781cb26edcdbf6d0833a2ce81f6e615f31ce369950e2f18459270",
+      "demonstrates": ["弧形舞台转场", "暖白信息面", "章节标题层级", "内容与按钮材质"]
+    },
+    {
+      "id": "evidence.duel-ranking",
+      "path": "previews/figma-duel-ranking-1-391.png",
+      "label": "夯拉对抗与内容榜单",
+      "nodeId": "1:391",
+      "width": 750,
+      "height": 1662,
+      "sha256": "c10b8208542bc6068468914e25c57380d2011ac5e8331e8d4719ce0e7056ad95",
+      "demonstrates": ["蓝红对抗解剖", "内容榜单复用组件", "斜切动作按钮", "高密信息可读性"]
+    },
+    {
+      "id": "evidence.wish-module",
+      "path": "previews/figma-wish-module-1-593.png",
+      "label": "春晚节目许愿模块",
+      "nodeId": "1:593",
+      "width": 750,
+      "height": 1038,
+      "sha256": "a68e1fffa3e8a0740ec4277babb8e1208463ecc18022ddc512da16bfca591eb2",
+      "demonstrates": ["独立艺术字模块标题", "愿望内容卡", "主次按钮", "倒计时反馈"]
+    },
+    {
+      "id": "evidence.reward-machine",
+      "path": "previews/figma-reward-machine-1-991.png",
+      "label": "抽奖机与奖励舞台",
+      "nodeId": "1:991",
+      "width": 750,
+      "height": 2166,
+      "sha256": "199b4fc53fefefa16553ed799b75cd476257d6e4a4f6ffe5ad55dfc38db21b1a",
+      "demonstrates": ["完整抽奖装置", "奖池可见性", "收藏物材质", "终态与任务衔接"]
+    },
+    {
+      "id": "evidence.art-title-lockup",
+      "path": "previews/figma-art-title-lockup-1-1414.png",
+      "label": "抖音 ACG 新春会艺术字锁定",
+      "nodeId": "1:1414",
+      "width": 410,
+      "height": 192,
+      "sha256": "f2b0d24a5763b7ad5f6d3a92e0e132d476281f8c5d44d9e5052c1a1241aaed91",
+      "demonstrates": ["活动身份层级", "多层描边", "舞台底座", "跨画幅最小识别"]
+    }
+  ]
+}

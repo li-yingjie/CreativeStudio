@@ -15,6 +15,12 @@ Create a complete activity product, not a document-shaped page and not a decorat
 - Put generated campaign artwork in the project asset library with ownership and provenance metadata.
 - Never promote a campaign's exact title, mascot, palette, copy, or intellectual property into a universal skill.
 
+## Resolve Reusable Knowledge
+
+- Use `$activity-h5-component-library` to query versioned gameplay behavior, state, data/events, editable slots, accessibility, and QA contracts when it is installed.
+- Use `$douyin-acg-event-brand` for Douyin ACG visual work. Create a campaign child kit; do not copy the reference campaign identity.
+- Record resolved registry IDs and Brand Kit artifact versions in the page manifest. If a required skill is unavailable, inspect the project registry and Brand Kit directly and mark the fallback source.
+
 ## Required Outputs
 
 Produce all of the following unless the host product explicitly owns an equivalent artifact:
@@ -31,6 +37,7 @@ Produce all of the following unless the host product explicitly owns an equivale
 
 - Always read [references/system-overview.md](references/system-overview.md) when explaining what this skill controls or how the system produces a page.
 - Always read [references/input-contracts.md](references/input-contracts.md) before interpreting a requirement document, Figma file, screenshot, embedded demo, or mixed input.
+- Read [references/pixel-provenance.md](references/pixel-provenance.md) before deciding whether a visual slot should be exported, generated, vectorized, or rendered in code.
 - Always read [references/pipeline.md](references/pipeline.md) before planning or changing the user flow.
 - Read [references/component-orchestration.md](references/component-orchestration.md) before creating the page blueprint, component tree, or gameplay implementation.
 - Read [references/asset-layering.md](references/asset-layering.md) before defining the asset BOM or composing the final page.
@@ -63,7 +70,7 @@ The agent owns gray-model layout, component decomposition, asset inventory, visu
 
 ### 3. Build a Runnable Gray Model After Gameplay Confirmation
 
-Before gameplay confirmation, keep only an internal semantic slot map. After confirmation, resolve the gameplay needs against the component registry using `references/component-orchestration.md`, then build the full component tree and a runnable gray model. The gray model must prove the core loop, information order, state transitions, and page length. It is an agent artifact, not another approval gate.
+Before gameplay confirmation, keep only an internal semantic slot map. After confirmation, resolve the gameplay needs against the component registry using `references/component-orchestration.md` and `$activity-h5-component-library`, then build the full component tree and a runnable gray model. The gray model must prove the core loop, information order, state transitions, and page length. It is an agent artifact, not another approval gate.
 
 ### 4. Confirm a Brand Kit With Joint Samples
 
@@ -71,11 +78,13 @@ If the visual direction is unresolved, generate three directions using the same 
 
 If an approved Figma is the visual source of truth, extract its Brand Kit and component/asset contracts instead of inventing three alternatives. If Figma is only a quality reference, do not copy its campaign identity; create joint samples that meet its density and craft bar using the new campaign content.
 
+For Douyin ACG work, compile the campaign child kit from `$douyin-acg-event-brand` and validate it before producing the joint sample or full asset batch.
+
 After the user selects a direction, freeze the Brand Kit version, switch the host product to the asset surface when supported, and generate the full asset set. Do not batch-generate all final art before the joint sample is selected.
 
 ### 5. Build and Audit the Asset BOM
 
-Follow `references/asset-layering.md`. Assign every visual slot an owner component, renderer, state, aspect ratio, provenance, and final status. Generate isolated transparent assets when modules need independent editing. Reject baked checkerboards, unintended opaque rectangles, low-resolution crops, corrupted text, inconsistent lighting, and unbound files.
+Follow `references/pixel-provenance.md` and `references/asset-layering.md`. Grade evidence per semantic slot rather than assigning one grade to the whole project. Assign every visual slot an owner component, renderer, state, aspect ratio, provenance, coordinate source, rights scope, and final status. Generate isolated transparent assets when modules need independent editing. Reject baked checkerboards, unintended opaque rectangles, low-resolution crops, corrupted text, inconsistent lighting, and unbound files.
 
 Keep candidate images and failed iterations out of the final asset library. Publish only approved final assets.
 
@@ -111,6 +120,8 @@ Compile, run, and replay the final flow. The final response should summarize del
 - Do not make a stack of cards that merely restates the source document.
 - Do not ship a background plus generic CSS cards as a high-fidelity activity page.
 - Do not render a required art-title as ordinary text when a controlled vector or image asset is available.
+- Do not treat an exact visual export as exempt from review; source defects, crop errors, overlays, and assembly can still fail.
+- Do not use full-page strips as the default production architecture. Restrict exported composites to immutable decorative regions with declared pixel ownership.
 - Do not add user approval gates for the gray model, asset BOM, or repair loop.
 - Do not introduce viewport-height jumps when switching venues, chapters, or tabs.
 - Do not leave placeholders, debug language, agent rationale, or internal workflow labels in the terminal user page.

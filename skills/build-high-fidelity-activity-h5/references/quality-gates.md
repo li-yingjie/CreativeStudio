@@ -15,6 +15,17 @@ Passing unit tests is necessary but not sufficient. Completion requires every ap
 - No placeholder, baked checkerboard, missing image, accidental opaque rectangle, or low-resolution crop remains.
 - Art-title, Hero/KV, gameplay art, content imagery, reward art, and branded controls are present where the visual direction calls for them.
 - Candidate and rejected files are not exposed as final assets.
+- Every final visual asset records evidence grade, source/recipe, rights scope, renderer, owner component, and final dimensions.
+
+## Machine Asset Validation
+
+- Exact dimensions and aspect ratio match the slot contract.
+- Alpha is real when required; checkerboards and accidental matte backgrounds are rejected.
+- Forbidden UI text, watermarks, copied logos, and malformed symbols are absent.
+- Required art-title wording passes OCR and human shape review.
+- File size and decode cost fit the declared mobile budget.
+- Style consistency is checked against the approved external anchor pack, not against the asset's own generation batch.
+- Authoritative exports still pass crop, overlay, seam, and assembly review.
 
 ## Runtime and Interaction
 

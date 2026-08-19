@@ -15,6 +15,8 @@
 | 页面编译器/编辑器 | 将蓝图、组件、Brand Kit 和素材编译成可运行页面；支持分层选择和局部编辑 | 不替代产品决策和视觉审查 | 可运行灰模、高保真 H5、组件树、CompileRun |
 | 审查器 | 用运行时、视觉、响应式、交互和可编辑门禁对抗式检查并触发修复 | 不用“测试通过”替代肉眼与截图检查 | 门禁报告、修复记录、最终预览 |
 
+当前本地已经落地两个可直接调用的知识源：`$douyin-acg-event-brand` 提供 `brand.douyin-acg-event-experience@1.0.0`，`$activity-h5-component-library` 提供 `knowledge.activity-h5-components@1.0.0`。前者是视觉合同，后者是行为合同，流程 Skill 负责编排二者。
+
 因此，最终页面不是“靠一个 Prompt 生成”，而是：
 
 `权威输入 + 尚未解决的产品决策 + 页面蓝图 + 玩法组件实例 + Brand Kit + 完整素材 BOM + 编译器 + 审查循环`。

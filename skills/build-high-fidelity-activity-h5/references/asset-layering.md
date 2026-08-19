@@ -21,6 +21,8 @@ Each asset record should carry:
 - `src`: project-relative source;
 - `ownerComponent`: stable component selection reference;
 - `provenance`: generated, supplied, licensed, or derived;
+- `evidenceGrade`: `A-authoritative-pixels`, `B-intent-only`, or `C-requirement-only`;
+- `sourceLocator`, `rightsScope`, and `coordinateSource` when applicable;
 - `renderer`: image, vector, video, canvas, or DOM;
 - `format`, alpha behavior, dimensions, and aspect ratio;
 - `states`: default, selected, locked, completed, disabled, and so on;
@@ -66,9 +68,11 @@ Before binding an asset:
 
 - inspect natural dimensions at target density;
 - verify alpha is real transparency, not a checkerboard baked into pixels;
+- verify exact slot dimensions, aspect ratio, file size budget, and protected overlay zones;
 - inspect edges and crops against both light and dark backgrounds;
-- verify generated text or symbols are intentional and legible;
+- detect forbidden baked text and verify required art-title text with OCR plus human inspection;
 - verify lighting, perspective, and material agree with adjacent art;
+- compare generated C-grade assets with the approved external style anchor rather than with their own batch;
 - bind it to a semantic slot and owner component;
 - keep only approved final files in the final library.
 

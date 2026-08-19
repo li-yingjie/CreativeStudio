@@ -1,0 +1,203 @@
+{
+  "schemaVersion": "1.0",
+  "id": "brand.douyin-acg-event-experience",
+  "version": "1.0.0",
+  "kind": "experience-brand-kit",
+  "maturity": "production-contract-local-validation",
+  "sourceAuthority": "figma-extracted",
+  "presentationManifest": "assets/brand-kit-presentation.v1.json",
+  "figmaExtraction": {
+    "fileKey": "PxXGus8deG2BZ3xQLUFl0u",
+    "rootNodeId": "1:369",
+    "rootSizePx": [750, 9776],
+    "visibleNodeCount": 1929,
+    "previewManifest": "assets/preview-manifest.json",
+    "previewUsage": "evidence-only",
+    "paletteSamples": [
+      { "value": "#FFFFFF", "observedCount": 180, "role": "light surfaces and inverse text" },
+      { "value": "#601619", "observedCount": 57, "role": "primary festive text" },
+      { "value": "#F93435", "observedCount": 18, "role": "hot red action and edge accent" },
+      { "value": "#FF8286", "observedCount": 16, "role": "soft coral surface" },
+      { "value": "#FF6262", "observedCount": 16, "role": "warm interactive accent" },
+      { "value": "#FFF2D6", "observedCount": 10, "role": "warm campaign canvas" },
+      { "value": "#FE2C55", "observedCount": 9, "role": "Douyin recognition accent" },
+      { "value": "#3887FF", "observedCount": 8, "role": "cool duel accent" },
+      { "value": "#D9D9D9", "observedCount": 394, "role": "excluded placeholder and mask color", "excludedFromTokens": true }
+    ],
+    "typographySamples": [
+      "FZLanTingHei-EB-GBK Regular 30",
+      "PingFang SC Regular 24",
+      "PingFang SC Medium 20",
+      "HYLiLiangHeiJ 42/64",
+      "Douyin Number ABC ExtraBold 22",
+      "Allison 52",
+      "Douyin Sans Bold"
+    ],
+    "geometrySamples": {
+      "frequentCornerRadiiPx": [12, 16, 24, 32],
+      "effectInstances": {
+        "innerShadow": 104,
+        "layerBlur": 75,
+        "dropShadow": 42,
+        "glass": 19,
+        "backgroundBlur": 8,
+        "noise": 2
+      }
+    },
+    "repeatedComponentEvidence": [
+      { "name": "抓马card - 打榜中", "instanceCount": 8 },
+      { "nodeId": "1:499", "role": "chapter stage and host module" },
+      { "nodeId": "1:391", "role": "duel and ranking module" },
+      { "nodeId": "1:593", "role": "wish module" },
+      { "nodeId": "1:991", "role": "reward machine module" },
+      { "nodeId": "1:1414", "role": "art-title lockup" }
+    ]
+  },
+  "evidence": [
+    {
+      "type": "figma",
+      "fileKey": "PxXGus8deG2BZ3xQLUFl0u",
+      "nodeId": "1:369",
+      "scope": "composition-density-material-component-anatomy"
+    },
+    {
+      "type": "code",
+      "path": "src/modules/vibecoding/components/AcgFromDocH5.tsx",
+      "scope": "interaction-state-editable-component-boundaries"
+    },
+    {
+      "type": "code",
+      "path": "src/modules/vibecoding/components/AcgFromDocH5.css",
+      "scope": "token-shape-depth-section-rhythm"
+    },
+    {
+      "type": "asset-bom",
+      "path": "src/modules/vibecoding/components/ProjectAssetCatalog.ts",
+      "scope": "26-bound-assets-and-generation-contracts"
+    }
+  ],
+  "inheritance": {
+    "mustOverride": [
+      "campaign.id",
+      "campaign.titleArtDirection",
+      "campaign.worldAndMotifs",
+      "campaign.paletteOverrides",
+      "campaign.contentAndRewardDirection"
+    ],
+    "mustNotInherit": [
+      "reference.characters",
+      "reference.logos",
+      "reference.creatorAvatars",
+      "reference.workCovers",
+      "reference.copy",
+      "reference.dates",
+      "reference.finishedAssets"
+    ]
+  },
+  "tokens": {
+    "color": [
+      { "id": "canvas.warm", "value": "#FFF2DE", "role": "continuous campaign canvas" },
+      { "id": "surface.warm", "value": "#FFF9F0", "role": "readable foreground surface" },
+      { "id": "text.primary", "value": "#601619", "role": "festive dark text" },
+      { "id": "text.muted", "value": "#865B59", "role": "secondary text on warm surfaces" },
+      { "id": "action.brand", "value": "#FE2C55", "role": "brand recognition and large action accents" },
+      { "id": "action.accessible", "value": "#C8103B", "role": "normal-size white text action" },
+      { "id": "accent.coral", "value": "#FF5A4D", "role": "warm gameplay accent" },
+      { "id": "accent.orange", "value": "#FF9A3D", "role": "transition and reward energy" },
+      { "id": "accent.gold", "value": "#FFD980", "role": "highlight and collectible material" },
+      { "id": "accent.sky", "value": "#39A9FF", "role": "cool contrast and journey atmosphere" },
+      { "id": "accent.blue", "value": "#1B69D2", "role": "cool interactive side with white text" },
+      { "id": "feedback.success", "value": "#208A77", "role": "success and persisted-state feedback" }
+    ],
+    "typography": [
+      { "id": "display.art", "renderer": "vector-or-transparent-image", "rule": "campaign identity must not degrade to ordinary runtime text" },
+      { "id": "display.section", "sizePxAt375": [28, 36], "weight": 900, "lineHeight": 1.05, "rule": "short sticker-like heading" },
+      { "id": "title.module", "sizePxAt375": [18, 24], "weight": 900, "lineHeight": 1.2, "rule": "one semantic focus per module" },
+      { "id": "body.primary", "sizePxAt375": [12, 15], "weight": 500, "lineHeight": 1.5, "rule": "long copy remains DOM" },
+      { "id": "label.action", "sizePxAt375": [13, 16], "weight": 900, "lineHeight": 1.2, "rule": "action wording must stay legible over texture" },
+      { "id": "meta.compact", "sizePxAt375": [10, 12], "weight": 600, "lineHeight": 1.4, "rule": "never use as primary instruction" }
+    ],
+    "shape": [
+      { "id": "stage.arch", "rule": "use curved stage boundaries for major transitions" },
+      { "id": "sticker.skew", "rule": "use small controlled rotation or skew for section identity" },
+      { "id": "ticket.notch", "rule": "use ticket or pass semantics only for access and reward modules" },
+      { "id": "duel.diagonal", "rule": "use opposing diagonals for binary competition" },
+      { "id": "surface.rounded", "radiusPx": [16, 24], "rule": "reserved for content surfaces, not every section" },
+      { "id": "control.rounded", "radiusPx": [9, 13], "rule": "interactive controls maintain stable geometry" },
+      { "id": "control.pill", "radiusPx": 999, "rule": "only for compact status or follow actions" }
+    ],
+    "depth": [
+      { "id": "card.soft", "value": "0 7px 16px rgba(124, 42, 29, 0.08)" },
+      { "id": "button.press", "value": "0 4px 0 rgba(128, 28, 24, 0.55)" },
+      { "id": "collectible.glow", "value": "0 12px 24px rgba(196, 61, 29, 0.18)" }
+    ],
+    "motion": [
+      { "id": "hero.enter", "durationMs": 700, "easing": "cubic-bezier(.2,.8,.2,1)", "rule": "opacity plus scale no more than 1.08" },
+      { "id": "title.enter", "durationMs": 620, "easing": "cubic-bezier(.2,.8,.2,1)", "rule": "translate no more than 20px" },
+      { "id": "state.feedback", "durationMs": 180, "easing": "ease-out", "rule": "color, shadow, or small transform; never move outer geometry" }
+    ]
+  },
+  "accessibility": {
+    "minimumNormalTextContrast": 4.5,
+    "minimumLargeTextContrast": 3.0,
+    "textPairs": [
+      { "foreground": "text.primary", "background": "canvas.warm", "minimum": 4.5 },
+      { "foreground": "text.primary", "background": "surface.warm", "minimum": 4.5 },
+      { "foreground": "#FFFFFF", "background": "action.accessible", "minimum": 4.5 },
+      { "foreground": "#FFFFFF", "background": "accent.blue", "minimum": 4.5 },
+      { "foreground": "text.primary", "background": "accent.gold", "minimum": 4.5 }
+    ],
+    "minimumTouchTargetPx": 44,
+    "reducedMotionRequired": true
+  },
+  "compositionRecipes": [
+    {
+      "id": "hero.three-layer-stage",
+      "intent": "establish platform, campaign identity and immediate action without a generic web header",
+      "requiredLayers": ["platform-controls", "hero.scene", "hero.titleArt", "venue-or-stage-nav", "primary-action"],
+      "rules": ["scene and title art remain replaceable", "controls and action remain DOM", "reserve top and bottom safe areas", "transition into the page with a stage boundary"]
+    },
+    {
+      "id": "page.continuous-stage",
+      "intent": "make a long page feel like a programmed journey rather than a dashboard",
+      "requiredLayers": ["section-surface", "section.titleSticker", "transition-decoration"],
+      "rules": ["change visual grammar every one or two screens", "preserve one campaign hierarchy", "avoid repeated identical card stacks"]
+    },
+    {
+      "id": "density.progression",
+      "intent": "balance spectacle and operational clarity",
+      "requiredLayers": ["hero-low-copy", "gameplay-strong-action", "ranking-dense-repeat", "task-low-decoration"],
+      "rules": ["hero is image dense and copy light", "rules and tasks prioritize readability", "high density uses repeated anatomy, not smaller illegible text"]
+    }
+  ],
+  "moduleSkins": [
+    { "id": "skin.duel-split", "capability": "binary-vote", "grammar": "cool/warm split planes, opposing diagonals, persistent selected state", "forbid": ["two neutral generic buttons", "state only communicated by color"] },
+    { "id": "skin.ranking-content", "capability": "content-ranking", "grammar": "media-first repeated anatomy, rank marker, score and two semantic actions", "forbid": ["text-only ranking", "unbounded card height"] },
+    { "id": "skin.wish-rail", "capability": "user-wish", "grammar": "staggered note rail, social identity, like state, independent composer", "forbid": ["static quotation list", "input without length and submit state"] },
+    { "id": "skin.reward-machine", "capability": "random-draw", "grammar": "tangible collectible machine, visible inventory, chance count and terminal feedback", "forbid": ["single flat draw button", "hidden chance accounting"] },
+    { "id": "skin.task-readable", "capability": "task-progress", "grammar": "low-decoration list, clear completion state and direct action", "forbid": ["decorative texture behind small copy", "completed action still clickable"] },
+    { "id": "skin.stage-journey", "capability": "chapter-progression", "grammar": "route or stage metaphor, current/locked/completed states, visible next unlock", "forbid": ["tabs without progress meaning", "state change moving outer geometry"] }
+  ],
+  "assetSlots": [
+    { "id": "hero.scene", "family": "hero-kv", "renderer": "image", "required": true, "aspectRatios": ["3:4", "9:16", "16:9"], "minimumLongEdgePx": 1600, "alpha": "opaque", "safeArea": "top 12%, bottom 24%, center title collision map", "composition": "clear focal route or stage with broad readable masses" },
+    { "id": "hero.titleArt", "family": "art-title", "renderer": "vector-or-image", "required": true, "aspectRatios": ["3:1", "4:1"], "minimumLongEdgePx": 1200, "alpha": "transparent", "safeArea": "8% transparent padding on every edge", "composition": "short campaign identity with controlled contour, shadow and highlight" },
+    { "id": "section.titleSticker", "family": "section-identity", "renderer": "vector-or-image", "required": true, "aspectRatios": ["3:1", "4:1"], "minimumLongEdgePx": 900, "alpha": "transparent", "safeArea": "no clipped shadow or label tab", "composition": "compact independent section identity" },
+    { "id": "content.cover", "family": "content-media", "renderer": "image", "required": true, "aspectRatios": ["3:4", "1:1", "16:9"], "minimumLongEdgePx": 900, "alpha": "opaque", "safeArea": "subject survives cover crop", "composition": "single legible subject and stable dark text-overlay zone" },
+    { "id": "identity.avatar", "family": "creator-or-role", "renderer": "image", "required": false, "aspectRatios": ["1:1"], "minimumLongEdgePx": 512, "alpha": "opaque-or-transparent", "safeArea": "face or symbol centered inside circular crop", "composition": "distinct silhouette and readable identity" },
+    { "id": "reward.object", "family": "collectible-reward", "renderer": "image", "required": true, "aspectRatios": ["1:1"], "minimumLongEdgePx": 768, "alpha": "transparent", "safeArea": "12% alpha padding and stable ground shadow", "composition": "single collectible object with coherent material and lighting" },
+    { "id": "decoration.transition", "family": "stage-transition", "renderer": "vector-or-image", "required": false, "aspectRatios": ["3:1", "5:1"], "minimumLongEdgePx": 1200, "alpha": "transparent", "safeArea": "edges extend beyond viewport without visible seam", "composition": "arch, cloud, rail, ticket, ribbon or platform transition" }
+  ],
+  "promptGrammar": {
+    "order": ["slot and aspect", "stage composition", "subject hierarchy", "campaign palette and material", "safe areas and editability", "rendering quality", "exclusions"],
+    "rendering": "clean premium ACG campaign illustration, smooth controlled shading, soft directional lighting, broad readable color masses, continuous gradients, crisp silhouettes, restrained microtexture, clean natural image quality",
+    "safeArea": "preserve the declared empty zones, do not bake UI controls, buttons, counters, logos, or long text into the image",
+    "exclusions": "exclude visible grain, speckling, mottled pigment, dirty texture, oversharpening halos, blotchy gradients, chaotic high-frequency detail, excessive particles, copied IP characters, logos, watermarks, malformed lettering, and baked interface text"
+  },
+  "qualityGates": {
+    "minimumBusinessSectionsForLongPage": 6,
+    "minimumDistinctModuleSkins": 4,
+    "minimumAssetFamilies": 7,
+    "requiredViewportWidths": [320, 375, 390, 430],
+    "mustPass": ["no-placeholder", "no-horizontal-overflow", "text-contrast", "stable-outer-geometry", "object-level-editability", "complete-core-loop", "real-alpha", "no-campaign-ip-leakage"]
+  }
+}

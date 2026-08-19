@@ -26,6 +26,81 @@ import {
   skillCategoryKey,
   skills,
 } from './skills-data'
+import { AssetImageDialog } from '../assets/AssetMedia'
+import type { AssetVisualReference } from '../../assets/assetCatalog'
+import acgBrandSkillRaw from '../../../../../skills/douyin-acg-event-brand/SKILL.md?raw'
+import acgBrandSystemRaw from '../../../../../skills/douyin-acg-event-brand/references/brand-system.md?raw'
+import acgProductionContractRaw from '../../../../../skills/douyin-acg-event-brand/references/production-contract.md?raw'
+import acgExperienceKitRaw from '../../../../../skills/douyin-acg-event-brand/assets/douyin-acg-experience-kit.v1.json?raw'
+import acgBrandPresentationRaw from '../../../../../skills/douyin-acg-event-brand/assets/brand-kit-presentation.v1.json?raw'
+import acgPreviewManifestRaw from '../../../../../skills/douyin-acg-event-brand/assets/preview-manifest.json?raw'
+import acgValidateScriptRaw from '../../../../../skills/douyin-acg-event-brand/scripts/validate-brand-kit.mjs?raw'
+import acgPackageScriptRaw from '../../../../../skills/douyin-acg-event-brand/scripts/package-skill.mjs?raw'
+import acgCompilePromptRaw from '../../../../../skills/douyin-acg-event-brand/scripts/compile-prompt.mjs?raw'
+import acgOpenAiConfigRaw from '../../../../../skills/douyin-acg-event-brand/agents/openai.yaml?raw'
+
+const ACG_BRAND_SKILL_ID = 'brand.douyin-acg-new-year-2026'
+const ACG_BRAND_PACKAGE_PATH = '/downloads/douyin-acg-event-brand-1.0.0.skill.tgz'
+const ACG_FIGMA_FILE_URL = 'https://www.figma.com/design/PxXGus8deG2BZ3xQLUFl0u/Untitled?node-id=0-1&p=f&m=dev'
+
+interface BrandKitPresentation {
+  title: string
+  summary: string
+  identity: {
+    platformLockup: { label: string; asset: string; vectorAsset: string; specification: string; rules: string[] }
+    campaignTitle: { label: string; asset: string; specification: string; rules: string[] }
+  }
+  hero: { label: string; asset: string; specification: string; rules: string[] }
+  typography: {
+    families: Array<{ role: string; families: string[]; use: string }>
+    scale: Array<{ name: string; figmaPx: number; runtimePxAt375: number; weight: string; use: string }>
+  }
+  colors: Array<{ name: string; value: string; role: string; on: string[] }>
+  components: Array<{ name: string; asset?: string; sample: string; rules: string[] }>
+  do: string[]
+  dont: string[]
+}
+
+const ACG_BRAND_PRESENTATION = JSON.parse(acgBrandPresentationRaw) as BrandKitPresentation
+const publicPresentationAsset = (asset: string) => `/assets/brand-kits/douyin-acg-event-brand/evidence/${asset.split('/').pop()}`
+
+const ACG_FIGMA_REFERENCES: readonly AssetVisualReference[] = [
+  {
+    src: publicPresentationAsset(ACG_BRAND_PRESENTATION.identity.platformLockup.vectorAsset),
+    label: ACG_BRAND_PRESENTATION.identity.platformLockup.label,
+    specification: `${ACG_BRAND_PRESENTATION.identity.platformLockup.specification} · Figma node 1:959`,
+  },
+  {
+    src: publicPresentationAsset(ACG_BRAND_PRESENTATION.hero.asset),
+    label: ACG_BRAND_PRESENTATION.hero.label,
+    specification: `${ACG_BRAND_PRESENTATION.hero.specification} · Figma node 1:371`,
+  },
+  {
+    src: '/assets/brand-kits/douyin-acg-event-brand/evidence/figma-chapter-stage-1-499.png',
+    label: '章节舞台与主理人模块',
+    specification: 'Figma node 1:499 · 750×972 · 原始节点导出',
+  },
+  {
+    src: publicPresentationAsset(ACG_BRAND_PRESENTATION.identity.campaignTitle.asset),
+    label: ACG_BRAND_PRESENTATION.identity.campaignTitle.label,
+    specification: `${ACG_BRAND_PRESENTATION.identity.campaignTitle.specification} · Figma node 1:1414`,
+  },
+  {
+    src: '/assets/brand-kits/douyin-acg-event-brand/evidence/figma-duel-ranking-1-391.png',
+    label: '红蓝对抗与榜单模块',
+    specification: 'Figma node 1:391 · 750×1662 · 原始节点导出',
+  },
+  {
+    src: '/assets/brand-kits/douyin-acg-event-brand/evidence/figma-wish-module-1-593.png',
+    label: '晚会许愿模块',
+    specification: 'Figma node 1:593 · 750×1038 · 原始节点导出',
+  },
+  {
+    src: '/assets/brand-kits/douyin-acg-event-brand/evidence/figma-reward-machine-1-991.png',
+    label: '奖励机与抽奖模块',
+    specification: 'Figma node 1:991 · 750×2166 · 原始节点导出',
+  },
+] as const
 
 const CATEGORY_STYLE: Record<SkillItem['category'], { bg: string; ink: string }> = {
   'Brand Kit': { bg: '#F5F0E8', ink: '#795F37' },
@@ -93,6 +168,33 @@ function packageForSkill(item: SkillItem): SkillPackage | null {
   if (item.skillPackage) return item.skillPackage
   if (item.status !== '已有') return null
 
+  if (item.id === ACG_BRAND_SKILL_ID) {
+    const previewFiles = ACG_FIGMA_REFERENCES.map((reference) => ({
+      name: `assets/previews/${reference.src.split('/').pop()}`,
+      kind: 'image' as const,
+      previewSrc: reference.src,
+      note: `${reference.specification}；仅作 Figma 提炼证据，不继承为新活动素材。`,
+    }))
+    return {
+      folderName: 'douyin-acg-event-brand.skill',
+      downloadPath: ACG_BRAND_PACKAGE_PATH,
+      files: [
+        { name: 'SKILL.md', kind: 'markdown', content: acgBrandSkillRaw },
+        { name: 'references/brand-system.md', kind: 'markdown', content: acgBrandSystemRaw },
+        { name: 'references/production-contract.md', kind: 'markdown', content: acgProductionContractRaw },
+        { name: 'assets/douyin-acg-experience-kit.v1.json', kind: 'json', content: acgExperienceKitRaw },
+        { name: 'assets/brand-kit-presentation.v1.json', kind: 'json', content: acgBrandPresentationRaw },
+        { name: 'assets/preview-manifest.json', kind: 'json', content: acgPreviewManifestRaw },
+        ...previewFiles,
+        { name: 'assets/previews/figma-platform-lockup-1-959.png', kind: 'image', previewSrc: '/assets/brand-kits/douyin-acg-event-brand/evidence/figma-platform-lockup-1-959.png', note: 'Figma node 1:959 · 原始 PNG 导出。' },
+        { name: 'scripts/validate-brand-kit.mjs', kind: 'script', content: acgValidateScriptRaw },
+        { name: 'scripts/package-skill.mjs', kind: 'script', content: acgPackageScriptRaw },
+        { name: 'scripts/compile-prompt.mjs', kind: 'script', content: acgCompilePromptRaw },
+        { name: 'agents/openai.yaml', kind: 'config', content: acgOpenAiConfigRaw },
+      ],
+    }
+  }
+
   const lines = [
     '---',
     `name: ${item.invocation ?? item.id}`,
@@ -117,7 +219,7 @@ function packageForSkill(item: SkillItem): SkillPackage | null {
 
   return {
     folderName: `${item.id}.skill`,
-    files: [{ name: 'SKILL.md', content: lines.join('\n') }],
+    files: [{ name: 'SKILL.md', kind: 'markdown', content: lines.join('\n') }],
   }
 }
 
@@ -126,6 +228,14 @@ function MetricIcon({ icon }: { icon: NonNullable<SkillItem['metrics']>[number][
   if (icon === 'quality') return <CheckCircle2 size={14} strokeWidth={1.8} />
   return <ArrowUpRight size={14} strokeWidth={1.8} />
 }
+
+const PACKAGE_FILE_BADGE = {
+  markdown: 'MD',
+  json: '{}',
+  image: 'IMG',
+  script: 'JS',
+  config: 'YML',
+} as const
 
 function SkillPackageViewer({ item }: { item: SkillItem }) {
   const skillPackage = useMemo(() => packageForSkill(item), [item])
@@ -136,7 +246,7 @@ function SkillPackageViewer({ item }: { item: SkillItem }) {
     skillPackage?.files.find((file) => file.name === selectedFileName) ??
     skillPackage?.files[0] ??
     null
-  const lines = selectedFile?.content.split('\n') ?? []
+  const lines = selectedFile?.content?.split('\n') ?? []
 
   return (
     <div
@@ -156,6 +266,7 @@ function SkillPackageViewer({ item }: { item: SkillItem }) {
               <div className="ml-5 space-y-1">
                 {skillPackage.files.map((file) => {
                   const selected = file.name === selectedFile.name
+                  const badge = PACKAGE_FILE_BADGE[file.kind ?? 'markdown']
                   return (
                     <button
                       key={file.name}
@@ -164,7 +275,7 @@ function SkillPackageViewer({ item }: { item: SkillItem }) {
                       onClick={() => setSelectedFileName(file.name)}
                       className={`flex h-9 w-full min-w-0 items-center gap-2 rounded-lg px-3 text-left text-[12px] ${selected ? 'bg-[#EDEFF3] text-[#1C1F23]' : 'text-[#1C1F23]/62 hover:bg-black/[0.035]'}`}
                     >
-                      <span className="grid h-4 min-w-5 place-items-center rounded bg-[#73777F] px-1 text-[7px] font-bold text-white">MD</span>
+                      <span className="grid h-4 min-w-5 place-items-center rounded bg-[#73777F] px-1 text-[7px] font-bold text-white">{badge}</span>
                       <span className="truncate">{file.name}</span>
                     </button>
                   )
@@ -172,14 +283,25 @@ function SkillPackageViewer({ item }: { item: SkillItem }) {
               </div>
             </div>
           </aside>
-          <div className="thin-scroll min-w-0 overflow-auto bg-white py-3 font-mono text-[12px] leading-6 text-[#1C1F23]">
-            {lines.map((line, index) => (
-              <div key={`${index}:${line}`} className="grid min-w-[520px] grid-cols-[54px_minmax(0,1fr)] px-3">
-                <span aria-hidden className="select-none pr-4 text-right text-[#1C1F23]/38">{index + 1}</span>
-                <span className="whitespace-pre-wrap break-words pr-6">{line || ' '}</span>
+          {selectedFile.kind === 'image' && selectedFile.previewSrc ? (
+            <div className="thin-scroll min-w-0 overflow-auto bg-[#F4F5F7] p-5">
+              <div className="mx-auto flex min-h-full max-w-[720px] flex-col justify-center">
+                <div className="overflow-hidden rounded-xl border border-black/[0.08] bg-white p-3 shadow-sm">
+                  <img src={selectedFile.previewSrc} alt={selectedFile.name} className="mx-auto block max-h-[500px] max-w-full object-contain" />
+                </div>
+                {selectedFile.note ? <p className="mt-3 text-center text-[11px] leading-5 text-[#1C1F23]/52">{selectedFile.note}</p> : null}
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="thin-scroll min-w-0 overflow-auto bg-white py-3 font-mono text-[12px] leading-6 text-[#1C1F23]">
+              {lines.map((line, index) => (
+                <div key={`${index}:${line}`} className="grid min-w-[520px] grid-cols-[54px_minmax(0,1fr)] px-3">
+                  <span aria-hidden className="select-none pr-4 text-right text-[#1C1F23]/38">{index + 1}</span>
+                  <span className="whitespace-pre-wrap break-words pr-6">{line || ' '}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid h-full place-items-center text-[12px] text-[#1C1F23]/38">暂无技能包文件</div>
@@ -188,10 +310,149 @@ function SkillPackageViewer({ item }: { item: SkillItem }) {
   )
 }
 
+function BrandKitMedia({ reference, onPreview, className = '', imageClassName = '' }: { reference: AssetVisualReference; onPreview: (reference: AssetVisualReference) => void; className?: string; imageClassName?: string }) {
+  return (
+    <button type="button" onClick={() => onPreview(reference)} aria-label={`放大预览：${reference.label}`} className={`group/media relative block w-full overflow-hidden text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#357EF8] ${className}`}>
+      <img src={reference.src} alt="" className={`size-full object-contain object-center ${imageClassName}`} />
+      <span className="absolute right-3 top-3 rounded-md bg-black/62 px-2 py-1 text-[8px] font-medium text-white opacity-0 backdrop-blur-sm transition group-hover/media:opacity-100 group-focus-visible/media:opacity-100">查看大图</span>
+    </button>
+  )
+}
+
+function BrandKitSkillOverview({ onPreview }: { onPreview: (reference: AssetVisualReference) => void }) {
+  const logoReference = ACG_FIGMA_REFERENCES[0]
+  const heroReference = ACG_FIGMA_REFERENCES[1]
+  const titleReference = ACG_FIGMA_REFERENCES[3]
+  const findReference = (asset?: string) => asset
+    ? ACG_FIGMA_REFERENCES.find((reference) => reference.src.endsWith(asset.split('/').pop() ?? ''))
+    : undefined
+
+  return (
+    <section className="mt-9" aria-labelledby="brand-kit-overview-heading">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-black/[0.08] pb-4">
+        <div>
+          <h2 id="brand-kit-overview-heading" className="text-[18px] font-semibold text-[#1C1F23]">品牌资产总览</h2>
+          <p className="mt-1 max-w-[720px] text-[12px] leading-5 text-[#1C1F23]/52">Logo、主视觉、字体、配色和组件样式共同构成页面的统一视觉语言。</p>
+        </div>
+        <a href={ACG_FIGMA_FILE_URL} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-black/[0.09] px-3 text-[11px] font-medium text-[#1C1F23]/72 hover:bg-black/[0.035]">
+          设计源文件 <ArrowUpRight size={13} />
+        </a>
+      </div>
+
+      <div className="mt-6">
+        <h3 className="text-[14px] font-semibold text-[#1C1F23]">01 · 品牌标识</h3>
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          <div className="overflow-hidden rounded-2xl border border-black/[0.08] bg-[#171922]">
+            <BrandKitMedia reference={logoReference} onPreview={onPreview} className="h-[180px] bg-[#171922]" imageClassName="p-8" />
+            <div className="border-t border-white/10 px-5 py-4 text-white">
+              <p className="text-[12px] font-semibold">{ACG_BRAND_PRESENTATION.identity.platformLockup.label}</p>
+              <ul className="mt-2 space-y-1 text-[10px] leading-4 text-white/58">
+                {ACG_BRAND_PRESENTATION.identity.platformLockup.rules.map((rule) => <li key={rule}>· {rule}</li>)}
+              </ul>
+            </div>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-black/[0.08] bg-[#FFF2D6]">
+            <BrandKitMedia reference={titleReference} onPreview={onPreview} className="h-[180px] bg-[#FFF2D6]" imageClassName="p-5" />
+            <div className="border-t border-[#601619]/10 px-5 py-4 text-[#601619]">
+              <p className="text-[12px] font-semibold">{ACG_BRAND_PRESENTATION.identity.campaignTitle.label}</p>
+              <ul className="mt-2 space-y-1 text-[10px] leading-4 text-[#601619]/64">
+                {ACG_BRAND_PRESENTATION.identity.campaignTitle.rules.map((rule) => <li key={rule}>· {rule}</li>)}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <h3 className="text-[14px] font-semibold text-[#1C1F23]">02 · 主 KV</h3>
+        <div className="mt-3 overflow-hidden rounded-2xl border border-black/[0.08] bg-[#F7F8FA] lg:grid lg:grid-cols-[minmax(0,1.55fr)_minmax(240px,.45fr)]">
+          <BrandKitMedia reference={heroReference} onPreview={onPreview} className="min-h-[280px] bg-[#EAF7FF]" />
+          <div className="border-t border-black/[0.08] bg-white p-5 lg:border-l lg:border-t-0">
+            <p className="text-[12px] font-semibold text-[#1C1F23]">构图规则</p>
+            <ul className="mt-3 space-y-3">
+              {ACG_BRAND_PRESENTATION.hero.rules.map((rule, index) => <li key={rule} className="flex gap-2 text-[10px] leading-4 text-[#1C1F23]/62"><span className="grid size-4 shrink-0 place-items-center rounded-full bg-[#FFF0ED] text-[8px] font-semibold text-[#D9383E]">{index + 1}</span>{rule}</li>)}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <h3 className="text-[14px] font-semibold text-[#1C1F23]">03 · 字体与字号</h3>
+        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {ACG_BRAND_PRESENTATION.typography.families.map((family) => <div key={family.role} className="rounded-xl border border-black/[0.08] bg-white p-4"><p className="text-[11px] font-semibold text-[#1C1F23]">{family.role}</p><p className="mt-4 line-clamp-2 min-h-10 text-[17px] font-semibold leading-5 text-[#601619]">{family.families.join(' / ')}</p><p className="mt-3 text-[9px] leading-4 text-[#1C1F23]/46">{family.use}</p></div>)}
+        </div>
+        <h4 className="mt-5 text-[11px] font-semibold text-[#1C1F23]/72">字号层级</h4>
+        <div className="mt-2 overflow-hidden rounded-xl border border-black/[0.08]">
+          {ACG_BRAND_PRESENTATION.typography.scale.map((scale, index) => <div key={scale.name} className={`grid grid-cols-[92px_minmax(130px,.5fr)_minmax(0,1fr)] items-center gap-4 px-4 py-3 ${index ? 'border-t border-black/[0.07]' : ''}`}><p className="text-[10px] font-medium text-[#1C1F23]/58">{scale.name}</p><p className="truncate font-semibold text-[#601619]" style={{ fontSize: Math.max(12, scale.runtimePxAt375), lineHeight: 1.15 }}>新春会 ACG 2026</p><p className="text-[9px] leading-4 text-[#1C1F23]/46">Figma {scale.figmaPx}px · H5 {scale.runtimePxAt375}px · {scale.weight} · {scale.use}</p></div>)}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <h3 className="text-[14px] font-semibold text-[#1C1F23]">04 · 配色规则</h3>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {ACG_BRAND_PRESENTATION.colors.map((color) => <div key={color.name} className="overflow-hidden rounded-xl border border-black/[0.08] bg-white"><div className="h-16" style={{ background: color.value }} /><div className="p-3"><div className="flex items-center justify-between gap-2"><p className="text-[11px] font-semibold text-[#1C1F23]">{color.name}</p><code className="text-[9px] text-[#1C1F23]/48">{color.value}</code></div><p className="mt-2 text-[9px] leading-4 text-[#1C1F23]/48">{color.role}</p><p className="mt-2 text-[8px] text-[#1C1F23]/38">建议搭配：{color.on.join(' / ')}</p></div></div>)}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <h3 className="text-[14px] font-semibold text-[#1C1F23]">05 · 组件样式与约束</h3>
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          {ACG_BRAND_PRESENTATION.components.map((component) => {
+            const reference = findReference(component.asset)
+            return <div key={component.name} className="overflow-hidden rounded-2xl border border-black/[0.08] bg-white">{reference ? <BrandKitMedia reference={reference} onPreview={onPreview} className="h-[260px] bg-[#FFF7E8]" imageClassName="p-3" /> : <div className="grid h-[150px] place-items-center bg-[#FFF2D6] p-8"><span className="grid min-h-12 min-w-[220px] place-items-center rounded-2xl bg-[#FE2C55] px-8 text-[15px] font-bold text-white shadow-[0_5px_0_#A31532]">立即参与</span></div>}<div className="p-5"><div className="flex items-start justify-between gap-3"><p className="text-[12px] font-semibold text-[#1C1F23]">{component.name}</p><span className="rounded-md bg-[#FFF0ED] px-2 py-1 text-[8px] font-medium text-[#B42630]">样式规范</span></div><p className="mt-2 text-[10px] leading-4 text-[#1C1F23]/52">{component.sample}</p><ul className="mt-3 space-y-1.5">{component.rules.map((rule) => <li key={rule} className="flex gap-2 text-[9px] leading-4 text-[#1C1F23]/58"><span className="mt-1.5 size-1 shrink-0 rounded-full bg-[#FE2C55]" />{rule}</li>)}</ul></div></div>
+          })}
+        </div>
+      </div>
+
+      <div className="mt-8 grid gap-3 lg:grid-cols-2">
+        <div className="rounded-xl border border-[#17855B]/20 bg-[#F2FBF7] p-5"><h3 className="text-[12px] font-semibold text-[#126A49]">推荐做法</h3><ul className="mt-3 space-y-2">{ACG_BRAND_PRESENTATION.do.map((rule) => <li key={rule} className="flex gap-2 text-[10px] leading-4 text-[#1C1F23]/62"><CheckCircle2 size={13} className="mt-0.5 shrink-0 text-[#17855B]" />{rule}</li>)}</ul></div>
+        <div className="rounded-xl border border-[#D9383E]/20 bg-[#FFF6F5] p-5"><h3 className="text-[12px] font-semibold text-[#B42630]">避免这样做</h3><ul className="mt-3 space-y-2">{ACG_BRAND_PRESENTATION.dont.map((rule) => <li key={rule} className="flex gap-2 text-[10px] leading-4 text-[#1C1F23]/62"><span className="mt-1 grid size-3.5 shrink-0 place-items-center rounded-full bg-[#D9383E] text-[8px] font-bold text-white">×</span>{rule}</li>)}</ul></div>
+      </div>
+    </section>
+  )
+}
+
 function SkillDetail({ item, onBack }: { item: SkillItem; onBack: () => void }) {
   const style = item.detailTone ?? CATEGORY_STYLE[item.category]
   const tools = item.tools ?? (item.invocation ? [item.invocation] : [])
   const knowledgeBases = item.knowledgeBases ?? []
+  const skillPackage = useMemo(() => packageForSkill(item), [item])
+  const [previewReference, setPreviewReference] = useState<AssetVisualReference | null>(null)
+
+  const downloadSkillPackage = () => {
+    if (!skillPackage) return
+    if (skillPackage.downloadPath) {
+      const anchor = document.createElement('a')
+      anchor.href = skillPackage.downloadPath
+      anchor.download = skillPackage.downloadPath.split('/').pop() ?? `${skillPackage.folderName}.tgz`
+      anchor.click()
+      return
+    }
+    const blob = new Blob([JSON.stringify(skillPackage, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `${skillPackage.folderName}.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const technicalDetails = (
+    <>
+      <section className="mt-7">
+        <h2 className="text-[16px] font-semibold text-[#1C1F23]">技能调用信息</h2>
+        <dl className="mt-3 rounded-xl border border-black/[0.09] px-5 py-1">
+          <div className="grid min-h-10 grid-cols-[92px_minmax(0,1fr)] items-center gap-3"><dt className="text-[12px] text-[#1C1F23]/44">工具</dt><dd className="flex flex-wrap items-center gap-1.5">{tools.length ? tools.map((tool) => <span key={tool} className="rounded border border-black/[0.09] bg-white px-2 py-1 text-[11px] text-[#1C1F23]">{tool}</span>) : <span className="text-[12px] text-[#1C1F23]/38">暂无</span>}</dd></div>
+          <div className="grid min-h-10 grid-cols-[92px_minmax(0,1fr)] items-center gap-3"><dt className="text-[12px] text-[#1C1F23]/44">知识库</dt><dd className="flex flex-wrap items-center gap-1.5 text-[12px] text-[#1C1F23]/38">{knowledgeBases.length ? knowledgeBases.map((knowledge) => <span key={knowledge} className="rounded border border-black/[0.09] bg-white px-2 py-1 text-[11px] text-[#1C1F23]">{knowledge}</span>) : '暂无'}</dd></div>
+        </dl>
+      </section>
+
+      <section className="mt-7">
+        <h2 className="text-[16px] font-semibold text-[#1C1F23]">技能包内容</h2>
+        <SkillPackageViewer item={item} />
+      </section>
+    </>
+  )
 
   return (
     <div data-testid="skill-detail-page" className="thin-scroll h-full w-full overflow-y-auto bg-[#F3F4F6] p-3">
@@ -201,7 +462,7 @@ function SkillDetail({ item, onBack }: { item: SkillItem; onBack: () => void }) 
             <ArrowLeft size={15} strokeWidth={1.8} />技能详情
           </button>
           <div className="flex items-center gap-1">
-            <button type="button" aria-label="下载技能包" title="下载技能包" className="grid size-8 place-items-center rounded-lg text-[#1C1F23]/70 hover:bg-black/[0.04] hover:text-[#1C1F23]"><Download size={15} strokeWidth={1.8} /></button>
+            <button type="button" onClick={downloadSkillPackage} disabled={!skillPackage} aria-label="下载技能包" title="下载技能包" className="grid size-8 place-items-center rounded-lg text-[#1C1F23]/70 hover:bg-black/[0.04] hover:text-[#1C1F23] disabled:cursor-not-allowed disabled:opacity-30"><Download size={15} strokeWidth={1.8} /></button>
             <button type="button" aria-label="联系支持" title="联系支持" className="grid size-8 place-items-center rounded-lg text-[#1C1F23]/70 hover:bg-black/[0.04] hover:text-[#1C1F23]"><Headphones size={15} strokeWidth={1.8} /></button>
           </div>
         </header>
@@ -219,19 +480,19 @@ function SkillDetail({ item, onBack }: { item: SkillItem; onBack: () => void }) 
           </div>
         </section>
 
-        <section className="mt-9">
-          <h2 className="text-[16px] font-semibold text-[#1C1F23]">技能调用信息</h2>
-          <dl className="mt-3 rounded-xl border border-black/[0.09] px-5 py-1">
-            <div className="grid min-h-10 grid-cols-[92px_minmax(0,1fr)] items-center gap-3"><dt className="text-[12px] text-[#1C1F23]/44">工具</dt><dd className="flex flex-wrap items-center gap-1.5">{tools.length ? tools.map((tool) => <span key={tool} className="rounded border border-black/[0.09] bg-white px-2 py-1 text-[11px] text-[#1C1F23]">{tool}</span>) : <span className="text-[12px] text-[#1C1F23]/38">暂无</span>}</dd></div>
-            <div className="grid min-h-10 grid-cols-[92px_minmax(0,1fr)] items-center gap-3"><dt className="text-[12px] text-[#1C1F23]/44">知识库</dt><dd className="flex flex-wrap items-center gap-1.5 text-[12px] text-[#1C1F23]/38">{knowledgeBases.length ? knowledgeBases.map((knowledge) => <span key={knowledge} className="rounded border border-black/[0.09] bg-white px-2 py-1 text-[11px] text-[#1C1F23]">{knowledge}</span>) : '暂无'}</dd></div>
-          </dl>
-        </section>
+        {item.id === ACG_BRAND_SKILL_ID ? <BrandKitSkillOverview onPreview={setPreviewReference} /> : null}
 
-        <section className="mt-9">
-          <h2 className="text-[16px] font-semibold text-[#1C1F23]">技能包内容</h2>
-          <SkillPackageViewer item={item} />
-        </section>
+        {item.id === ACG_BRAND_SKILL_ID ? (
+          <details className="group mt-9 rounded-xl border border-black/[0.08] bg-[#FAFAFB] px-5 py-1">
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 text-[12px] font-medium text-[#1C1F23]/72">
+              Agent 调用与技能包
+              <ChevronDown size={14} className="transition group-open:rotate-180" />
+            </summary>
+            <div className="border-t border-black/[0.07] pb-5">{technicalDetails}</div>
+          </details>
+        ) : technicalDetails}
       </article>
+      {previewReference ? <AssetImageDialog reference={previewReference} onClose={() => setPreviewReference(null)} returnLabel="返回技能详情" /> : null}
     </div>
   )
 }

@@ -512,16 +512,16 @@ export const ASSET_CATALOG: readonly AssetCatalogItem[] = [
     registry: 'asset',
     name: '抖音 ACG Brand Kit · 新春会应用版',
     version: '1.2.0',
-    summary: '统一抖音 ACG 主身份、活动标题与跨画幅规则，并把正式长页的舞台构图、玩法皮肤、素材分工和复杂度门槛编译成可调用体验语法。',
+    summary: '面向活动页面、会场与站内资源位的品牌身份、视觉基调和组件样式规范。',
     owner: '抖音 ACG 视觉设计',
     status: '已发布',
     updatedAt: '2026-08-19',
     tags: ['抖音 ACG', '品牌锁定', '舞台语法', '玩法皮肤', '跨画幅适配'],
     coverage: ['抖音', 'Lynx', '站内 H5', '站内资源位', '图片生成'],
     metrics: [
-      { label: '身份层级', value: '3 层' },
-      { label: '体验规则', value: '4 组' },
-      { label: '素材家族', value: '7 类' },
+      { label: '品牌标识', value: '2 组' },
+      { label: '配色色板', value: '9 色' },
+      { label: '组件样式', value: '4 类' },
     ],
     parameterGroups: [
       {

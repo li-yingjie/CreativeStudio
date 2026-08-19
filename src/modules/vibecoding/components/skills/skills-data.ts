@@ -13,12 +13,16 @@ export interface SkillMetric {
 
 export interface SkillPackageFile {
   name: string
-  content: string
+  content?: string
+  kind?: 'markdown' | 'json' | 'image' | 'script' | 'config'
+  previewSrc?: string
+  note?: string
 }
 
 export interface SkillPackage {
   folderName: string
   files: readonly SkillPackageFile[]
+  downloadPath?: string
 }
 
 export interface SkillItem {
