@@ -1065,3 +1065,12 @@ html.theme-light .tab-scroll:hover::-webkit-scrollbar-thumb {
     animation: none;
   }
 }
+@container (max-width: 164px) {
+  .tower-variant-actions .secondary {
+    display: none;
+  }
+}
+
+.tower-compact-actions .tower-variant-actions .secondary {
+  display: none;
+}

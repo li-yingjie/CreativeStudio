@@ -20,6 +20,7 @@ export const PROJECT_KINDS: Record<string, ProjectKind> = {
   '沪上火锅·五一种草提案': 'ops-proposal',
   '抖音 AI 工坊设计探索': 'web-app',
   '射击小游戏': 'web-game',
+  '暮光防线': 'web-game',
   [QIXI_BRIDGE_PROJECT]: 'marketing-h5',
   [ACG_FROM_DOC_PROJECT]: 'marketing-h5',
   [ACG_REPLICA_PROJECT]: 'marketing-h5',

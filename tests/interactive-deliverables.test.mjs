@@ -18,6 +18,10 @@ import {
   ASSET_ONLY_PROJECTS,
   ASSET_LIBRARY_LABEL,
   FINISHED_PAGES_LABEL,
+  GAME_ASSET_LIBRARY_LABEL,
+  GAME_BALANCE_CONFIG_LABEL,
+  GAME_GAMEPLAY_CONFIG_LABEL,
+  GAME_UI_CONFIG_LABEL,
   H5_GAMEPLAY_CONFIG_LABEL,
   PROJECT_DOCUMENT_LABEL,
   buildProductView,
@@ -137,4 +141,21 @@ test('design-asset projects expose only project docs and the asset library', () 
     assert.equal(productView.some((item) => item.name === FINISHED_PAGES_LABEL), false)
     assert.equal(productView.some((item) => item.name === H5_GAMEPLAY_CONFIG_LABEL), false)
   })
+})
+
+test('tower defense keeps one page canvas and exposes editors as project tools', () => {
+  assert.deepEqual(
+    buildProductView(
+      [{ name: 'gameplay', type: 'dir', children: [] }],
+      'web-game',
+      '暮光防线',
+    ).slice(0, 5),
+    [
+      { name: FINISHED_PAGES_LABEL, type: 'file' },
+      { name: GAME_GAMEPLAY_CONFIG_LABEL, type: 'file' },
+      { name: GAME_ASSET_LIBRARY_LABEL, type: 'file' },
+      { name: GAME_UI_CONFIG_LABEL, type: 'file' },
+      { name: GAME_BALANCE_CONFIG_LABEL, type: 'file' },
+    ],
+  )
 })

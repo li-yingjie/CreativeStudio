@@ -72,6 +72,10 @@ export const ACTIVITY_ASSETS_LABEL = '交付物'
 export const FINISHED_PAGES_LABEL = '页面'
 export const H5_GAMEPLAY_CONFIG_LABEL = '玩法配置'
 export const GAME_GAMEPLAY_CONFIG_LABEL = '游戏玩法配置'
+export const GAME_ASSET_LIBRARY_LABEL = '游戏资产库'
+export const GAME_UI_CONFIG_LABEL = '游戏 UI'
+export const GAME_BALANCE_CONFIG_LABEL = '平衡性编辑'
+const TOWER_DEFENSE_PROJECT_NAME = '暮光防线'
 export const INTEREST_CARD_CONFIG_LABEL = '兴趣卡配置'
 export const PROJECT_MEMORY_LABEL = '项目记忆'
 /** 纯设计资产项目没有可运行页面：项目树与顶部 Tab 只展示任务文档和素材库。 */
@@ -159,6 +163,9 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   玩法: GameController01LinearIcon,
   [H5_GAMEPLAY_CONFIG_LABEL]: Settings01LinearIcon,
   [GAME_GAMEPLAY_CONFIG_LABEL]: Settings01LinearIcon,
+  [GAME_ASSET_LIBRARY_LABEL]: Image01LinearIcon,
+  [GAME_UI_CONFIG_LABEL]: LayoutGrid1LinearIcon,
+  [GAME_BALANCE_CONFIG_LABEL]: Analytics01LinearIcon,
   能力技能: MagicWand01LinearIcon,
   人设: UserSettings01LinearIcon,
   [PERSONA_CONFIG_LABEL]: UserSettings01LinearIcon,
@@ -228,6 +235,9 @@ export const PRODUCT_CATEGORY_BADGES: Record<string, { bg: string; fg: string }>
   玩法: { bg: '#fde2e2', fg: '#e5484d' },
   [H5_GAMEPLAY_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
   [GAME_GAMEPLAY_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
+  [GAME_ASSET_LIBRARY_LABEL]: { bg: '#fde6f7', fg: '#d939b8' },
+  [GAME_UI_CONFIG_LABEL]: { bg: '#e0ecff', fg: '#3370ff' },
+  [GAME_BALANCE_CONFIG_LABEL]: { bg: '#fdf3ce', fg: '#c29104' },
   智能体: { bg: '#d9f4f4', fg: '#0e9c9c' },
   小程序设置: { bg: '#d0f0d1', fg: '#3eb346' },
   小程序配置: { bg: '#d0f0d1', fg: '#3eb346' },
@@ -296,7 +306,17 @@ function webAppView(tree: FileNode[]): FileNode[] {
 
 /** 游戏 (web-game): 项目文档（含基础信息）/ 素材库 /
  *  游戏玩法配置 / 数据库 / 项目文件. */
-function gameView(tree: FileNode[]): FileNode[] {
+function gameView(tree: FileNode[], projectName?: string): FileNode[] {
+  if (projectName === TOWER_DEFENSE_PROJECT_NAME) {
+    return [
+      { name: FINISHED_PAGES_LABEL, type: 'file' },
+      { name: GAME_GAMEPLAY_CONFIG_LABEL, type: 'file' },
+      { name: GAME_ASSET_LIBRARY_LABEL, type: 'file' },
+      { name: GAME_UI_CONFIG_LABEL, type: 'file' },
+      { name: GAME_BALANCE_CONFIG_LABEL, type: 'file' },
+      { name: '项目文件', type: 'dir', children: tree },
+    ]
+  }
   return [
     { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
     { name: ASSET_LIBRARY_LABEL, type: 'file' },
@@ -347,7 +367,7 @@ export function buildProductView(
     case 'web-app':
       return webAppView(tree)
     case 'web-game':
-      return gameView(tree)
+      return gameView(tree, projectName)
     case 'marketing-h5': {
       // 项目名进入最终预览；「页面」是页面产物的管理与编辑入口。
       // 图片、资源位和传播物料继续统一在素材库管理。
