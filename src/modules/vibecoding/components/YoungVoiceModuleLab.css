@@ -1,0 +1,175 @@
+.yvml-lab {
+  --night: #07113d;
+  --navy: #0b2266;
+  --blue: #2468b6;
+  --sky: #70c6f1;
+  --yellow: #f4e55a;
+  --paper: #f6f1db;
+  --ink: #11245d;
+  --display: "STHeiti", "Heiti SC", "Hiragino Sans GB", sans-serif;
+  --body: "Hiragino Sans GB", "STHeiti", "Heiti SC", sans-serif;
+  --number: "DIN Condensed", "DIN Alternate", "Arial Narrow", Impact, sans-serif;
+  min-height: 100vh;
+  padding: 46px 32px 80px;
+  color: #17233c;
+  background: #e9edf3;
+  font-family: var(--body);
+}
+.yvml-lab * { box-sizing: border-box; }
+.yvml-lab-heading { width: min(100%, 880px); margin: 0 auto 34px; }
+.yvml-lab-heading small { color: #48709c; font-family: var(--number); font-size: 11px; font-weight: 900; letter-spacing: .16em; }
+.yvml-lab-heading h1 { margin: 7px 0 10px; font-family: var(--display); font-size: 30px; font-weight: 900; letter-spacing: -.05em; }
+.yvml-lab-heading p { margin: 0; color: #627086; font-size: 13px; }
+.yvml-comparison { display: grid; width: min(100%, 880px); grid-template-columns: 318px 430px; gap: 48px; align-items: start; margin: 0 auto; }
+.yvml-reference,
+.yvml-result { margin: 0; }
+.yvml-reference figcaption,
+.yvml-result-label { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.yvml-reference figcaption span,
+.yvml-result-label span { color: #507292; font-family: var(--number); font-size: 9px; font-weight: 900; letter-spacing: .14em; }
+.yvml-reference figcaption b,
+.yvml-result-label b { color: #7b8696; font-size: 11px; font-weight: 600; }
+.yvml-reference > img { display: block; width: 318px; height: auto; box-shadow: 0 18px 45px rgba(13, 31, 67, .16); }
+
+.yvml-board { position: relative; width: 430px; min-height: 884px; overflow: hidden; padding: 30px 23px 34px; color: #fff; background-color: var(--navy); background-image: radial-gradient(circle at 18% 17%, rgba(112, 198, 241, .09) 0 1px, transparent 1.5px), linear-gradient(150deg, rgba(48, 99, 180, .14), transparent 32%); background-size: 15px 15px, auto; box-shadow: 0 18px 45px rgba(13, 31, 67, .2); }
+.yvml-board::before { position: absolute; top: 18px; right: -35px; width: 105px; height: 145px; content: ""; border: 1px solid rgba(112, 198, 241, .16); border-radius: 50%; transform: rotate(-25deg); }
+.yvml-night-label { display: flex; width: fit-content; gap: 6px; align-items: center; margin: 0 0 22px 8px; color: var(--yellow); font-family: var(--number); font-size: 8px; font-weight: 900; letter-spacing: .18em; }
+
+.yvml-paper-heading { position: relative; display: grid; grid-template-columns: 52px 1fr; gap: 10px; align-items: center; width: 365px; margin: 0 auto 23px; padding: 10px 15px 10px 9px; color: var(--ink); background: var(--paper); box-shadow: 6px 6px 0 var(--blue); clip-path: polygon(1% 7%, 98% 0, 100% 88%, 4% 100%); transform: rotate(-1.8deg) skewX(-1deg); }
+.yvml-paper-heading::after { position: absolute; right: 16px; bottom: 8px; width: 61%; height: 6px; content: ""; background: var(--yellow); transform: rotate(-1deg); }
+.yvml-paper-heading > span { position: relative; z-index: 1; display: grid; width: 48px; height: 48px; place-items: center; color: var(--night); background: var(--yellow); font-family: var(--number); font-size: 27px; font-weight: 900; transform: rotate(-4deg); }
+.yvml-paper-heading small { position: relative; z-index: 1; display: block; margin-bottom: 3px; color: #2b70b6; font-family: var(--number); font-size: 7px; font-weight: 900; letter-spacing: .18em; }
+.yvml-paper-heading h1 { position: relative; z-index: 1; margin: 0; font-family: var(--display); font-size: 24px; font-style: italic; font-weight: 900; line-height: .96; letter-spacing: -.08em; transform: scaleX(.94); transform-origin: left center; }
+
+.yvml-rule-note { position: relative; width: 314px; margin: 0 auto 23px; padding: 19px 20px 17px; color: var(--ink); background: var(--yellow); box-shadow: 6px 6px 0 #194d9b; clip-path: polygon(1% 4%, 98% 0, 100% 91%, 4% 100%); transform: rotate(-1.3deg); }
+.yvml-tape { position: absolute; top: -7px; right: 20px; width: 55px; height: 16px; background: rgba(112, 198, 241, .88); clip-path: polygon(2% 7%, 97% 0, 100% 88%, 0 100%); transform: rotate(7deg); }
+.yvml-rule-note > small { color: #285f9d; font-family: var(--number); font-size: 8px; font-weight: 900; letter-spacing: .14em; }
+.yvml-rule-note h2 { margin: 6px 0 7px; font-family: var(--display); font-size: 17px; font-style: italic; font-weight: 900; line-height: 1.08; letter-spacing: -.05em; }
+.yvml-rule-note p { margin: 0; font-size: 10px; font-weight: 700; line-height: 1.52; }
+
+.yvml-group-label { display: flex; align-items: baseline; justify-content: space-between; margin: 0 12px 5px; }
+.yvml-group-label span { color: var(--sky); font-family: var(--number); font-size: 8px; font-weight: 900; letter-spacing: .16em; }
+.yvml-group-label b { color: #fff; font-family: var(--number); font-size: 12px; }
+.yvml-collection-list { position: relative; margin: 0 3px; padding: 8px 7px 7px; }
+.yvml-collection-list::before { position: absolute; inset: 2px 0 0; content: ""; border: 1.5px solid rgba(112, 198, 241, .68); clip-path: polygon(2% 1%, 98% 0, 100% 96%, 3% 100%); transform: rotate(-.4deg); }
+.yvml-collection-list::after { position: absolute; top: -3px; right: 26px; width: 37px; height: 7px; content: ""; background: var(--yellow); transform: rotate(5deg); }
+.yvml-connection { position: absolute; z-index: 1; top: 32px; bottom: 34px; left: 47px; width: 2px; border-left: 1px dashed rgba(112, 198, 241, .72); }
+.yvml-gift-row { position: relative; z-index: 1; display: grid; min-height: 96px; grid-template-columns: 82px minmax(0, 1fr) 54px; gap: 10px; align-items: center; padding: 8px 6px; }
+.yvml-gift-row + .yvml-gift-row { border-top: 1px solid rgba(112, 198, 241, .25); }
+.yvml-gift-row figure { position: relative; display: grid; width: 76px; height: 78px; place-items: center; margin: 0; }
+.yvml-gift-row figure::before { position: absolute; inset: 4px 3px 3px; content: ""; background: var(--paper); box-shadow: 3px 4px 0 #2666ad; clip-path: polygon(3% 2%, 98% 0, 100% 95%, 0 100%); transform: rotate(-3deg); }
+.yvml-gift-row:nth-child(3) figure::before { transform: rotate(2deg); }
+.yvml-gift-row img { position: relative; z-index: 1; width: 72px; height: 74px; object-fit: contain; filter: drop-shadow(2px 3px 2px rgba(3, 11, 40, .3)); }
+.yvml-gift-copy small { color: var(--sky); font-family: var(--number); font-size: 8px; font-weight: 900; letter-spacing: .14em; }
+.yvml-gift-copy h3 { margin: 3px 0 4px; font-family: var(--display); font-size: 17px; font-style: italic; font-weight: 900; line-height: .98; letter-spacing: -.07em; }
+.yvml-gift-copy p { margin: 0; color: #b8cfeb; font-size: 9px; line-height: 1.45; }
+.yvml-gift-meta { display: grid; gap: 7px; justify-items: end; }
+.yvml-gift-meta b { color: var(--yellow); font-family: var(--number); font-size: 18px; font-style: italic; font-weight: 900; line-height: .9; transform: rotate(-2deg); }
+.yvml-gift-meta span { display: flex; gap: 3px; align-items: center; justify-content: flex-end; color: #b6c8df; font-size: 7px; font-weight: 800; white-space: nowrap; transform: rotate(1deg); }
+.yvml-gift-meta span > i { width: 8px; height: 8px; border: 1px solid currentColor; border-radius: 50%; }
+.yvml-gift-row.is-done .yvml-gift-meta span { color: var(--yellow); }
+
+.yvml-progress-strip { display: grid; min-height: 60px; grid-template-columns: 1fr auto; align-items: center; margin: 16px 8px 13px; padding: 12px 17px; color: #fff; background: var(--blue); box-shadow: 5px 5px 0 var(--yellow); clip-path: polygon(0 7%, 98% 0, 100% 91%, 3% 100%); }
+.yvml-progress-strip > div small { color: var(--yellow); font-family: var(--number); font-size: 8px; font-weight: 900; letter-spacing: .14em; }
+.yvml-progress-strip p { margin: 6px 0 0; color: #c6dcf3; font-size: 9px; }
+.yvml-progress-strip > strong { color: var(--yellow); font-family: var(--number); font-size: 34px; font-style: italic; line-height: .9; }
+.yvml-progress-strip > strong small { font-size: 15px; }
+.yvml-cta { display: flex; width: calc(100% - 58px); min-height: 44px; align-items: center; justify-content: center; gap: 6px; margin: 23px auto 11px; color: var(--ink); border: 0; border-radius: 24px; background: var(--yellow); box-shadow: 5px 5px 0 #2771bb; font-family: var(--display); font-size: 12px; font-weight: 900; cursor: pointer; }
+.yvml-footnote { margin: 0; color: #7fb7df; font-size: 8px; text-align: center; }
+
+/* Hybrid reconstruction: SVG owns the irregular paper silhouette; HTML owns all copy and state. */
+.yvml-vector-board { min-height: 920px; padding: 25px 25px 28px; isolation: isolate; background-color: #11185c; background-image: linear-gradient(155deg, rgba(40, 92, 180, .24), transparent 32%), radial-gradient(circle at 35% 30%, rgba(104, 144, 221, .1) 0 1px, transparent 1.4px); background-size: auto, 9px 9px; }
+.yvml-vector-board::before { display: none; }
+.yvml-vector-board::after { position: absolute; z-index: 0; inset: 0; content: ""; pointer-events: none; opacity: .21; mix-blend-mode: screen; background-image: repeating-linear-gradient(8deg, transparent 0 3px, rgba(135, 175, 226, .1) 4px, transparent 5px), radial-gradient(circle, rgba(255, 255, 255, .2) 0 .45px, transparent .7px); background-size: auto, 4px 4px; filter: contrast(135%); }
+.yvml-vector-board > * { position: relative; z-index: 1; }
+.yvml-vector-paper { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.yvml-vector-paper .yvml-vector-fill { fill: #104f91; }
+.yvml-vector-paper .yvml-vector-shadow { fill: rgba(1, 8, 50, .48); }
+.yvml-vector-paper .yvml-vector-edge { fill: none; stroke: #73c8f0; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.yvml-vector-paper .yvml-vector-edge.is-ghost { opacity: .46; stroke: #204fa0; stroke-width: 1.15; stroke-dasharray: 8 2 3 1; }
+.yvml-vector-content { position: relative; z-index: 1; }
+
+.yvml-vector-intro { position: relative; z-index: 1; width: 356px; min-height: 255px; margin: 21px auto 0; padding: 70px 25px 34px; transform: rotate(-.6deg); }
+.yvml-vector-intro .yvml-vector-paper { transform: rotate(.4deg); }
+.yvml-vector-lead { margin: 0; color: #bed9ef; font-size: 13px; font-weight: 800; line-height: 1.48; text-align: center; text-shadow: 1px 1px 0 rgba(17, 24, 92, .7); }
+.yvml-vector-english { margin: 4px 0 14px; color: #62a8df; font-family: var(--number); font-size: 17px; font-style: italic; font-weight: 800; line-height: 1; text-align: center; letter-spacing: -.01em; }
+.yvml-vector-campaign { margin: 0; color: #d7e5f2; font-size: 12px; font-weight: 750; line-height: 1.5; text-align: center; }
+.yvml-vector-campaign strong { color: var(--yellow); font-family: var(--number); font-size: 18px; font-style: italic; font-weight: 900; letter-spacing: -.025em; }
+.yvml-vector-campaign mark { color: var(--yellow); background: transparent; font-weight: 900; }
+
+.yvml-section-ribbon { position: absolute; z-index: 3; top: -24px; left: -13px; width: 378px; height: 72px; color: var(--ink); transform: rotate(-1deg); }
+.yvml-section-ribbon svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.yvml-ribbon-paper { fill: url(#yvml-ribbon-face); stroke: #cfd7d4; stroke-width: .65; stroke-linejoin: bevel; }
+.yvml-ribbon-shadow { fill: #07123f; opacity: .48; }
+.yvml-ribbon-fold { fill: url(#yvml-ribbon-fold); }
+.yvml-ribbon-fold.is-dark { fill: #b8c3c0; }
+.yvml-ribbon-crease { fill: none; stroke: rgba(109, 128, 128, .28); stroke-width: .65; stroke-linecap: square; }
+.yvml-section-ribbon h1 { position: absolute; inset: 0; margin: 0; font-family: "Arial Narrow", "Avenir Next Condensed", var(--display); font-weight: 900; letter-spacing: -.07em; line-height: .88; }
+.yvml-section-ribbon h1 span { position: absolute; top: 9px; left: 17px; display: block; width: 283px; font-size: 26px; white-space: nowrap; transform: skewX(-11deg) scaleX(.86); transform-origin: left bottom; text-shadow: 1px 1px 0 rgba(62, 91, 111, .18); }
+.yvml-section-ribbon h1 b { position: absolute; top: 39px; right: 12px; display: block; width: 148px; font-size: 20px; text-align: center; white-space: nowrap; transform: skewX(-11deg) scaleX(.9); transform-origin: center bottom; text-shadow: 1px 1px 0 rgba(62, 91, 111, .18); }
+
+.yvml-vector-sticky { position: relative; z-index: 4; width: 326px; min-height: 153px; margin: -30px 0 -27px auto; padding: 22px 24px 18px; color: var(--ink); transform: rotate(1.2deg); }
+.yvml-vector-sticky .yvml-vector-paper .yvml-vector-fill { fill: var(--yellow); }
+.yvml-vector-sticky .yvml-vector-paper .yvml-vector-shadow { fill: #082b72; }
+.yvml-vector-sticky .yvml-vector-paper .yvml-vector-edge { stroke: #e8d84e; }
+.yvml-vector-sticky small,
+.yvml-vector-footer small { color: #2a68aa; font-family: var(--number); font-size: 7px; font-weight: 900; letter-spacing: .15em; }
+.yvml-vector-sticky h2 { margin: 0 0 7px; font-family: var(--display); font-size: 20px; font-weight: 900; line-height: 1; letter-spacing: -.07em; transform: skewX(-9deg) scaleX(.92); transform-origin: left bottom; }
+.yvml-vector-sticky p { margin: 0; font-size: 12.5px; font-weight: 750; line-height: 1.46; }
+.yvml-vector-sticky p strong { font-weight: 900; }
+.yvml-vector-sticky p mark { color: #2a70b4; background: transparent; font-weight: 900; }
+.yvml-vector-tape { position: absolute; z-index: 2; top: -3px; right: 18px; width: 43px; height: 11px; opacity: .86; background-color: #64b8e6; background-image: repeating-linear-gradient(96deg, transparent 0 3px, rgba(255,255,255,.26) 4px, transparent 5px); clip-path: polygon(2% 8%, 98% 0, 100% 86%, 0 100%); box-shadow: 0 1px 0 rgba(5, 30, 91, .35); transform: rotate(-1deg); }
+
+.yvml-vector-list { position: relative; z-index: 2; width: 359px; min-height: 278px; margin: 0 auto 0; padding: 42px 18px 12px; }
+.yvml-vector-list .yvml-vector-paper .yvml-vector-fill { fill: #17195c; fill-opacity: .32; }
+.yvml-vector-list .yvml-vector-paper .yvml-vector-shadow { fill: #06113e; opacity: .22; }
+.yvml-vector-list .yvml-vector-paper .yvml-vector-edge { stroke: #69c0ed; stroke-width: 1.65; }
+.yvml-vector-list-content { position: relative; z-index: 1; }
+.yvml-vector-gift { display: grid; min-height: 73px; grid-template-columns: 57px minmax(0, 1fr) 47px; gap: 10px; align-items: center; }
+.yvml-vector-gift:nth-child(2) { transform: translateX(11px); }
+.yvml-vector-gift:nth-child(3) { transform: translateX(2px); }
+.yvml-vector-gift figure { position: relative; display: grid; width: 48px; height: 45px; place-items: center; margin: 0; background: #f0e45b; transform: rotate(-5deg); }
+.yvml-vector-gift:nth-child(2) figure { background: #2468b6; transform: rotate(3deg); }
+.yvml-vector-gift:nth-child(3) figure { background: #69c5ef; transform: rotate(-2deg); }
+.yvml-vector-gift img { width: 48px; height: 49px; object-fit: contain; filter: drop-shadow(1px 2px 2px rgba(0, 0, 0, .3)); }
+.yvml-vector-gift-copy small { color: #75c6ed; font-family: var(--number); font-size: 7px; font-weight: 900; letter-spacing: .13em; }
+.yvml-vector-gift-copy h3 { margin: 2px 0 3px; font-family: var(--display); font-size: 14px; font-weight: 850; line-height: 1; letter-spacing: -.035em; }
+.yvml-vector-gift-copy p { margin: 0; color: #9bb7db; font-size: 8px; line-height: 1.3; }
+.yvml-vector-gift-meta { display: grid; justify-items: end; color: #fff; }
+.yvml-vector-gift-meta b { color: var(--yellow); font-family: var(--number); font-size: 24px; font-style: italic; font-weight: 900; line-height: .8; }
+.yvml-vector-gift-meta span { color: #a9c2df; font-size: 7px; }
+.yvml-vector-gift-meta em { display: flex; gap: 2px; align-items: center; margin-top: 5px; color: #9eb8d6; font-size: 7px; font-style: normal; }
+.yvml-vector-gift.is-done .yvml-vector-gift-meta em { color: var(--yellow); }
+.yvml-vector-corner { position: absolute; z-index: 2; width: 30px; height: 7px; opacity: .92; background-color: var(--yellow); background-image: repeating-linear-gradient(95deg, transparent 0 3px, rgba(255,255,255,.28) 4px, transparent 5px); clip-path: polygon(2% 10%, 98% 0, 100% 88%, 0 100%); }
+.yvml-vector-corner.is-left { top: -2px; left: -5px; transform: rotate(-38deg); }
+.yvml-vector-corner.is-right { right: -4px; bottom: 1px; transform: rotate(-38deg); }
+
+.yvml-vector-footer { position: relative; z-index: 4; width: 322px; min-height: 124px; margin: -22px auto 0 -8px; padding: 24px 24px 16px; color: #fff; transform: rotate(-.7deg); }
+.yvml-vector-footer .yvml-vector-paper .yvml-vector-fill { fill: #07518f; }
+.yvml-vector-footer .yvml-vector-paper .yvml-vector-shadow { fill: #081044; }
+.yvml-vector-footer h2 { margin: 0 0 10px; font-family: var(--display); font-size: 18px; font-weight: 900; line-height: 1; letter-spacing: -.06em; transform: skewX(-8deg) scaleX(.94); transform-origin: left bottom; }
+.yvml-vector-footer p { width: 220px; margin: 0; color: #cae1f3; font-size: 10.5px; font-weight: 700; line-height: 1.48; }
+.yvml-vector-footer strong { position: absolute; right: 8px; bottom: 12px; color: var(--yellow); font-family: var(--number); font-size: 38px; font-style: italic; line-height: .8; }
+.yvml-vector-footer strong small { font-size: 14px; }
+
+.yvml-vector-tip { position: relative; z-index: 5; width: 304px; min-height: 42px; margin: -12px -2px 0 auto; padding: 12px 17px 9px; color: #285987; font-size: 7px; font-weight: 700; line-height: 1.35; transform: rotate(.4deg); }
+.yvml-vector-tip .yvml-vector-paper .yvml-vector-fill { fill: #f7f5e9; }
+.yvml-vector-tip .yvml-vector-paper .yvml-vector-shadow { fill: #193e86; }
+.yvml-vector-tip .yvml-vector-paper .yvml-vector-edge { stroke: #d8e1e9; }
+.yvml-vector-tip span { position: relative; z-index: 1; }
+
+@media (max-width: 880px) {
+  .yvml-lab { padding: 30px 0 70px; }
+  .yvml-lab-heading { padding: 0 20px; }
+  .yvml-comparison { display: block; width: 100%; }
+  .yvml-reference { display: none; }
+  .yvml-result-label { width: min(100%, 430px); margin: 0 auto 12px; padding: 0 18px; }
+  .yvml-board { width: min(100%, 430px); margin: 0 auto; }
+}
+
+@media (max-width: 370px) {
+  .yvml-board { padding-inline: 15px; }
+  .yvml-gift-row { grid-template-columns: 91px minmax(0, 1fr) 56px; gap: 8px; padding-inline: 4px; }
+  .yvml-gift-row figure { width: 87px; }
+  .yvml-rule-note { width: calc(100% - 24px); }
+}

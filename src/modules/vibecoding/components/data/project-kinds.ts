@@ -1,4 +1,5 @@
 import type { ProjectKind } from '../ProjectProductView'
+import { H5_LAB_PROJECT_NAMES } from '../h5-lab/h5-lab-cases'
 
 export type OutputShape = 'app' | 'artifact' | 'code'
 
@@ -14,6 +15,10 @@ export const PROJECT_KINDS: Record<string, ProjectKind> = {
   '抖音 ACG 游戏新春会': 'marketing-h5',
   '夯爆了 已上线': 'marketing-h5',
   '夏日冲浪 · 顺风顺水': 'marketing-h5',
+  // h5-reference-lab 的 benchmark 复刻 case —— 都是营销 H5 长页。
+  ...Object.fromEntries(
+    H5_LAB_PROJECT_NAMES.map((name) => [name, 'marketing-h5' as const]),
+  ),
 }
 
 export const SHAPE_BY_KIND: Record<ProjectKind, OutputShape> = {

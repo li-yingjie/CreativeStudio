@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nanoid } from 'nanoid'
+import { toast } from 'sonner'
 import {
   ArrowLeft,
   Trash2,
@@ -14,6 +15,14 @@ import {
   MoreHorizontal,
   Download,
   Upload,
+  Crop,
+  FileInfo,
+  MessageSquarePlus,
+  RefreshCw,
+  Sparkles,
+  Plus,
+  ImagePlus,
+  Video,
 } from '@/shared/icons'
 import type { AssetGroup } from './GarudaAssetsView'
 
@@ -257,7 +266,7 @@ export default function ImageCanvasEditor({
 
       {/* Canvas area (relative so the selection toolbar can float over the
           selected image and track it while dragging / scrolling) */}
-      <div className="relative min-h-0 flex-1">
+      <div className="relative isolate min-h-0 flex-1">
         {selectedItem && (
           <SelectionToolbar
             centerX={selectedItem.x + selectedItem.w / 2 - scroll.left}
@@ -266,13 +275,14 @@ export default function ImageCanvasEditor({
             viewportW={viewportW}
           />
         )}
+        <CanvasDock />
         <div
           ref={wrapRef}
           onPointerDown={() => setSelectedId(null)}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onScroll={(e) => setScroll({ left: e.currentTarget.scrollLeft, top: e.currentTarget.scrollTop })}
-          className="absolute inset-0 overflow-auto"
+          className="absolute inset-0 z-0 overflow-auto"
           style={{
             backgroundColor: 'var(--color-surface-0)',
             backgroundImage:
@@ -336,6 +346,111 @@ export default function ImageCanvasEditor({
   )
 }
 
+/* ─── Canvas-level dock — fixed to the viewport, not the scrolling content ─── */
+
+function CanvasDock() {
+  const [activeTool, setActiveTool] = useState<string | null>(null)
+  const [addOpen, setAddOpen] = useState(false)
+  const uploadTypes = [
+    { icon: <ImagePlus size={16} strokeWidth={1.7} />, label: '上传图片' },
+    { icon: <Video size={16} strokeWidth={1.7} />, label: '上传视频' },
+    { icon: <Box size={16} strokeWidth={1.7} />, label: '上传 3D 模型' },
+  ]
+  const activate = (label: string) => {
+    setActiveTool(label)
+    setAddOpen(false)
+    toast(`${label}（演示）`)
+  }
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 bottom-4 z-[90] flex justify-center px-4"
+      aria-label="画布工具"
+    >
+      <div
+        className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] p-1.5 shadow-[0_14px_36px_-12px_rgba(16,18,24,0.28)]"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <div
+          className="relative"
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) setAddOpen(false)
+          }}
+        >
+          <CanvasDockButton
+            icon={<Plus size={19} strokeWidth={1.7} />}
+            label="素材上传"
+            active={addOpen}
+            expanded={addOpen}
+            onClick={() => setAddOpen((open) => !open)}
+          />
+          {addOpen && (
+            <div className="absolute bottom-full left-1/2 z-[110] mb-2 w-[190px] -translate-x-1/2 overflow-hidden rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] py-1.5 shadow-[0_16px_36px_-10px_rgba(16,18,24,0.28)]">
+              {uploadTypes.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => activate(item.label)}
+                  className="flex h-9 w-full items-center gap-2.5 px-3.5 text-left text-[12.5px] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+                >
+                  <span className="flex size-4 items-center justify-center text-[var(--color-ink)]/55">
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <CanvasDockButton
+          icon={<LayoutGrid size={17} strokeWidth={1.7} />}
+          label="我的素材"
+          active={activeTool === '我的素材'}
+          onClick={() => activate('我的素材')}
+        />
+        <CanvasDockButton
+          icon={<Sparkles size={17} strokeWidth={1.7} />}
+          label="灵感"
+          active={activeTool === '灵感'}
+          onClick={() => activate('灵感')}
+        />
+      </div>
+    </div>
+  )
+}
+
+function CanvasDockButton({
+  icon,
+  label,
+  active,
+  expanded,
+  onClick,
+}: {
+  icon: React.ReactNode
+  label: string
+  active: boolean
+  expanded?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      aria-pressed={active}
+      aria-expanded={expanded}
+      onClick={onClick}
+      className={`flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors ${
+        active
+          ? 'bg-[var(--fill-medium)] text-[var(--color-ink)]'
+          : 'text-[var(--color-ink)]/65 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
+      }`}
+    >
+      {icon}
+    </button>
+  )
+}
+
 /* ─── Floating selection toolbar (mock — buttons are visual only) ─── */
 
 function SelectionToolbar({
@@ -377,7 +492,7 @@ function SelectionToolbar({
       // Keep clicks inside the bar from clearing the selection.
       onPointerDown={(e) => e.stopPropagation()}
       style={{ left, top, transform: above ? 'translate(-50%, -100%)' : 'translate(-50%, 0)' }}
-      className="absolute z-20 flex max-w-[calc(100%-24px)] items-center gap-1 overflow-visible rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]"
+      className="absolute z-[100] flex w-max max-w-none items-center gap-1 overflow-visible rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]"
     >
       <ImageQuickTools />
     </div>
@@ -394,37 +509,59 @@ export function ImageQuickTools({
   onUpload?: () => void
 }) {
   const [moreOpen, setMoreOpen] = useState(false)
+  const runDemoAction = (label: string) => {
+    setMoreOpen(false)
+    toast(`${label}（演示）`)
+  }
   const moreTools = [
-    { icon: <Eraser size={15} strokeWidth={1.7} />, label: '橡皮工具' },
     { icon: <Layers size={15} strokeWidth={1.7} />, label: '编辑元素' },
-    { icon: <Type size={15} strokeWidth={1.7} />, label: '编辑文字' },
-    { icon: <Box size={15} strokeWidth={1.7} />, label: '多角度' },
-    { icon: <Move size={15} strokeWidth={1.7} />, label: '移动对象' },
+    { icon: <Sparkles size={15} strokeWidth={1.7} />, label: '动态视频生成' },
+    { icon: <RefreshCw size={15} strokeWidth={1.7} />, label: '重新生成' },
+    { icon: <Maximize2 size={15} strokeWidth={1.7} />, label: '扩展画面' },
+    { icon: <Crop size={15} strokeWidth={1.7} />, label: '裁剪' },
+    { icon: <Move size={15} strokeWidth={1.7} />, label: '调整视图' },
+    { icon: <Box size={15} strokeWidth={1.7} />, label: '矢量化' },
+    { icon: <MessageSquarePlus size={15} strokeWidth={1.7} />, label: '添加到对话' },
+    { icon: <FileInfo size={15} strokeWidth={1.7} />, label: '素材详情' },
   ]
 
   return (
     <>
-      {/* 与素材页外部入口共用同一枚画布 icon。 */}
-      <button
-        type="button"
-        onClick={onCanvasEdit}
-        className="flex h-8 shrink-0 items-center gap-1.5 rounded-xl px-2 text-[13px] font-medium text-[var(--color-ink)] transition-colors hover:bg-[var(--fill-hover)]"
-      >
-        <span className="flex h-5 w-5 items-center justify-center text-[var(--color-ink)]/65">
-          <LayoutGrid size={13} strokeWidth={1.8} />
-        </span>
-        画布编辑
-      </button>
+      {onCanvasEdit && (
+        <>
+          {/* 与素材页外部入口共用同一枚画布 icon。 */}
+          <button
+            type="button"
+            onClick={onCanvasEdit}
+            className="flex h-8 shrink-0 items-center gap-1.5 rounded-xl px-2 text-[13px] font-medium text-[var(--color-ink)] transition-colors hover:bg-[var(--fill-hover)]"
+          >
+            <span className="flex h-5 w-5 items-center justify-center text-[var(--color-ink)]/65">
+              <LayoutGrid size={13} strokeWidth={1.8} />
+            </span>
+            画布编辑
+          </button>
+          <Divider />
+        </>
+      )}
+
+      {onUpload && <ToolBtn icon={<Upload size={15} strokeWidth={1.7} />} label="上传" onClick={onUpload} />}
+      <ToolBtn icon={<Scissors size={15} strokeWidth={1.7} />} label="去背景" onClick={() => runDemoAction('去背景')} />
+      <ToolBtn icon={<Type size={15} strokeWidth={1.7} />} label="编辑文字" onClick={() => runDemoAction('编辑文字')} />
+      <ToolBtn icon={<Layers size={15} strokeWidth={1.7} />} label="局部编辑" onClick={() => runDemoAction('局部编辑')} />
+      <ToolBtn icon={<HdBadge />} label="高清放大" onClick={() => runDemoAction('高清放大')} />
+      <ToolBtn icon={<Eraser size={15} strokeWidth={1.7} />} label="擦除" onClick={() => runDemoAction('擦除')} />
 
       <Divider />
 
-      <ToolBtn
-        icon={<Upload size={15} strokeWidth={1.7} />}
-        label="上传"
-        onClick={onUpload}
-      />
-      <ToolBtn icon={<HdBadge />} label="放大" />
-      <ToolBtn icon={<Scissors size={15} strokeWidth={1.7} />} label="去背景" />
+      <button
+        type="button"
+        title="下载"
+        aria-label="下载"
+        onClick={() => runDemoAction('下载')}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+      >
+        <Download size={16} strokeWidth={1.7} />
+      </button>
 
       <div
         className="relative shrink-0"
@@ -438,18 +575,22 @@ export function ImageQuickTools({
           aria-label="更多图片工具"
           aria-expanded={moreOpen}
           onClick={() => setMoreOpen((open) => !open)}
-          className="relative flex h-8 w-8 items-center justify-center rounded-xl text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+          className={`relative flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+            moreOpen
+              ? 'bg-[var(--fill-medium)] text-[var(--color-ink)] hover:bg-[var(--fill-strong)]'
+              : 'text-[var(--color-ink)]/70 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
+          }`}
         >
           <MoreHorizontal size={16} strokeWidth={1.8} />
         </button>
         {moreOpen && (
-          <div className="absolute right-0 top-full z-50 mt-1 min-w-[132px] overflow-hidden rounded-xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] py-1 shadow-[0_12px_28px_-8px_rgba(16,18,24,0.24)]">
+          <div className="absolute right-0 top-full z-[110] mt-2 min-w-[184px] overflow-hidden rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] py-1.5 shadow-[0_16px_36px_-10px_rgba(16,18,24,0.28)]">
             {moreTools.map((tool) => (
               <button
                 key={tool.label}
                 type="button"
-                onClick={() => setMoreOpen(false)}
-                className="flex h-8 w-full items-center gap-2 px-3 text-left text-[12px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+                onClick={() => runDemoAction(tool.label)}
+                className="flex h-9 w-full items-center gap-2.5 px-3.5 text-left text-[12.5px] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
               >
                 <span className="flex size-4 items-center justify-center text-[var(--color-ink)]/55">
                   {tool.icon}
@@ -460,16 +601,6 @@ export function ImageQuickTools({
           </div>
         )}
       </div>
-
-      <Divider />
-
-      <button
-        type="button"
-        title="导出"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-      >
-        <Download size={16} strokeWidth={1.7} />
-      </button>
     </>
   )
 }

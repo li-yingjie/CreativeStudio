@@ -1,0 +1,111 @@
+.wgh-shell { --blue: #0798ed; --deep: #0878d0; --paper: #fffef8; min-height: 0; background: #0a73c8; font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+.wgh-shell * { box-sizing: border-box; }
+.wgh-shell button { font: inherit; cursor: pointer; }
+.wgh-page { position: relative; width: min(100%, 430px); margin: 0 auto; overflow: hidden; color: var(--deep); background: #fffefa; }
+.wgh-page::before { position: absolute; inset: 0; content: ""; pointer-events: none; opacity: .15; background-image: repeating-linear-gradient(0deg, rgba(69,151,188,.15) 0 1px, transparent 1px 4px); }
+.wgh-nav { position: absolute; z-index: 8; top: 0; right: 0; left: 0; display: grid; height: 46px; grid-template-columns: 40px 1fr 40px; align-items: center; padding: 5px 10px 0; color: #fff; }
+.wgh-nav button { display: grid; width: 32px; height: 32px; place-items: center; padding: 0; color: #fff; border: 0; background: transparent; }
+.wgh-nav button:last-child { justify-self: end; }
+.wgh-nav strong { font-family: "STKaiti", "Kaiti SC", serif; font-size: 15px; text-align: center; letter-spacing: .12em; text-shadow: 0 1px rgba(0,75,170,.3); }
+.wgh-hero { position: relative; height: 558px; overflow: hidden; background: #08a5ee; }
+.wgh-hero-benchmark { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+.wgh-paper { position: relative; width: calc(100% - 26px); margin: -16px auto 0; padding: 31px 20px 25px; border: 2px solid #a5def2; border-radius: 18px 18px 28px 28px; background: var(--paper); box-shadow: 0 5px 0 rgba(14,111,194,.12); }
+.wgh-personality { height: 630px; margin-top: -15px; padding: 0; overflow: hidden; border: 0; border-radius: 17px 17px 25px 25px; background: #fff9e9; box-shadow: 0 4px 0 rgba(127,111,84,.16); }
+.wgh-personality-art { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.wgh-personality-heading { position: absolute; z-index: 2; top: 73px; right: 22px; left: 22px; color: #777064; text-align: center; }
+.wgh-personality-heading h2 { margin: 0; font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; font-size: 27px; font-weight: 500; letter-spacing: .04em; line-height: 1.15; }
+.wgh-personality-heading span { display: block; margin-top: 5px; color: #c6bfaa; font-family: Arial, sans-serif; font-size: 10px; font-weight: 400; letter-spacing: .01em; }
+.wgh-section-heading { position: relative; z-index: 1; text-align: center; }
+.wgh-section-heading::before, .wgh-section-heading::after { position: absolute; top: 14px; width: 54px; height: 12px; content: ""; opacity: .72; }
+.wgh-section-heading::before { left: 6px; background: linear-gradient(135deg, transparent 46%, #e8d89f 48% 54%, transparent 56%), linear-gradient(45deg, transparent 44%, #f0e4b7 46% 52%, transparent 54%); }
+.wgh-section-heading::after { right: 6px; background: linear-gradient(45deg, transparent 46%, #d9e6cf 48% 54%, transparent 56%), linear-gradient(135deg, transparent 44%, #e9eedc 46% 52%, transparent 54%); }
+.wgh-section-heading span { display: block; margin-bottom: 3px; color: #bdc5b9; font-family: "Arial Narrow", sans-serif; font-size: 8px; letter-spacing: .13em; }
+.wgh-section-heading h2 { margin: 0; color: #686a68; font-family: "STKaiti", "Kaiti SC", serif; font-size: 27px; font-weight: 800; letter-spacing: .05em; line-height: 1.15; }
+.wgh-section-heading i { display: block; width: 106px; height: 5px; margin: 1px auto 13px; border-radius: 50%; background: rgba(120,212,240,.55); transform: rotate(-3deg); }
+.wgh-paper-copy { position: absolute; z-index: 2; top: 151px; left: 58px; margin: 0; color: #b7a88b; font-size: 11px; font-weight: 500; line-height: 1.8; text-align: left; }
+.wgh-brown-button, .wgh-blue-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 37px; padding: 0 18px; color: #fff; border: 0; border-radius: 7px; font-size: 13px; font-weight: 800; }
+.wgh-brown-button { position: absolute; z-index: 2; right: 92px; bottom: 34px; left: 92px; height: 62px; padding: 0 20px; background: #b3a087; border-radius: 10px; box-shadow: 0 4px 0 rgba(81,74,61,.23); font-size: 22px; font-weight: 500; }
+.wgh-brown-button span { margin-left: 4px; color: #fffef1; font-size: 20px; }
+.wgh-breakout, .wgh-diary { position: relative; background: #fffefa; }
+.wgh-breakout { padding: 26px 28px 25px; }
+.wgh-diary { padding: 39px 18px 28px; }
+.wgh-diary::before { position: absolute; top: 4px; right: 17%; left: 17%; height: 1px; content: ""; background: rgba(104,195,235,.28); }
+.wgh-breakout-title { position: relative; height: 190px; }
+.wgh-breakout-lockup { position: absolute; top: -8px; left: -11px; width: calc(100% + 22px); height: 205px; object-fit: contain; object-position: center; }
+.wgh-breakout-meta { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; margin: -1px 1px 11px; }
+.wgh-breakout-meta p { margin: 0; color: #dfb979; font-family: "PingFang SC", "Yuanti SC", sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .02em; }
+.wgh-breakout-meta span { color: #59b7df; font-family: "Arial Narrow", "PingFang SC", sans-serif; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.wgh-breakout-meta small { color: #bdc8c7; font-size: 9px; font-weight: 500; }
+.wgh-route-map { position: relative; height: 363px; }
+.wgh-route-item { position: absolute; width: 45%; min-width: 0; }
+.wgh-route-item.is-one { top: 0; left: 0; }
+.wgh-route-item.is-two { top: 49px; right: 0; }
+.wgh-route-item.is-three { top: 185px; left: 0; }
+.wgh-route-item.is-four { top: 232px; right: 0; }
+.wgh-scene-crop { display: block; width: 100%; height: 99px; border: 3px solid #0a99e4; background-image: url('/assets/winter-gathering/breakout-scenes-v2.jpg'); background-repeat: no-repeat; background-size: 200% 200%; }
+.wgh-route-item.is-one .wgh-scene-crop { border-radius: 42% 45% 38% 34% / 42% 35% 45% 39%; background-position: 0 0; }
+.wgh-route-item.is-two .wgh-scene-crop { border-radius: 35% 44% 43% 39% / 38% 41% 35% 44%; background-position: 100% 0; }
+.wgh-route-item.is-three .wgh-scene-crop { border-radius: 39% 35% 45% 43% / 43% 34% 38% 45%; background-position: 0 100%; }
+.wgh-route-item.is-four .wgh-scene-crop { border-radius: 38% 46% 40% 34% / 37% 35% 46% 42%; background-position: 100% 100%; }
+.wgh-route-item span { display: block; color: #68afd0; font-family: "Arial Narrow", "PingFang SC", sans-serif; font-size: 9px; font-weight: 700; line-height: 1.35; white-space: nowrap; }
+.wgh-route-item.is-one span, .wgh-route-item.is-three span { margin-top: 6px; text-align: right; }
+.wgh-route-item.is-two span, .wgh-route-item.is-four span { margin: 0 0 6px; text-align: left; }
+.wgh-route-arrow { position: absolute; z-index: 4; display: grid; width: 19px; height: 19px; place-items: center; margin: 0; color: #fff; border-radius: 50%; background: #0b99e5; box-shadow: 0 0 0 2px #dff5fb; font-family: Arial, sans-serif; font-size: 12px; line-height: 1; }
+.wgh-route-arrow.is-one { top: 26px; left: 47%; }
+.wgh-route-arrow.is-two { top: 135px; left: 48%; }
+.wgh-route-arrow.is-three { top: 212px; left: 48%; transform: rotate(180deg); }
+.wgh-route-arrow.is-four { top: 315px; left: 51%; transform: rotate(180deg); }
+.wgh-breakout-footer { display: flex; min-height: 119px; align-items: flex-end; justify-content: space-between; margin-top: -18px; padding: 0 1px; }
+.wgh-breakout-deer { position: relative; width: 55%; height: 119px; }
+.wgh-breakout-deer img { position: absolute; bottom: -7px; left: -3px; width: 172px; height: 125px; object-fit: contain; object-position: left bottom; }
+.wgh-breakout-deer i { position: absolute; width: 11px; height: 11px; border: 2px solid #a4dbe7; border-radius: 50%; }
+.wgh-breakout-deer i:nth-of-type(1) { right: 2px; top: 1px; width: 28px; height: 28px; }
+.wgh-breakout-deer i:nth-of-type(2) { right: 28px; top: 35px; width: 17px; height: 17px; }
+.wgh-breakout-deer i:nth-of-type(3) { right: 52px; top: 59px; width: 8px; height: 8px; }
+.wgh-breakout-action { display: flex; width: 43%; flex-direction: column; align-items: stretch; padding-bottom: 3px; }
+.wgh-breakout-action small { margin-bottom: 8px; color: #80c6df; font-family: "Arial Narrow", "PingFang SC", sans-serif; font-size: 8px; text-align: center; }
+.wgh-breakout-action .wgh-blue-button { width: 100%; height: 55px; margin: 0; border-radius: 7px; font-size: 14px; font-weight: 500; box-shadow: 0 4px 0 #087fc4; }
+.wgh-breakout-action .wgh-blue-button span { margin-left: 5px; font-size: 15px; }
+.wgh-blue-button { min-width: 112px; margin-top: 14px; background: #078fe4; box-shadow: 0 3px 0 rgba(0,76,158,.18); }
+.wgh-diary-people { width: 82%; height: 192px; margin: 0 auto 5px; overflow: hidden; }
+.wgh-diary-people img { width: 100%; height: 100%; object-fit: cover; object-position: center 62%; }
+.wgh-note { position: relative; margin: 0 4px; padding: 26px 17px 18px; border: 4px solid #0499e6; border-radius: 8px; background: #fffef8; box-shadow: 0 0 0 3px rgba(255,255,255,.9) inset; transform: rotate(-1deg); }
+.wgh-note::after { position: absolute; right: 18px; top: -13px; width: 52px; height: 10px; content: ""; border: 3px solid #f1d05c; border-top: 0; border-radius: 0 0 20px 20px; transform: rotate(-10deg); }
+.wgh-paperclip { position: absolute; right: 26px; top: -19px; width: 12px; height: 35px; border: 2px solid #f2ca52; border-bottom: 0; border-radius: 8px 8px 0 0; transform: rotate(18deg); }
+.wgh-note h3 { margin: 0; color: #5d756e; font-family: "STKaiti", "Kaiti SC", serif; font-size: 20px; text-align: center; }
+.wgh-note small { display: block; margin: 2px 0 13px; color: #d4bd70; font-size: 8px; text-align: center; }
+.wgh-note p { margin: 0; color: #98a19a; font-size: 10px; line-height: 1.8; }
+.wgh-note .wgh-blue-button { display: flex; margin: 12px auto 0; }
+.wgh-diary-v2, .wgh-winter-tail { position: relative; overflow: hidden; background: #fffef9; }
+.wgh-diary-v2 > img, .wgh-winter-tail > img { display: block; width: 100%; height: auto; }
+.wgh-diary-copy { position: absolute; z-index: 2; top: 327px; right: 62px; left: 62px; color: #8f8a75; }
+.wgh-diary-copy h3 { margin: 0; color: #5d756e; font-family: "PingFang SC", "Hiragino Sans GB", sans-serif; font-size: 21px; font-weight: 500; letter-spacing: .04em; }
+.wgh-diary-copy small { display: block; margin: 5px 0 19px; color: #d1b96e; font-size: 9px; }
+.wgh-diary-copy p { margin: 0; font-size: 10px; line-height: 2; }
+.wgh-diary-copy p b { color: #7da8b7; font-weight: 700; }
+.wgh-diary-copy .wgh-blue-button { display: flex; width: 134px; height: 42px; margin: 22px auto 0; font-size: 13px; font-weight: 500; }
+.wgh-winter-tail { margin-top: -1px; }
+.wgh-hot-spring-title { position: absolute; z-index: 2; top: 20px; right: 22px; left: 22px; color: #078edc; text-align: center; }
+.wgh-hot-spring-title small { color: #dfa96b; font-family: Arial, sans-serif; font-size: 8px; font-weight: 700; letter-spacing: .15em; }
+.wgh-hot-spring-title h2 { margin: 2px 0 0; font-family: "STKaiti", "Kaiti SC", serif; font-size: 30px; font-weight: 900; letter-spacing: .06em; }
+.wgh-tail-tasks { position: absolute; z-index: 3; top: 270px; right: 25px; left: 25px; padding: 7px 9px 8px 118px; border-radius: 10px; background: rgba(249,243,255,.9); box-shadow: 0 4px 15px rgba(81,147,192,.1); }
+.wgh-tail-tasks button { position: absolute; top: 10px; left: 10px; width: 99px; height: 33px; padding: 0; color: #fff; border: 0; border-radius: 5px; background: #0797e7; box-shadow: 0 2px 0 #087ec4; font-size: 11px; }
+.wgh-tail-tasks p { display: flex; align-items: center; justify-content: space-between; gap: 4px; height: 31px; margin: 0; padding: 0 6px; color: #5ba7cc; border-bottom: 1px solid rgba(99,176,216,.16); font-size: 8px; }
+.wgh-tail-tasks p:last-child { border-bottom: 0; }
+.wgh-tail-tasks p span { color: #9cbfd1; font-size: 7px; }
+.wgh-snow-title { position: absolute; z-index: 2; top: 397px; right: 20px; color: #078edc; text-align: right; transform: rotate(-4deg); }
+.wgh-snow-title span { color: #6ca6cd; font-size: 13px; font-weight: 700; }
+.wgh-snow-title h2 { margin: -2px 0 0; font-family: "STKaiti", "Kaiti SC", serif; font-size: 32px; font-weight: 900; letter-spacing: .08em; }
+.wgh-snow-title small { display: block; margin-top: 2px; color: #80b7d0; font-size: 8px; }
+.wgh-gear-title { position: absolute; z-index: 2; top: 587px; right: 28px; left: 28px; color: #088fdc; text-align: center; }
+.wgh-gear-title h2 { margin: 0; font-family: "STKaiti", "Kaiti SC", serif; font-size: 31px; font-weight: 900; letter-spacing: .12em; }
+.wgh-gear-title p { margin: 2px 0 7px; color: #a7b4bd; font-size: 8px; }
+.wgh-gear-title div { display: flex; justify-content: center; gap: 7px; }
+.wgh-gear-title div span { padding: 3px 6px; color: #60798d; border: 1px solid #9fc0d1; border-radius: 9px; background: rgba(255,255,255,.8); font-family: Arial, sans-serif; font-size: 6px; }
+.wgh-tail-search { position: absolute; z-index: 2; right: 114px; bottom: 25px; left: 114px; display: flex; height: 24px; align-items: center; justify-content: center; gap: 5px; color: #477635; font-size: 9px; }
+.wgh-tail-search span { padding: 2px 5px; color: #fff; border-radius: 7px; background: #74bd35; font-weight: 800; }
+.wgh-tail-search b { font-weight: 700; }
+.wgh-footer { padding: 34px 20px 42px; color: #fff; background: #078fe4; text-align: center; }
+.wgh-footer div { font-family: "STKaiti", "Kaiti SC", serif; font-size: 28px; font-weight: 800; }
+.wgh-footer small { display: block; margin-top: 7px; font-family: "Arial Narrow", sans-serif; font-size: 9px; letter-spacing: .18em; }
+@media (max-width: 370px) { .wgh-hero { height: 480px; } .wgh-personality { height: 540px; } .wgh-personality-heading { top: 61px; } .wgh-paper-copy { top: 129px; left: 49px; } .wgh-brown-button { right: 78px; bottom: 29px; left: 78px; height: 53px; font-size: 19px; } }

@@ -53,6 +53,35 @@ import SummerSurfH5Preview, {
   type SummerSurfSelection,
 } from './SummerSurfH5Preview'
 import SummerSurfEditPanel from './SummerSurfEditPanel'
+import H5LabEditStage, {
+  type H5LabAsset,
+  type H5LabStageApi,
+} from './h5-lab/H5LabEditStage'
+import H5LabEditPanel from './h5-lab/H5LabEditPanel'
+import H5LabPhonePreview from './h5-lab/H5LabPhonePreview'
+import type { H5LabLayer } from './h5-lab/h5-lab-layers'
+import { buildH5LabFrames } from './h5-lab/H5LabFrames'
+import {
+  h5LabPrototypeDiffCount,
+  h5LabRefContext,
+  loadH5LabPrototype,
+  saveH5LabPrototype,
+  type H5LabChatRef,
+  type H5LabHotspot,
+  type H5LabPrototype,
+} from './h5-lab/h5-lab-prototype'
+import {
+  H5_LAB_CASES,
+  H5_LAB_PROJECT_NAMES,
+  getH5LabCase,
+} from './h5-lab/h5-lab-cases'
+import {
+  h5LabDiffCount,
+  loadH5LabOverrides,
+  saveH5LabOverrides,
+  type H5LabOverrides,
+  type H5LabSelection,
+} from './h5-lab/h5-lab-overrides'
 import { summerSurfConfigForStorage } from './summerSurfLocalAssets'
 import XiahuaH5Preview, {
   activityScreens,
@@ -302,6 +331,7 @@ import {
   Headphones,
   Menu4,
   Save,
+  PanelLeft,
   Pencil,
   Play,
   ExternalLink,
@@ -1434,6 +1464,8 @@ function PlatformSidebar({
     XIAHUA_PROJECT,
     SUMMER_SURF_PROJECT,
     ACG_NEW_YEAR_PROJECT,
+    // h5-reference-lab 复刻出来的 benchmark case —— 和其它活动同级可打开、可编辑。
+    ...H5_LAB_PROJECT_NAMES,
     '射击小游戏',
     TAROT_INTEREST_CARD_PROJECT,
     // '抖音 AI 工坊设计探索' — 暂隐藏，保留配置与文件树供后续恢复。
@@ -2521,6 +2553,8 @@ export default function VibeCodingPage({
 
   /* chat panel — always visible; flag kept for future collapse toggle */
   const [chatCollapsed] = useState(false)
+  /** 画布编辑里手动收起对话流。 */
+  const [h5LabChatCollapsed, setH5LabChatCollapsed] = useState(false)
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const chatScrollEdges = useScrollEdges(chatScrollRef)
 
@@ -2673,7 +2707,13 @@ export default function VibeCodingPage({
    */
   type MessageTrigger =
     'none' | 'publish' | 'needs' | 'trigger' | 'proposal' | 'game'
-  type SentMessage = { id: string; text: string; trigger: MessageTrigger }
+  type SentMessage = {
+    id: string
+    text: string
+    trigger: MessageTrigger
+    /** 这条消息是带着画布上的某个元素发的。 */
+    canvasRef?: H5LabChatRef
+  }
   const messageSequenceRef = useRef(0)
   const createMessageId = () =>
     `m-${Date.now().toString(36)}-${(messageSequenceRef.current++).toString(36)}`
@@ -3833,6 +3873,8 @@ export default function VibeCodingPage({
   ) => {
     const text = (override ?? chatDraft).trim()
     if (!text) return
+    // 从画布带进来的元素：发出去时补一行上下文，模型才知道在改哪一块。
+    const canvasRef = h5LabChatRef ?? undefined
     const targetProjectId = opts?.projectId ?? projectTitle
     const targetProjectKind = opts?.projectKind ?? kindOf(targetProjectId)
     const targetSessionId = opts?.sessionId ?? activeSessionId
@@ -3931,8 +3973,9 @@ export default function VibeCodingPage({
     )
     setSentMessages((prev) => [
       ...prev,
-      { id: messageId, text, trigger },
+      { id: messageId, text, trigger, canvasRef },
     ])
+    setH5LabChatRef(null)
     // Clear both the state AND the contentEditable DOM (innerText won't
     // auto-reset from setChatDraft since the div is uncontrolled).
     setComposerText('')
@@ -5013,6 +5056,10 @@ export default function VibeCodingPage({
    * 提案报告.md, 复盘.md, 执行看板.json …) into the 'briefs' / 'reports'
    * folders as the chat-driven steps complete. */
   const [projectTrees, setProjectTrees] = useState<Record<string, FileNode[]>>({
+    // h5-reference-lab 的复刻 case —— 树按各自源码列，产物视图走 marketing-h5 那套桶。
+    ...Object.fromEntries(
+      H5_LAB_CASES.map((item) => [item.project, item.fileTree]),
+    ),
     [TAROT_INTEREST_CARD_PROJECT]: fileTree,
     '陶白白 Sensei 分身': aiPersonaFileTree,
     粉丝互动机器人: aiPersonaFileTree,
@@ -5370,6 +5417,62 @@ export default function VibeCodingPage({
     setXiahuaHovered(null)
     toast('编辑修改已保存')
   }, [persistXiahuaEdits])
+  /* h5-reference-lab 复刻 case 的画布编辑。改动分两份：`applied` 是外面预览
+     和本地存储看到的，`draft` 是画布里正在改的 —— 点顶栏「应用」才合流。
+     编辑态不再放可交互预览，就是因为草稿和运行态不该同时在场互相打架。 */
+  const [h5LabSelected, setH5LabSelected] = useState<H5LabSelection | null>(null)
+  const [h5LabOverrides, setH5LabOverrides] = useState<H5LabOverrides>(() =>
+    loadH5LabOverrides(),
+  )
+  const [h5LabDraft, setH5LabDraft] = useState<H5LabOverrides>(h5LabOverrides)
+  /* 图层树由画布现推；面板要反选图层，只能借画布暴露的句柄（两者是布局兄弟）。 */
+  const [h5LabLayers, setH5LabLayers] = useState<H5LabLayer[]>([])
+  const [h5LabHotspots, setH5LabHotspots] = useState<H5LabHotspot[]>([])
+  const [h5LabAssets, setH5LabAssets] = useState<H5LabAsset[]>([])
+  const h5LabStageRef = useRef<H5LabStageApi | null>(null)
+  /* 补交互生成的界面 + 热点连接关系 —— 同样分草稿和已应用两份。 */
+  const [h5LabPrototype, setH5LabPrototype] = useState<H5LabPrototype>(() =>
+    loadH5LabPrototype(),
+  )
+  const [h5LabPrototypeDraft, setH5LabPrototypeDraft] =
+    useState<H5LabPrototype>(h5LabPrototype)
+  /* 图片下钻：从页面选中的图片跳进素材库画布，改完再回到画布编辑。 */
+  const [h5LabAssetCanvas, setH5LabAssetCanvas] = useState<string | null>(null)
+  /* 顶栏页面选择器选中的帧 —— 预览和画布共用它，两边不会各看各的。 */
+  const [h5LabFrameId, setH5LabFrameId] = useState<string | null>(null)
+  const [h5LabFrameMenuOpen, setH5LabFrameMenuOpen] = useState(false)
+  const h5LabFrameMenuRef = useRef<HTMLDivElement>(null)
+  /* 从画布带进对话的元素引用 —— 挂在输入框上方，发出去时写进上下文。 */
+  const [h5LabChatRef, setH5LabChatRef] = useState<H5LabChatRef | null>(null)
+  /* 应用：草稿合流到已应用，写本地存储，并退回预览态 —— 交互要在外面试。 */
+  const applyH5LabEdits = useCallback(() => {
+    const persisted =
+      saveH5LabOverrides(h5LabDraft) && saveH5LabPrototype(h5LabPrototypeDraft)
+    setH5LabOverrides(h5LabDraft)
+    setH5LabPrototype(h5LabPrototypeDraft)
+    setEditPanelOpen(false)
+    setH5LabSelected(null)
+    setH5LabAssetCanvas(null)
+    setH5LabChatCollapsed(false)
+    if (persisted) toast('已应用，去预览里试试点触')
+    else toast.error('本地保存失败，改动仅保留在当前会话')
+  }, [h5LabDraft, h5LabPrototypeDraft])
+  /* 放弃：草稿回到上次应用的样子，人还留在画布里。 */
+  const discardH5LabEdits = useCallback(() => {
+    setH5LabDraft(h5LabOverrides)
+    setH5LabPrototypeDraft(h5LabPrototype)
+    setH5LabSelected(null)
+    toast('已放弃未应用的改动')
+  }, [h5LabOverrides, h5LabPrototype])
+  /* 退出：不提交，草稿留在本次会话里，重新进来接着改。 */
+  const closeH5LabEditor = useCallback(() => {
+    setEditPanelOpen(false)
+    setH5LabSelected(null)
+    setH5LabAssetCanvas(null)
+    // 收起对话流只在这一次编辑里有效，下次进来还是展开的 —— 否则再进画布
+    // 左边直接空一块，看着像出错了。
+    setH5LabChatCollapsed(false)
+  }, [])
   const closeSummerSurfEditor = useCallback(() => {
     let persisted = true
     try {
@@ -5433,6 +5536,19 @@ export default function VibeCodingPage({
     document.addEventListener('pointerdown', handler)
     return () => document.removeEventListener('pointerdown', handler)
   }, [xiahuaPageMenuOpen])
+  useEffect(() => {
+    if (!h5LabFrameMenuOpen) return
+    const handler = (e: PointerEvent) => {
+      if (
+        h5LabFrameMenuRef.current &&
+        !h5LabFrameMenuRef.current.contains(e.target as Node)
+      ) {
+        setH5LabFrameMenuOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [h5LabFrameMenuOpen])
   const onEditPanelDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
     editPanelDragRef.current = {
       startX: e.clientX,
@@ -7797,6 +7913,17 @@ export default function VibeCodingPage({
   // switching tabs collapses it (re-open it explicitly on the new tab) and
   // clears any opened game-asset canvas selection.
   useEffect(() => {
+    // 复刻 case 的画布编辑里，「预览 ⇄ 素材库」是图片下钻的内部跳转，人始终在
+    // 编辑态，换 tab 不该把编辑关掉。用当前 tab 判断而不是消费一次性标记 ——
+    // effect 跑几次都是同一个结论。
+    const labTab = openTabs[activePreviewTab]?.label ?? ''
+    if (
+      h5LabCase &&
+      editPanelOpen &&
+      (labTab === '预览' || labTab === ASSET_LIBRARY_LABEL)
+    ) {
+      return
+    }
     const frame = requestAnimationFrame(() => {
       setEditPanelOpen(false)
       setCanvasEditOpen(false)
@@ -7804,10 +7931,14 @@ export default function VibeCodingPage({
       setGameSelectedAsset(null)
       setH5Selected(null)
       setSummerSurfSelected(null)
+      setH5LabSelected(null)
       setGameSelectedObject(null)
       setTarotSelectedObject(null)
     })
     return () => cancelAnimationFrame(frame)
+    // 只在换 tab 时跑；上面几个值只是判断"这次换 tab 该不该关编辑"，进依赖会
+    // 让它在开编辑的那一刻自己把自己关掉。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePreviewTab])
   // Each time quick edit closes, drop object selections so the next open
   // starts from the project-level field set rather than a stale element.
@@ -7816,6 +7947,7 @@ export default function VibeCodingPage({
     const frame = requestAnimationFrame(() => {
       setH5Selected(null)
       setSummerSurfSelected(null)
+      setH5LabSelected(null)
       setGameSelectedObject(null)
       setTarotSelectedObject(null)
     })
@@ -7826,9 +7958,70 @@ export default function VibeCodingPage({
    * Unknown project names default to mini-program so arbitrary renames
    * don't accidentally flip the preview. */
   const activeProjectKind: ProjectKind = kindOf(projectTitle)
+  /** 当前项目是不是 h5-reference-lab 的复刻 case —— 它们走自己的编辑台。 */
+  const h5LabCase = getH5LabCase(projectTitle)
+  /** 草稿里的帧（含补出来的界面），面板和计数共用。 */
+  const h5LabFrameIds = h5LabCase
+    ? buildH5LabFrames(h5LabCase, h5LabPrototypeDraft.screens).map(
+        ({ id, label, generated }) => ({
+          id,
+          label,
+          generated: Boolean(generated),
+        }),
+      )
+    : []
+  /** 顶栏页面选择器实际生效的帧：没选过就落在第一帧，选过但帧没了也回落。 */
+  const h5LabActiveFrameId =
+    h5LabFrameId && h5LabFrameIds.some((frame) => frame.id === h5LabFrameId)
+      ? h5LabFrameId
+      : h5LabFrameIds[0]?.id
+  /* 图片下钻走「素材库」tab：进去切 tab、出来切回预览，画布编辑态一直留着。 */
+  const openH5LabAssetCanvas = useCallback((src?: string) => {
+    setH5LabAssetCanvas(src ?? '')
+    setOpenTabs((prev) => {
+      const index = prev.findIndex((tab) => tab.label === ASSET_LIBRARY_LABEL)
+      if (index >= 0) {
+        setActivePreviewTab(index)
+        return prev
+      }
+      const next = [...prev, { label: ASSET_LIBRARY_LABEL, closable: true }]
+      setActivePreviewTab(next.length - 1)
+      return next
+    })
+  }, [])
+  const closeH5LabAssetCanvas = useCallback(() => {
+    setH5LabAssetCanvas(null)
+    setOpenTabs((prev) => {
+      const index = prev.findIndex((tab) => tab.label === '预览')
+      if (index >= 0) setActivePreviewTab(index)
+      return prev
+    })
+  }, [])
+  /** 把画布上选中的元素挂到输入框上 —— 接着用自然语言改这一块。 */
+  const addH5LabRefToChat = useCallback((ref: H5LabChatRef) => {
+    setH5LabChatRef(ref)
+    toast(`已把「${ref.label}」带进对话`)
+    requestAnimationFrame(() => chatInputRef.current?.focus())
+  }, [])
+  /** 顶栏「应用 N」的 N —— 覆盖差异 + 交互/新界面差异。 */
+  const h5LabPendingCount = h5LabCase
+    ? h5LabDiffCount(
+        h5LabDraft,
+        h5LabOverrides,
+        h5LabFrameIds.map((frame) => frame.id),
+      ) +
+      h5LabPrototypeDiffCount(
+        h5LabPrototypeDraft,
+        h5LabPrototype,
+        h5LabCase.id,
+        h5LabFrameIds.map((frame) => frame.id),
+      )
+    : 0
   const h5CanvasModeOpen =
     canvasEditOpen &&
     activeProjectKind === 'marketing-h5' &&
+    // 复刻 case 有自己的编辑台，不接 ACG 的 H5 图层画布。
+    !h5LabCase &&
     // 这夏夯爆了预览自包含玩法，不接 ACG 的画布编辑链路。
     !isXiahuaFamily(projectTitle) &&
     openTabs[activePreviewTab]?.label === '预览'
@@ -7842,15 +8035,30 @@ export default function VibeCodingPage({
     editPanelOpen &&
     isXiahuaFamily(projectTitle) &&
     openTabs[activePreviewTab]?.label === '预览'
+  // 复刻 case 的画布编辑同理：项目导航自动收起，画布和属性面板才铺得开。
+  const h5LabEditMode =
+    editPanelOpen &&
+    Boolean(h5LabCase) &&
+    // 下钻素材库时 tab 切到「素材库」，但人还在编辑态，布局不该弹回来。
+    (openTabs[activePreviewTab]?.label === '预览' || h5LabAssetCanvas !== null)
   const projectSidebarHidden =
-    sidebarFullyHidden || immersiveCanvasModeOpen || xiahuaEditMode
+    sidebarFullyHidden ||
+    immersiveCanvasModeOpen ||
+    xiahuaEditMode ||
+    h5LabEditMode
   const effectiveSidebarWidth =
-    immersiveCanvasModeOpen || xiahuaEditMode ? 0 : baseEffectiveSidebarWidth
-  const effectiveChatWidth: string | number = previewHidden
-    ? isPlatform
-      ? `calc(100vw - ${effectiveSidebarWidth}px)`
-      : `min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px)`
-    : chatWidthPx
+    immersiveCanvasModeOpen || xiahuaEditMode || h5LabEditMode
+      ? 0
+      : baseEffectiveSidebarWidth
+  /* 画布编辑里对话流可以整条收起 —— 画布要横向铺开多帧，宽度比对话金贵。 */
+  const h5LabChatHidden = h5LabEditMode && h5LabChatCollapsed
+  const effectiveChatWidth: string | number = h5LabChatHidden
+    ? 0
+    : previewHidden
+      ? isPlatform
+        ? `calc(100vw - ${effectiveSidebarWidth}px)`
+        : `min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px)`
+      : chatWidthPx
   const effectiveChatLeft: string | number = previewHidden
     ? isPlatform
       ? `${effectiveSidebarWidth}px`
@@ -8072,6 +8280,41 @@ export default function VibeCodingPage({
               : undefined
           }
           config={summerSurfConfig}
+        />
+      </PhoneMockup>
+    )
+  ) : h5LabCase ? (
+    // h5-reference-lab 的 benchmark 复刻：编辑态铺开画板（对齐 OJO 的编辑台），
+    // 非编辑态回真机框，页面自身的交互照常可点。
+    editPanelOpen ? (
+      <H5LabEditStage
+        labCase={h5LabCase}
+        screens={h5LabPrototypeDraft.screens}
+        selection={h5LabSelected}
+        onSelect={setH5LabSelected}
+        overrides={h5LabDraft}
+        onOverrides={setH5LabDraft}
+        onLayers={setH5LabLayers}
+        onHotspots={setH5LabHotspots}
+        onAssets={setH5LabAssets}
+        apiRef={h5LabStageRef}
+        focusFrameId={h5LabActiveFrameId}
+        onFocusFrame={setH5LabFrameId}
+        onAddToChat={addH5LabRefToChat}
+        pendingCount={h5LabPendingCount}
+        onDiscard={discardH5LabEdits}
+        onExit={closeH5LabEditor}
+        previewKey={miniAppKey}
+      />
+    ) : (
+      <PhoneMockup width={436} height={880} maxScale={1.2}>
+        <H5LabPhonePreview
+          labCase={h5LabCase}
+          overrides={h5LabOverrides}
+          prototype={h5LabPrototype}
+          frameId={h5LabActiveFrameId}
+          onFrameChange={setH5LabFrameId}
+          previewKey={miniAppKey}
         />
       </PhoneMockup>
     )
@@ -8834,7 +9077,7 @@ export default function VibeCodingPage({
         <aside
           className={`absolute z-30 flex flex-col ${
             isPlatform
-              ? `${immersiveCanvasModeOpen ? 'top-11' : 'top-0'} bottom-0 ${previewHidden ? '' : 'border-r border-[var(--divider-soft)]'}` : chatOnLeft ? 'left-5 top-14 bottom-5' : 'right-0 top-0 bottom-0'} ${chatCollapsed
+              ? `${immersiveCanvasModeOpen ? 'top-11' : 'top-0'} bottom-0 ${previewHidden ? '' : 'border-r border-[var(--divider-soft)]'}` : chatOnLeft ? 'left-5 top-14 bottom-5' : 'right-0 top-0 bottom-0'} ${chatCollapsed || h5LabChatHidden
               ? 'w-0 overflow-hidden'
               : isPlatform
                 ? ''
@@ -9210,6 +9453,14 @@ export default function VibeCodingPage({
                           className="flex justify-end"
                         >
                           <div className="max-w-[85%] rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">
+                            {m.canvasRef && (
+                              <span className="mb-1.5 flex items-center gap-1 rounded-md bg-[var(--color-ink)]/[0.06] px-1.5 py-1 text-[11.5px] text-[var(--color-ink)]/60">
+                                <LayoutGrid className="size-3 shrink-0" />
+                                <span className="min-w-0 truncate">
+                                  {m.canvasRef.frameLabel} · {m.canvasRef.label}
+                                </span>
+                              </span>
+                            )}
                             {m.text}
                           </div>
                         </motion.div>
@@ -9219,7 +9470,10 @@ export default function VibeCodingPage({
                             const cached = aiReplyCacheRef.current.get(replyKey)
                             const queueTurns = sentMessages.map((message) => ({
                               id: message.id,
-                              text: message.text,
+                              // 从画布带进来的元素补一行上下文，模型才知道在改哪块
+                              text: message.canvasRef
+                                ? `${h5LabRefContext(message.canvasRef)}\n${message.text}`
+                                : message.text,
                               includeInAiHistory: message.trigger === 'none',
                             }))
                             const active = isChatQueueTurnActive(
@@ -11102,7 +11356,12 @@ export default function VibeCodingPage({
                   </div>
                 ) : (
                   <div
-                    style={{ height: CHAT_COMPOSER_HEIGHT }}
+                    // 挂了画布引用就把卡片抬高一条 chip 的高度，输入区不被挤扁。
+                    style={{
+                      height: h5LabChatRef
+                        ? CHAT_COMPOSER_HEIGHT + 42
+                        : CHAT_COMPOSER_HEIGHT,
+                    }}
                     className="relative flex flex-col gap-4 overflow-hidden rounded-[24px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]"
                   >
                     {/* Top rainbow-tint blur decoration */}
@@ -11114,6 +11373,24 @@ export default function VibeCodingPage({
                           'linear-gradient(0deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 100%), linear-gradient(95deg, rgba(255,186,51,0.1) 7.59%, rgba(78,217,44,0.1) 23.2%, rgba(69,146,242,0.1) 44.7%, rgba(110,124,253,0.1) 66.3%, rgba(225,53,248,0.1) 92.3%)',
                       }}
                     />
+
+                    {/* 从画布带进来的元素 —— 挂在输入框上方，发出去时写进上下文。 */}
+                    {h5LabChatRef && (
+                      <div className="flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-[#2f6bff]/25 bg-[#2f6bff]/[0.06] px-2 py-1">
+                        <LayoutGrid className="size-3 shrink-0 text-[#2f6bff]" />
+                        <span className="min-w-0 max-w-[220px] truncate text-[11.5px] text-[#2f6bff]">
+                          {h5LabChatRef.frameLabel} · {h5LabChatRef.label}
+                        </span>
+                        <button
+                          type="button"
+                          title="移除引用"
+                          onClick={() => setH5LabChatRef(null)}
+                          className="flex size-4 shrink-0 items-center justify-center rounded text-[#2f6bff]/60 transition-colors hover:bg-[#2f6bff]/15 hover:text-[#2f6bff]"
+                        >
+                          <X className="size-2.5" />
+                        </button>
+                      </div>
+                    )}
 
                     {/* Input area — 卡片定高 114px，内容超出后内部滚动。 */}
                     <div className="relative min-h-0 flex-1 pl-2">
@@ -12060,7 +12337,10 @@ export default function VibeCodingPage({
                           const isUnifiedEditablePreview =
                             lbl === '预览' &&
                             (activeProjectKind === 'marketing-h5' ||
-                              activeProjectKind === 'web-game')
+                              activeProjectKind === 'web-game') &&
+                            // 下钻素材库画布时，素材画布自带一条工具条（返回 /
+                            // 删除 / 重置布局），这里让位，不叠两条。
+                            !(h5LabCase && h5LabAssetCanvas !== null)
                           if (isUnifiedEditablePreview) {
                             const isGamePreview =
                               activeProjectKind === 'web-game'
@@ -12072,6 +12352,100 @@ export default function VibeCodingPage({
                               xiahuaPages.find(
                                 (page) => page.id === xiahuaScreen,
                               ) ?? xiahuaPages[0]
+                            /* 复刻 case 的帧选择器 —— 和夯爆了那颗同一形态：预览时
+                               换手机框里的帧，编辑时把对应画板滚进视野。 */
+                            const h5LabCurrentFrame =
+                              h5LabFrameIds.find(
+                                (frame) => frame.id === h5LabActiveFrameId,
+                              ) ?? h5LabFrameIds[0]
+                            const h5LabChatToggle = h5LabEditMode ? (
+                              <button
+                                type="button"
+                                aria-pressed={h5LabChatCollapsed}
+                                title={
+                                  h5LabChatCollapsed ? '展开对话流' : '收起对话流'
+                                }
+                                onClick={() =>
+                                  setH5LabChatCollapsed((collapsed) => !collapsed)
+                                }
+                                className="flex size-7 shrink-0 items-center justify-center rounded-lg text-[#1c1f23]/55 transition-colors hover:bg-[#f5f7fa] hover:text-[#1c1f23] aria-pressed:bg-[#d4ebff] aria-pressed:text-[#357ef8]"
+                              >
+                                <PanelLeft className="size-3.5" />
+                              </button>
+                            ) : null
+                            const h5LabFramePicker =
+                              h5LabCase && h5LabCurrentFrame ? (
+                                <div ref={h5LabFrameMenuRef} className="relative">
+                                  <button
+                                    type="button"
+                                    aria-label="选择状态帧"
+                                    aria-haspopup="menu"
+                                    aria-expanded={h5LabFrameMenuOpen}
+                                    title={`${h5LabCase.project} · ${h5LabCurrentFrame.label}`}
+                                    onClick={() =>
+                                      setH5LabFrameMenuOpen((open) => !open)
+                                    }
+                                    className="inline-flex h-7 max-w-[132px] cursor-pointer items-center gap-1 rounded-lg bg-[#f5f7fa] px-2.5 text-left text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#eef1f5]"
+                                  >
+                                    <span className="min-w-0 max-w-[96px] truncate">
+                                      {h5LabCurrentFrame.label}
+                                    </span>
+                                    <ChevronDown
+                                      aria-hidden
+                                      className={`size-3.5 shrink-0 text-[#1c1f23]/45 transition-transform ${
+                                        h5LabFrameMenuOpen ? 'rotate-180' : ''
+                                      }`}
+                                    />
+                                  </button>
+                                  {h5LabFrameMenuOpen && (
+                                    <div
+                                      role="menu"
+                                      aria-label="状态帧"
+                                      className="absolute left-0 top-full z-50 mt-1 w-[168px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] py-1 shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]"
+                                    >
+                                      {h5LabFrameIds.map((frame) => {
+                                        const selected =
+                                          frame.id === h5LabCurrentFrame.id
+                                        return (
+                                          <button
+                                            key={frame.id}
+                                            type="button"
+                                            role="menuitemradio"
+                                            aria-checked={selected}
+                                            onClick={() => {
+                                              // 换帧就是换页，选区跟着清掉，
+                                              // 免得画布高亮和选择器各指一处。
+                                              setH5LabFrameId(frame.id)
+                                              setH5LabSelected(null)
+                                              setH5LabFrameMenuOpen(false)
+                                            }}
+                                            className={`flex w-full cursor-pointer items-center gap-1.5 px-3 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--fill-subtle)] ${
+                                              selected
+                                                ? 'font-medium text-[var(--color-ink)]'
+                                                : 'text-[var(--color-ink)]/70'
+                                            }`}
+                                          >
+                                            {frame.generated && (
+                                              <span className="shrink-0 rounded-sm bg-[#2f6bff]/12 px-1 text-[10px] leading-[15px] text-[#2f6bff]">
+                                                新增
+                                              </span>
+                                            )}
+                                            <span className="min-w-0 flex-1 truncate">
+                                              {frame.label}
+                                            </span>
+                                            {selected && (
+                                              <Check
+                                                size={12}
+                                                className="ml-auto shrink-0 text-[#357ef8]"
+                                              />
+                                            )}
+                                          </button>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : null
                             const xiahuaPagePicker = isXiahuaFamily(
                               projectTitle,
                             ) ? (
@@ -12152,6 +12526,11 @@ export default function VibeCodingPage({
                                     </span>
                                   ) : isXiahuaFamily(projectTitle) ? (
                                     xiahuaPagePicker
+                                  ) : h5LabFramePicker ? (
+                                    <>
+                                      {h5LabChatToggle}
+                                      {h5LabFramePicker}
+                                    </>
                                   ) : (
                                     <span className="w-[196px] truncate rounded-lg bg-[#f5f7fa] px-2.5 py-1.5 text-[12px] font-semibold leading-4 text-[#1c1f23]">
                                       {toolbarProjectName}
@@ -12245,6 +12624,70 @@ export default function VibeCodingPage({
                                       </span>
                                       <span>编辑</span>
                                     </button>
+                                  ) : h5LabCase ? (
+                                    // 复刻 case 只有画布编辑这一档。进了编辑态，
+                                    // 这颗位置就换成「应用 N」+ 退出 —— 攒批提交和
+                                    // 退出模式是这一态最主要的两个动作，放画布里
+                                    // 反而要多找一层。
+                                    editPanelOpen ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          title="应用改动并回到预览"
+                                          onClick={applyH5LabEdits}
+                                          disabled={h5LabPendingCount === 0}
+                                          className="flex h-6 shrink-0 items-center gap-1 rounded-lg bg-[#357ef8] px-2 py-1 text-[12px] font-semibold leading-4 text-white transition-colors hover:bg-[#2a6ede] disabled:cursor-not-allowed disabled:bg-[#1c1f23]/10 disabled:text-[#1c1f23]/35"
+                                        >
+                                          <Check className="size-3.5" />
+                                          <span>应用</span>
+                                          {h5LabPendingCount > 0 && (
+                                            <span className="rounded bg-white/22 px-1 text-[11px] tabular-nums">
+                                              {h5LabPendingCount}
+                                            </span>
+                                          )}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          title="退出画布编辑"
+                                          onClick={closeH5LabEditor}
+                                          className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23]/65 transition-colors hover:bg-[#f5f7fa] hover:text-[#1c1f23]"
+                                        >
+                                          <X className="size-3.5" />
+                                          <span>退出</span>
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        title="画布编辑"
+                                        onClick={() => {
+                                          setCanvasEditOpen(false)
+                                          setH5LabChatCollapsed(false)
+                                          setEditPanelOpen(true)
+                                        }}
+                                        className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa]"
+                                      >
+                                        <span className="flex size-4 items-center justify-center">
+                                          <span
+                                            aria-hidden
+                                            className="block h-3 w-[13.333px] bg-current"
+                                            style={{
+                                              maskImage:
+                                                'url(/icons/h5-editor/canvas.svg)',
+                                              WebkitMaskImage:
+                                                'url(/icons/h5-editor/canvas.svg)',
+                                              maskSize: 'contain',
+                                              WebkitMaskSize: 'contain',
+                                              maskRepeat: 'no-repeat',
+                                              WebkitMaskRepeat: 'no-repeat',
+                                              maskPosition: 'center',
+                                              WebkitMaskPosition: 'center',
+                                            }}
+                                          />
+                                        </span>
+                                        <span>画布编辑</span>
+                                      </button>
+                                    )
                                   ) : projectTitle === SUMMER_SURF_PROJECT ? (
                                     <button
                                       type="button"
@@ -12502,6 +12945,17 @@ export default function VibeCodingPage({
                                   onClick={() => {
                                     setCanvasEditOpen(false)
                                     if (editPanelOpen) closeSummerSurfEditor()
+                                    else setEditPanelOpen(true)
+                                  }}
+                                />
+                              ) : h5LabCase && lbl === '预览' ? (
+                                <ToolbarAction
+                                  icon={LayoutGrid}
+                                  label="画布编辑"
+                                  active={editPanelOpen}
+                                  onClick={() => {
+                                    setCanvasEditOpen(false)
+                                    if (editPanelOpen) closeH5LabEditor()
                                     else setEditPanelOpen(true)
                                   }}
                                 />
@@ -13591,6 +14045,28 @@ export default function VibeCodingPage({
                         // Every other tab — code files, MD artefacts, dashboards —
                         // routes through renderTab, which knows how to render each
                         // kind from its filename.
+                        // 复刻 case 的图片下钻：素材画布挂在「素材库」tab 下，
+                        // 它自带一条工具条，上面的预览工具栏已经让位。
+                        if (
+                          h5LabCase &&
+                          h5LabAssetCanvas !== null &&
+                          activeLabel === ASSET_LIBRARY_LABEL
+                        ) {
+                          return (
+                            <ImageCanvasEditor
+                              groups={[
+                                {
+                                  title: `${h5LabCase.project} · 页面用图`,
+                                  items: h5LabAssets.map((asset) => ({
+                                    src: asset.src,
+                                    label: asset.label,
+                                  })),
+                                },
+                              ]}
+                              onClose={closeH5LabAssetCanvas}
+                            />
+                          )
+                        }
                         if (activeProjectKind === 'web-game') {
                           if (activeLabel === '预览') return productView
                           if (activeLabel === ASSET_LIBRARY_LABEL) {
@@ -13878,6 +14354,49 @@ export default function VibeCodingPage({
                             onConfigChange={setSummerSurfConfig}
                             onClose={() => {
                               closeSummerSurfEditor()
+                            }}
+                          />
+                        ) : h5LabCase ? (
+                          <H5LabEditPanel
+                            labCase={h5LabCase}
+                            selection={h5LabSelected}
+                            overrides={h5LabDraft}
+                            onOverrides={setH5LabDraft}
+                            layers={h5LabLayers}
+                            onSelectPath={(path) =>
+                              h5LabStageRef.current?.selectPath(
+                                h5LabSelected?.stateId ??
+                                  h5LabCase.states[0]?.id ??
+                                  '',
+                                path,
+                              )
+                            }
+                            hotspots={h5LabHotspots}
+                            frames={h5LabFrameIds.map(({ id, label, generated }) => ({
+                              id,
+                              label,
+                              generated,
+                            }))}
+                            prototype={h5LabPrototypeDraft}
+                            onPrototype={setH5LabPrototypeDraft}
+                            onOpenAssetCanvas={openH5LabAssetCanvas}
+                            onAddToChat={() => {
+                              if (!h5LabSelected) return
+                              const frame = h5LabFrameIds.find(
+                                (item) => item.id === h5LabSelected.stateId,
+                              )
+                              addH5LabRefToChat({
+                                frameId: h5LabSelected.stateId,
+                                frameLabel: frame?.label ?? h5LabSelected.stateId,
+                                path: h5LabSelected.path,
+                                label: h5LabSelected.label,
+                                tag: h5LabSelected.tag,
+                                text: h5LabSelected.measured.text || undefined,
+                                src: h5LabSelected.measured.src || undefined,
+                              })
+                            }}
+                            onClose={() => {
+                              closeH5LabEditor()
                             }}
                           />
                         ) : activeProjectKind === 'marketing-h5' ? (
