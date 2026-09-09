@@ -1,80 +1,136 @@
-/* 生成界面的排版 —— 只吃 --gen-tone 一个主题变量，跟着 case 底色走。 */
+/* 生成界面的排版 —— 只吃 H5LabGeneratedScreen 注进来的那组 --gen-* token，
+   token 抄自各 case 自己的 CSS，所以补出来的一屏和复刻页是同一套设计系统。 */
 .h5gen-shell {
   position: relative;
   display: flex;
   /* 画布上帧高由内容定（720 兜底）；手机框里父容器高度确定，撑满不留底色。 */
   min-height: max(720px, 100%);
   flex-direction: column;
-  padding: 34px 24px 28px;
-  color: #16181f;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--gen-tone) 22%, #fff) 0%, #fff 46%);
-  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  padding: 30px 21px 26px;
+  color: var(--gen-page-ink);
+  background: var(--gen-page-bg);
+  font-family: var(--gen-body);
+  -webkit-font-smoothing: antialiased;
 }
 .h5gen-shell * { box-sizing: border-box; }
 .h5gen-shell button { font: inherit; cursor: pointer; }
 
 .h5gen-eyebrow {
   display: inline-block;
-  margin-bottom: 10px;
-  padding: 3px 9px;
+  margin-bottom: 11px;
+  padding: 3px 10px;
+  border: 1px solid var(--gen-border);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--gen-tone) 16%, #fff);
-  color: color-mix(in srgb, var(--gen-tone) 72%, #111);
+  background: transparent;
+  color: var(--gen-page-muted);
   font-size: 11px;
-  letter-spacing: .02em;
+  letter-spacing: .04em;
 }
-.h5gen-title { margin: 0 0 10px; font-size: 24px; font-weight: 600; line-height: 1.3; }
-.h5gen-body { margin: 0; color: #5c6070; font-size: 13.5px; line-height: 1.7; }
+.h5gen-title {
+  margin: 0 0 10px;
+  color: var(--gen-page-ink);
+  font-family: var(--gen-display);
+  font-size: 25px;
+  font-weight: 600;
+  line-height: 1.32;
+  letter-spacing: .01em;
+}
+.h5gen-body {
+  margin: 0;
+  color: var(--gen-page-muted);
+  font-size: 13.5px;
+  line-height: 1.72;
+}
 
 .h5gen-actions { display: flex; flex-direction: column; gap: 10px; }
 .h5gen-primary {
-  height: 46px; padding: 0 20px; border: 0; border-radius: 23px;
-  background: var(--gen-tone); color: #fff; font-size: 15px; font-weight: 600;
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--gen-tone) 32%, transparent);
+  height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--gen-radius-lg);
+  background: var(--gen-accent);
+  color: var(--gen-accent-ink);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  box-shadow: var(--gen-shadow);
 }
 .h5gen-secondary {
-  height: 42px; padding: 0 20px; border-radius: 21px;
-  border: 1px solid color-mix(in srgb, var(--gen-tone) 30%, #fff);
-  background: transparent; color: color-mix(in srgb, var(--gen-tone) 70%, #111); font-size: 14px;
+  height: 42px;
+  padding: 0 20px;
+  border: 1px solid var(--gen-border);
+  border-radius: var(--gen-radius-lg);
+  background: transparent;
+  color: var(--gen-page-muted);
+  font-size: 14px;
 }
 
-/* 结果弹层：压在半透明遮罩上的一张卡 */
-.h5gen-overlay { justify-content: center; padding: 0; background: none; }
-.h5gen-scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--gen-tone) 55%, #05070d); opacity: .78; }
-.h5gen-overlay .h5gen-card {
-  position: relative; margin: 0 22px; padding: 26px 22px 22px;
-  border-radius: 20px; background: #fff; box-shadow: 0 22px 60px rgba(6, 10, 20, .34);
+/* 结果弹层：压在半透明遮罩上的一张纸卡 */
+.h5gen-kind-overlay { justify-content: center; padding: 0; background: none; }
+.h5gen-scrim { position: absolute; inset: 0; background: var(--gen-page-bg); opacity: .82; }
+.h5gen-kind-overlay .h5gen-card {
+  position: relative;
+  margin: 0 22px;
+  padding: 26px 21px 22px;
+  border: 1px solid var(--gen-border);
+  border-radius: var(--gen-radius-lg);
+  background: var(--gen-paper);
+  box-shadow: var(--gen-shadow);
 }
-.h5gen-overlay .h5gen-body { margin-bottom: 20px; }
+.h5gen-kind-overlay .h5gen-title { color: var(--gen-paper-ink); }
+.h5gen-kind-overlay .h5gen-body { margin-bottom: 20px; color: var(--gen-paper-muted); }
+.h5gen-kind-overlay .h5gen-eyebrow { color: var(--gen-paper-muted); }
+.h5gen-kind-overlay .h5gen-secondary { color: var(--gen-paper-muted); }
 
 /* 结果页 */
 .h5gen-badge { display: grid; flex: 1; place-items: center; }
 .h5gen-badge span {
-  display: block; width: 96px; height: 96px; border-radius: 50%;
-  background: color-mix(in srgb, var(--gen-tone) 18%, #fff);
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gen-tone) 42%, #fff);
+  display: block;
+  width: 104px;
+  height: 104px;
+  border: 2px solid var(--gen-border);
+  border-radius: 50%;
+  background: var(--gen-paper);
+  box-shadow: var(--gen-shadow);
 }
 
 /* 填写页 */
-.h5gen-form { display: flex; flex: 1; flex-direction: column; gap: 14px; margin-top: 26px; }
+.h5gen-form { display: flex; flex: 1; flex-direction: column; gap: 14px; margin-top: 24px; }
 .h5gen-field { display: flex; flex-direction: column; gap: 7px; }
-.h5gen-field span { color: #5c6070; font-size: 12.5px; }
+.h5gen-field span { color: var(--gen-page-muted); font-size: 12.5px; }
 .h5gen-input {
-  display: block; height: 44px; border: 1px solid #e3e6ee; border-radius: 12px; background: #fafbfe;
+  display: block;
+  height: 44px;
+  border: 1px solid var(--gen-border);
+  border-radius: var(--gen-radius);
+  background: var(--gen-paper);
 }
 
-/* 列表页 */
-.h5gen-list { display: flex; flex: 1; flex-direction: column; gap: 10px; margin: 26px 0 0; padding: 0; list-style: none; }
+/* 列表页 —— 每行一张纸卡，和复刻页里的卡片同一套描边和圆角 */
+.h5gen-list { display: flex; flex: 1; flex-direction: column; gap: 10px; margin: 24px 0 0; padding: 0; list-style: none; }
 .h5gen-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px; border: 1px solid #eceef5; border-radius: 14px; background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--gen-border);
+  border-radius: var(--gen-radius);
+  background: var(--gen-paper);
+  color: var(--gen-paper-ink);
+  box-shadow: var(--gen-shadow);
 }
-.h5gen-row b { color: color-mix(in srgb, var(--gen-tone) 70%, #111); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.h5gen-row b {
+  color: var(--gen-paper-muted);
+  font-family: var(--gen-display);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .h5gen-row span { flex: 1; font-size: 14px; }
-.h5gen-row em { color: color-mix(in srgb, var(--gen-tone) 66%, #111); font-size: 12.5px; font-style: normal; }
+.h5gen-row em { color: var(--gen-paper-muted); font-size: 12.5px; font-style: normal; }
 
 .h5gen-head { margin-bottom: 4px; }
-.h5gen-foot { margin-top: 26px; }
+.h5gen-foot { margin-top: 24px; }
 
 /* 原型跳帧的转场 —— 手机框预览按连接关系切帧时用。 */
 @keyframes h5lab-fade { from { opacity: 0 } to { opacity: 1 } }

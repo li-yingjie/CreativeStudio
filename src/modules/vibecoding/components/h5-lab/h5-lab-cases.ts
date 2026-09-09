@@ -32,6 +32,28 @@ export interface H5LabState {
   state?: Record<string, unknown>
 }
 
+/** case 的设计系统 —— 补出来的界面照着它长，不然一屏生成页夹在复刻页中间会
+ *  非常出戏。值都是从各自那份 CSS 里抄的真实 token，不是另起一套。 */
+export interface H5LabDesign {
+  /** 页面底色与页面上的文字 */
+  pageBg: string
+  pageInk: string
+  pageMuted: string
+  /** 纸面 / 卡片 */
+  paper: string
+  paperInk: string
+  paperMuted: string
+  border: string
+  /** 主行动 */
+  accent: string
+  accentInk: string
+  radius: number
+  radiusLg: number
+  shadow: string
+  displayFont: string
+  bodyFont: string
+}
+
 export interface H5LabCase {
   id: string
   /** 侧栏里的项目名 —— 同时是 PROJECT_KINDS 的 key。 */
@@ -45,6 +67,7 @@ export interface H5LabCase {
   width: number
   /** 帧外的底色，和页面首屏对齐，缩放时不露白。 */
   canvasTone: string
+  design: H5LabDesign
   states: H5LabState[]
   fileTree: FileNode[]
 }
@@ -97,6 +120,23 @@ export const H5_LAB_CASES: H5LabCase[] = [
     route: '/h5-reference-lab',
     width: 430,
     canvasTone: '#0a73c8',
+    // 取自 WinterGatheringH5.css：蓝底、暖白纸卡、浅蓝描边、硬投影
+    design: {
+      pageBg: '#fffefa',
+      pageInk: '#0878d0',
+      pageMuted: '#7b7466',
+      paper: '#fffef8',
+      paperInk: '#0878d0',
+      paperMuted: '#b7a88b',
+      border: '#a5def2',
+      accent: '#0798ed',
+      accentInk: '#ffffff',
+      radius: 18,
+      radiusLg: 28,
+      shadow: '0 5px 0 rgba(14,111,194,.12)',
+      displayFont: '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif',
+      bodyFont: '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif',
+    },
     states: [
       {
         id: 'winter-gathering:main',
@@ -138,6 +178,23 @@ export const H5_LAB_CASES: H5LabCase[] = [
       '暖黄三段渐变底、宋体标题族与三套异形卡轮廓（牌匾 / 拱顶投稿卡 / 奖励牌匾）。',
     width: 430,
     canvasTone: '#f7ecd2',
+    // 取自 HomeGuideBenchmarkH5.css：暖黄底、宋体标题、金棕描边、暖橙 CTA
+    design: {
+      pageBg: '#fff5c7',
+      pageInk: '#74413a',
+      pageMuted: '#987064',
+      paper: 'rgba(255,255,255,.82)',
+      paperInk: '#74413a',
+      paperMuted: '#987064',
+      border: '#d7ae64',
+      accent: '#ffad45',
+      accentInk: '#fffaf0',
+      radius: 14,
+      radiusLg: 28,
+      shadow: '0 6px 18px rgba(160,110,40,.16)',
+      displayFont: '"Songti SC", STSong, "Noto Serif CJK SC", SimSun, serif',
+      bodyFont: '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif',
+    },
     states: [
       {
         id: 'home-guide:main',
@@ -180,6 +237,23 @@ export const H5_LAB_CASES: H5LabCase[] = [
     route: '/young-voice-archive',
     width: 430,
     canvasTone: '#06123e',
+    // 取自 YoungVoiceXhsRebuild.css：深蓝夜色、米色纸卡、柠檬黄行动色
+    design: {
+      pageBg: '#06123e',
+      pageInk: '#ffffff',
+      pageMuted: '#c2d2e5',
+      paper: '#f4f2df',
+      paperInk: '#0b2867',
+      paperMuted: '#5b6b8c',
+      border: 'rgba(102,198,242,.38)',
+      accent: '#f2e75d',
+      accentInk: '#0b2867',
+      radius: 14,
+      radiusLg: 22,
+      shadow: '0 14px 34px rgba(0,0,0,.34)',
+      displayFont: '"Arial Narrow", "PingFang SC", "Hiragino Sans GB", sans-serif',
+      bodyFont: '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif',
+    },
     states: [
       {
         id: 'young-voice:xhs',

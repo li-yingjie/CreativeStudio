@@ -39,7 +39,7 @@ export function buildH5LabFrames(
         <H5LabGeneratedScreen
           key={`${screen.id}-${previewKey}`}
           screen={screen}
-          tone={labCase.canvasTone}
+          design={labCase.design}
         />
       ),
     }))

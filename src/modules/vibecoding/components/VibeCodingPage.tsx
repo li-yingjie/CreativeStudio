@@ -11547,7 +11547,10 @@ export default function VibeCodingPage({
                     ? effectiveSidebarWidth
                     : previewHidden
                       ? `calc(${effectiveSidebarWidth}px + min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px))`
-                      : effectiveSidebarWidth + platformChatWidth,
+                      : // 画布编辑里收起对话流后，正文要把那一列的宽度也收回来，
+                        // 否则左边空一块、画布还是原来那么窄。
+                        effectiveSidebarWidth +
+                        (h5LabChatHidden ? 0 : platformChatWidth),
                 transition: standaloneOffsetTransition,
               }
             : undefined
