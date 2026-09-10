@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { motion, useMotionTemplate, useMotionValue, useReducedMotion, useSpring } from 'framer-motion'
 import { toast } from 'sonner'
 import {
@@ -8,6 +8,7 @@ import {
   Download,
 } from '@/shared/icons'
 import { useLiveMgmt } from './live-store'
+import { usePublishFlow } from './use-publish-flow'
 import {
   fmtCount,
   fmtYuan,
@@ -152,6 +153,7 @@ function publishKindFromPage(page: string): PublishEntryId {
 }
 
 function SideNav({ active, onSelect }: { active: string; onSelect: (key: string) => void }) {
+  const publishRef = usePublishFlow()
   const liveEnabled = useLiveMgmt((s) => s.enabled)
   const version = useNavVersion((state) => state.version)
   const schemeFourLayout = usesSchemeFourLayout(version)
@@ -182,9 +184,22 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
       ariaLabel="创作者中心侧栏"
       chrome={version === 1 ? 'plain' : 'panel'}
       showDivider={version !== 1}
-      style={{ paddingTop: 'var(--cc-top)' }}
+      style={{
+        paddingTop: 'calc(var(--cc-top) + 16px)',
+        '--sn-w': '200px',
+        '--sn-px': collapsed ? '12px' : '24px',
+        '--sn-rh': '36px',
+        '--sn-rsp': '12px',
+        '--sn-rpx': '0px',
+        '--sn-rgap': '12px',
+        '--sn-rr': '4px',
+        '--sn-rfs': '14px',
+        '--sidenav-active': 'transparent',
+        '--sidenav-ink': '#252632',
+        '--sidenav-ink-dim': 'rgba(37,38,50,0.6)',
+        '--sidenav-icon': 'currentColor',
+      } as CSSProperties}
       collapsed={collapsed}
-      resizable
       flushHeader={version === 1}
       items={menu}
       activeKey={active}
@@ -193,20 +208,25 @@ function SideNav({ active, onSelect }: { active: string; onSelect: (key: string)
         /* 首页不放产品头 —— 它既不提供收起，也没有可写的业务文案，
            顶部直接就是「发布作品」。 */
         <div
-          className={`px-[var(--sn-px)] pb-3 ${version === 1 ? '' : 'pt-3'}`}
+          className="px-[var(--sn-px)] pb-4"
         >
           <Popover.Root>
             <Popover.Trigger asChild>
               <SideNavActionButton
+                ref={publishRef}
                 aria-label="发布作品"
                 variant={version === 1 ? 'light' : 'dark'}
                 collapsed={collapsed}
-                className={collapsed ? '' : 'justify-between'}
-                style={
-                  version === 1
-                    ? { boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.10)' }
-                    : undefined
-                }
+                className={`creator-publish-action ${collapsed ? '' : 'justify-between'}`}
+                style={{
+                  height: 40,
+                  borderRadius: 6,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  paddingLeft: collapsed ? 0 : 12,
+                  paddingRight: collapsed ? 0 : 12,
+                  ...(version === 1 ? { boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.10)' } : {}),
+                }}
               >
                 <span className="flex items-center gap-[var(--sn-rgap)]">
                   <SlideWideAddLinearIcon size={16} />
