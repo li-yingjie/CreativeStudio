@@ -13,13 +13,18 @@ import type { FileNode } from '../ProjectProductView'
 
 const WinterGatheringH5 = lazy(() => import('../WinterGatheringH5'))
 const HomeGuideBenchmarkH5 = lazy(() => import('../HomeGuideBenchmarkH5'))
+const StudyAbroadPkH5 = lazy(() => import('../StudyAbroadPkH5'))
 const YoungVoiceXhsRebuild = lazy(() => import('../YoungVoiceXhsRebuild'))
 const YoungVoiceArchiveH5Claude = lazy(
   () => import('../YoungVoiceArchiveH5Claude'),
 )
 
 /** 页面组件统一收成「接一个可选 state 播种」的形状，画布不关心具体字段。 */
-type CasePageComponent = LazyExoticComponent<ComponentType<{ state?: never }>>
+/* case 页面同时是独立路由页和画布上的一帧：`embedded` 让它跳过 document.title、
+   100dvh 这类整屏副作用，`state` 用来播种交互态铺状态帧。 */
+type CasePageComponent = LazyExoticComponent<
+  ComponentType<{ embedded?: boolean; state?: never }>
+>
 
 export interface H5LabState {
   /** 覆盖按状态帧 id 分组存储，改名会丢编辑，别动。 */
@@ -116,8 +121,8 @@ export const H5_LAB_CASES: H5LabCase[] = [
     project: '冬日召集令 · 复刻',
     origin: 'H5 Benchmark · 冬日召集令',
     summary:
-      '蓝色长画布 + 透明冬日 3D 主视觉，白色人格测试纸卡、路线任务卡与冬日手账收尾。',
-    route: '/h5-reference-lab',
+      '蓝色长画布 + 冬日 3D 主视觉；人格测试纸卡、趣味破冰场路线、温泉轮播、撒点野场景与电视抽奖一路排下来。',
+    route: '/winter-gathering-lab',
     width: 430,
     canvasTone: '#0a73c8',
     // 取自 WinterGatheringH5.css：蓝底、暖白纸卡、浅蓝描边、硬投影
@@ -161,12 +166,14 @@ export const H5_LAB_CASES: H5LabCase[] = [
     ],
     fileTree: caseTree(
       '冬日召集令复刻说明.md',
-      ['WinterGatheringH5.tsx', 'WinterGatheringH5.css'],
+      ['WinterGatheringH5.tsx', 'WinterGatheringH5.css', 'H5LayoutEditor.tsx'],
       [
         'winter-hero-benchmark-v2.jpg',
         'personality-card-art-v2.png',
-        'route-card-collage.png',
-        'journal-paper.png',
+        'spa-module-lockup-v6.jpg',
+        'snow-title-lockup-v6.png',
+        'snow-scene-friends-v6.jpg',
+        'gear-module-lockup-v5.jpg',
       ],
     ),
   },
@@ -225,6 +232,67 @@ export const H5_LAB_CASES: H5LabCase[] = [
         'plaque-outline.svg',
         'submission-card-outline.svg',
         'reward-plaque-outline.svg',
+      ],
+    ),
+  },
+  {
+    id: 'study-abroad-pk',
+    project: '留学 PK 赛 · 复刻',
+    origin: 'H5 Benchmark · 留学 PK 赛',
+    summary:
+      '浅灰底 + 高饱和撞色分区，任务分档、抽奖池与招募区靠色块和粗体数字拉节奏。',
+    width: 430,
+    route: '/h5-reference-lab',
+    canvasTone: '#f0eeee',
+    // 取自 StudyAbroadPkH5.css：浅灰页、白卡 8px 圆角、洋红点缀、近黑胶囊按钮
+    design: {
+      pageBg: '#f0eeee',
+      pageInk: '#11100f',
+      pageMuted: '#6b6968',
+      paper: '#ffffff',
+      paperInk: '#11100f',
+      paperMuted: '#6b6968',
+      border: 'rgba(17,16,15,.12)',
+      accent: '#ee1b9c',
+      accentInk: '#ffffff',
+      radius: 8,
+      radiusLg: 999,
+      shadow: '0 4px 14px rgba(17,16,15,.10)',
+      displayFont: '"PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif',
+      bodyFont: '"PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif',
+    },
+    states: [
+      {
+        id: 'study-abroad-pk:main',
+        label: '默认态',
+        note: '未报名、未领取',
+        Component: StudyAbroadPkH5,
+      },
+      {
+        id: 'study-abroad-pk:registered',
+        label: '已报名',
+        note: '报名后的按钮与状态位',
+        Component: StudyAbroadPkH5,
+        state: { registered: true },
+      },
+      {
+        id: 'study-abroad-pk:claimed',
+        label: '已领取奖励',
+        note: '任务奖励领取后的状态',
+        Component: StudyAbroadPkH5,
+        state: { registered: true, claimed: true },
+      },
+    ],
+    fileTree: caseTree(
+      '留学 PK 赛复刻说明.md',
+      ['StudyAbroadPkH5.tsx', 'StudyAbroadPkH5.css', 'StudyAbroadPkH5Model.ts'],
+      [
+        'study-pk-hero-v1.jpg',
+        'study-pk-task-rewards-v2.jpg',
+        'study-pk-challenge-v1.jpg',
+        'study-pk-lottery-v1.jpg',
+        'study-pk-recruitment-v1.jpg',
+        'study-pk-gift-v1.jpg',
       ],
     ),
   },

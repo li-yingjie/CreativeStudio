@@ -24,7 +24,11 @@ export function buildH5LabFrames(
     label: state.label,
     note: state.note,
     render: (previewKey) => (
-      <state.Component key={`${state.id}-${previewKey}`} state={state.state as never} />
+      <state.Component
+        key={`${state.id}-${previewKey}`}
+        embedded
+        state={state.state as never}
+      />
     ),
   }))
 

@@ -24,8 +24,21 @@ const WinterGatheringH5 = lazy(
   () => import('@/modules/vibecoding/components/WinterGatheringH5'),
 )
 
+const StudyAbroadPkH5 = lazy(
+  () => import('@/modules/vibecoding/components/StudyAbroadPkH5'),
+)
+
 export default function App() {
+  // /h5-reference-lab 始终指向最新在做的那个 benchmark 复刻，做完的挪到自己的路由。
   if (window.location.pathname === '/h5-reference-lab') {
+    return (
+      <Suspense fallback={<div className="min-h-dvh bg-[#F0EEEE]" />}>
+        <StudyAbroadPkH5 />
+      </Suspense>
+    )
+  }
+
+  if (window.location.pathname === '/winter-gathering-lab') {
     return (
       <Suspense fallback={<div className="min-h-dvh bg-[#0799ED]" />}>
         <WinterGatheringH5 />
