@@ -2,7 +2,7 @@
 // Overwrites files in place (same name/format → no source changes). Skips the
 // third-party garuda/ game dir. Requires TINYPNG_API_KEY in .env.
 //
-//   node scripts/compress-images.mjs [--min=BYTES] [--dry]
+//   node scripts/compress-images.mjs [--min=BYTES] [--scope=DIR] [--dry]
 //
 // Defaults: process .png/.jpg/.jpeg/.webp in public/bg + public/assets that are
 // >= 120KB. Avatars are capped at 512px on the long side, everything else 1600px
@@ -31,6 +31,8 @@ const args = process.argv.slice(2)
 const dry = args.includes('--dry')
 const minArg = args.find((a) => a.startsWith('--min='))
 const MIN_BYTES = minArg ? Number(minArg.split('=')[1]) : 120 * 1024
+const scopeArg = args.find((a) => a.startsWith('--scope='))
+const SCOPE = scopeArg ? scopeArg.slice('--scope='.length).replace(/^\/+|\/+$/g, '') : null
 
 const ROOTS = ['public/bg', 'public/assets']
 const EXT = new Set(['.png', '.jpg', '.jpeg', '.webp'])
@@ -46,7 +48,8 @@ function collect(dir, out) {
       if (name === 'garuda') continue
       collect(p, out)
     } else if (EXT.has(path.extname(name).toLowerCase()) && s.size >= MIN_BYTES) {
-      out.push({ p, size: s.size })
+      const rel = path.relative('public', p).split(path.sep).join('/')
+      if (!SCOPE || rel.startsWith(`${SCOPE}/`)) out.push({ p, size: s.size })
     }
   }
 }

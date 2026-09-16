@@ -28,7 +28,19 @@ const StudyAbroadPkH5 = lazy(
   () => import('@/modules/vibecoding/components/StudyAbroadPkH5'),
 )
 
+const CharacterCardDraw = lazy(
+  () => import('@/modules/vibecoding/components/CharacterCardDraw'),
+)
+
 export default function App() {
+  if (window.location.pathname === '/character-card-draw') {
+    return (
+      <Suspense fallback={<div className="min-h-dvh bg-[#2d3542]" />}>
+        <CharacterCardDraw />
+      </Suspense>
+    )
+  }
+
   // /h5-reference-lab 始终指向最新在做的那个 benchmark 复刻，做完的挪到自己的路由。
   if (window.location.pathname === '/h5-reference-lab') {
     return (
