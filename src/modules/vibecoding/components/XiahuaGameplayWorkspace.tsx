@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
-import { ChevronDown, CircleHelp, Gift, Layers, ListChecks, Plus, Save, Sparkles, ThumbsUp } from '@/shared/icons'
+import { ChevronDown, CircleHelp, FileText, Gift, Layers, ListChecks, Plus, Save, Settings, Sparkles, ThumbsUp } from '@/shared/icons'
 import type { LucideIcon } from '@/shared/icons'
 import type { ActivityPreset } from './ActivityPreset'
 import {
@@ -20,6 +20,7 @@ import {
   VoteCandidatePanel,
 } from './XiahuaGameplayDataPanels'
 import { ToolbarAction } from './Toolbar'
+import XiahuaDocumentSync from './XiahuaDocumentSync'
 
 type GameplayKind = XiahuaGameplayModuleKind
 
@@ -1156,6 +1157,7 @@ export default function XiahuaGameplayWorkspace({
   preset: ActivityPreset
   onOpenAssetLibrary: () => void
 }) {
+  const [surface, setSurface] = useState<'document' | 'advanced'>('document')
   const [activeKind, setActiveKind] = useState<GameplayKind>('lottery')
   const [dirty, setDirty] = useState(false)
   const [scopeOpen, setScopeOpen] = useState(false)
@@ -1192,25 +1194,48 @@ export default function XiahuaGameplayWorkspace({
 
   return (
     <div className="@container flex h-full min-h-0 flex-col bg-[var(--color-surface-0)]">
-      <ModuleRail
-        active={activeKind}
-        enabled={enabledKinds}
-        onSelect={(kind) => {
-          setActiveKind(kind)
-          setScopeOpen(false)
-        }}
-        trailing={
-          <ToolbarAction
-            icon={Save}
-            label={dirty ? '保存改动' : '已保存'}
-            active={dirty}
-            onClick={save}
-          />
-        }
-      />
+      <div className="flex min-h-11 shrink-0 items-center gap-1 border-b border-[var(--divider-soft)] px-4 py-2">
+        <button
+          type="button"
+          aria-pressed={surface === 'document'}
+          onClick={() => setSurface('document')}
+          className={`inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[10px] font-medium transition-colors ${surface === 'document' ? 'bg-[var(--color-ink)] text-white' : 'text-[var(--color-ink)]/48 hover:bg-[var(--fill-subtle)]'}`}
+        >
+          <FileText className="size-3.5" /> 文档同步
+        </button>
+        <button
+          type="button"
+          aria-pressed={surface === 'advanced'}
+          onClick={() => setSurface('advanced')}
+          className={`inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[10px] font-medium transition-colors ${surface === 'advanced' ? 'bg-[var(--color-ink)] text-white' : 'text-[var(--color-ink)]/48 hover:bg-[var(--fill-subtle)]'}`}
+        >
+          <Settings className="size-3.5" /> 高级配置
+        </button>
+        <span className="ml-auto hidden text-[9px] text-[var(--color-ink)]/32 @[480px]:block">飞书写意图 · 系统编译配置</span>
+      </div>
 
       <div className="min-h-0 flex-1">
-        <main className="thin-scroll h-full min-h-0 overflow-y-auto bg-[var(--color-surface-0)]">
+        <div className={surface === 'document' ? 'h-full min-h-0' : 'hidden'}>
+          <XiahuaDocumentSync value={value} onChange={updateGameplay} />
+        </div>
+        <div className={surface === 'advanced' ? 'flex h-full min-h-0 flex-col' : 'hidden'}>
+            <ModuleRail
+              active={activeKind}
+              enabled={enabledKinds}
+              onSelect={(kind) => {
+                setActiveKind(kind)
+                setScopeOpen(false)
+              }}
+              trailing={
+                <ToolbarAction
+                  icon={Save}
+                  label={dirty ? '保存改动' : '已保存'}
+                  active={dirty}
+                  onClick={save}
+                />
+              }
+            />
+            <main className="thin-scroll h-full min-h-0 overflow-y-auto bg-[var(--color-surface-0)]">
           {enabled ? (
             <div className="mx-auto w-full max-w-[860px] space-y-6 px-5 py-6">
               <EditorHeader
@@ -1266,7 +1291,8 @@ export default function XiahuaGameplayWorkspace({
           ) : (
             <AddGameplay kind={activeDefinition} onAdd={addGameplay} />
           )}
-        </main>
+            </main>
+        </div>
       </div>
     </div>
   )

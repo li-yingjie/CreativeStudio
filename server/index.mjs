@@ -6,6 +6,9 @@ import { createBrotliCompress, createGzip, constants as zlibConstants } from 'no
 import { fileURLToPath } from 'node:url'
 import { handleChat, handleHealth, handleProductIntent, loadKimiConfig } from './kimi.mjs'
 import { staticCacheControl } from './static-cache.mjs'
+import { handleDesignRadar, handleDesignRadarAsset } from './design-radar.mjs'
+import { handleMotionSites } from './motionsites.mjs'
+import { handleActivityDocument } from './activity-doc.mjs'
 import {
   handleCreatorActivities,
   handleCreatorCollab,
@@ -48,6 +51,10 @@ const apiRoutes = new Map([
   ['/api/health', { method: 'GET', handler: handleHealth }],
   ['/api/chat', { method: 'POST', handler: handleChat }],
   ['/api/product-intent', { method: 'POST', handler: handleProductIntent }],
+  ['/api/design-radar', { method: 'GET', handler: handleDesignRadar }],
+  ['/api/design-radar-asset', { method: 'GET', handler: handleDesignRadarAsset }],
+  ['/api/motionsites', { method: 'GET', handler: handleMotionSites }],
+  ['/api/activity-doc', { method: 'GET', handler: handleActivityDocument }],
   ['/api/creator/stats', { method: 'GET', handler: handleCreatorStats }],
   ['/api/creator/works', { method: 'GET', handler: handleCreatorWorks }],
   ['/api/creator/income', { method: 'GET', handler: handleCreatorIncome }],
