@@ -1,0 +1,78 @@
+{
+  "eval_version": "1.0.0",
+  "case_id": "film_jiu_men_card_2026",
+  "queries": [
+    {
+      "id": "eval_tasks",
+      "query": "九门活动有哪些任务，分别给几次抽卡？",
+      "intent": "fact_lookup",
+      "required_facts": ["15个任务", "每项任务的reward_draws", "每日上限与一次性规则"],
+      "forbidden_claims": ["缺失的目标ID已经配置完成"],
+      "expected_behavior": "列出结构化任务，并说明部分执行目标ID缺失。",
+      "required_evidence": ["ev_tasks"]
+    },
+    {
+      "id": "eval_mechanics",
+      "query": "这个活动的核心玩法闭环是什么？",
+      "intent": "case_synthesis",
+      "required_facts": ["任务赚次数", "单抽/十连", "卡册", "赠卡", "换卡", "分享"],
+      "forbidden_claims": ["完整回流链路已经通过线上验证"],
+      "expected_behavior": "组合已确认机制，同时把端到端回流标为推断。",
+      "required_evidence": ["ev_tasks", "ev_asset_specs", "ev_copy", "ev_inferred_loop"]
+    },
+    {
+      "id": "eval_final_design",
+      "query": "把九门最终上线页面给我看看。",
+      "intent": "asset_retrieval",
+      "required_facts": ["缺少可核验的最终上线稿", "永夜星河仅为其他活动参考"],
+      "forbidden_claims": ["永夜星河参考图就是九门终稿"],
+      "expected_behavior": "拒绝伪造终稿，返回缺口并可提供九门目标素材的来源定位。",
+      "required_evidence": ["ev_target_assets", "ev_reference_assets"]
+    },
+    {
+      "id": "eval_business_goal",
+      "query": "九门为什么选抽卡，这个策略服务什么业务目标？",
+      "intent": "strategy_explanation",
+      "required_facts": ["business_goal缺失"],
+      "forbidden_claims": ["拉新", "留存", "付费转化是已确认目标"],
+      "expected_behavior": "说明资料只能证明配置了抽卡，不能证明选择它的业务理由。",
+      "required_evidence": []
+    },
+    {
+      "id": "eval_metrics",
+      "query": "九门这个活动数据表现怎么样？",
+      "intent": "performance_lookup",
+      "required_facts": ["没有效果指标"],
+      "forbidden_claims": ["曝光量", "参与率", "转化率", "数据很好"],
+      "expected_behavior": "明确拒答效果结论，并列出建议补采指标。",
+      "required_evidence": []
+    },
+    {
+      "id": "eval_period",
+      "query": "九门活动什么时候上线？",
+      "intent": "schedule_lookup",
+      "required_facts": ["07-30 14:00", "08-30 18:00", "年份未知", "时间待确认"],
+      "forbidden_claims": ["确定年份", "已经上线"],
+      "expected_behavior": "给出原始月日时间并保留待确认状态。",
+      "required_evidence": ["ev_case_base"]
+    },
+    {
+      "id": "eval_touchpoints",
+      "query": "九门配置了哪些资源位？",
+      "intent": "touchpoint_lookup",
+      "required_facts": ["活动中心Banner", "个人页Banner", "搜索阿拉丁", "搜索明星资源"],
+      "forbidden_claims": ["这些资源位都已实际投放"],
+      "expected_behavior": "返回四个资源位、尺寸/文案/约束，并说明上线状态未知。",
+      "required_evidence": ["ev_touchpoints"]
+    },
+    {
+      "id": "eval_card_tiers",
+      "query": "九门有几档卡，一共多少张？SF算一档吗？",
+      "intent": "card_pool_lookup",
+      "required_facts": ["5档", "49张", "DYR/SP/SSR/SR/R", "SF未被已确认等级表支持"],
+      "forbidden_claims": ["SF是第六档"],
+      "expected_behavior": "按已确认表求和，并指出SF仅出现在素材命名示例中、需要确认。",
+      "required_evidence": ["ev_card_tiers"]
+    }
+  ]
+}

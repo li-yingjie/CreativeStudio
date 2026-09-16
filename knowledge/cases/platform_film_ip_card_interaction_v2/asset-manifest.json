@@ -1,0 +1,13 @@
+{
+  "case_id": "platform_film_ip_card_interaction_v2",
+  "source_file_key": "DuLYQtdj91zgshbF24RId1",
+  "source_page_node_id": "13:12157",
+  "generated_at": "2026-08-24",
+  "assets": [
+    {"node_id":"1410:18268","label":"1.增加公告、新手引导版本","local_path":"assets/boards/iteration-1-announcement-onboarding.png","dimensions":"920x1600","role":"platform_spec"},
+    {"node_id":"1410:36212","label":"2.换卡、打包赠卡版本","local_path":"assets/boards/iteration-2-exchange-gifting.png","dimensions":"1600x498","role":"platform_spec"},
+    {"node_id":"1412:36213","label":"3.翻卡版本","local_path":"assets/boards/iteration-3-flip-card.png","dimensions":"1600x435","role":"platform_spec"},
+    {"node_id":"1028:16438","label":"4.全部 交互详述","local_path":"assets/boards/iteration-4-complete-interaction-spec.png","dimensions":"1600x990","role":"platform_spec"}
+  ],
+  "security": {"temporary_urls_persisted":false,"access_tokens_persisted":false}
+}

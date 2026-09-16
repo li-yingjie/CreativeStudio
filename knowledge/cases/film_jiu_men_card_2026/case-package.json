@@ -1,0 +1,169 @@
+{
+  "schema_version": "1.0.0",
+  "manifest": {
+    "case_id": "film_jiu_men_card_2026",
+    "package_status": "golden",
+    "review_status": "draft_for_human_review",
+    "permission_scope": "internal_restricted",
+    "updated_at": "2026-08-24"
+  },
+  "case": {
+    "case_id": "film_jiu_men_card_2026",
+    "name": "《九门》影视IP抽卡活动",
+    "platform": "抖音",
+    "industry": "影视",
+    "categories": ["影视IP", "抽卡", "集卡", "任务激励", "社交传播"],
+    "case_type": "production_configuration",
+    "activity_period": {
+      "start": "07-30 14:00",
+      "end": "08-30 18:00",
+      "year": null,
+      "confirmation": "pending"
+    },
+    "business_goal": null,
+    "target_audience": null,
+    "summary": "围绕《九门》影视IP，通过任务赚取抽卡次数、单抽/十连、卡册收集、赠卡、换卡和分享回流形成参与循环。当前资料是制作配置，不等同于已上线案例。",
+    "title": "抽九门名门卡，入奇楼探密境",
+    "subtitle": "抽卡入九门，解锁你的专属家族",
+    "work_cid": "7510936014924284466",
+    "official_account_id": "1731102388002089",
+    "declared_card_count": 49
+  },
+  "sources": [
+    {
+      "source_id": "src_jiu_men_detail_doc",
+      "title": "【内部】《九门》影视IP抽卡活动细节信息",
+      "source_type": "production_detail",
+      "url": "https://bytedance.larkoffice.com/docx/YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+      "permission_scope": "internal_restricted"
+    },
+    {
+      "source_id": "src_jiu_men_synced_config",
+      "title": "《九门》活动同步配置源文档",
+      "source_type": "synced_production_configuration",
+      "url": "https://bytedance.larkoffice.com/docx/Pq50d5VeHovFu5xKB1bcElWgnOe",
+      "permission_scope": "internal_restricted"
+    }
+  ],
+  "mechanics": [
+    { "id": "mechanic_task_earn", "name": "任务赚抽卡次数", "description": "完成一次性或每日任务，获得指定抽卡次数。", "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "mechanic_draw", "name": "单抽与十连抽", "description": "配置中同时存在单抽和十连抽按钮与结果素材。", "confirmation": "confirmed", "evidence_ids": ["ev_asset_specs"] },
+    { "id": "mechanic_album", "name": "卡册收集", "description": "用户查看九门卡册及集齐状态。", "confirmation": "confirmed", "evidence_ids": ["ev_copy"] },
+    { "id": "mechanic_gift", "name": "重复卡片赠送", "description": "重复卡可赠送给其他用户，并作为每日任务。", "confirmation": "confirmed", "evidence_ids": ["ev_tasks", "ev_copy"] },
+    { "id": "mechanic_exchange", "name": "好友换卡", "description": "活动包含换卡任务及换卡申请文案。", "confirmation": "confirmed", "evidence_ids": ["ev_tasks", "ev_copy"] },
+    { "id": "mechanic_share_return", "name": "分享与回流", "description": "活动页、单卡、集齐状态均配置分享文案；完整端到端回流链路仍需上线页验证。", "confirmation": "inferred", "evidence_ids": ["ev_copy", "ev_inferred_loop"] },
+    { "id": "mechanic_group_chat", "name": "群聊承接", "description": "制作规格中存在群聊入口配置。", "confirmation": "confirmed", "evidence_ids": ["ev_asset_specs"] }
+  ],
+  "tasks": [
+    { "id": "task_01", "name": "每日签到", "availability": "first_day", "action": "每日签到", "target": null, "reward_draws": 1, "frequency": "daily", "daily_limit": 1, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_02", "name": "标记想看", "availability": "first_day", "action": "给《九门》标记想看", "target": "cid:7510936014924284466", "reward_draws": 5, "frequency": "one_time", "daily_limit": null, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_03", "name": "关注官号", "availability": "first_day", "action": "关注《九门》官方账号", "target": "uid:1731102388002089", "reward_draws": 5, "frequency": "one_time", "daily_limit": null, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_04", "name": "观看官号视频", "availability": "first_day", "action": "观看官号视频5秒以上", "target": "video_id_group:missing", "reward_draws": 1, "frequency": "daily", "daily_limit": 3, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_05", "name": "点赞官号视频", "availability": "first_day", "action": "点赞官号视频", "target": "video_id_group:missing", "reward_draws": 2, "frequency": "daily", "daily_limit": 3, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_06", "name": "给角色捧场", "availability": "first_day", "action": "给作品角色捧场", "target": "role_ids:missing", "reward_draws": 5, "frequency": "daily", "daily_limit": 1, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_07", "name": "浏览作品评价", "availability": "day_3", "action": "浏览作品评价10秒以上", "target": "cid:7510936014924284466", "reward_draws": 3, "frequency": "one_time", "daily_limit": null, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_08", "name": "搜索九门", "availability": "first_day", "action": "搜索《九门》", "target": "schema:missing", "reward_draws": 1, "frequency": "daily", "daily_limit": 1, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_09", "name": "话题投稿", "availability": "first_day", "action": "投稿 #九门 并携带作品标签", "target": "topic_id:missing", "reward_draws": 3, "frequency": "daily", "daily_limit": 1, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_10", "name": "赠送重复卡片", "availability": "first_day", "action": "赠送重复卡片", "target": null, "reward_draws": 1, "frequency": "daily", "daily_limit": 1, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_11", "name": "发布观后评价", "availability": "after_premiere", "action": "写观后评价并通过平台审核", "target": "cid:7510936014924284466", "reward_draws": 5, "frequency": "one_time", "daily_limit": null, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_12", "name": "腾讯小程序观看", "availability": "after_premiere", "action": "去腾讯小程序观看《九门》", "target": "mini_program_route:missing", "reward_draws": 1, "frequency": "daily", "daily_limit": 1, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_13", "name": "逛我的影娱", "availability": "first_day", "action": "去逛一逛“我的影娱”", "target": null, "reward_draws": 3, "frequency": "one_time", "daily_limit": null, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_14", "name": "好友换卡", "availability": "first_day", "action": "和朋友交换小卡", "target": null, "reward_draws": 3, "frequency": "daily", "daily_limit": 1, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] },
+    { "id": "task_15", "name": "邀请朋友", "availability": "first_day", "action": "邀请朋友参与抽卡", "target": null, "reward_draws": 3, "frequency": "daily", "daily_limit": 10, "confirmation": "confirmed", "evidence_ids": ["ev_tasks"] }
+  ],
+  "card_tiers": [
+    { "id": "tier_dyr", "name": "抖音专属卡", "code": "DYR", "priority": 1, "card_count": 4, "platform_exclusive": true, "confirmation": "confirmed", "evidence_ids": ["ev_card_tiers"] },
+    { "id": "tier_sp", "name": "主创签名卡", "code": "SP", "priority": 3, "card_count": 3, "platform_exclusive": true, "confirmation": "confirmed", "evidence_ids": ["ev_card_tiers"] },
+    { "id": "tier_ssr", "name": "特别稀有卡", "code": "SSR", "priority": 4, "card_count": 15, "platform_exclusive": false, "confirmation": "confirmed", "evidence_ids": ["ev_card_tiers"] },
+    { "id": "tier_sr", "name": "超稀有卡", "code": "SR", "priority": 5, "card_count": 13, "platform_exclusive": false, "confirmation": "confirmed", "evidence_ids": ["ev_card_tiers"] },
+    { "id": "tier_r", "name": "稀有卡", "code": "R", "priority": 6, "card_count": 14, "platform_exclusive": false, "confirmation": "confirmed", "evidence_ids": ["ev_card_tiers"] }
+  ],
+  "touchpoints": [
+    { "id": "touchpoint_activity_center", "name": "活动中心Banner", "dimensions": null, "copy": "《九门》正在热播 / 快来抽取九门掌门签名小卡", "constraints": "文档包含MR设计要求，并以其他活动为制作参考。", "launch_status": "unknown", "confirmation": "confirmed", "evidence_ids": ["ev_touchpoints"] },
+    { "id": "touchpoint_profile", "name": "个人页Banner", "dimensions": "264x150", "copy": "抽九门小卡，闯秘境探险局", "constraints": null, "launch_status": "unknown", "confirmation": "confirmed", "evidence_ids": ["ev_touchpoints"] },
+    { "id": "touchpoint_search_aladdin", "name": "搜索阿拉丁", "dimensions": "1029x360", "copy": "《九门》正在热播 / 快来抽取九门掌门签名小卡", "constraints": "文件不超过200KB；安全边距30px；字号不小于12px。", "launch_status": "unknown", "confirmation": "confirmed", "evidence_ids": ["ev_touchpoints"] },
+    { "id": "touchpoint_search_star", "name": "搜索明星资源", "dimensions": "168x168", "copy": null, "constraints": "配置艺人：陈伟霆、曾舜晞、陈瑶。", "launch_status": "unknown", "confirmation": "confirmed", "evidence_ids": ["ev_touchpoints"] }
+  ],
+  "assets": [
+    {
+      "id": "asset_jiu_men_key_art",
+      "name": "九门群像横版与竖版净版",
+      "role": "target_activity_asset",
+      "asset_type": "source_promotional_key_art",
+      "finality": "provided",
+      "source_location": "活动素材同步块 Swzjd3qsZsOrbAbGX48cToeonOg",
+      "notes": "这是提供给活动使用的影视IP群像素材，已自动下载；尚不能证明它等于最终活动页KV。",
+      "variants": [
+        {
+          "asset_id": "media_c19297c16dad87cf",
+          "orientation": "horizontal",
+          "dimensions": "12598x5582",
+          "local_path": "assets/optimized/media_c19297c16dad87cf.jpg",
+          "original_path": "assets/originals/media_c19297c16dad87cf.jpg",
+          "thumbnail_path": "assets/thumbnails/media_c19297c16dad87cf.jpg"
+        },
+        {
+          "asset_id": "media_2e3aaca6c9673353",
+          "orientation": "vertical",
+          "dimensions": "5906x10473",
+          "local_path": "assets/optimized/media_2e3aaca6c9673353.jpg",
+          "original_path": "assets/originals/media_2e3aaca6c9673353.jpg",
+          "thumbnail_path": "assets/thumbnails/media_2e3aaca6c9673353.jpg"
+        }
+      ],
+      "visual_analysis": {
+        "subjects": "九位主要人物以家族群像方式出现，中央两人端坐，左右人物分组围合。",
+        "composition": "横版采用宽幅、近对称的群像排布；竖版将人物压缩在画面中段，顶部保留建筑空间，标题集中在下部。",
+        "palette": ["焦褐", "暗金", "黑色", "深青灰", "少量暖红"],
+        "style": "民国悬疑、旧宅家族肖像与做旧油画/壁画质感，整体低明度、高颗粒。",
+        "environment": "人物位于中式旧宅厅堂，背景包含屏风、木质格栅、吊灯、帷幔和古建筑线稿。",
+        "typography": "金白色毛笔字《九门》搭配拉开字距的拉丁字母 JIUMEN。",
+        "adaptation_notes": "横版适合宽幅Banner和头图；竖版适合活动首屏或竖版海报。活动标题、抽卡入口与平台组件需要在此素材上另行叠加。",
+        "observation_confirmation": "confirmed",
+        "final_design_confirmation": "unknown"
+      },
+      "confirmation": "confirmed",
+      "evidence_ids": ["ev_target_assets", "ev_target_asset_visual_observation"]
+    },
+    { "id": "asset_jiu_men_cards", "name": "九门卡面与卡包素材", "role": "target_activity_asset", "finality": "provided", "source_location": "活动素材同步块 Swzjd3qsZsOrbAbGX48cToeonOg", "notes": "包含卡面、卡包和Lottie所需素材位置。", "confirmation": "confirmed", "evidence_ids": ["ev_target_assets"] },
+    { "id": "asset_yong_ye_reference", "name": "《永夜星河》活动页与资源位参考", "role": "other_activity_reference", "finality": "reference_only", "source_location": "资源位同步块 KVDoduPFksRlo5bQUy2cTOvJnZe", "notes": "仅用于结构/规格参考，绝不是《九门》最终设计稿。", "confirmation": "confirmed", "evidence_ids": ["ev_reference_assets"] },
+    { "id": "asset_card_frame_spec", "name": "平台卡框与卡片输出规范", "role": "platform_spec", "finality": "specification", "source_location": "活动素材同步块 Swzjd3qsZsOrbAbGX48cToeonOg", "notes": "包括静态/动态卡、命名、尺寸和输出要求。", "confirmation": "confirmed", "evidence_ids": ["ev_asset_specs"] },
+    { "id": "asset_button_spec", "name": "单抽、十连、分享与群聊按钮规范", "role": "platform_spec", "finality": "specification", "source_location": "活动素材同步块 Swzjd3qsZsOrbAbGX48cToeonOg", "notes": "平台制作规格，不是业务主题素材。", "confirmation": "confirmed", "evidence_ids": ["ev_asset_specs"] },
+    { "id": "asset_task_icon_spec", "name": "任务与奖励图标规范", "role": "platform_spec", "finality": "specification", "source_location": "活动素材同步块 Swzjd3qsZsOrbAbGX48cToeonOg", "notes": "平台制作规格。", "confirmation": "confirmed", "evidence_ids": ["ev_asset_specs"] }
+  ],
+  "copy_variants": [
+    { "id": "copy_activity_share", "name": "活动页分享", "main": "和我一起抽《九门》名门卡", "sub": "一键解锁你的九门探险之旅", "confirmation": "confirmed", "evidence_ids": ["ev_copy"] },
+    { "id": "copy_gift", "name": "赠卡分享", "main": "送你一张《九门》名门卡", "sub": "助你加入心选家族", "confirmation": "confirmed", "evidence_ids": ["ev_copy"] },
+    { "id": "copy_single_card", "name": "单卡分享", "main": "《九门》急召！速来领取你的家族身份！", "sub": "入九门，一键解锁稀缺小卡！", "confirmation": "confirmed", "evidence_ids": ["ev_copy"] },
+    { "id": "copy_album_complete", "name": "集齐卡册分享", "main": "我集齐了《九门》卡册，你呢？", "sub": "好运传递！九门大会等你来！", "confirmation": "confirmed", "evidence_ids": ["ev_copy"] },
+    { "id": "copy_passphrase", "name": "分享口令", "main": "《九门》大会正在集结，抽卡解锁入场令牌！", "sub": null, "confirmation": "confirmed", "evidence_ids": ["ev_copy"] },
+    { "id": "copy_exchange", "name": "换卡申请", "main": "我向你发起了九门换卡申请", "sub": "你的家族卡牌已送达", "confirmation": "confirmed", "evidence_ids": ["ev_copy"] },
+    { "id": "copy_return", "name": "回流卡片", "main": "一起参与九门抽卡活动吧", "sub": null, "confirmation": "confirmed", "evidence_ids": ["ev_copy"] },
+    { "id": "copy_album_title", "name": "卡册标题", "main": "九门", "sub": null, "confirmation": "confirmed", "evidence_ids": ["ev_copy"] },
+    { "id": "copy_completion_lottie", "name": "集齐动效文案", "main": "恭喜你成为第x位集齐九门小卡的家主", "sub": null, "confirmation": "confirmed", "evidence_ids": ["ev_copy"] }
+  ],
+  "metrics": [],
+  "evidence": [
+    { "evidence_id": "ev_case_base", "object_type": "case", "object_id": "film_jiu_men_card_2026", "field_name": "identity_and_period", "source_id": "src_jiu_men_detail_doc", "source_location": "主文档基础信息区", "evidence_type": "document_explicit", "confirmation": "pending" },
+    { "evidence_id": "ev_tasks", "object_type": "task_collection", "object_id": "tasks", "field_name": "task_rules", "source_id": "src_jiu_men_detail_doc", "source_location": "任务配置表", "evidence_type": "document_explicit", "confirmation": "confirmed" },
+    { "evidence_id": "ev_card_tiers", "object_type": "card_tier_collection", "object_id": "card_tiers", "field_name": "tiers_and_counts", "source_id": "src_jiu_men_synced_config", "source_location": "同步块 NzyNdyz3DsrE35bt1fBctJS5nme", "evidence_type": "synced_source_explicit", "confirmation": "confirmed" },
+    { "evidence_id": "ev_touchpoints", "object_type": "touchpoint_collection", "object_id": "touchpoints", "field_name": "placements_and_specs", "source_id": "src_jiu_men_synced_config", "source_location": "同步块 KVDoduPFksRlo5bQUy2cTOvJnZe", "evidence_type": "synced_source_explicit", "confirmation": "confirmed" },
+    { "evidence_id": "ev_target_assets", "object_type": "asset_collection", "object_id": "target_activity_assets", "field_name": "source_locations", "source_id": "src_jiu_men_synced_config", "source_location": "同步块 Swzjd3qsZsOrbAbGX48cToeonOg", "evidence_type": "synced_source_explicit", "confirmation": "confirmed" },
+    { "evidence_id": "ev_target_asset_visual_observation", "object_type": "asset", "object_id": "asset_jiu_men_key_art", "field_name": "visual_analysis", "source_id": "src_jiu_men_synced_config", "source_location": "本地下载的横版与竖版九门群像素材", "evidence_type": "design_observation", "confirmation": "confirmed" },
+    { "evidence_id": "ev_reference_assets", "object_type": "asset", "object_id": "asset_yong_ye_reference", "field_name": "reference_role", "source_id": "src_jiu_men_synced_config", "source_location": "同步块 KVDoduPFksRlo5bQUy2cTOvJnZe", "evidence_type": "design_observation", "confirmation": "confirmed" },
+    { "evidence_id": "ev_asset_specs", "object_type": "asset_collection", "object_id": "platform_specs", "field_name": "production_specs", "source_id": "src_jiu_men_synced_config", "source_location": "同步块 Swzjd3qsZsOrbAbGX48cToeonOg", "evidence_type": "synced_source_explicit", "confirmation": "confirmed" },
+    { "evidence_id": "ev_copy", "object_type": "copy_collection", "object_id": "copy_variants", "field_name": "copy", "source_id": "src_jiu_men_synced_config", "source_location": "同步块 W98Gd5mvQszAVnbhXSEccRuEnHg", "evidence_type": "synced_source_explicit", "confirmation": "confirmed" },
+    { "evidence_id": "ev_inferred_loop", "object_type": "mechanic", "object_id": "mechanic_share_return", "field_name": "end_to_end_loop", "source_id": "src_jiu_men_synced_config", "source_location": "由分享文案与按钮规格组合推断", "evidence_type": "agent_inference", "confirmation": "inferred" }
+  ],
+  "gaps": [
+    { "gap_id": "gap_business_goal", "field": "case.business_goal", "reason": "制作资料没有业务目标、优先指标或策略背景。", "impact": "不能回答为什么选择抽卡或该机制服务何种经营目标。", "status": "open" },
+    { "gap_id": "gap_target_audience", "field": "case.target_audience", "reason": "资料未定义目标人群。", "impact": "不能据此判断视觉方向或机制与人群的匹配度。", "status": "open" },
+    { "gap_id": "gap_activity_year", "field": "case.activity_period.year", "reason": "文档只写月日时间，且区块标题含“待定”。", "impact": "不能生成确定的完整日期或宣称已排期。", "status": "open" },
+    { "gap_id": "gap_final_design", "field": "assets.final_design", "reason": "资料包含九门素材位置与其他活动参考，但没有可核验的九门最终上线设计稿。", "impact": "不能把参考图当作九门最终页面展示。", "status": "open" },
+    { "gap_id": "gap_online_page", "field": "case.online_page", "reason": "没有上线页面URL、录屏或页面快照。", "impact": "无法验证完整交互、异常态和真实回流链路。", "status": "open" },
+    { "gap_id": "gap_performance_metrics", "field": "metrics", "reason": "资料未提供曝光、参与、抽卡、分享、转化等效果数据。", "impact": "不能宣称活动效果好，也不能作为数据优胜案例排序。", "status": "open" },
+    { "gap_id": "gap_task_targets", "field": "tasks.targets", "reason": "视频组、角色、搜索Schema、话题和腾讯小程序路由ID缺失。", "impact": "任务结构可复用，但不能直接执行配置。", "status": "open" },
+    { "gap_id": "gap_sf_tier_conflict", "field": "card_tiers.SF", "reason": "素材命名示例出现SF字样，但已确认卡片等级表只有DYR、SP、SSR、SR、R。", "impact": "Agent不得自行增加SF等级，需业务确认命名是否为历史残留。", "status": "open" },
+    { "gap_id": "gap_launch_status", "field": "touchpoints.launch_status", "reason": "资源位表是制作配置，没有上线确认或曝光证明。", "impact": "只能说明计划/配置了哪些资源位，不能声称实际投放。", "status": "open" }
+  ]
+}

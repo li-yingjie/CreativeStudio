@@ -13,6 +13,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint . --max-warnings=0",
     "test": "node --test",
+    "knowledge:validate": "node scripts/validate-knowledge.mjs",
+    "knowledge:collect:jiu-men": "node scripts/collect-lark-case-assets.mjs --case-id film_jiu_men_card_2026 --doc https://bytedance.larkoffice.com/docx/YQWtdvLIMoZ7fJxVGEScZ1tpnKb --download --roles target_activity_asset --source-blocks Swzjd3qsZsOrbAbGX48cToeonOg",
     "check": "npm run lint && npm test && npm run build",
     "preview": "vite preview"
   },

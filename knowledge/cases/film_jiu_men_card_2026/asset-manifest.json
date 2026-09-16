@@ -1,0 +1,3813 @@
+{
+  "manifest_version": "1.0.0",
+  "case_id": "film_jiu_men_card_2026",
+  "generated_at": "2026-08-24T08:11:29.076Z",
+  "source_document": "https://bytedance.larkoffice.com/docx/YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+  "source_revisions": [
+    {
+      "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+      "revision_id": 14,
+      "source_block_id": null
+    },
+    {
+      "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+      "revision_id": 327,
+      "source_block_id": "Swzjd3qsZsOrbAbGX48cToeonOg"
+    },
+    {
+      "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+      "revision_id": 327,
+      "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg"
+    },
+    {
+      "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+      "revision_id": 327,
+      "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme"
+    },
+    {
+      "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+      "revision_id": 327,
+      "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe"
+    }
+  ],
+  "permission_scope": "internal_restricted",
+  "collection_summary": {
+    "discovered": 130,
+    "included": 130,
+    "downloaded": 2,
+    "failed": 0,
+    "requires_review": 6
+  },
+  "assets": [
+    {
+      "asset_id": "media_12e1657a52e7f265",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "328",
+        "height": "604"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "SmcQdm8D2o3poQxjdNlclb2lngH",
+        "context": "影视作品信息 作品cid：7510936014924284466 作品官号： 1731102388002089 各任务权重 排序 出现时机 任务名 任务属性 任务描述 每日任务上限 场景示意图 1 活动首日 每日签到 完成后抽卡机会+1 1",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_dd6761b7fa935727",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "759",
+        "height": "1060"
+      },
+      "role": "platform_spec",
+      "role_confidence": 0.82,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "GIUvdTWLeoIOc2xGmYycpDConGh",
+        "context": "完成后抽卡机会+3 10 资源位设计 供应商：《九门》抽卡物料提供规范 页面主题素材需关注 设计关注 以下每个表格大类都需要提供一个单的文件夹，后续如果有更新，需在更新的压缩包上附上更新日期，只放入需要更新的图片即可，新包要命名要标明更新日期，且注意保留老包； 大卡卡面是最重要的资源，其体积要求比较严格，要求提供的图大小在800kb左右，最大不要超过1M； 物料输出规范 等级卡框物料（优先级：1） 晚交付影响研发配置to签、编号位置和查看实际效果 物料名 物料示意图 实际输出尺寸 命名规范 素材提供 卡各等级显示边框（不发光）",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_eac346e98558a9f9",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "687",
+        "height": "930"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "E86udQBTioe38Hx8H5TcrGYinPM",
+        "context": "图片尺寸：738*1014 文件大小：小于1M 文件格式：PNG （基于设计稿1.5x导出） normalBorder_等级名 例：normalBorder_R 需要包含卡册边框， 卡册边框固定命名：normalBorder_cover 卡各等级显示边框（发光）",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_3a564b38ebf6e5eb",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "838",
+        "height": "1112"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "Ti8SdSgYxoyj5LxKZPCcQ6aWnub",
+        "context": "卡各等级显示边框（发光） 图片尺寸：580*760 文件大小：小于1M 文件格式：PNG （基于设计稿1x导出） borderGlow_等级名 例：borderGlow_SP 卡背面（无卡状态）",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_cbab10eb4c5945a3",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "307",
+        "height": "438"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "IGT5dF2CFoAhunxRFjtcU7lYnvf",
+        "context": "卡背面（无卡状态） 图片尺寸：369*507 文件大小：小于1M 文件格式：PNG （基于设计稿1.5x导出） cardback_等级名 例：cardback_SP 分享边框样式",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_5ae2282162e9ac54",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "385",
+        "height": "234"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "ZGWyduXHMohCWPxLT5fcgzFgnef",
+        "context": "分享边框样式 图片尺寸：738*1014 文件大小：小于1M 文件格式：PNG （基于设计稿1.5x导出） shareborder_等级名 例：shareborder_SR 需要包含卡册边框， 卡册分享边框固定命名：shareBorder_cover 卡片倒影",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_91e0d67fe8044f72",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "607",
+        "height": "237"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "MLd7dWSDXoL9svxk9tlcCkAHnAc",
+        "context": "卡片倒影 图片尺寸：246*115 文件大小：小于1M 文件格式：PNG （基于设计稿1x导出） cardshadow_等级名 例：cardshadow_SP 弹窗卡等级标题",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_32fcc1493809b2c9",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "598",
+        "height": "215"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "VoIdddpg3onZakxRcMxcICDHnXe",
+        "context": "弹窗卡等级标题 高度：189px 宽度：随意 文件大小：小于1M 文件格式：PNG （基于设计稿1.5x导出） popupTitle_等级名 例：popupTitle_DYR 小卡区域等级标题",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_d197c69c187e5fa4",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "296",
+        "height": "376"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "X4pPdDbM8oDOcexqLYHciIKmn7b",
+        "context": "小卡区域等级标题 高度：36px 宽度：随意 文件大小：小于1M 文件格式：PNG （基于设计稿1.5x导出） subtitle_等级名 例：subtitle_DYR 翻卡背景",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_477771bb9be51741",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "897",
+        "height": "337"
+      },
+      "role": "platform_spec",
+      "role_confidence": 0.82,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "YfG5dBkv9ohehfxCVNVcsLdZnVg",
+        "context": "例： flipBg_DYR 无抽卡 各按钮物料（优先级：1） 设计出图时只需关注每个大分类，小分类中按钮只有文字不同，所用背景图、字体配置皆相同； 每个按钮图片，可以有两种类型的配置 复杂按钮 ：对于样式比较复杂的按钮，直接提供背景图和文字颜色 简单按钮 ：对于背景的形状和颜色比较简单的按钮（如方形、规则的弧形、纯色背景），直接提供背景色和文字颜色 所有需要背景图的按钮，合并到一个压缩包内即可。纯色、形状规则的背景按钮，提供背景颜色和文字颜色 物料名 物料说明 物料示意图 实际输出要求 命名规范 素材提供区 第一组按钮 单次抽卡（未集齐状态）",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_d7a728c723927dc8",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "166",
+        "height": "64"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "FupDdaBdMommchxnJljcqyYJnac",
+        "context": "简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：308*95 大小：小于1M 文件格式：PNG button_1 字色渐变：linear-gradient(167deg, #FFF8DA -3.15%, #EFC47E 90.84%); 进入抽卡群聊",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_662b4dce1de64b68",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "140",
+        "height": "56"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "JNnedpf1NoqusrxfNKEczlQsnVb",
+        "context": "button_1 字色渐变：linear-gradient(167deg, #FFF8DA -3.15%, #EFC47E 90.84%); 进入抽卡群聊 弹窗预览保存",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_9a2963c6bbf0c6de",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "132",
+        "height": "60"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "Fuh5d0oryox1aexstn5cQekNn2c",
+        "context": "字色渐变：linear-gradient(167deg, #FFF8DA -3.15%, #EFC47E 90.84%); 进入抽卡群聊 弹窗预览保存 抽十次查看图鉴",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_57c44cabc5e41015",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "857",
+        "height": "312"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "QNo1d5sGKofiKfxUlYEcF6pQnNb",
+        "context": "字色渐变：linear-gradient(167deg, #FFF8DA -3.15%, #EFC47E 90.84%); 进入抽卡群聊 弹窗预览保存 抽十次查看图鉴 第二组按钮 十次连抽",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_3417a7e842e5d9b6",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "408",
+        "height": "130"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "PxvQdpC6FofDOtxIHFRcMqzFn3t",
+        "context": "第二组按钮 十次连抽 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：308*95 大小：小于1M 文件格式：PNG button_2 字色渐变：linear-gradient(167deg, #FFF8DA -3.15%, #EFC47E 90.84%); 分享卡册（集齐后出现）",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_960e258c01209ee4",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "294",
+        "height": "104"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "W13Kd9NVCoF5qGx8YoycJmgbnGf",
+        "context": "十次连抽 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：308*95 大小：小于1M 文件格式：PNG button_2 字色渐变：linear-gradient(167deg, #FFF8DA -3.15%, #EFC47E 90.84%); 分享卡册（集齐后出现） 送重复卡",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_0c7d41ae7d5ff43e",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "452",
+        "height": "182"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "DD96dhKwdorO7cxB3KncPe3anhf",
+        "context": "简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：308*95 大小：小于1M 文件格式：PNG button_2 字色渐变：linear-gradient(167deg, #FFF8DA -3.15%, #EFC47E 90.84%); 分享卡册（集齐后出现） 送重复卡 查看卡册",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_7af9ddd9640dd120",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "198",
+        "height": "70"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "Fsi1dtunVo63ZxxoDJGcB11An4c",
+        "context": "button_2 字色渐变：linear-gradient(167deg, #FFF8DA -3.15%, #EFC47E 90.84%); 分享卡册（集齐后出现） 送重复卡 查看卡册 抽卡群",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_887369d5059e8fd6",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "374",
+        "height": "170"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "DeuRdLeeMoaDUxxwVNAcfPSbnls",
+        "context": "送重复卡 查看卡册 抽卡群 去分享",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_160fb30573a26628",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "278",
+        "height": "140"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "RcA1dNbL1oMlJrx6P8RcshWdnxh",
+        "context": "查看卡册 抽卡群 去分享 继续抽卡",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_aea8fd0cfcd47801",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "274",
+        "height": "114"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "SAoBdlfH7onYkPxTzdSc8A3Fnae",
+        "context": "抽卡群 去分享 继续抽卡 做任务得机会",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_b78ee3c4f8f13c43",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "829",
+        "height": "336"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "TzgQd2zEZopHE9xoTvTcnx99nXe",
+        "context": "去分享 继续抽卡 做任务得机会 第三组按钮 赠送卡片取消",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_9fa0951983336e03",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "534",
+        "height": "226"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "MzOzd1RHXoJc1LxBsrNcQNXRnJb",
+        "context": "第三组按钮 赠送卡片取消 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：308*95 大小：小于1M 文件格式：PNG button_3 字色：rgba(159, 122, 51, 1) 第四组按钮 单次抽卡（集齐状态）",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_b57da2969afa101d",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "286",
+        "height": "172"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "V67pdrLQhoMk2mxVti2c3g0BnLM",
+        "context": "输出文字颜色 输出背景图 尺寸：308*95 大小：小于1M 文件格式：PNG button_3 字色：rgba(159, 122, 51, 1) 第四组按钮 单次抽卡（集齐状态） 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：180*70 大小：小于1M 文件格式：PNG button_4 字色渐变：linear-gradient(167deg, #FFF -3.15%, #FFE3B6 90.84%); 进入群聊",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_39724cb266e88df5",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "266",
+        "height": "144"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "Bl1sdmaWDo42onx3EVCctCQRn8h",
+        "context": "单次抽卡（集齐状态） 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：180*70 大小：小于1M 文件格式：PNG button_4 字色渐变：linear-gradient(167deg, #FFF -3.15%, #FFE3B6 90.84%); 进入群聊 保存",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_f1389f507528ed92",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "487",
+        "height": "204"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "LnP3dws28op6ZBxqJHRcVYgunDd",
+        "context": "复杂按钮： 输出文字颜色 输出背景图 尺寸：180*70 大小：小于1M 文件格式：PNG button_4 字色渐变：linear-gradient(167deg, #FFF -3.15%, #FFE3B6 90.84%); 进入群聊 保存 第五组按钮 十次连抽（集齐状态）",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_248def504c6f6345",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "254",
+        "height": "156"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "FHNbdonvdo3KIbxihbAcZeGcnRb",
+        "context": "第五组按钮 十次连抽（集齐状态） 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：180*70 大小：小于1M 文件格式：PNG button_5 字色渐变：linear-gradient(167deg, #FFF -3.15%, #FFE3B6 90.84%); 送重复卡",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_4213081c8aedae2e",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "268",
+        "height": "168"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "YAz6dQl0JoF10qxWBlJcrqu9nph",
+        "context": "简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：180*70 大小：小于1M 文件格式：PNG button_5 字色渐变：linear-gradient(167deg, #FFF -3.15%, #FFE3B6 90.84%); 送重复卡 分享",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_0b7eb1ee40b56f3c",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "257",
+        "height": "82"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "M4Q3d8WbPoxfWYxTPBvcHuGJnMh",
+        "context": "复杂按钮： 输出文字颜色 输出背景图 尺寸：180*70 大小：小于1M 文件格式：PNG button_5 字色渐变：linear-gradient(167deg, #FFF -3.15%, #FFE3B6 90.84%); 送重复卡 分享 第六组按钮 赠卡-我不需要",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_ed2a8adc255b139b",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "755",
+        "height": "301"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "Yx72dU6zdoDhPcxY07Lcd7u3n7c",
+        "context": "第六组按钮 赠卡-我不需要 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：263*81 大小：小于1M 文件格式：PNG button_6 字色：rgba(159, 122, 51, 1) 第七组按钮 赠卡-开心收下",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_49dfa9011b3e557a",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "713",
+        "height": "286"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "F1nCdkFVGoBzBjxkNujcYAKXnug",
+        "context": "尺寸：263*81 大小：小于1M 文件格式：PNG button_6 字色：rgba(159, 122, 51, 1) 第七组按钮 赠卡-开心收下 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：263*81 大小：小于1M 文件格式：PNG button_7 字色渐变：linear-gradient(167deg, #FFF8DA -3.15%, #EFC47E 90.84%); 回流-去参加活动",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_6e9c8c33bce73a9b",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "447",
+        "height": "213"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "Tla0dBqYeoqcQ8x0xYtclaTJnqw",
+        "context": "简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：263*81 大小：小于1M 文件格式：PNG button_7 字色渐变：linear-gradient(167deg, #FFF8DA -3.15%, #EFC47E 90.84%); 回流-去参加活动 第八组按钮 加入群聊",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_a10421739f6255b0",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "207",
+        "height": "85"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "AJatdrhuboFs7txMoT1cWFBVnfd",
+        "context": "第八组按钮 加入群聊 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：152*56 大小：小于1M 文件格式：PNG button_8 字色：rgba(87, 59, 35, 1) 背景色：rgba(224, 180, 98, 1) border-radius: 50px; 第九组按钮 发消息",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_c5c76de42ea52c2f",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "1135",
+        "height": "296"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "UbdxdWqMzowB2KxmOBjcVyZonVg",
+        "context": "字色：rgba(87, 59, 35, 1) 背景色：rgba(224, 180, 98, 1) border-radius: 50px; 第九组按钮 发消息 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：152*56 大小：小于1M 文件格式：PNG button_9 字色：rgba(87, 59, 35, 1) 背景色：rgba(255, 250, 228, 1) border-radius: 50px; 第十组按钮 赠卡-已被领取",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_05592acb509b53b2",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "184",
+        "height": "50"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "HFEvd8vZfoTvrexA9QWcGOLXnJc",
+        "context": "字色：rgba(87, 59, 35, 1) 背景色：rgba(255, 250, 228, 1) border-radius: 50px; 第十组按钮 赠卡-已被领取 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：382*85 大小：小于1M 文件格式：PNG button_10 背景色：rgba(27, 27, 27, 1) 字色：rgba(255, 255, 255, 0.3) border-radius: 100px; 来晚了，已被领取",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_ae75f9351e0845c8",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "460",
+        "height": "230"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "JspedRSedokzzvxLIbccfJUZnQz",
+        "context": "简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：382*85 大小：小于1M 文件格式：PNG button_10 背景色：rgba(27, 27, 27, 1) 字色：rgba(255, 255, 255, 0.3) border-radius: 100px; 来晚了，已被领取 第十一组按钮 做任务按钮",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_76af807ebc963403",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "651",
+        "height": "136"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "YM66dPnsDoDG9exob4CczUYvnKf",
+        "context": "第十一组按钮 做任务按钮 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：144*55 大小：小于1M 文件格式：PNG button_11 字色：rgba(87, 59, 35, 1) 第十二组按钮 换卡按钮",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_540ae1329ddb91cf",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "631",
+        "height": "105"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "WGKGdCjuXoBuNgx3pkAcVoWRnae",
+        "context": "输出文字颜色 输出背景图 尺寸：144*55 大小：小于1M 文件格式：PNG button_11 字色：rgba(87, 59, 35, 1) 第十二组按钮 换卡按钮 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：667*95 大小：小于1M 文件格式：PNG button_12 字色：rgba(255, 255, 255, 0.4) 第十三组按钮 换卡按钮",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_e7ee94bf853e8e8d",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "1144",
+        "height": "283"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "YQLVdmtjpod1Rcxlm6VcofF2nOg",
+        "context": "输出文字颜色 输出背景图 尺寸：667*95 大小：小于1M 文件格式：PNG button_12 字色：rgba(255, 255, 255, 0.4) 第十三组按钮 换卡按钮 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：667*95 大小：小于1M 文件格式：PNG button_13 字色渐变：linear-gradient(125deg, #FFF8DA 3.69%, #EFC47E 92.12%); 第十四组按钮 换卡按钮",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_7457ff40965c4117",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "1162",
+        "height": "300"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "PHnzdFOLXocN1rx71H9cl1CTnMb",
+        "context": "输出文字颜色 输出背景图 尺寸：667*95 大小：小于1M 文件格式：PNG button_13 字色渐变：linear-gradient(125deg, #FFF8DA 3.69%, #EFC47E 92.12%); 第十四组按钮 换卡按钮 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：192*96 大小：小于1M 文件格式：PNG button_14 字色渐变：linear-gradient(125deg, #FFF8DA 3.69%, #EFC47E 92.12%); 第十五组按钮 换卡按钮",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_222a872ec9c39e51",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "1601",
+        "height": "429"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "HXfPd86rxoIoZwx45OocgUUAnKh",
+        "context": "复杂按钮： 输出文字颜色 输出背景图 尺寸：192*96 大小：小于1M 文件格式：PNG button_14 字色渐变：linear-gradient(125deg, #FFF8DA 3.69%, #EFC47E 92.12%); 第十五组按钮 换卡按钮 简单按钮： 输出字体颜色 输出背景颜色 复杂按钮： 输出文字颜色 输出背景图 尺寸：504*96 大小：小于1M 文件格式：PNG button_15 字色：rgba(255, 255, 255, 0.4) 第十六组按钮 换卡按钮",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_c1683c005ebf5e84",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "559",
+        "height": "771"
+      },
+      "role": "platform_spec",
+      "role_confidence": 0.82,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "ZZMhddI3qor6jCxy64kc8grCnyc",
+        "context": "视频尺寸：492 × 676 文件大小：小于5M 文件格式：MP4 ⚠ 带框版本需要输出直角视频 video_等级名_1 例： video_R_1 卡片物料（静态）（优先级：3） 物料名 物料示意图 实际输出尺寸 命名规范 素材提供 大卡卡面",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_e5fb62a36c26ceeb",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "732",
+        "height": "1036"
+      },
+      "role": "platform_spec",
+      "role_confidence": 0.82,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "XrsCdSaNgoOBeUxV2ITc9m4Oneb",
+        "context": "例： video_R_1 卡片物料（静态）（优先级：3） 物料名 物料示意图 实际输出尺寸 命名规范 素材提供 大卡卡面",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_830cb3a9dd91d940",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "379",
+        "height": "494"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "CCZAdeiNuoBYuMxhulCc18T8n1b",
+        "context": "图片尺寸：738x1014 文件大小：小于1M 文件格式：JPG （基于设计稿1.5x导出） B_等级名_顺序号_卡面名 序列号：在该等级下前端显示的卡片位序 卡面名：该卡面在前端外显的名字 例：B_DYR_1_许嵩·A 小卡卡面",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_a3e576dfbeef68ff",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "645",
+        "height": "810"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "GaGhdjrh2o8IP3xF70XcXry1nuh",
+        "context": "尺寸：750*1624 时长：8s 帧数：480f 帧率：60 帧/s 大小：≈1M 格式：Lottie 备注：0-180f单次播放；181-480f循环播放（需保证循环时无卡顿衔接不上的情况） 直接用这个源文件替图，保持一样的效果，不需要其他改动！",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_7307b4bb0da76fa7",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "1403",
+        "height": "1524"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "G99TdUCD8oCAJWxZmeucgPafnCe",
+        "context": "：353*471 右下卡：85*120 右中：199*261 右上：113*159 左上：68*93 左中：158*208 左下：251*328 卡背眩光：750*750 DYR卡背1：247*338 DYR卡背2：354*487 SSR卡背：247*338 SF卡背：247*338 R卡背：246*338 SP卡背：247*338 SR卡背：247*338 中间卡册：img_0 右下卡：img_2 右中：img_3 右上：img_4 左上：img_5 左中：img_6 左下：img_7 卡背眩光：img_8 DYR卡背1：img_9 DYR卡背2：img_24 SSR卡背：img_25 SF卡背：img_26 R卡背：img_27 SP卡背：img_28 SR卡背：img_29 集齐保存图+分享保存图（边框）",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_d8097d6d31f9670c",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "245",
+        "height": "363"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "LVnsdsBpIoLxTJxDBXZcDNjQnIN",
+        "context": "卡背眩光：img_8 DYR卡背1：img_9 DYR卡背2：img_24 SSR卡背：img_25 SF卡背：img_26 R卡背：img_27 SP卡背：img_28 SR卡背：img_29 集齐保存图+分享保存图（边框） 图片尺寸：738*1014 文件大小：小于1M 文件格式：PNG （基于设计稿1.5x导出） 集齐保存图（带卡册+小卡）",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_c887e24f95ec91c6",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "431",
+        "height": "663"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "A56QdoV99oen2XxBfkzcUdm5nMe",
+        "context": "集齐保存图（带卡册+小卡） 图片尺寸：1008x1386 文件大小：< 200k 文件格式：JPG （基于设计稿1.5x导出） 集齐页，显示的6张小卡+中间卡册",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_9954ac980a8cbe54",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "131",
+        "height": "136"
+      },
+      "role": "platform_spec",
+      "role_confidence": 0.82,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "J3nQd5En3owSxLxBpEBc21tDnxf",
+        "context": "左中 237*311 左下小卡 375*492 右上小卡 170*239 右中小卡 261*342 右下小卡 126*179 中间卡册 510*699 文件大小：<100k 文件格式：PNG （基于设计稿1.5x导出） 任务区物料（优先级：3） 物料名 物料示意图 实际输出尺寸 命名规范 素材提供 任务icon",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_bbfe18878c7c66b0",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "260",
+        "height": "425"
+      },
+      "role": "platform_spec",
+      "role_confidence": 0.82,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "X5bOd19RooaHDtxk068cD8REnsb",
+        "context": "命名规范 素材提供 动态头图 无动态头图 翻卡奖励物料（若有则提供，优先级：3） 物料名 物料示意图 实际输出尺寸 命名规范 素材提供 奖品icon（研发配） 奖励列表页",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_2491d6a386e66a3b",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "298",
+        "height": "410"
+      },
+      "role": "platform_spec",
+      "role_confidence": 0.82,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+        "revision_id": 14,
+        "source_block_id": null,
+        "image_block_id": "RP3ZdPNfToNzOixTRKPc0TaFnPf",
+        "context": "物料名 物料示意图 实际输出尺寸 命名规范 素材提供 奖品icon（研发配） 奖励列表页 160*160 （基于设计稿1.5x导出） 奖品icon（cubic配） 奖品获得时预览",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_c19297c16dad87cf",
+      "name": "九门-九门群像-横版净版.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "12598",
+        "height": "5582"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.72,
+      "finality": "unknown",
+      "local_path": "assets/originals/media_c19297c16dad87cf.jpg",
+      "optimized_path": "assets/optimized/media_c19297c16dad87cf.jpg",
+      "thumbnail_path": "assets/thumbnails/media_c19297c16dad87cf.jpg",
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "Swzjd3qsZsOrbAbGX48cToeonOg",
+        "image_block_id": "DWbxdG4qaoE810xK71Pc5AwLnvc",
+        "context": "九门大会 链接: [链接已省略] 提取码：[已省略]",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "downloaded",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_2e3aaca6c9673353",
+      "name": "九门-九门群像竖版-净版.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "5906",
+        "height": "10473"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.72,
+      "finality": "unknown",
+      "local_path": "assets/originals/media_2e3aaca6c9673353.jpg",
+      "optimized_path": "assets/optimized/media_2e3aaca6c9673353.jpg",
+      "thumbnail_path": "assets/thumbnails/media_2e3aaca6c9673353.jpg",
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "Swzjd3qsZsOrbAbGX48cToeonOg",
+        "image_block_id": "MqRPdqSOgoBy2KxQ6VycEh15nJb",
+        "context": "九门大会 链接: [链接已省略] 提取码：[已省略]",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "downloaded",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_126d5f53114fcd9f",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "486",
+        "height": "768"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg",
+        "image_block_id": "doxcnFhscVbMwE9h8Cb3JGYiRwg",
+        "context": "活动标题 抽九门名门卡，入奇楼探密境",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_03f90d61d750ecb1",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "398",
+        "height": "849"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg",
+        "image_block_id": "doxcn6AEJDT6aHA9fBl52q8mKIC",
+        "context": "活动标题 抽九门名门卡，入奇楼探密境 活动副标题 抽卡入九门，解锁你的专属家族",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_b213aa31902c4298",
+      "name": "img_v3_02f4_485d0521-4132-4818-b907-833b1ee251eg.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "1064",
+        "height": "460"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg",
+        "image_block_id": "doxcnR5TWMYLbkeGEiulEAkrvsF",
+        "context": "活动副标题 抽卡入九门，解锁你的专属家族 活动页分享 IM卡片文案 字数限制： 主标题：单行11字，超过会换行；双行21字，超过会显示省略号； 副标题：13字，超过会显示省略号 主标题：和我一起抽《九门》名门卡 副标题：一键解锁你的九门探险之旅",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_e050c8c997ad0b11",
+      "name": "img_v3_02fj_392f507f-4b47-4898-91cf-3da79b61b9dg.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "1079",
+        "height": "1999"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg",
+        "image_block_id": "doxcnvj2HWXn9MRx2r7SrT5lWlg",
+        "context": "活动页分享 IM卡片文案 字数限制： 主标题：单行11字，超过会换行；双行21字，超过会显示省略号； 副标题：13字，超过会显示省略号 主标题：和我一起抽《九门》名门卡 副标题：一键解锁你的九门探险之旅",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_f5be41dc70c951e9",
+      "name": "img_v3_02fj_f47b5496-08d5-4a5e-ba6b-eb7c598d822g.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "1080",
+        "height": "1872"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg",
+        "image_block_id": "doxcn0aZPqsXluTMXODXanZgtLh",
+        "context": "主标题：和我一起抽《九门》名门卡 副标题：一键解锁你的九门探险之旅",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_ea39a69a48b359b5",
+      "name": "img_v3_02fj_4fe48292-d0b4-4ddb-8229-b574f45a58dg.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "1437",
+        "height": "1079"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg",
+        "image_block_id": "doxcnerP7egJF9AaWwBtTAUvPEe",
+        "context": "",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_f7faa5c590ed469e",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "504",
+        "height": "884"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg",
+        "image_block_id": "doxcnsk38ZQEZJOW5876HO8JRVg",
+        "context": "分享集齐的卡册IM卡片文案 字数限制： 主标题：单行11字，超过会换行；双行21字，超过会显示省略号； 副标题：13字，超过会显示省略号 主标题：我集齐了《九门》卡册，你呢？ 副标题：好运传递！九门大会等你来！ 分享口令文案（含活动页分享、卡片分享、卡册分享、赠卡分享等） 《九门》大会正在集结，抽卡解锁入场令牌！ 换卡文案 主标题：我向你发起了九门换卡申请 副标题：你的家族卡牌已送达 分享回流卡文案 主文案：13子以内 一起参与九门抽卡活动吧",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_de1969a16ee5107a",
+      "name": "img_v3_02fs_ac325c54-1d39-4734-8a57-95c8deb3c78g.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "1080",
+        "height": "2341"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg",
+        "image_block_id": "doxcntqr0pkUgX0DGvPIpqN5KAc",
+        "context": "换卡文案 主标题：我向你发起了九门换卡申请 副标题：你的家族卡牌已送达 分享回流卡文案 主文案：13子以内 一起参与九门抽卡活动吧 活动卡册标题 活动标题：6字以内 九门",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_7ad8d87c63f5fbdc",
+      "name": "img_v3_02fs_aeedfb4d-39e0-4999-bc8a-fcb6facf7f5g.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "1080",
+        "height": "2341"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg",
+        "image_block_id": "doxcntpQiJyuafAFEzdmY4OrZbc",
+        "context": "一起参与九门抽卡活动吧 活动卡册标题 活动标题：6字以内 九门",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_e4c7a10475300eea",
+      "name": "img_v3_02ru_8051f1d0-0eb0-4a78-aa84-dea6d7034b0g.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "1036",
+        "height": "1438"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg",
+        "image_block_id": "doxcnMqlyqXEmK0rAmIWe5sn4id",
+        "context": "lottie卡册卡片（尚缺文案） 活动标题：30字以内 恭喜你成为第x位集齐九门小卡的家主",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_e3fd8f1c03771c40",
+      "name": "img_v3_02ru_5ea3b2c5-98f4-4f2c-ba01-cbca0dcab20g.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "443",
+        "height": "587"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg",
+        "image_block_id": "doxcngn2sNFXSQA9oUTJ5rjWGfx",
+        "context": "lottie卡册卡片（尚缺文案） 活动标题：30字以内 恭喜你成为第x位集齐九门小卡的家主",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_b282143cfc4e41be",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "234",
+        "height": "525"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "O5XMdOzsTopEbkx7mrNcY7r3nvg",
+        "context": "卡面等级（英文名） 卡面等级（中文名） 卡面等级名场景示意图 优先级 卡片数量 卡片名场景示意图 卡片1 卡片2 卡片3 卡片4 卡片5 卡片6 卡片7 卡片8 卡片9 卡片10 卡片11 卡片12 卡片13 卡片14 卡片15 卡片16 卡片17 卡片18 卡片19 卡片20 DYR 卡面为抖音独家 抖音专属卡",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_7f096e3d11988376",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "240",
+        "height": "730"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "TcFZdLlOtornhVxfLiSc5cb1nGy",
+        "context": "卡片6 卡片7 卡片8 卡片9 卡片10 卡片11 卡片12 卡片13 卡片14 卡片15 卡片16 卡片17 卡片18 卡片19 卡片20 DYR 卡面为抖音独家 抖音专属卡",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_35ce2147074285d9",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "409",
+        "height": "211"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "R5jLdF3JkoDMRsxnQupcBLZfnnf",
+        "context": "抖音专属卡 1 4",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_b6d344aceedeb803",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "271",
+        "height": "509"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "ZpfqdU3SXoJnj3xPv7yckOign5g",
+        "context": "1 4",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_25f174fe969e78c9",
+      "name": "P6DMENmq.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4672",
+        "height": "7008"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "EEoOdWL74o2ZyoxLptgcronYnpd",
+        "context": "1 4 张启山",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_cfee99494f30ecd0",
+      "name": "qqXDCxoU.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "1034",
+        "height": "1556"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "SQWidn8G5ocWjmxdGaFcYxnEnxb",
+        "context": "1 4 张启山 吴老狗",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_4f9c8b8c38c5caa4",
+      "name": "qhurR6kS.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "982",
+        "height": "1478"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "Y1JNdEeqdorWbfxxQgPcEh7RnYb",
+        "context": "张启山 吴老狗 霍仙姑",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_f47746a010e906de",
+      "name": "UumslTmf.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "6240",
+        "height": "3510"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "FqsNdlSKToQ7dvxVZLTceKx8nGb",
+        "context": "张启山 吴老狗 霍仙姑 九门合照",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_6f0d8fb730744520",
+      "name": "XAyMLwbR.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4089",
+        "height": "6133"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "H5ErdY1dXoTKCxxOxbccfY4Qnje",
+        "context": "霍仙姑·美人如玉 SP 卡面为抖音独家 主创签名卡 3 3 张启山",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_47cece533d9cf133",
+      "name": "Vuo0xHW4.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4672",
+        "height": "7008"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "ObzPdUJgpomfLAxmOI4cMEZ5n9e",
+        "context": "SP 卡面为抖音独家 主创签名卡 3 3 张启山 吴老狗",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_7757669ed5db9ba8",
+      "name": "30-DSC06129.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4672",
+        "height": "7008"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "PQjpdEKwSoctDux4GrRcflyjncg",
+        "context": "SP 卡面为抖音独家 主创签名卡 3 3 张启山 吴老狗 霍仙姑",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_4f842efb21b8afcf",
+      "name": "24-DSC02516-.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4666",
+        "height": "6999"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "N5fgdokPDoiS9jxlmdocnifMn7c",
+        "context": "霍仙姑 SSR 特别稀有卡 4 15 张启山1",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_8c87b20df7bb71db",
+      "name": "24-YYY01237(1).jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4160",
+        "height": "6240"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "YKASdKGX4oQ8DuxHmCKcFpU4n3d",
+        "context": "SSR 特别稀有卡 4 15 张启山1 张启山2",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_586f1fb44ae95491",
+      "name": "30-DSC06122(1).jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4672",
+        "height": "7008"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "Obetdrod4oYf0Ex26iucRVwunYe",
+        "context": "SSR 特别稀有卡 4 15 张启山1 张启山2 张启山3",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_f4f461bb6fe2c93c",
+      "name": "7-YYY03659.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4160",
+        "height": "6240"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "OfuiduMmfowpL2xkN2ccop2Mn6b",
+        "context": "特别稀有卡 4 15 张启山1 张启山2 张启山3 吴老狗1",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_1c5b9666259565e4",
+      "name": "截屏2026-07-23 01.55.36.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "984",
+        "height": "1488"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "FDemdal1FoinWox5KO4cmAz7nqg",
+        "context": "张启山2 张启山3 吴老狗1 吴老狗2",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_f73bbbe40f3437f4",
+      "name": "25.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "2160",
+        "height": "3240"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "Fh3NdsCLvosWQVx2rKQcd7nbnwc",
+        "context": "张启山3 吴老狗1 吴老狗2 吴老狗3",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_f942aae318574dbe",
+      "name": "7-YYY04513.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4160",
+        "height": "6240"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "Fod0dcg6Yo3v4JxIeGXcGYO7nOb",
+        "context": "吴老狗1 吴老狗2 吴老狗3 霍仙姑1",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_b3b9ac3de8131368",
+      "name": "截屏2026-07-23 01.56.16.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "986",
+        "height": "1496"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "Mm2idXQnVoLOPsxCiLpckawenqf",
+        "context": "吴老狗2 吴老狗3 霍仙姑1 霍仙姑2",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_71a710be1c0d13b8",
+      "name": "30-DSC02970.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4082",
+        "height": "6124"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "CrwKdyhNroTsnMxODi6cx2Xcn5Y",
+        "context": "吴老狗3 霍仙姑1 霍仙姑2 霍仙姑3",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_a78850e084b77abb",
+      "name": "30-DSC07050.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4672",
+        "height": "7008"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "VU3tdlQcRos3JPxN0Mfc2Qhhnzc",
+        "context": "霍仙姑1 霍仙姑2 霍仙姑3 齐铁嘴",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_8c2b05014cb26007",
+      "name": "30-DSC00703.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4672",
+        "height": "7008"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "MFjydr8bzoY5tVx9JrEcpVPXnLe",
+        "context": "霍仙姑2 霍仙姑3 齐铁嘴 半截李",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_0fd1d6007a0c81f4",
+      "name": "13-DSC08318.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4571",
+        "height": "6857"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "Lk6QdG2anoIHxSxI9RmcG3Xonsb",
+        "context": "霍仙姑3 齐铁嘴 半截李 黑背老六",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_82db00fdfe8c1b18",
+      "name": "30-DSC02580.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "3072",
+        "height": "4608"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "XiXzd42ihorn4Pxi8gdcOb24n0f",
+        "context": "齐铁嘴 半截李 黑背老六 陈皮阿四",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_a3b16e46f08cd6da",
+      "name": "截屏2026-07-23 02.02.40.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "1088",
+        "height": "1464"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "L7hxdViSnosKIUxJVF2cKPDVnqd",
+        "context": "半截李 黑背老六 陈皮阿四 二月红",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_63d5e89a5beaed56",
+      "name": "截屏2026-07-23 12.57.12.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "2598",
+        "height": "1450"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "MCoCdsnPboAq6Fxuzh7cq8OrnMc",
+        "context": "黑背老六 陈皮阿四 二月红 解九",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_a3c2def18ca6088b",
+      "name": "截屏2026-07-23 02.06.43.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "988",
+        "height": "1488"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "SUwQdQBoNodZ1exjYaPcNG89nWh",
+        "context": "二月红 解九 SR 超稀有卡 5 13 张启山",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_519fc1474be4fb24",
+      "name": "25-DSC04426.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4672",
+        "height": "7008"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "VbWDdoEUVo9BnUxFSmCc24wqnCc",
+        "context": "解九 SR 超稀有卡 5 13 张启山 吴老狗",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_d6f3a80d26f8ddb0",
+      "name": "25-DSC07129.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4672",
+        "height": "7008"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "FgkhdOvGJoPauwx53RNccf3jn9g",
+        "context": "SR 超稀有卡 5 13 张启山 吴老狗 霍仙姑",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_8ae0676b17d6fe4d",
+      "name": "15-DSC05545-.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4672",
+        "height": "7008"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "ISFXdmSThoBI8lxSaV4cG5SBnod",
+        "context": "超稀有卡 5 13 张启山 吴老狗 霍仙姑 齐铁嘴",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_4bb27fb8c006e120",
+      "name": "尹新月SR.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "3168",
+        "height": "4752"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "EBxYdoN2uoBj06xCiTocXl4rnMe",
+        "context": "吴老狗 霍仙姑 齐铁嘴 尹新月",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_68c46638c3c8952b",
+      "name": "截屏2026-07-23 02.21.10.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "972",
+        "height": "1480"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "B0sDdoi9ho7Dbmx0KTScP271nc2",
+        "context": "霍仙姑 齐铁嘴 尹新月 尹老板",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_3b164ccec23ace25",
+      "name": "13-DSC08717.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4672",
+        "height": "7008"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "KKXOdXRMwoJ4VbxK0XQc12tQnce",
+        "context": "齐铁嘴 尹新月 尹老板 半截李",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_c9332e37dc8e2b96",
+      "name": "截屏2026-07-23 02.08.37.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "974",
+        "height": "1496"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "B1Bsdu4McopUqpxfrI3ccc4Snmd",
+        "context": "尹新月 尹老板 半截李 黑背老六",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_9136b76c1fbf603c",
+      "name": "截屏2026-07-23 02.08.15.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "978",
+        "height": "1494"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "AMjIdruADoHVSVxiP1YcXV4knyD",
+        "context": "尹老板 半截李 黑背老六 陈皮阿四",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_faf1fed2402516b4",
+      "name": "13-DSC08324.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "2513",
+        "height": "3770"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "LRGNdtdDKoyH28xqiJBcgTJSnpn",
+        "context": "半截李 黑背老六 陈皮阿四 二月红",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_72e0b86946ce028e",
+      "name": "30-DSC07065.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "4672",
+        "height": "7008"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "MwwkdcD3XoUf94xcCaecfQennZe",
+        "context": "黑背老六 陈皮阿四 二月红 解九",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_2266205dc91b86f7",
+      "name": "截屏2026-07-23 02.10.35.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "976",
+        "height": "1484"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "QQhhdbPDMoL5HZxtge7cE2gcnng",
+        "context": "陈皮阿四 二月红 解九 张小鱼",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_8939e571cec5cdec",
+      "name": "2-DSC03513.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "5973",
+        "height": "3362"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "DZSbdeRmvoBKW7xwYqvc9hrOntb",
+        "context": "二月红 解九 张小鱼 张小烬",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_f3653bd2b1506bdf",
+      "name": "1.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "2160",
+        "height": "2880"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "HzJhdd646oXYdbxfHW1c5s0JnGc",
+        "context": "张小烬 R 稀有卡 6 14 令牌壹",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_a2387053d15263c6",
+      "name": "2.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "2160",
+        "height": "2880"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "OkiVdUGexoNpRDxTu6gcjKzfnzf",
+        "context": "R 稀有卡 6 14 令牌壹 令牌贰",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_7a9d450204c6d8c5",
+      "name": "3.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "2160",
+        "height": "2880"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "EqawduYqQo6nYaxTTZtcRCknnAb",
+        "context": "R 稀有卡 6 14 令牌壹 令牌贰 令牌叁",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_a59b4a7e1ea3b293",
+      "name": "4.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "2160",
+        "height": "2880"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "Pv8NdG6q1oY44IxG4O5cMHQgnDb",
+        "context": "6 14 令牌壹 令牌贰 令牌叁 令牌肆",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_0deac1cff0653536",
+      "name": "5.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "2160",
+        "height": "2880"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "TCPgdErKvoZ0Ysxy5UwcJXornnb",
+        "context": "令牌贰 令牌叁 令牌肆 令牌伍",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_2451019688c73c78",
+      "name": "6.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "2160",
+        "height": "2880"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "QRDCd3JtYoTnbZxj4h7cckwPneh",
+        "context": "令牌叁 令牌肆 令牌伍 令牌陆",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_e81c1530c2d52dc7",
+      "name": "7.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "2160",
+        "height": "2880"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "Q4SjdONo6oZaRLxkJb2c3II4n6d",
+        "context": "令牌肆 令牌伍 令牌陆 令牌柒",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_da4ce7a5edce2db6",
+      "name": "8.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "2160",
+        "height": "2880"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "MsVyd99mbohYxnxaJFUcpZNVnnb",
+        "context": "令牌伍 令牌陆 令牌柒 令牌捌",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_b71c8889a748bb41",
+      "name": "9.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "2160",
+        "height": "2880"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "D6XGdIxAHo7dBExFSNIc7LDnnYJ",
+        "context": "令牌陆 令牌柒 令牌捌 令牌玖",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_5f52e5199cd9f83c",
+      "name": "8.12海报0604.JPG",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "6336",
+        "height": "9504"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "W06WdmhFNomwA7xOvcBcZkucnmb",
+        "context": "令牌柒 令牌捌 令牌玖 三寸钉",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_720fa36c4e469dab",
+      "name": "YYY01033.JPG",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "6336",
+        "height": "9504"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "TzLUdb8cxoYesTxdsQqc7yErnFb",
+        "context": "令牌捌 令牌玖 三寸钉 张府·会客厅",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_c80e0761145705c8",
+      "name": "DSCF4248.JPG",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "11648",
+        "height": "7768"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "MWEIdpMJPoRr4PxmDPjc90H8nlf",
+        "context": "令牌玖 三寸钉 张府·会客厅 五爷·工作台",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_d31c61775cc7fb03",
+      "name": "截屏2026-07-23 02.26.33.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "1870",
+        "height": "1040"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "DDJsdZFtqoCb2uxpDBPcKfjmnCb",
+        "context": "三寸钉 张府·会客厅 五爷·工作台 霍家·慎淑堂",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_2b2c005b6538950d",
+      "name": "截屏2026-07-23 02.24.28.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "2548",
+        "height": "1432"
+      },
+      "role": "target_activity_asset",
+      "role_confidence": 0.88,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+        "image_block_id": "LKBwdaTxwo0gnvxWOGgcIAhenYH",
+        "context": "张府·会客厅 五爷·工作台 霍家·慎淑堂 新月饭店",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_63ff7b35a71c0eb1",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "2422",
+        "height": "548"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcnjIdSrn0G7CRgDejqaij6te",
+        "context": "资源位 MR 内容 数量 资源 参考 设计参考 活动中心Banner",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_e858670d352077ac",
+      "name": "img_v3_02fn_3e79c767-f52b-4820-8fab-ac380a07decg.jpg",
+      "media_type": "image",
+      "mime_type": "image/jpeg",
+      "dimensions": {
+        "width": "1080",
+        "height": "2337"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcnQgs6ez25kHnWJcbPItTLSJ",
+        "context": "资源位 MR 内容 数量 资源 参考 设计参考 活动中心Banner 交互规范 《九门》正在热播 快来抽取九门掌门签名小卡",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_36a060660892242f",
+      "name": "Frame 2036083456.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "1029",
+        "height": "420"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcngBogBAy5nGJpOTSXVqFyhc",
+        "context": "交互规范 《九门》正在热播 快来抽取九门掌门签名小卡",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_60616adc2bb3ba5f",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "632",
+        "height": "1352"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcnzi6e8QGgtlToPkmY9Dwm6f",
+        "context": "个人页Banner 尺寸：264*150 抽九门小卡，闯秘境探险局",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_4e738e866537eab7",
+      "name": "Frame 2036083454.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "264",
+        "height": "150"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcnilVym4GIqez3Sn549ssATf",
+        "context": "个人页Banner 尺寸：264*150 抽九门小卡，闯秘境探险局",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_833e590e136da298",
+      "name": "image.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "1080",
+        "height": "2337"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcnHPmoMGbyOidUvnNS9H8kAh",
+        "context": "搜索阿拉丁 尺寸： 1029px*360px，200k以内 视觉要求 重点文字或图标，与素材的边线距离30px以上，避免适配过程中的遮挡 字体最好 不小于12px ，避免文字过小影响阅读 《九门》正在热播 快来抽取九门掌门签名小卡",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_07f7f479fcf47b65",
+      "name": "Frame 2036083461.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "1029",
+        "height": "360"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcnfdyALdP1DQvopsTjEgFiQh",
+        "context": "搜索阿拉丁 尺寸： 1029px*360px，200k以内 视觉要求 重点文字或图标，与素材的边线距离30px以上，避免适配过程中的遮挡 字体最好 不小于12px ，避免文字过小影响阅读 《九门》正在热播 快来抽取九门掌门签名小卡",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_db50d585950ba647",
+      "name": "img_v3_02fn_67303246-1b6c-4544-8196-7cb4e80236cg.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "726",
+        "height": "900"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcnGCi0ZSfVEe6xpzyWF6t6Bc",
+        "context": "搜索明星资源 （有卡面艺人可指定卡面，无卡面则 剧方 提供） 尺寸：168*168 陈伟霆、曾舜晞、陈瑶",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_a7e18e57c94ac896",
+      "name": "Frame 2036083455.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "168",
+        "height": "168"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcnmZGWmCh4IMe1Hm90qPiuPb",
+        "context": "搜索明星资源 （有卡面艺人可指定卡面，无卡面则 剧方 提供） 尺寸：168*168 陈伟霆、曾舜晞、陈瑶",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_0195add335babe5d",
+      "name": "Frame 2036083463.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "168",
+        "height": "168"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcnRyfWbXDcxw1OaF8DSAf6Kc",
+        "context": "尺寸：168*168 陈伟霆、曾舜晞、陈瑶",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_2ce8c1ff34ad10f1",
+      "name": "Frame 2036083464.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "168",
+        "height": "168"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcntdOwXgMR9xed03dnhjkpZg",
+        "context": "",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_92ac78d853bd1f0e",
+      "name": "Frame 2036083465.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "168",
+        "height": "168"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcnlH2tr9Ch44NXWAkOzMmH6c",
+        "context": "",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    },
+    {
+      "asset_id": "media_878977b7b63cbd86",
+      "name": "Frame 2036083466.png",
+      "media_type": "image",
+      "mime_type": "image/png",
+      "dimensions": {
+        "width": "168",
+        "height": "168"
+      },
+      "role": "unknown",
+      "role_confidence": 0.3,
+      "finality": "unknown",
+      "local_path": null,
+      "optimized_path": null,
+      "thumbnail_path": null,
+      "source": {
+        "document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+        "revision_id": 327,
+        "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+        "image_block_id": "doxcng9NqHIiKJPQD4Kw5zvPG7g",
+        "context": "",
+        "evidence_type": "document_embedded_media"
+      },
+      "permission_scope": "internal_restricted",
+      "download_status": "not_selected",
+      "download_error": null,
+      "processing_error": null,
+      "confirmation": "pending"
+    }
+  ]
+}

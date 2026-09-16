@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0.0",
+  "manifest": {
+    "case_id": "platform_film_ip_card_interaction_v2",
+    "package_status": "candidate",
+    "review_status": "draft_for_human_review",
+    "permission_scope": "internal_restricted",
+    "updated_at": "2026-08-24"
+  },
+  "case": {
+    "case_id": "platform_film_ip_card_interaction_v2",
+    "name": "影视IP抽卡活动 2.0 交互规范",
+    "platform": "抖音",
+    "industry": "影视",
+    "categories": ["影视IP", "抽卡", "集卡", "平台交互规范", "社交协作", "奖励承接"],
+    "case_type": "platform_spec",
+    "activity_period": {
+      "start": null,
+      "end": null,
+      "year": null,
+      "confirmation": "unknown"
+    },
+    "business_goal": null,
+    "target_audience": null,
+    "summary": "一套影视IP抽卡活动的平台交互与状态规范，分四轮描述公告与新手引导、换卡与批量赠卡、翻卡奖励以及完整交互。画板内《永夜星河》、卡级、任务和文案主要用于演示能力，不构成某个已上线业务案例的最终配置。"
+  },
+  "sources": [
+    {
+      "source_id": "src_film_ip_card_figma",
+      "title": "影视IP抽卡活动｜2.0优化交互详述（待开发）",
+      "source_type": "figma_platform_interaction_spec",
+      "url": "https://www.figma.com/design/DuLYQtdj91zgshbF24RId1/影视IP抽卡活动?node-id=13-12157",
+      "permission_scope": "internal_restricted"
+    }
+  ],
+  "mechanics": [
+    {"id":"mechanic_onboarding","name":"新用户分步引导","description":"通过页面滑动、任务按钮高亮、气泡提示和手势引导，依次教用户做任务、获取次数和发起抽卡。","confirmation":"confirmed","evidence_ids":["ev_iteration_1"]},
+    {"id":"mechanic_announcement","name":"活动公告","description":"支持短公告直接展示、长公告点击展开；无公告时隐藏公告位并恢复副标题区域。","confirmation":"confirmed","evidence_ids":["ev_iteration_1"]},
+    {"id":"mechanic_task_earn","name":"任务赚取抽卡机会","description":"任务区与抽卡次数联动；画板罗列的签到、想看、关注、浏览、搜索、投稿等均为可配置示例，并非某个活动已确认任务单。","confirmation":"confirmed","evidence_ids":["ev_iteration_1","ev_demo_boundary"]},
+    {"id":"mechanic_draw","name":"单抽与十连抽","description":"主页面支持单次抽卡和十次连抽，并呈现抽卡次数与结果反馈。","confirmation":"confirmed","evidence_ids":["ev_iteration_1","ev_iteration_4"]},
+    {"id":"mechanic_album","name":"卡册与集齐状态","description":"卡册呈现已获得、未获得、重复数量及集齐/未集齐状态，并承接单卡详情。","confirmation":"confirmed","evidence_ids":["ev_iteration_2","ev_iteration_4"]},
+    {"id":"mechanic_gifting","name":"单张与批量赠卡","description":"用户从可赠卡中选择一张或多张分享；领取端校验活动、链接状态和库存，并返回成功或失败结果。","confirmation":"confirmed","evidence_ids":["ev_iteration_2"]},
+    {"id":"mechanic_exchange","name":"双向换卡","description":"发起方分别配置送出与想要的卡片，平台在接收方打开后校验活动、交换状态和双方库存，再执行交换。","confirmation":"confirmed","evidence_ids":["ev_iteration_2"]},
+    {"id":"mechanic_exchange_guardrails","name":"换卡库存与幂等保护","description":"覆盖至少选择一张、无可换卡、双方库存不足、活动结束、已被交换等异常分支，避免重复或无效交换。","confirmation":"confirmed","evidence_ids":["ev_iteration_2"]},
+    {"id":"mechanic_social_return","name":"分享、私信与群聊回流","description":"赠卡与换卡通过分享面板外发，并提供私信或活动群聊等继续协作入口。","confirmation":"confirmed","evidence_ids":["ev_iteration_2","ev_iteration_4"]},
+    {"id":"mechanic_records","name":"赠卡与换卡记录","description":"记录区区分送出/收到、赠送/交换、时间与领取人，并配置空状态。","confirmation":"confirmed","evidence_ids":["ev_iteration_2","ev_iteration_4"]},
+    {"id":"mechanic_flip_card","name":"翻卡机会与延后使用","description":"翻卡次数可累计；抽卡时未使用的机会会在小卡、卡册和大图预览中继续提示，单抽与多抽均可进入翻卡。","confirmation":"confirmed","evidence_ids":["ev_iteration_3"]},
+    {"id":"mechanic_reward_routing","name":"翻卡奖励承接","description":"翻卡结果可承接电商券、兑换码、音频、图片、视频或实物等奖励，并路由到奖品中心、卡券、地址填写、复制兑换码或媒体预览。","confirmation":"confirmed","evidence_ids":["ev_iteration_3","ev_iteration_4"]},
+    {"id":"mechanic_request_card","name":"求卡与协作入口","description":"用户可选择缺少的卡发起求卡并分享链接；已有卡不能求、集齐后不可求，每张卡一次只求一张。接收方打开链接后校验领取状态和库存，并可继续进入群聊或私信沟通。设计已明确，是否开发上线仍待确认。","confirmation":"confirmed","evidence_ids":["ev_iteration_4"]}
+  ],
+  "tasks": [],
+  "card_tiers": [],
+  "touchpoints": [
+    {"id":"surface_home","name":"活动主页面","description":"包含IP主题头图、公告、卡片陈列、单抽/十连和任务区。","confirmation":"confirmed","evidence_ids":["ev_iteration_1","ev_iteration_4"]},
+    {"id":"surface_task_panel","name":"任务列表","description":"呈现任务进度、奖励次数和行动按钮。","confirmation":"confirmed","evidence_ids":["ev_iteration_1"]},
+    {"id":"surface_album","name":"卡册与单卡详情","description":"查看卡片持有、缺失、重复与集齐状态，并进入赠卡、换卡或翻卡。","confirmation":"confirmed","evidence_ids":["ev_iteration_2","ev_iteration_3"]},
+    {"id":"surface_share_return","name":"赠卡/换卡分享与回流页","description":"生成一张或多张卡片的分享内容，接收方打开后进入领取或交换校验。","confirmation":"confirmed","evidence_ids":["ev_iteration_2"]},
+    {"id":"surface_records","name":"赠换记录","description":"展示送出、收到、交换、领取人、时间和空状态。","confirmation":"confirmed","evidence_ids":["ev_iteration_2"]},
+    {"id":"surface_prize_center","name":"我的奖品与奖励详情","description":"奖品按获得时间倒序；实物奖覆盖填写地址、修改地址、已过期，电子奖覆盖查看与已过期，并记录上次地址以减少重复输入。","confirmation":"confirmed","evidence_ids":["ev_iteration_3","ev_iteration_4"]},
+    {"id":"surface_announcement_dialog","name":"公告详情弹层","description":"长公告从主页公告位进入弹层查看。","confirmation":"confirmed","evidence_ids":["ev_iteration_1"]}
+  ],
+  "assets": [
+    {"id":"asset_board_iteration_1","name":"第一轮：公告与新手引导整板","role":"platform_spec","asset_type":"figma_board_screenshot","finality":"specification","source_location":"file DuLYQtdj91zgshbF24RId1 / node 1410:18268","local_path":"assets/boards/iteration-1-announcement-onboarding.png","dimensions":"920x1600","notes":"整板缩略图，用于理解引导与公告状态；画面内IP素材是演示内容。","confirmation":"confirmed","evidence_ids":["ev_visual_boards"]},
+    {"id":"asset_board_iteration_2","name":"第二轮：换卡与批量赠卡整板","role":"platform_spec","asset_type":"figma_board_screenshot","finality":"specification","source_location":"file DuLYQtdj91zgshbF24RId1 / node 1410:36212","local_path":"assets/boards/iteration-2-exchange-gifting.png","dimensions":"1600x498","notes":"展示赠卡、换卡、分享、回流和状态分支。","confirmation":"confirmed","evidence_ids":["ev_visual_boards"]},
+    {"id":"asset_board_iteration_3","name":"第三轮：翻卡整板","role":"platform_spec","asset_type":"figma_board_screenshot","finality":"specification","source_location":"file DuLYQtdj91zgshbF24RId1 / node 1412:36213","local_path":"assets/boards/iteration-3-flip-card.png","dimensions":"1600x435","notes":"展示翻卡机会、单抽/多抽翻卡和奖励承接。","confirmation":"confirmed","evidence_ids":["ev_visual_boards"]},
+    {"id":"asset_board_iteration_4","name":"第四轮：完整交互详述整板","role":"platform_spec","asset_type":"figma_board_screenshot","finality":"specification","source_location":"file DuLYQtdj91zgshbF24RId1 / node 1028:16438","local_path":"assets/boards/iteration-4-complete-interaction-spec.png","dimensions":"1600x990","notes":"汇总主页面、更多、卡册、抽卡、赠换、记录、奖品等完整交互。","confirmation":"confirmed","evidence_ids":["ev_visual_boards"]},
+    {"id":"asset_demo_ip_visuals","name":"《永夜星河》等演示IP视觉","role":"other_activity_reference","asset_type":"embedded_demo_content","finality":"reference_only","source_location":"上述Figma四轮交互板中的页面示例","notes":"用于让平台规范具象化；不可回答为该规范对应的唯一目标活动或最终上线KV。","confirmation":"confirmed","evidence_ids":["ev_demo_boundary"]}
+  ],
+  "copy_variants": [
+    {"id":"copy_exchange_minimum","name":"换卡最少选择提示","main":"至少交换1张卡片","sub":null,"confirmation":"confirmed","evidence_ids":["ev_iteration_2"]},
+    {"id":"copy_exchange_success","name":"换卡成功反馈","main":"换卡成功","sub":null,"confirmation":"confirmed","evidence_ids":["ev_iteration_2"]},
+    {"id":"copy_receive_success","name":"收卡成功反馈","main":"收卡成功","sub":null,"confirmation":"confirmed","evidence_ids":["ev_iteration_2"]},
+    {"id":"copy_receive_already_claimed","name":"赠卡已被领取","main":"来晚了，已被领取","sub":null,"confirmation":"confirmed","evidence_ids":["ev_iteration_4"]},
+    {"id":"copy_address_privacy","name":"地址用途说明","main":"信息收集仅用于实物奖品邮寄发放","sub":null,"confirmation":"confirmed","evidence_ids":["ev_iteration_4"]}
+  ],
+  "metrics": [],
+  "evidence": [
+    {"evidence_id":"ev_page_classification","object_type":"case","object_id":"platform_film_ip_card_interaction_v2","field_name":"case_type","source_id":"src_film_ip_card_figma","source_location":"page 13:12157，页面名“2.0优化交互详述（待开发）”","evidence_type":"figma_structure_explicit","confirmation":"confirmed"},
+    {"evidence_id":"ev_iteration_1","object_type":"iteration","object_id":"1410:18268","field_name":"announcement_and_onboarding","source_id":"src_film_ip_card_figma","source_location":"node 1410:18268，1.增加公告、新手引导版本","evidence_type":"figma_structure_explicit","confirmation":"confirmed"},
+    {"evidence_id":"ev_iteration_2","object_type":"iteration","object_id":"1410:36212","field_name":"exchange_gifting_and_records","source_id":"src_film_ip_card_figma","source_location":"node 1410:36212，2.换卡、打包赠卡版本","evidence_type":"figma_structure_explicit","confirmation":"confirmed"},
+    {"evidence_id":"ev_iteration_3","object_type":"iteration","object_id":"1412:36213","field_name":"flip_card_and_reward_routes","source_id":"src_film_ip_card_figma","source_location":"node 1412:36213，3.翻卡版本","evidence_type":"figma_structure_explicit","confirmation":"confirmed"},
+    {"evidence_id":"ev_iteration_4","object_type":"iteration","object_id":"1028:16438","field_name":"complete_interaction_spec","source_id":"src_film_ip_card_figma","source_location":"node 1028:16438，4.全部 交互详述","evidence_type":"figma_structure_explicit","confirmation":"confirmed"},
+    {"evidence_id":"ev_visual_boards","object_type":"asset_collection","object_id":"figma_board_screenshots","field_name":"local_visual_evidence","source_id":"src_film_ip_card_figma","source_location":"本地导出的四个Figma节点整板截图","evidence_type":"design_observation","confirmation":"confirmed"},
+    {"evidence_id":"ev_demo_boundary","object_type":"boundary","object_id":"demo_content","field_name":"reference_only","source_id":"src_film_ip_card_figma","source_location":"四轮画板内用于演示的IP、卡级、任务、数字与文案","evidence_type":"design_observation","confirmation":"confirmed"}
+  ],
+  "gaps": [
+    {"gap_id":"gap_business_goal","field":"case.business_goal","reason":"Figma是交互规范，没有具体活动业务目标和指标优先级。","impact":"不能据此解释某业务为什么采用抽卡或判断策略成效。","status":"open"},
+    {"gap_id":"gap_target_audience","field":"case.target_audience","reason":"未提供目标用户定义。","impact":"不能判断视觉、任务和奖励对具体人群的适配度。","status":"open"},
+    {"gap_id":"gap_activity_period","field":"case.activity_period","reason":"平台规范不对应单一活动排期。","impact":"不能回答活动开始和结束时间。","status":"open"},
+    {"gap_id":"gap_business_configuration","field":"business_configuration","reason":"画板中的任务、卡级、卡量、概率、次数、奖励和文案是示例或可配置项。","impact":"不能把这些值作为某个真实活动的最终配置。","status":"open"},
+    {"gap_id":"gap_final_business_design","field":"assets.final_business_design","reason":"画板呈现平台交互示例，没有目标业务的最终主题设计稿与上线页面。","impact":"不能把《永夜星河》演示页回答为该平台规范的最终主KV。","status":"open"},
+    {"gap_id":"gap_release_status","field":"case.release_status","reason":"页面标题含“待开发”，且没有产品发布、开发完成或上线验证。","impact":"只能说明设计规范覆盖了能力，不能宣称所有能力已上线。","status":"open"},
+    {"gap_id":"gap_online_page","field":"case.online_page","reason":"没有可核验的线上活动页面、录屏或测试环境。","impact":"无法验证端到端交互、回流、幂等和异常态的实际实现。","status":"open"},
+    {"gap_id":"gap_metrics","field":"metrics","reason":"平台交互规范不含曝光、参与、赠换、分享、留存或转化数据。","impact":"不能作为数据表现好的活动案例或参与案例效果排序。","status":"open"},
+    {"gap_id":"gap_request_card_release","field":"mechanics.request_card.release_scope","reason":"完整交互板包含求卡相关设计，但尚无最终发布范围确认。","impact":"推荐或复用时应标注待产品/开发确认。","status":"open"}
+  ]
+}
