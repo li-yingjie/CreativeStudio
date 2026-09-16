@@ -39,13 +39,14 @@ import {
 } from './h5-lab-suggestions'
 import {
   h5LabCountEdits,
-  h5LabPatch,
-  h5LabReset,
+  h5LabPatchSlot,
+  h5LabResetSlot,
   type H5LabSelection,
   type H5LabStyleOverride,
   type H5LabOverrides,
 } from './h5-lab-overrides'
 import { useHostTitle } from './useHostTitle'
+import type { H5LabHistoryOptions } from './useH5LabHistory'
 
 /* ─── H5 Lab 画布属性面板 ───
  *
@@ -59,7 +60,7 @@ interface Props {
   labCase: H5LabCase
   selection: H5LabSelection | null
   overrides: H5LabOverrides
-  onOverrides: (next: H5LabOverrides) => void
+  onOverrides: (next: H5LabOverrides, options?: H5LabHistoryOptions) => void
   /** 当前聚焦状态帧的图层树（由画布现推）。 */
   layers: H5LabLayer[]
   onSelectPath: (path: string) => void
@@ -68,7 +69,7 @@ interface Props {
   /** 画布上的全部帧（含补出来的界面），做跳转目标选项。 */
   frames: { id: string; label: string; generated?: boolean }[]
   prototype: H5LabPrototype
-  onPrototype: (next: H5LabPrototype) => void
+  onPrototype: (next: H5LabPrototype, options?: H5LabHistoryOptions) => void
   /** 图片下钻素材库画布编辑。 */
   onOpenAssetCanvas: (src?: string) => void
   /** 把当前选中的元素带进对话。 */
@@ -355,6 +356,19 @@ export default function H5LabEditPanel({
   }, [selection])
 
   const activeFrameId = selection?.stateId ?? frames[0]?.id ?? ''
+  const sharedStateIds = useMemo(
+    () => labCase.states.map((item) => item.id),
+    [labCase.states],
+  )
+  const targetStateIds = useMemo(
+    () =>
+      selection && sharedStateIds.includes(selection.stateId)
+        ? sharedStateIds
+        : selection
+          ? [selection.stateId]
+          : [],
+    [selection, sharedStateIds],
+  )
   const currentLink = selection
     ? prototype.links[linkKey(selection.stateId, selection.path)]
     : undefined
@@ -374,7 +388,10 @@ export default function H5LabEditPanel({
     }
     if (!merged.targetId) delete next[key]
     else next[key] = merged
-    onPrototype({ ...prototype, links: next })
+    onPrototype(
+      { ...prototype, links: next },
+      { group: `link|${selection.stateId}|${selection.path}` },
+    )
   }
 
   /* Stitch 的 new screen：这些 case 只反推了首屏，热点按下去之后原作里就没有。
@@ -423,11 +440,18 @@ export default function H5LabEditPanel({
 
   const patchStyle = (patch: H5LabStyleOverride) => {
     if (!selection) return
-    onOverrides(h5LabPatch(overrides, selection.stateId, selection.path, { style: patch }))
+    const fields = Object.keys(patch).sort().join(',')
+    onOverrides(
+      h5LabPatchSlot(overrides, targetStateIds, selection.path, { style: patch }),
+      { group: `style|${selection.path}|${fields}` },
+    )
   }
   const patchNode = (patch: { text?: string; src?: string }) => {
     if (!selection) return
-    onOverrides(h5LabPatch(overrides, selection.stateId, selection.path, patch))
+    const fields = Object.keys(patch).sort().join(',')
+    onOverrides(h5LabPatchSlot(overrides, targetStateIds, selection.path, patch), {
+      group: `content|${selection.path}|${fields}`,
+    })
   }
 
   const pickImage = (event: ChangeEvent<HTMLInputElement>) => {
@@ -464,6 +488,14 @@ export default function H5LabEditPanel({
             <span className="min-w-0 truncate text-[11px] text-[var(--color-ink)]/45">
               {selection.label}
             </span>
+            {targetStateIds.length > 1 && (
+              <span
+                className="shrink-0 rounded bg-[#2f6bff]/10 px-1.5 py-0.5 text-[9.5px] font-medium text-[#2f6bff]"
+                title={`修改会同步到 ${targetStateIds.length} 个状态帧的同一槽位`}
+              >
+                同步 {targetStateIds.length} 帧
+              </span>
+            )}
           </span>
         ) : (
           <span className="min-w-0 truncate text-[11px] text-[var(--color-ink)]/45">
@@ -1215,8 +1247,8 @@ export default function H5LabEditPanel({
             <button
               type="button"
               onClick={() => {
-                onOverrides(h5LabReset(overrides, selection.stateId, selection.path))
-                toast('已还原该元素')
+                onOverrides(h5LabResetSlot(overrides, targetStateIds, selection.path))
+                toast('已还原各状态帧的同一槽位')
               }}
               className="flex h-7 flex-1 items-center justify-center gap-1 rounded-md text-[11px] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
             >

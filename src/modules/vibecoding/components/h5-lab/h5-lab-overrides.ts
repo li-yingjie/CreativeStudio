@@ -58,7 +58,7 @@ export interface H5LabNodeOverride {
   style?: H5LabStyleOverride
 }
 
-/** 状态帧 id → 元素路径 → 覆盖。帧之间互不影响。 */
+/** 状态帧 id → 元素路径 → 覆盖。同一 case 的状态帧可通过同路径共享槽位改动。 */
 export type H5LabOverrides = Record<string, Record<string, H5LabNodeOverride>>
 
 /** 选中的元素 —— 面板和状态画布共用这一份描述。 */
@@ -326,6 +326,20 @@ export function h5LabPatch(
   return { ...overrides, [stateId]: { ...board, [path]: next } }
 }
 
+/** 同一 case 里相同 DOM 路径就是同一个内容槽位。一次写入所有状态帧，
+ * 让文案、图片和样式在多帧间保持一致；补出的新页面不在 stateIds 中，不会被误改。 */
+export function h5LabPatchSlot(
+  overrides: H5LabOverrides,
+  stateIds: string[],
+  path: string,
+  patch: H5LabNodeOverride,
+): H5LabOverrides {
+  return stateIds.reduce(
+    (next, stateId) => h5LabPatch(next, stateId, path, patch),
+    overrides,
+  )
+}
+
 export function h5LabReset(
   overrides: H5LabOverrides,
   stateId: string,
@@ -334,6 +348,18 @@ export function h5LabReset(
   const board = { ...(overrides[stateId] ?? {}) }
   delete board[path]
   return { ...overrides, [stateId]: board }
+}
+
+/** 还原同一槽位时也同步清掉各状态帧的覆盖。 */
+export function h5LabResetSlot(
+  overrides: H5LabOverrides,
+  stateIds: string[],
+  path: string,
+): H5LabOverrides {
+  return stateIds.reduce(
+    (next, stateId) => h5LabReset(next, stateId, path),
+    overrides,
+  )
 }
 
 export function h5LabCountEdits(overrides: H5LabOverrides): number {

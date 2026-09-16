@@ -13,6 +13,8 @@ import {
   IconAppWindow,
   IconArchive,
   IconArrowDown,
+  IconArrowBackUp,
+  IconArrowForwardUp,
   IconArrowLeft,
   IconArrowRight,
   IconArrowUp,
@@ -218,6 +220,8 @@ export const ArrowLeft = wrap(IconArrowLeft)
 export const ArrowRight = wrap(IconArrowRight)
 export const ArrowUp = wrap(IconArrowUp)
 export const ArrowUpRight = wrap(IconArrowUpRight)
+export const Undo2 = wrap(IconArrowBackUp)
+export const Redo2 = wrap(IconArrowForwardUp)
 export const AudioLines = wrap(IconWaveSine)
 export const BadgeCheck = wrap(IconRosetteDiscountCheck)
 export const BadgeDollarSign = wrap(IconCurrencyDollar)

@@ -59,6 +59,7 @@ import H5LabEditStage, {
 } from './h5-lab/H5LabEditStage'
 import H5LabEditPanel from './h5-lab/H5LabEditPanel'
 import H5LabPhonePreview from './h5-lab/H5LabPhonePreview'
+import { useH5LabHistory } from './h5-lab/useH5LabHistory'
 import type { H5LabLayer } from './h5-lab/h5-lab-layers'
 import { buildH5LabFrames } from './h5-lab/H5LabFrames'
 import {
@@ -342,6 +343,7 @@ import {
   Plus,
   Minus,
   RefreshCw,
+  Redo2,
   RotateCcw,
   Smartphone,
   Trash2,
@@ -349,6 +351,7 @@ import {
   ThumbsDown,
   ThumbsUp,
   Upload,
+  Undo2,
   X,
   MessageSquarePlus,
   Gamepad2,
@@ -5424,7 +5427,6 @@ export default function VibeCodingPage({
   const [h5LabOverrides, setH5LabOverrides] = useState<H5LabOverrides>(() =>
     loadH5LabOverrides(),
   )
-  const [h5LabDraft, setH5LabDraft] = useState<H5LabOverrides>(h5LabOverrides)
   /* 图层树由画布现推；面板要反选图层，只能借画布暴露的句柄（两者是布局兄弟）。 */
   const [h5LabLayers, setH5LabLayers] = useState<H5LabLayer[]>([])
   const [h5LabHotspots, setH5LabHotspots] = useState<H5LabHotspot[]>([])
@@ -5434,8 +5436,12 @@ export default function VibeCodingPage({
   const [h5LabPrototype, setH5LabPrototype] = useState<H5LabPrototype>(() =>
     loadH5LabPrototype(),
   )
-  const [h5LabPrototypeDraft, setH5LabPrototypeDraft] =
-    useState<H5LabPrototype>(h5LabPrototype)
+  const h5LabHistory = useH5LabHistory({
+    overrides: h5LabOverrides,
+    prototype: h5LabPrototype,
+  })
+  const h5LabDraft = h5LabHistory.overrides
+  const h5LabPrototypeDraft = h5LabHistory.prototype
   /* 图片下钻：从页面选中的图片跳进素材库画布，改完再回到画布编辑。 */
   const [h5LabAssetCanvas, setH5LabAssetCanvas] = useState<string | null>(null)
   /* 顶栏页面选择器选中的帧 —— 预览和画布共用它，两边不会各看各的。 */
@@ -5450,20 +5456,20 @@ export default function VibeCodingPage({
       saveH5LabOverrides(h5LabDraft) && saveH5LabPrototype(h5LabPrototypeDraft)
     setH5LabOverrides(h5LabDraft)
     setH5LabPrototype(h5LabPrototypeDraft)
+    h5LabHistory.clear()
     setEditPanelOpen(false)
     setH5LabSelected(null)
     setH5LabAssetCanvas(null)
     setH5LabChatCollapsed(false)
     if (persisted) toast('已应用，去预览里试试点触')
     else toast.error('本地保存失败，改动仅保留在当前会话')
-  }, [h5LabDraft, h5LabPrototypeDraft])
+  }, [h5LabDraft, h5LabHistory, h5LabPrototypeDraft])
   /* 放弃：草稿回到上次应用的样子，人还留在画布里。 */
   const discardH5LabEdits = useCallback(() => {
-    setH5LabDraft(h5LabOverrides)
-    setH5LabPrototypeDraft(h5LabPrototype)
+    h5LabHistory.replace({ overrides: h5LabOverrides, prototype: h5LabPrototype })
     setH5LabSelected(null)
     toast('已放弃未应用的改动')
-  }, [h5LabOverrides, h5LabPrototype])
+  }, [h5LabHistory, h5LabOverrides, h5LabPrototype])
   /* 退出：不提交，草稿留在本次会话里，重新进来接着改。 */
   const closeH5LabEditor = useCallback(() => {
     setEditPanelOpen(false)
@@ -8293,7 +8299,7 @@ export default function VibeCodingPage({
         selection={h5LabSelected}
         onSelect={setH5LabSelected}
         overrides={h5LabDraft}
-        onOverrides={setH5LabDraft}
+        onOverrides={h5LabHistory.setOverrides}
         onLayers={setH5LabLayers}
         onHotspots={setH5LabHotspots}
         onAssets={setH5LabAssets}
@@ -8303,6 +8309,10 @@ export default function VibeCodingPage({
         onAddToChat={addH5LabRefToChat}
         pendingCount={h5LabPendingCount}
         onDiscard={discardH5LabEdits}
+        canUndo={h5LabHistory.canUndo}
+        canRedo={h5LabHistory.canRedo}
+        onUndo={h5LabHistory.undo}
+        onRedo={h5LabHistory.redo}
         onExit={closeH5LabEditor}
         previewKey={miniAppKey}
       />
@@ -12636,6 +12646,24 @@ export default function VibeCodingPage({
                                       <>
                                         <button
                                           type="button"
+                                          title="撤销（⌘Z / Ctrl+Z）"
+                                          onClick={h5LabHistory.undo}
+                                          disabled={!h5LabHistory.canUndo}
+                                          className="flex size-6 shrink-0 items-center justify-center rounded-lg text-[#1c1f23]/65 transition-colors hover:bg-[#f5f7fa] hover:text-[#1c1f23] disabled:cursor-not-allowed disabled:opacity-30"
+                                        >
+                                          <Undo2 className="size-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          title="重做（⇧⌘Z / Ctrl+Y）"
+                                          onClick={h5LabHistory.redo}
+                                          disabled={!h5LabHistory.canRedo}
+                                          className="flex size-6 shrink-0 items-center justify-center rounded-lg text-[#1c1f23]/65 transition-colors hover:bg-[#f5f7fa] hover:text-[#1c1f23] disabled:cursor-not-allowed disabled:opacity-30"
+                                        >
+                                          <Redo2 className="size-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
                                           title="应用改动并回到预览"
                                           onClick={applyH5LabEdits}
                                           disabled={h5LabPendingCount === 0}
@@ -12666,6 +12694,8 @@ export default function VibeCodingPage({
                                         onClick={() => {
                                           setCanvasEditOpen(false)
                                           setH5LabChatCollapsed(false)
+                                          setH5LabSelected(null)
+                                          setH5LabFrameId(h5LabFrameIds[0]?.id ?? null)
                                           setEditPanelOpen(true)
                                         }}
                                         className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa]"
@@ -13035,8 +13065,14 @@ export default function VibeCodingPage({
                                   activeProjectKind === 'marketing-h5' ||
                                   undefined
                                 }
-                                className={`relative flex min-h-0 flex-1 overflow-auto ${
-                    activeProjectKind === 'web-app' || activeProjectKind === 'web-game' ? '' : 'pt-6 pb-12'
+                                className={`relative flex min-h-0 flex-1 ${
+                    h5LabEditMode
+                      ? 'overflow-hidden'
+                      : `overflow-auto ${
+                          activeProjectKind === 'web-app' || activeProjectKind === 'web-game'
+                            ? ''
+                            : 'pt-6 pb-12'
+                        }`
                   }`}
                               >
                                 {themeMode === 'dark' &&
@@ -13070,32 +13106,39 @@ export default function VibeCodingPage({
                                       }}
                                     />
                                   )}
-                                {/* Zoom sizer — scales only the preview surface, centered
-                      (m-auto). Toolbar + dot-grid backdrop stay at 1x; scrolls
-                      when >100%, shrinks within the canvas when <100%. */}
-                                <div
-                                  className="relative z-10 m-auto"
-                                  style={{
-                                    width: `${previewZoom * 100}%`,
-                                    height: `${previewZoom * 100}%`,
-                                  }}
-                                >
+                                {h5LabEditMode ? (
+                                  /* H5 Lab 自己就是工作区的主画布。编辑时直接挂在
+                                     点阵工作区上，不再套预览模式的缩放/滚动容器。 */
+                                  <div className="relative z-10 flex min-h-0 min-w-0 flex-1">
+                                    {previewSurface}
+                                  </div>
+                                ) : (
+                                  /* Zoom sizer — scales only the preview surface, centered
+                                     (m-auto). Toolbar + dot-grid backdrop stay at 1x. */
                                   <div
-                                    className="flex flex-col"
+                                    className="relative z-10 m-auto"
                                     style={{
-                                      width: `${100 / previewZoom}%`,
-                                      height: `${100 / previewZoom}%`,
-                                      transform: `scale(${previewZoom})`,
-                                      transformOrigin: 'top left',
+                                      width: `${previewZoom * 100}%`,
+                                      height: `${previewZoom * 100}%`,
                                     }}
                                   >
-                                    <div className="flex min-h-0 flex-1 flex-col">
-                                      <div className="flex min-h-0 flex-1">
-                                        {previewSurface}
+                                    <div
+                                      className="flex flex-col"
+                                      style={{
+                                        width: `${100 / previewZoom}%`,
+                                        height: `${100 / previewZoom}%`,
+                                        transform: `scale(${previewZoom})`,
+                                        transformOrigin: 'top left',
+                                      }}
+                                    >
+                                      <div className="flex min-h-0 flex-1 flex-col">
+                                        <div className="flex min-h-0 flex-1">
+                                          {previewSurface}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
+                                )}
                               </div>
                               {xiahuaPanel && (
                                 // 产物栏定宽；再窄也不低于 280，低于这个宽度清单和素材板就没法读了
@@ -14281,6 +14324,7 @@ export default function VibeCodingPage({
                     {openTabs[activePreviewTab]?.label === '预览' &&
                       !immersiveCanvasModeOpen &&
                       !xiahuaEditMode &&
+                      !h5LabEditMode &&
                       !xiahuaArtifactView && (
                         <div className="absolute bottom-3 right-3 z-20 flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_8px_rgba(16,18,24,0.10)]">
                           <button
@@ -14364,7 +14408,7 @@ export default function VibeCodingPage({
                             labCase={h5LabCase}
                             selection={h5LabSelected}
                             overrides={h5LabDraft}
-                            onOverrides={setH5LabDraft}
+                            onOverrides={h5LabHistory.setOverrides}
                             layers={h5LabLayers}
                             onSelectPath={(path) =>
                               h5LabStageRef.current?.selectPath(
@@ -14381,7 +14425,7 @@ export default function VibeCodingPage({
                               generated,
                             }))}
                             prototype={h5LabPrototypeDraft}
-                            onPrototype={setH5LabPrototypeDraft}
+                            onPrototype={h5LabHistory.setPrototype}
                             onOpenAssetCanvas={openH5LabAssetCanvas}
                             onAddToChat={() => {
                               if (!h5LabSelected) return

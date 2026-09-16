@@ -10,12 +10,15 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import {
+  Maximize2,
   MessageSquarePlus,
   Minus,
   Move,
   Plus,
+  Redo2,
   RotateCcw,
   Type as TypeIcon,
+  Undo2,
 } from '@/shared/icons'
 import type { H5LabCase } from './h5-lab-cases'
 import { buildH5LabFrames } from './H5LabFrames'
@@ -32,11 +35,13 @@ import {
   h5LabKindOf,
   h5LabLabelOf,
   h5LabNodeAt,
+  h5LabPatchSlot,
   h5LabPathOf,
   type H5LabOverrides,
   type H5LabSelection,
 } from './h5-lab-overrides'
 import { useHostTitle } from './useHostTitle'
+import type { H5LabHistoryOptions } from './useH5LabHistory'
 
 /* ─── H5 Lab 画布编辑台 ───
  *
@@ -48,7 +53,16 @@ import { useHostTitle } from './useHostTitle'
  * 图片只能命令式写回，所以每次覆盖变化和页面自身 DOM 变动后都跑一次 apply pass。
  */
 
-const ZOOM_STEPS = [0.3, 0.4, 0.5, 0.62, 0.75, 0.9, 1, 1.25]
+const MIN_ZOOM = 0.15
+const MAX_ZOOM = 3
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value))
+
+interface CanvasView {
+  zoom: number
+  x: number
+  y: number
+}
 
 /** 面板要靠它反选图层 —— 画布和面板是布局上的兄弟，只能用一个句柄互通。 */
 export interface H5LabStageApi {
@@ -67,7 +81,7 @@ interface Props {
   selection: H5LabSelection | null
   onSelect: (selection: H5LabSelection | null) => void
   overrides: H5LabOverrides
-  onOverrides: (next: H5LabOverrides) => void
+  onOverrides: (next: H5LabOverrides, options?: H5LabHistoryOptions) => void
   /** 当前聚焦帧的图层树，推给右侧面板。 */
   onLayers: (layers: H5LabLayer[]) => void
   /** 当前聚焦帧的可交互热点 —— 面板靠它做交互盘点。 */
@@ -85,6 +99,10 @@ interface Props {
   pendingCount: number
   /** 放弃未应用的改动，回到上次应用的样子。 */
   onDiscard: () => void
+  canUndo: boolean
+  canRedo: boolean
+  onUndo: () => void
+  onRedo: () => void
   /** ESC 退出画布编辑（不提交草稿）。 */
   onExit: () => void
   /** 换 key 时重新挂载页面组件（刷新预览）。 */
@@ -120,14 +138,25 @@ export default function H5LabEditStage({
   onAddToChat,
   pendingCount,
   onDiscard,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
   onExit,
   previewKey,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
   const frameRefs = useRef(new Map<string, HTMLDivElement>())
-  const [zoom, setZoom] = useState(0.5)
+  const [view, setView] = useState<CanvasView>({ zoom: 0.5, x: 32, y: 16 })
+  const viewRef = useRef(view)
+  const focusAnimationRef = useRef<number | null>(null)
+  const { zoom } = view
+  const [spaceHeld, setSpaceHeld] = useState(false)
+  const [panning, setPanning] = useState(false)
+  const panRef = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null)
   const [hoverBox, setHoverBox] = useState<(Box & { label: string }) | null>(null)
   const [selectionBox, setSelectionBox] = useState<Box | null>(null)
   const [textEditingPath, setTextEditingPath] = useState<string | null>(null)
@@ -135,13 +164,37 @@ export default function H5LabEditStage({
   const [measureTick, setMeasureTick] = useState(0)
   const remeasure = useCallback(() => setMeasureTick((n) => n + 1), [])
 
+  useEffect(() => {
+    viewRef.current = view
+  }, [view])
+
+  const cancelFocusAnimation = useCallback(() => {
+    if (focusAnimationRef.current === null) return
+    cancelAnimationFrame(focusAnimationRef.current)
+    focusAnimationRef.current = null
+  }, [])
+
+  useEffect(() => cancelFocusAnimation, [cancelFocusAnimation])
+
   const css = useMemo(() => h5LabCss(overrides), [overrides])
   const frames = useMemo(() => buildH5LabFrames(labCase, screens), [labCase, screens])
+  const sharedStateIds = useMemo(
+    () => labCase.states.map((item) => item.id),
+    [labCase.states],
+  )
+  const sharedStateIdSet = useMemo(() => new Set(sharedStateIds), [sharedStateIds])
+  const slotStateIds = useCallback(
+    (stateId: string) => (sharedStateIdSet.has(stateId) ? sharedStateIds : [stateId]),
+    [sharedStateIdSet, sharedStateIds],
+  )
   const focusedStateId =
     selection?.stateId ??
     (focusFrameId && frames.some((frame) => frame.id === focusFrameId)
       ? focusFrameId
       : frames[0]?.id ?? '')
+  // 标题、标签和描边也在画布 transform 里面；默认 50% 下做 2 倍补偿，
+  // 最终屏幕尺寸才和「夯爆了」一致（13px / 11px / 2px 选中环）。
+  const boardUiScale = 2
 
   useHostTitle()
 
@@ -228,38 +281,150 @@ export default function H5LabEditStage({
     const node = root && selection ? h5LabNodeAt(root, selection.path) : null
     const next = node ? boxOf(node) : null
     setSelectionBox((prev) => (sameBox(prev, next) ? prev : next))
-  }, [selection, boxOf, measureTick, zoom, css])
+  }, [selection, boxOf, measureTick, zoom, view.x, view.y, css])
 
-  /* 顶栏选了别的帧就把它滚进视野 —— 画布是横向铺开的，不然要手动找。 */
+  /** 以画布内某一点为锚缩放，Mac 触控板捏合时内容不会从指尖滑走。 */
+  const zoomAt = useCallback((factor: number, x: number, y: number) => {
+    cancelFocusAnimation()
+    setView((current) => {
+      const nextZoom = clamp(current.zoom * factor, MIN_ZOOM, MAX_ZOOM)
+      if (nextZoom === current.zoom) return current
+      const ratio = nextZoom / current.zoom
+      return {
+        zoom: nextZoom,
+        x: x - (x - current.x) * ratio,
+        y: y - (y - current.y) * ratio,
+      }
+    })
+  }, [cancelFocusAnimation])
+
+  const zoomFromCenter = useCallback(
+    (factor: number) => {
+      const viewport = scrollRef.current
+      if (!viewport) return
+      zoomAt(factor, viewport.clientWidth / 2, viewport.clientHeight / 2)
+    },
+    [zoomAt],
+  )
+
+  /** 全部状态帧适应当前工作区，沿用「这夏夯爆了」旧画布的 fit 行为。 */
+  const fit = useCallback(() => {
+    cancelFocusAnimation()
+    const viewport = scrollRef.current
+    const content = contentRef.current
+    if (!viewport || !content) return
+    const contentWidth = content.offsetWidth
+    const contentHeight = content.offsetHeight
+    if (!contentWidth || !contentHeight) return
+    const nextZoom = clamp(
+      Math.min(viewport.clientWidth / contentWidth, viewport.clientHeight / contentHeight),
+      MIN_ZOOM,
+      MAX_ZOOM,
+    )
+    setView({
+      zoom: nextZoom,
+      x: (viewport.clientWidth - contentWidth * nextZoom) / 2,
+      y: (viewport.clientHeight - contentHeight * nextZoom) / 2,
+    })
+  }, [cancelFocusAnimation])
+
+  // 顶栏或画板内选中别的帧时平滑带回视口中心；逐帧更新 view，选区框会一起走，
+  // 不会像单纯给 transform 加 transition 那样在动画中和元素错位。
   useEffect(() => {
     if (!focusFrameId) return
     const node = frameRefs.current.get(focusFrameId)
-    node?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
-  }, [focusFrameId])
-
-  useEffect(() => {
-    const scroller = scrollRef.current
-    if (!scroller) return
-    const onScroll = () => remeasure()
-    scroller.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onScroll)
-    return () => {
-      scroller.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onScroll)
+    const viewport = scrollRef.current
+    if (!node || !viewport) return
+    cancelFocusAnimation()
+    const startedAt = performance.now()
+    const duration = 220
+    const fromX = viewRef.current.x
+    const contentX = node.offsetLeft + node.offsetWidth / 2
+    const targetX = viewport.clientWidth / 2 - contentX * viewRef.current.zoom
+    if (Math.abs(targetX - fromX) < 0.5) return
+    const animate = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / duration)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      const x = fromX + (targetX - fromX) * eased
+      viewRef.current = { ...viewRef.current, x }
+      setView((current) => ({ ...current, x }))
+      if (progress < 1) focusAnimationRef.current = requestAnimationFrame(animate)
+      else focusAnimationRef.current = null
     }
-  }, [remeasure])
+    focusAnimationRef.current = requestAnimationFrame(animate)
+  }, [cancelFocusAnimation, focusFrameId])
+
+  // 触控板：双指平移；Mac 捏合会以 ctrlKey wheel 上报，按手势位置缩放。
+  useEffect(() => {
+    const viewport = scrollRef.current
+    if (!viewport) return
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault()
+      cancelFocusAnimation()
+      const rect = viewport.getBoundingClientRect()
+      if (event.ctrlKey || event.metaKey) {
+        zoomAt(
+          Math.exp(-event.deltaY / 240),
+          event.clientX - rect.left,
+          event.clientY - rect.top,
+        )
+      } else {
+        setView((current) => ({
+          ...current,
+          x: current.x - event.deltaX,
+          y: current.y - event.deltaY,
+        }))
+      }
+      remeasure()
+    }
+    const onResize = () => remeasure()
+    viewport.addEventListener('wheel', onWheel, { passive: false })
+    window.addEventListener('resize', onResize)
+    return () => {
+      viewport.removeEventListener('wheel', onWheel)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [cancelFocusAnimation, remeasure, zoomAt])
 
   /* ESC 退出画布编辑（正在就地改字时先退出改字）。 */
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      const target = event.target
+      const editing =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      if (!editing && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+        event.preventDefault()
+        if (event.shiftKey) onRedo()
+        else onUndo()
+        return
+      }
+      if (!editing && event.ctrlKey && event.key.toLowerCase() === 'y') {
+        event.preventDefault()
+        onRedo()
+        return
+      }
+      if (!editing && event.code === 'Space' && !event.repeat) {
+        event.preventDefault()
+        setSpaceHeld(true)
+        return
+      }
       if (event.key !== 'Escape') return
       if (textEditingPath) return
       event.preventDefault()
       onExit()
     }
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.code === 'Space') setSpaceHeld(false)
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onExit, textEditingPath])
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [onExit, onRedo, onUndo, textEditingPath])
 
   /* ── 命中测试 / 选中 ── */
   const measure = useCallback(
@@ -379,8 +544,6 @@ export default function H5LabEditStage({
       drag.moved = true
       event.preventDefault()
       const current = overridesRef.current
-      const board = current[drag.stateId] ?? {}
-      const prev = board[drag.path] ?? {}
       const style =
         drag.mode === 'move'
           ? {
@@ -391,13 +554,10 @@ export default function H5LabEditStage({
               width: Math.max(8, Math.round(drag.baseW + dx)),
               height: Math.max(8, Math.round(drag.baseH + dy)),
             }
-      onOverrides({
-        ...current,
-        [drag.stateId]: {
-          ...board,
-          [drag.path]: { ...prev, style: { ...prev.style, ...style } },
-        },
-      })
+      onOverrides(
+        h5LabPatchSlot(current, slotStateIds(drag.stateId), drag.path, { style }),
+        { group: `drag|${drag.stateId}|${drag.path}|${drag.mode}` },
+      )
       remeasure()
     }
     const onUp = () => {
@@ -411,7 +571,7 @@ export default function H5LabEditStage({
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onUp)
     }
-  }, [onOverrides, remeasure, zoom])
+  }, [onOverrides, remeasure, slotStateIds, zoom])
 
   const onPointerDownCapture = (event: ReactPointerEvent<HTMLDivElement>) => {
     const hit = resolve(event.target)
@@ -429,6 +589,12 @@ export default function H5LabEditStage({
   }
 
   const onClickCapture = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (
+      event.target instanceof Element &&
+      event.target.closest('[data-h5-frame-picker]')
+    ) {
+      return
+    }
     // 状态帧是编辑对象，页面自身的按钮/链接在这里不响应（试交互去应用后的预览）。
     if (textEditingPath === null) {
       event.preventDefault()
@@ -472,12 +638,9 @@ export default function H5LabEditStage({
       el.style.outlineOffset = ''
       setTextEditingPath(null)
       const text = (el.textContent ?? '').trim()
-      const board = overridesRef.current[hit.stateId] ?? {}
-      const prev = board[hit.path] ?? {}
-      onOverrides({
-        ...overridesRef.current,
-        [hit.stateId]: { ...board, [hit.path]: { ...prev, text } },
-      })
+      onOverrides(
+        h5LabPatchSlot(overridesRef.current, slotStateIds(hit.stateId), hit.path, { text }),
+      )
     }
     const onKey = (keyEvent: KeyboardEvent) => {
       if (keyEvent.key === 'Escape' || (keyEvent.key === 'Enter' && !keyEvent.shiftKey)) {
@@ -489,35 +652,75 @@ export default function H5LabEditStage({
     el.addEventListener('keydown', onKey)
   }
 
-  const stepZoom = (direction: 1 | -1) => {
-    const index = ZOOM_STEPS.findIndex((step) => step >= zoom - 0.001)
-    const next = ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, index + direction))]
-    setZoom(next ?? zoom)
-    remeasure()
-  }
-
   return (
     <div
       ref={rootRef}
       className="relative flex h-full min-h-0 w-full overflow-hidden"
     >
-      <style>{`[data-h5-frame]{contain:layout paint;}\n${css}`}</style>
+      <style>{`
+        [data-h5-frame]{contain:layout;}
+        [data-h5-frame] > .is-embedded{
+          height:auto !important;
+          min-height:0 !important;
+          overflow:visible !important;
+          overscroll-behavior:auto !important;
+        }
+        ${css}
+      `}</style>
 
       {/* ── 多状态画布 ── */}
       <div ref={canvasRef} className="@container relative min-w-0 flex-1">
         <div
           ref={scrollRef}
-          className="thin-scroll h-full w-full overflow-auto"
+          className={`h-full w-full overflow-hidden ${
+            spaceHeld || panning ? (panning ? 'cursor-grabbing' : 'cursor-grab') : ''
+          }`}
           /* 点画布空白处取消选中，面板回到 case 级的全局配置。命中画板里的元素时
              上面那个 capture handler 已经 stopPropagation，这里不会被触发。 */
-          onPointerDown={() => {
+          onPointerDownCapture={(event) => {
+            if (spaceHeld || event.button === 1) {
+              event.preventDefault()
+              event.stopPropagation()
+              cancelFocusAnimation()
+              panRef.current = {
+                px: event.clientX,
+                py: event.clientY,
+                ox: view.x,
+                oy: view.y,
+              }
+              setPanning(true)
+              event.currentTarget.setPointerCapture(event.pointerId)
+              return
+            }
             if (textEditingPath !== null) return
-            onSelect(null)
+            if (event.target === event.currentTarget) onSelect(null)
+          }}
+          onPointerMove={(event) => {
+            const pan = panRef.current
+            if (!pan) return
+            setView((current) => ({
+              ...current,
+              x: pan.ox + event.clientX - pan.px,
+              y: pan.oy + event.clientY - pan.py,
+            }))
+            remeasure()
+          }}
+          onPointerUp={() => {
+            panRef.current = null
+            setPanning(false)
+          }}
+          onPointerCancel={() => {
+            panRef.current = null
+            setPanning(false)
+          }}
+          onDoubleClick={(event) => {
+            if (event.target === event.currentTarget) fit()
           }}
         >
           <div
-            className="flex w-max items-start gap-8 px-8 pb-16 pt-4"
-            style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
+            ref={contentRef}
+            className="absolute left-0 top-0 flex w-max origin-top-left items-start gap-8 px-8 pb-16 pt-4"
+            style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${zoom})` }}
             onPointerDownCapture={onPointerDownCapture}
             onClickCapture={onClickCapture}
             onDoubleClick={onDoubleClick}
@@ -527,34 +730,82 @@ export default function H5LabEditStage({
             {frames.map((frame) => {
               const focused = frame.id === focusedStateId
               return (
-                <div key={frame.id} className="flex flex-col gap-2">
-                  <div className="flex items-baseline gap-2 pl-0.5">
+                <div
+                  key={frame.id}
+                  className="flex flex-col"
+                  style={{ gap: 8 * boardUiScale }}
+                >
+                  <button
+                    type="button"
+                    data-h5-frame-picker
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onSelect(null)
+                      onFocusFrame?.(frame.id)
+                    }}
+                    className="flex w-full cursor-pointer items-baseline text-left"
+                    style={{ gap: 8 * boardUiScale, paddingLeft: 2 * boardUiScale }}
+                  >
                     {frame.generated && (
-                      <span className="rounded-sm bg-[#2f6bff]/12 px-1 text-[10px] leading-[16px] text-[#2f6bff]">
+                      <span
+                        className="rounded-sm bg-[#2f6bff]/12 text-[#2f6bff]"
+                        style={{
+                          paddingInline: 4 * boardUiScale,
+                          fontSize: 10 * boardUiScale,
+                          lineHeight: `${16 * boardUiScale}px`,
+                        }}
+                      >
                         新增
                       </span>
                     )}
                     <span
-                      className={`text-[13px] ${focused ? 'font-semibold text-[#2f6bff]' : 'font-medium text-[var(--color-ink)]/75'}`}
+                      className={
+                        focused
+                          ? 'font-semibold text-[var(--color-ink)]'
+                          : 'font-medium text-[var(--color-ink)]/55'
+                      }
+                      style={{ fontSize: 13 * boardUiScale }}
                     >
                       {frame.label}
                     </span>
                     {frame.note && (
-                      <span className="text-[11px] text-[var(--color-ink)]/40">
+                      <span
+                        className="text-[var(--color-ink)]/40"
+                        style={{ fontSize: 11 * boardUiScale }}
+                      >
                         {frame.note}
                       </span>
                     )}
-                  </div>
+                    {focused && (
+                      <span
+                        className="rounded-full bg-[#d4ebff] font-semibold text-[#357ef8]"
+                        style={{
+                          paddingInline: 6 * boardUiScale,
+                          paddingBlock: boardUiScale,
+                          fontSize: 10 * boardUiScale,
+                        }}
+                      >
+                        编辑中
+                      </span>
+                    )}
+                  </button>
                   <div
                     data-h5-frame={frame.id}
                     ref={(node) => {
                       if (node) frameRefs.current.set(frame.id, node)
                       else frameRefs.current.delete(frame.id)
                     }}
-                    className={`relative overflow-hidden rounded-[10px] shadow-[0_8px_30px_rgba(16,18,24,0.16)] ${
-                      focused ? 'outline outline-[1.5px] outline-[#2f6bff]/45' : ''
-                    }`}
-                    style={{ width: labCase.width, background: labCase.canvasTone }}
+                    onPointerDown={() => onFocusFrame?.(frame.id)}
+                    className="relative overflow-visible shadow-[0_8px_30px_rgba(16,18,24,0.16)]"
+                    style={{
+                      width: labCase.width,
+                      background: labCase.canvasTone,
+                      borderRadius: focused ? 0 : 18 * boardUiScale,
+                      outline: focused
+                        ? `${2 * boardUiScale}px solid #357ef8`
+                        : `${boardUiScale}px solid rgba(16,18,24,0.10)`,
+                      outlineOffset: focused ? 2 * boardUiScale : 0,
+                    }}
                   >
                     <Suspense
                       fallback={
@@ -673,6 +924,26 @@ export default function H5LabEditStage({
               </button>
             )}
           </div>
+          <div className="pointer-events-auto flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_10px_rgba(16,18,24,0.12)]">
+            <button
+              type="button"
+              disabled={!canUndo}
+              onClick={onUndo}
+              title="撤销（⌘Z / Ctrl+Z）"
+              className="flex size-6 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <Undo2 size={13} strokeWidth={1.8} />
+            </button>
+            <button
+              type="button"
+              disabled={!canRedo}
+              onClick={onRedo}
+              title="重做（⇧⌘Z / Ctrl+Y）"
+              className="flex size-6 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <Redo2 size={13} strokeWidth={1.8} />
+            </button>
+          </div>
           <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-[var(--divider-soft)] bg-white px-1.5 py-1 shadow-[0_2px_10px_rgba(16,18,24,0.12)]">
             <span className="flex size-6 items-center justify-center rounded-full bg-[var(--color-ink)]/[0.08] text-[var(--color-ink)]">
               <Move size={12} strokeWidth={1.8} />
@@ -682,22 +953,39 @@ export default function H5LabEditStage({
               双击改文案 · ESC 退出
             </span>
           </div>
-          <div className="pointer-events-auto flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_10px_rgba(16,18,24,0.12)]">
+        </div>
+
+        {/* 与旧版画布一致：这里只保留一组缩放控件，固定在工作区右下角。 */}
+        <div className="absolute bottom-3 right-3 z-30">
+          <div className="flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_8px_rgba(16,18,24,0.10)]">
+            <button
+              type="button"
+              title="适应屏幕"
+              onClick={fit}
+              className="flex size-6 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+            >
+              <Maximize2 size={12} strokeWidth={1.8} />
+            </button>
             <button
               type="button"
               title="缩小"
-              onClick={() => stepZoom(-1)}
+              onClick={() => zoomFromCenter(1 / 1.2)}
               className="flex size-6 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
             >
               <Minus size={13} strokeWidth={1.8} />
             </button>
-            <span className="min-w-[42px] text-center text-[11px] tabular-nums text-[var(--color-ink)]/70">
+            <button
+              type="button"
+              title="重置为 100%"
+              onClick={() => zoomFromCenter(1 / zoom)}
+              className="min-w-[42px] rounded-full px-1 text-center text-[11px] tabular-nums text-[var(--color-ink)]/70 transition-colors hover:text-[var(--color-ink)]"
+            >
               {Math.round(zoom * 100)}%
-            </span>
+            </button>
             <button
               type="button"
               title="放大"
-              onClick={() => stepZoom(1)}
+              onClick={() => zoomFromCenter(1.2)}
               className="flex size-6 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
             >
               <Plus size={13} strokeWidth={1.8} />
