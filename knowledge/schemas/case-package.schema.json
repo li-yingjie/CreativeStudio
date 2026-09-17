@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.magicx.dev/schemas/case-package.schema.json",
+  "title": "MagicX Activity Case Package",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "manifest",
+    "case",
+    "sources",
+    "mechanics",
+    "tasks",
+    "card_tiers",
+    "touchpoints",
+    "assets",
+    "copy_variants",
+    "metrics",
+    "evidence",
+    "gaps"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "manifest": {
+      "type": "object",
+      "required": ["case_id", "package_status", "review_status", "permission_scope", "updated_at"],
+      "properties": {
+        "case_id": { "type": "string", "minLength": 1 },
+        "package_status": { "enum": ["golden", "candidate", "raw"] },
+        "review_status": { "enum": ["draft_for_human_review", "reviewed", "approved"] },
+        "permission_scope": { "enum": ["public", "internal", "internal_restricted"] },
+        "updated_at": { "type": "string", "format": "date" }
+      },
+      "additionalProperties": false
+    },
+    "case": {
+      "type": "object",
+      "required": ["case_id", "name", "platform", "industry", "categories", "case_type", "activity_period", "business_goal", "target_audience", "summary"],
+      "properties": {
+        "case_id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "platform": { "type": "string", "minLength": 1 },
+        "industry": { "type": "string", "minLength": 1 },
+        "categories": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "case_type": { "enum": ["production_configuration", "launched_case", "reference_case", "platform_spec"] },
+        "activity_period": {
+          "type": "object",
+          "required": ["start", "end", "year", "confirmation"],
+          "properties": {
+            "start": { "type": ["string", "null"] },
+            "end": { "type": ["string", "null"] },
+            "year": { "type": ["integer", "null"] },
+            "confirmation": { "$ref": "#/$defs/confirmation" }
+          }
+        },
+        "business_goal": { "type": ["string", "null"] },
+        "target_audience": { "type": ["string", "null"] },
+        "summary": { "type": "string", "minLength": 1 }
+      }
+    },
+    "sources": { "type": "array", "items": { "$ref": "#/$defs/source" }, "minItems": 1 },
+    "mechanics": { "type": "array", "items": { "$ref": "#/$defs/evidencedObject" } },
+    "tasks": { "type": "array", "items": { "$ref": "#/$defs/task" } },
+    "card_tiers": { "type": "array", "items": { "$ref": "#/$defs/cardTier" } },
+    "touchpoints": { "type": "array", "items": { "$ref": "#/$defs/evidencedObject" } },
+    "assets": { "type": "array", "items": { "$ref": "#/$defs/asset" } },
+    "copy_variants": { "type": "array", "items": { "$ref": "#/$defs/evidencedObject" } },
+    "metrics": { "type": "array", "items": { "type": "object" } },
+    "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+    "gaps": { "type": "array", "items": { "$ref": "#/$defs/gap" } }
+  },
+  "$defs": {
+    "confirmation": { "enum": ["confirmed", "pending", "inferred", "conflicted", "unknown"] },
+    "source": {
+      "type": "object",
+      "required": ["source_id", "title", "source_type", "url", "permission_scope"],
+      "properties": {
+        "source_id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "source_type": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "minLength": 1 },
+        "permission_scope": { "enum": ["public", "internal", "internal_restricted"] }
+      }
+    },
+    "evidencedObject": {
+      "type": "object",
+      "required": ["id", "name", "confirmation", "evidence_ids"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "confirmation": { "$ref": "#/$defs/confirmation" },
+        "evidence_ids": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      }
+    },
+    "task": {
+      "allOf": [
+        { "$ref": "#/$defs/evidencedObject" },
+        {
+          "type": "object",
+          "required": ["availability", "action", "reward_draws", "frequency", "target"],
+          "properties": {
+            "reward_draws": { "type": "integer", "minimum": 0 },
+            "frequency": { "enum": ["one_time", "daily"] },
+            "daily_limit": { "type": ["integer", "null"], "minimum": 1 }
+          }
+        }
+      ]
+    },
+    "cardTier": {
+      "allOf": [
+        { "$ref": "#/$defs/evidencedObject" },
+        {
+          "type": "object",
+          "required": ["code", "priority", "card_count", "platform_exclusive"],
+          "properties": {
+            "code": { "type": "string", "minLength": 1 },
+            "priority": { "type": "integer", "minimum": 1 },
+            "card_count": { "type": "integer", "minimum": 1 },
+            "platform_exclusive": { "type": "boolean" }
+          }
+        }
+      ]
+    },
+    "asset": {
+      "allOf": [
+        { "$ref": "#/$defs/evidencedObject" },
+        {
+          "type": "object",
+          "required": ["role", "finality", "source_location"],
+          "properties": {
+            "role": { "enum": ["target_activity_asset", "other_activity_reference", "platform_spec"] },
+            "finality": { "enum": ["provided", "reference_only", "specification", "unknown"] },
+            "source_location": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["evidence_id", "object_type", "object_id", "field_name", "source_id", "source_location", "evidence_type", "confirmation"],
+      "properties": {
+        "evidence_id": { "type": "string", "minLength": 1 },
+        "evidence_type": { "enum": ["document_explicit", "synced_source_explicit", "figma_structure_explicit", "design_observation", "agent_inference"] },
+        "confirmation": { "$ref": "#/$defs/confirmation" }
+      }
+    },
+    "gap": {
+      "type": "object",
+      "required": ["gap_id", "field", "reason", "impact", "status"],
+      "properties": {
+        "gap_id": { "type": "string", "minLength": 1 },
+        "field": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "impact": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["open", "resolved", "not_applicable"] }
+      }
+    }
+  }
+}

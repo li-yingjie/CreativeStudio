@@ -7,8 +7,17 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import * as kimiApi from './server/kimi.mjs'
 // @ts-expect-error — plain .mjs handler, no types needed
 import * as creatorApi from './server/creator-data.mjs'
+// @ts-expect-error — plain .mjs handler, no types needed
+import * as designRadarApi from './server/design-radar.mjs'
+// @ts-expect-error — plain .mjs handler, no types needed
+import * as motionSitesApi from './server/motionsites.mjs'
+// @ts-expect-error — plain .mjs handler, no types needed
+import * as activityDocApi from './server/activity-doc.mjs'
 
 const { handleChat, handleHealth, handleProductIntent } = kimiApi
+const { handleDesignRadar, handleDesignRadarAsset } = designRadarApi
+const { handleMotionSites } = motionSitesApi
+const { handleActivityDocument } = activityDocApi
 
 const {
   handleCreatorActivities,
@@ -28,6 +37,10 @@ const apiRoutes = new Map<string, { method: 'GET' | 'POST'; handler: ApiHandler 
   ['/api/health', { method: 'GET', handler: handleHealth }],
   ['/api/chat', { method: 'POST', handler: handleChat }],
   ['/api/product-intent', { method: 'POST', handler: handleProductIntent }],
+  ['/api/design-radar', { method: 'GET', handler: handleDesignRadar }],
+  ['/api/design-radar-asset', { method: 'GET', handler: handleDesignRadarAsset }],
+  ['/api/motionsites', { method: 'GET', handler: handleMotionSites }],
+  ['/api/activity-doc', { method: 'GET', handler: handleActivityDocument }],
   ['/api/creator/stats', { method: 'GET', handler: handleCreatorStats }],
   ['/api/creator/works', { method: 'GET', handler: handleCreatorWorks }],
   ['/api/creator/income', { method: 'GET', handler: handleCreatorIncome }],

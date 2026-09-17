@@ -87,6 +87,56 @@ server-side proxy.
   smallest format that works.
 - After any change, append a one-line entry to `WORKLOG.md` (newest on top).
 
+## MagicX Figma working memory
+
+- Treat MagicX as a marketing-play compiler/platform, not a template library. Model
+  each solution through four layers: marketing goal, atomic capability, recipe,
+  and scene container; keep platform standards, business configuration, and theme
+  assets separate.
+- In the Creative Workshop Figma file, use the reservation-driven content case as
+  the structural mother board for new case studies. Preserve its four-section order:
+  end-user journey; sustained participation loops plus source evidence; state and
+  failure routing; reusable MagicX capabilities plus the three-layer boundary of
+  platform standards, business configuration, and theme assets. Never revive or
+  adapt a deleted legacy board. Never mix inferred platform behavior into the
+  source-evidence layer; label it as platform completion.
+- For Figma boards, text inside auto layout must use content-height / vertical
+  `HUG`; never constrain copy with fixed text heights that can clip or overlap.
+- Keep at least 12 px between copy blocks and between copy and imagery. Preserve
+  clear card padding and section hierarchy instead of compressing content to fit.
+- Validate edited boards at both section and whole-board level: check screenshots,
+  clipping, overlap, out-of-bounds nodes, text HUG, and actual gaps below 12 px.
+- Keep the current MagicX visual language: black-and-white editorial structure,
+  purple accent, and a Chinese-capable font fallback such as Noto Sans SC when
+  PingFang is unavailable in the Figma plugin environment.
+- The film/TV IP card-collection example should show the full loop: content/search
+  touchpoint → task → draw chance → draw → new/duplicate/flippable result → album
+  → save/share or card swap → milestone reward and return. Card swapping is its
+  own two-role flow: offerer configures and shares an offer; receiver opens it;
+  the platform validates activity/offer/inventories, executes an idempotent atomic
+  exchange, handles expired/already-used/insufficient-stock branches, then returns
+  both users to the album. Treat swap protocol and inventory ledger as reusable
+  MagicX capabilities, not merely as part of the share kit.
+- The reservation-driven content example should show the complete time-based loop:
+  venue/content-card discovery → schedule browsing → free/paid and live-state
+  recognition → single-session or reserve-all intent → idempotent reservation and
+  “My reservations” feedback → pre-live/live-time trigger → free watch or paid
+  ticket routing → live/replay/next-session return. Treat reservation contract,
+  schedule registry, time trigger, content state machine, notification orchestration,
+  and route dispatch as reusable MagicX capabilities. Keep source-evidenced UI states
+  separate from platform-completed behavior such as reminders, and cover duplicate
+  reservation, reschedule, cancellation, and content removal guardrails.
+- The ranking / leaderboard example should show the complete participation loop:
+  season or venue entry → leaderboard / track browsing → task-based vote-right
+  earning → candidate selection → eligibility, balance, idempotency, and risk gate
+  → score-ledger write → rank / score-gap feedback → share-and-return → frozen
+  snapshot, advancement, and rewards. Explain resource, feedback, social, content,
+  and stage loops before the technical protocol. Standardize the seven ranking
+  fields (entity, metric, scope, window, eligibility, tiebreak, snapshot), keep
+  real-time feedback separate from settlement rights, and cover duplicate events,
+  no balance, ineligible candidates, closed windows, ties, corrections,
+  disqualification, and aggregation delay.
+
 ## Gotchas
 
 - **Never expose the Kimi key client-side.** `.env` is gitignored; keep it server-only.

@@ -1,11 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import {
-  motion,
-  useMotionTemplate,
-  useMotionValue,
-  useReducedMotion,
-  useSpring,
-} from 'framer-motion'
+import { motion, useMotionTemplate, useMotionValue, useReducedMotion, useSpring } from 'framer-motion'
 import { toast } from 'sonner'
 import {
   ChevronDown,
@@ -329,6 +323,14 @@ function ProfileHeader({ stats }: { stats: CreatorStats | null }) {
 
 /* ─── 入口卡 ─── */
 
+/** 规则矩阵中的每个点独立闪烁；不再跟随鼠标，仅提供克制的空间层次。 */
+const MATRIX_DOTS = Array.from({ length: 48 * 10 }, (_, index) => ({
+  left: `${(index % 48) * 7.5 + 3}px`,
+  top: `${Math.floor(index / 48) * 7.5 + 3}px`,
+  delay: `${-((index * 17) % 31) / 10}s`,
+  duration: `${0.9 + ((index * 11) % 19) / 10}s`,
+}))
+
 /** 入口卡（设计稿 1-24030）：图标容器 77×84；前卡 60×75，视觉上与入口卡等高。
  *  容器上移 5px 抵消前卡内部偏移，文字从 86px 起排。
  *  hover / focus 变体只向下传播，驱动 CardImageIcon 的卡面扇开。 */
@@ -348,23 +350,44 @@ function EntryCard({
   onClick?: () => void
 }) {
   const reduceMotion = useReducedMotion()
+  const cardRef = useRef<HTMLButtonElement>(null)
+  const isEnhancedEntry = Boolean(accent)
   const pointerX = useMotionValue(104)
   const pointerY = useMotionValue(38)
   const matrixX = useSpring(pointerX, { stiffness: 270, damping: 28, mass: 0.45 })
   const matrixY = useSpring(pointerY, { stiffness: 270, damping: 28, mass: 0.45 })
   const matrixMask = useMotionTemplate`radial-gradient(112px circle at ${matrixX}px ${matrixY}px, black 0%, rgba(0,0,0,0.72) 52%, transparent 84%)`
-  const enhanced = Boolean(accent)
+
+  const updateIconDirection = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isEnhancedEntry || reduceMotion) return
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const localX = event.clientX - bounds.left
+    const localY = event.clientY - bounds.top
+    const normalizedX = (localX / bounds.width - 0.5) * 2
+    const normalizedY = (localY / bounds.height - 0.5) * 2
+    pointerX.set(localX)
+    pointerY.set(localY)
+    cardRef.current?.style.setProperty('--back-shift-x', `${normalizedX * 0.8}px`)
+    cardRef.current?.style.setProperty('--back-shift-y', `${normalizedY * 0.35}px`)
+    cardRef.current?.style.setProperty('--front-shift-x', `${normalizedX * -0.55}px`)
+    cardRef.current?.style.setProperty('--front-shift-y', `${normalizedY * -0.4}px`)
+    cardRef.current?.style.setProperty('--shine-x', `${Math.min(120, Math.max(-20, -20 + localX / bounds.width * 140))}%`)
+  }
+
+  const resetIconDirection = () => {
+    cardRef.current?.style.setProperty('--back-shift-x', '0px')
+    cardRef.current?.style.setProperty('--back-shift-y', '0px')
+    cardRef.current?.style.setProperty('--front-shift-x', '0px')
+    cardRef.current?.style.setProperty('--front-shift-y', '0px')
+  }
 
   return (
     <motion.button
+      ref={cardRef}
       type="button"
       onClick={onClick}
-      onPointerMove={(event) => {
-        if (!enhanced || reduceMotion) return
-        const bounds = event.currentTarget.getBoundingClientRect()
-        pointerX.set(event.clientX - bounds.left)
-        pointerY.set(event.clientY - bounds.top)
-      }}
+      onPointerMove={updateIconDirection}
+      onPointerLeave={resetIconDirection}
       initial="rest"
       animate="rest"
       whileHover="spread"
@@ -374,26 +397,35 @@ function EntryCard({
           ? undefined
           : { y: 0, scale: 0.99, transition: { type: 'tween', duration: 0.07, ease: 'easeOut' } }
       }
-      style={enhanced ? ({ '--entry-accent': accent } as React.CSSProperties) : undefined}
-      className="group relative h-[75px] overflow-visible rounded-2xl border-[0.5px] border-black/5 bg-white py-[16px] pl-[86px] pr-3 text-left shadow-[0_5px_8px_rgba(0,0,0,0.05)] outline-none transition-[border-color,box-shadow] duration-200 hover:border-black/[0.08] hover:shadow-[0_10px_24px_rgba(28,38,64,0.11)] focus-visible:ring-2 focus-visible:ring-[#1769C2]/35 focus-visible:ring-offset-2"
+      style={isEnhancedEntry ? ({ '--entry-accent': accent } as React.CSSProperties) : undefined}
+      className={`group relative h-[75px] overflow-visible rounded-2xl border-[0.5px] bg-white py-[16px] pl-[86px] pr-3 text-left outline-none transition-[border-color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-[#1769C2]/35 focus-visible:ring-offset-2 ${
+        isEnhancedEntry
+          ? 'border-black/5 shadow-[0_5px_8px_rgba(0,0,0,0.05)] hover:border-black/[0.07] hover:shadow-[0_10px_24px_rgba(28,38,64,0.11)]'
+          : 'border-black/5 shadow-[0_5px_8px_rgba(0,0,0,0.05)]'
+      }`}
     >
-      {enhanced && (
+      {isEnhancedEntry && (
         <motion.span
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
           style={{ maskImage: matrixMask, WebkitMaskImage: matrixMask }}
           variants={{
             rest: { opacity: 0, transition: { duration: reduceMotion ? 0 : 0.12 } },
-            spread: { opacity: reduceMotion ? 0 : 0.72, transition: { duration: 0.18 } },
+            spread: { opacity: reduceMotion ? 0 : 1, transition: { delay: 0.04, duration: 0.2 } },
           }}
         >
-          <span
-            className="absolute inset-0"
-            style={{
-              backgroundImage: 'radial-gradient(circle, #CED9E3 1px, transparent 1.15px)',
-              backgroundSize: '7.5px 7.5px',
-            }}
-          />
+          {MATRIX_DOTS.map((dot, index) => (
+            <span
+              key={index}
+              className="creator-matrix-dot absolute h-[2px] w-[2px] rounded-full bg-[#CED9E3]"
+              style={{
+                left: dot.left,
+                top: dot.top,
+                animationDelay: dot.delay,
+                animationDuration: dot.duration,
+              }}
+            />
+          ))}
         </motion.span>
       )}
       <span className="pointer-events-none absolute -left-px top-[-5.1px] z-[1] h-[84px] w-[77px]">{icon}</span>
@@ -404,12 +436,19 @@ function EntryCard({
           {hoverArrow && (
             <motion.span
               aria-hidden="true"
-              className="ml-0.5 inline-flex h-[18px] items-center align-top text-[#252632]/45"
+              className="ml-0.5 inline-flex h-[18px] align-top items-center text-[#252632]/45"
               variants={{
-                rest: { x: reduceMotion ? 0 : -3, opacity: 0 },
-                spread: { x: 0, opacity: 1 },
+                rest: {
+                  x: reduceMotion ? 0 : -3,
+                  opacity: 0,
+                  transition: { duration: reduceMotion ? 0 : 0.12, ease: 'easeOut' },
+                },
+                spread: {
+                  x: 0,
+                  opacity: 1,
+                  transition: { delay: reduceMotion ? 0 : 0.06, duration: reduceMotion ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] },
+                },
               }}
-              transition={{ duration: reduceMotion ? 0 : 0.16, ease: 'easeOut' }}
             >
               <ChevronRight size={13} strokeWidth={2} />
             </motion.span>
@@ -420,49 +459,40 @@ function EntryCard({
   )
 }
 
-/** 智能创作图标已是 Figma 合成图；只加轻微抬升和光泽，避免重复拆层。 */
-function SmartCreateImageIcon({ src }: { src: string }) {
-  const reduceMotion = useReducedMotion()
-  return (
-    <motion.span
-      className="relative block h-full w-full"
-      variants={{
-        rest: { y: 0, rotate: 0, scale: 1 },
-        spread: { y: reduceMotion ? 0 : -1.5, rotate: reduceMotion ? 0 : -0.8, scale: reduceMotion ? 1 : 1.025 },
-      }}
-      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 390, damping: 29, mass: 0.5 }}
-    >
-      <motion.span
-        aria-hidden="true"
-        className="absolute bottom-2 left-2 h-[52px] w-[58px] rounded-full bg-[color:var(--entry-accent)] blur-xl"
-        variants={{ rest: { opacity: 0 }, spread: { opacity: reduceMotion ? 0 : 0.12 } }}
-      />
-      <img src={src} alt="" className="pointer-events-none relative block h-full w-full object-contain drop-shadow-[0_4px_7px_rgba(35,42,61,0.06)]" />
-      <motion.span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-[7px] rounded-[14px] bg-[linear-gradient(115deg,transparent_25%,rgba(255,255,255,0.45)_48%,transparent_68%)]"
-        variants={{ rest: { opacity: 0, x: -8 }, spread: { opacity: reduceMotion ? 0 : 0.5, x: 7 } }}
-        transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
-      />
-    </motion.span>
-  )
-}
-
 /** 入口卡图标：正卡（front，设计稿导出的 4x 贴纸）在左，后卡与正卡等大、在右后方
  *  斜置探出（有 back 图则铺图，否则用中性浅色底板——对应设计里作品发布/工坊的白底后卡）。
  *  默认几何与 hover 增量分层：后卡绕左下角右扇，正卡同时向左展开。 */
-function CardImageIcon({ front, back, refined = false }: { front: string; back?: string; refined?: boolean }) {
+function CardImageIcon({
+  front,
+  back,
+  refined = false,
+  outlineBack = false,
+}: {
+  front: string
+  back?: string
+  refined?: boolean
+  outlineBack?: boolean
+}) {
   const reduceMotion = useReducedMotion()
   const fanInTransition = { type: 'tween' as const, duration: reduceMotion ? 0 : 0.11, ease: 'easeOut' as const }
   const fanOutTransition = { type: 'tween' as const, duration: reduceMotion ? 0 : 0.08, ease: 'easeOut' as const }
+  const liftInTransition = reduceMotion
+    ? { duration: 0 }
+    : { type: 'spring' as const, stiffness: 380, damping: 28, mass: 0.55 }
+  const liftOutTransition = reduceMotion
+    ? { duration: 0 }
+    : { type: 'spring' as const, stiffness: 430, damping: 32, mass: 0.5 }
 
   return (
     <span className="relative block h-full w-full">
       {refined && (
         <motion.span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-1 left-2 h-[52px] w-[58px] rounded-full bg-[color:var(--entry-accent)] blur-xl"
-          variants={{ rest: { opacity: 0 }, spread: { opacity: reduceMotion ? 0 : 0.12 } }}
+          className="pointer-events-none absolute bottom-[3px] left-[7px] h-[54px] w-[58px] rounded-full bg-[color:var(--entry-accent)] blur-xl"
+          variants={{
+            rest: { opacity: 0, scale: 0.78 },
+            spread: { opacity: reduceMotion ? 0 : 0.13, scale: 1, transition: fanInTransition },
+          }}
         />
       )}
       {/* 后卡：设计稿 x=17.936, y=0, 60×75, rotate=10°, skewX=-1.54° */}
@@ -470,39 +500,116 @@ function CardImageIcon({ front, back, refined = false }: { front: string; back?:
         className="pointer-events-none absolute left-[17.94px] top-0 h-[75px] w-[60px]"
         style={{ transformOrigin: '0% 100%' }}
         variants={{
-          rest: { x: 0, y: 0, rotate: 0, transition: fanOutTransition },
+          rest: {
+            x: 0,
+            y: 0,
+            rotate: 0,
+            filter: 'drop-shadow(0 0 0 rgba(0,0,0,0))',
+            transition: refined ? liftOutTransition : fanOutTransition,
+          },
           spread: {
             x: reduceMotion ? 0 : 2,
-            y: reduceMotion || !refined ? 0 : -1,
-            rotate: reduceMotion ? 0 : refined ? 3 : 4,
-            transition: fanInTransition,
+            y: 0,
+            rotate: reduceMotion ? 0 : refined ? 3.5 : 4,
+            filter: refined && !reduceMotion
+              ? 'drop-shadow(0 5px 8px rgba(42,48,68,0.08))'
+              : 'drop-shadow(0 0 0 rgba(0,0,0,0))',
+            transition: refined ? liftInTransition : fanInTransition,
           },
         }}
       >
         <span
-          className="absolute inset-0 overflow-hidden rounded-xl border border-white/80 bg-gradient-to-b from-[#f2f3f5] to-[#e0e3e9] shadow-[0_5px_10px_rgba(0,0,0,0.12)]"
-          style={{ transform: 'rotate(10deg) skewX(-1.54deg)', transformOrigin: '0% 0%' }}
+          className="absolute inset-0 transition-transform duration-100 ease-out"
+          style={{ transform: refined ? 'translate3d(var(--back-shift-x, 0px), var(--back-shift-y, 0px), 0)' : undefined }}
         >
-          {back && <img src={back} alt="" className="h-full w-full object-cover" />}
+          <span
+            className={`absolute inset-0 overflow-hidden rounded-[12px] bg-gradient-to-b from-[#f2f3f5] to-[#e0e3e9] ${!back || outlineBack ? 'border border-white/80' : ''}`}
+            style={{ transform: 'rotate(10deg) skewX(-1.54deg)', transformOrigin: '0% 0%' }}
+          >
+            {back && <img src={back} alt="" className="h-full w-full object-cover" />}
+          </span>
         </span>
       </motion.span>
       {/* 正卡在左，压住后卡 */}
-      <motion.img
-        src={front}
-        alt=""
+      <motion.span
         className="pointer-events-none absolute left-0 top-[5.1px] h-[75px] w-[60px] object-cover"
         style={{ transformOrigin: '100% 100%' }}
         variants={{
-          rest: { x: 0, y: 0, rotate: 0, scale: 1, transition: fanOutTransition },
+          rest: {
+            x: 0,
+            y: 0,
+            rotate: 0,
+            scale: 1,
+            transition: refined ? liftOutTransition : fanOutTransition,
+          },
           spread: {
-            x: reduceMotion ? 0 : refined ? -2 : -5,
-            y: reduceMotion || !refined ? 0 : -1,
-            rotate: reduceMotion ? 0 : refined ? -2 : -6,
-            scale: reduceMotion || !refined ? 1 : 1.025,
-            transition: fanInTransition,
+            x: reduceMotion ? 0 : refined ? 0 : -5,
+            y: 0,
+            rotate: reduceMotion || refined ? 0 : -6,
+            scale: 1,
+            transition: refined ? liftInTransition : fanInTransition,
           },
         }}
-      />
+      >
+        {refined ? (
+          <>
+            {/* 原生 4x 图层直接承担缩放与旋转，避免先压成 60×75 再放大。 */}
+            <motion.img
+              src={front}
+              alt=""
+              className="absolute left-[-90px] top-[-112.5px] h-[300px] w-[240px] max-w-none rounded-[50px] object-cover"
+              style={{
+                transformOrigin: '50% 50%',
+                translate: 'var(--front-shift-x, 0px) var(--front-shift-y, 0px)',
+              }}
+              variants={{
+                rest: {
+                  scale: 0.25,
+                  rotate: 0,
+                  transition: liftOutTransition,
+                },
+                spread: {
+                  scale: reduceMotion ? 0.25 : 0.26,
+                  rotate: reduceMotion ? 0 : -1.4,
+                  transition: liftInTransition,
+                },
+              }}
+            />
+            <motion.span
+              aria-hidden="true"
+              className="absolute inset-0 overflow-hidden rounded-[12.5px] shadow-[0_0_0_rgba(35,42,61,0)] group-hover:shadow-[0_7px_9px_rgba(35,42,61,0.14)] group-focus-visible:shadow-[0_7px_9px_rgba(35,42,61,0.14)]"
+              style={{
+                transformOrigin: '50% 50%',
+                translate: 'var(--front-shift-x, 0px) var(--front-shift-y, 0px)',
+              }}
+              variants={{
+                rest: { scale: 1, rotate: 0, transition: liftOutTransition },
+                spread: {
+                  scale: reduceMotion ? 1 : 1.04,
+                  rotate: reduceMotion ? 0 : -1.4,
+                  transition: liftInTransition,
+                },
+              }}
+            >
+              <motion.span
+                aria-hidden="true"
+                className="absolute inset-0 rounded-[12.5px]"
+                style={{
+                  background:
+                    'radial-gradient(46px 104px at var(--shine-x, 35%) 38%, #fff, rgba(255,255,255,0.26) 42%, transparent 76%)',
+                  transform: 'rotate(16deg) scale(1.2)',
+                }}
+                variants={{
+                  rest: { opacity: 0, transition: { duration: reduceMotion ? 0 : 0.12 } },
+                  spread: { opacity: reduceMotion ? 0 : 0.35, transition: { duration: 0.18 } },
+                }}
+              />
+            </motion.span>
+          </>
+        ) : (
+          <img src={front} alt="" className="h-full w-full rounded-[12.5px] object-cover" />
+        )}
+      </motion.span>
     </span>
   )
 }
@@ -991,7 +1098,9 @@ export default function CreatorCenterHome({
   }
 
   useEffect(() => {
-    if (!active || page !== 'data') onScrollStateChange?.(false)
+    if (!active || page !== 'data') {
+      onScrollStateChange?.(false)
+    }
   }, [active, onScrollStateChange, page])
 
   return (
@@ -1069,7 +1178,14 @@ export default function CreatorCenterHome({
                   {SMART_CREATE_ENTRIES.map((e) => (
                     <EntryCard
                       key={e.id}
-                      icon={<SmartCreateImageIcon src={e.homeIcon} />}
+                      icon={(
+                        <CardImageIcon
+                          front={e.homeFront}
+                          back={e.homeBack}
+                          refined
+                          outlineBack={e.id === 'ai-avatar' || e.id === 'wiki' || e.id === 'workshop'}
+                        />
+                      )}
                       label={e.label}
                       desc={e.desc}
                       hoverArrow

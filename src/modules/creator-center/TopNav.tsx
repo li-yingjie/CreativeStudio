@@ -39,10 +39,11 @@ export default function TopNav({
   showLogo?: boolean
   /** 方案 1：与左上品牌区、产品侧栏共用同一导航底板。 */
   fused?: boolean
-  /** 首页内容可从顶栏下方自然延伸；滚动后顶栏才显示玻璃底。 */
+  /** 首页通天内容结构：顶栏覆盖在滚动视口之上，不占据独立布局行。 */
   overlay?: boolean
+  /** 覆盖态内容进入顶栏下方后，启用半透明玻璃效果。 */
   scrolled?: boolean
-  /** 方案 1 的玻璃层从侧栏右侧开始，左侧品牌区保持实底。 */
+  /** 玻璃层从侧栏右边缘开始，避免影响左侧导航区域。 */
   glassLeftInset?: number
   /** 方案 1 全宽三段顶栏的左侧品牌区。 */
   leftSlot?: ReactNode
@@ -195,7 +196,7 @@ export default function TopNav({
 const menuRow =
   'flex w-full items-center gap-2 rounded-md px-2 py-2 text-[14px] leading-5 text-[#1c1f23] transition-colors hover:bg-[rgba(83,96,143,0.07)]'
 
-const AVATAR_NAV_VERSIONS = [1, 4, 7] as const satisfies readonly NavVersion[]
+const AVATAR_NAV_VERSIONS = [1, 4, 9, 7] as const satisfies readonly NavVersion[]
 const NAV_VERSION_NAMES: Record<NavVersion, string> = {
   1: 'L 型',
   2: '内容区收起',
@@ -205,18 +206,28 @@ const NAV_VERSION_NAMES: Record<NavVersion, string> = {
   6: '搜索工具栏',
   7: '内部抖音 AI 工作台',
   8: '顶部工具栏',
+  9: '文案 Header · 图标收起',
 }
 
 /** 头像下拉：账号菜单 + 导航方案。带 label 时整行都作为触发区。 */
 export function AvatarMenu({
   compact = false,
   label,
+  placement = 'header',
 }: {
   compact?: boolean
   label?: string
+  placement?: 'header' | 'sidebar'
 }) {
   const navVersion = useNavVersion((s) => s.version)
   const selectNavVersion = useNavVersion((s) => s.setVersion)
+  const placedInSidebar = placement === 'sidebar'
+  const contentOverflowClass = placedInSidebar
+    ? 'overflow-visible'
+    : 'overflow-y-auto'
+  const accountSwitcherPositionClass = placedInSidebar
+    ? 'absolute left-full top-0 hidden pl-2 group-hover:block group-focus-within:block'
+    : 'absolute right-full top-0 hidden pr-2 group-hover:block group-focus-within:block'
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
@@ -241,11 +252,11 @@ export function AvatarMenu({
         {/* 设计稿 创作者中心26.7 788-20791：身份认证 / 通知中心 /
             切换账号 / 退出登录；切换账号 hover 出二级账号面板。 */}
         <Popover.Content
-          side="bottom"
-          align="end"
+          side={placedInSidebar ? 'top' : 'bottom'}
+          align={placedInSidebar ? 'start' : 'end'}
           sideOffset={8}
           aria-label="账号菜单"
-          className="z-[90] max-h-[var(--radix-popover-content-available-height)] w-[232px] overflow-y-auto rounded-lg bg-white p-2 shadow-[0_4px_7px_rgba(0,0,0,0.1),0_0_0.5px_rgba(0,0,0,0.3)]"
+          className={`z-[90] max-h-[var(--radix-popover-content-available-height)] w-[232px] rounded-lg bg-white p-2 shadow-[0_4px_7px_rgba(0,0,0,0.1),0_0_0.5px_rgba(0,0,0,0.3)] ${contentOverflowClass}`}
         >
           <button type="button" onClick={() => toast('身份认证（演示）')} className={menuRow}>
             <FigmaGlyph src="/icons/account-menu/certificate.svg" inset="3.57%" />
@@ -259,13 +270,13 @@ export function AvatarMenu({
             </span>
           </button>
           <div className="group relative">
-            <button type="button" className={menuRow}>
+            <button type="button" aria-haspopup="menu" className={menuRow}>
               <FigmaGlyph src="/icons/account-menu/switch.svg" inset="8.33% 12.5%" />
               <span className="flex-1 text-left">切换账号</span>
               <FigmaGlyph src="/icons/account-menu/chevron-right.svg" inset="20.83% 33.33%" className="text-[#1c1f23]/60" />
             </button>
-            {/* 二级账号面板 — 悬停展开,pr 作为鼠标移动的悬停桥 */}
-            <div className="absolute right-full top-0 hidden pr-2 group-hover:block">
+            {/* 二级账号面板跟随头像入口所在边缘向内展开，间距同时作为悬停桥。 */}
+            <div className={accountSwitcherPositionClass}>
               <AccountSwitcherPanel />
             </div>
           </div>

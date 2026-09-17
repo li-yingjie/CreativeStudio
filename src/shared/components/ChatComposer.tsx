@@ -88,12 +88,12 @@ export default function ChatComposer({
             }}
             placeholder={placeholder}
             aria-label={ariaLabel ?? placeholder}
-            className={`min-h-0 flex-1 resize-none bg-transparent outline-none ${inputClassName}`}
+            className={`h-full min-h-0 min-w-0 flex-1 resize-none bg-transparent outline-none ${inputClassName}`}
           />
         </div>
       )}
       <div className="flex shrink-0 items-center justify-between pt-2">
-        <div className={`flex min-w-0 items-center gap-2 ${footerLeftClassName}`}>
+        <div className={`flex min-w-0 items-center ${footerLeftClassName || 'gap-2'}`}>
           {footerLeft}
         </div>
         <div className="flex shrink-0 items-center gap-2">

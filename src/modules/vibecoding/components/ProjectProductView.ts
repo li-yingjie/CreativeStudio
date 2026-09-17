@@ -383,6 +383,8 @@ export function buildProductView(
         { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
         { name: H5_GAMEPLAY_CONFIG_LABEL, type: 'file' },
         { name: ASSET_LIBRARY_LABEL, type: 'file' },
+        { name: DATABASE_LABEL, type: 'file' },
+        { name: '项目文件', type: 'dir', children: tree },
       ]
     }
     case 'ai-avatar':

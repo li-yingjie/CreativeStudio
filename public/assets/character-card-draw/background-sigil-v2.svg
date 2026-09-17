@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
+  <defs>
+    <radialGradient id="halo">
+      <stop stop-color="#dce9f5" stop-opacity=".16"/>
+      <stop offset=".42" stop-color="#a9bed2" stop-opacity=".06"/>
+      <stop offset="1" stop-color="#8fa4ba" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="line" x1="50" y1="0" x2="340" y2="330" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#dce6ed" stop-opacity=".26"/>
+      <stop offset=".5" stop-color="#9fb5c8" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#dce6ed" stop-opacity=".22"/>
+    </linearGradient>
+    <g id="spark" stroke="#dce6ed" stroke-width="1">
+      <path d="M0-8 1.4-1.4 8 0 1.4 1.4 0 8-1.4 1.4-8 0-1.4-1.4Z"/>
+      <circle r="2.7"/>
+    </g>
+  </defs>
+
+  <ellipse cx="195" cy="304" rx="176" ry="230" fill="url(#halo)"/>
+  <g stroke="url(#line)">
+    <circle cx="195" cy="116" r="171"/>
+    <circle cx="195" cy="116" r="153" stroke-dasharray="2 7"/>
+    <circle cx="195" cy="116" r="126"/>
+    <circle cx="195" cy="116" r="100" stroke-dasharray="24 7 3 7"/>
+    <circle cx="195" cy="116" r="73"/>
+    <path d="m195 28 77 133H118L195 28Z"/>
+    <path d="m195 204-77-133h154l-77 133Z"/>
+    <path d="m195 48 59 103-118-1 59-102Z"/>
+    <path d="M24 116h342M195-58v348" stroke-dasharray="3 10"/>
+    <path d="M74 237 316-5M74-5l242 242" stroke-dasharray="1 12"/>
+  </g>
+
+  <g stroke="#cddae4" stroke-opacity=".2">
+    <circle cx="62" cy="116" r="24"/>
+    <circle cx="62" cy="116" r="17" stroke-dasharray="3 4"/>
+    <circle cx="328" cy="116" r="24"/>
+    <circle cx="328" cy="116" r="17" stroke-dasharray="3 4"/>
+    <path d="m62 103 11 7v13l-11 7-11-7v-13l11-7Zm266 0 11 7v13l-11 7-11-7v-13l11-7Z"/>
+  </g>
+
+  <g stroke="#c7d5e0" stroke-opacity=".13">
+    <path d="M33 264h82m160 0h82"/>
+    <path d="m195 224 33 40-33 40-33-40 33-40Z"/>
+    <path d="m195 238 22 26-22 26-22-26 22-26Z"/>
+    <circle cx="195" cy="422" r="122"/>
+    <circle cx="195" cy="422" r="91" stroke-dasharray="2 9"/>
+    <path d="m195 322 87 150H108l87-150Z"/>
+    <path d="m195 522-87-150h174l-87 150Z"/>
+    <path d="M195 304v236M78 422h234" stroke-dasharray="2 11"/>
+  </g>
+
+  <g opacity=".2">
+    <use href="#spark" transform="translate(195 116) scale(1.15)"/>
+    <use href="#spark" transform="translate(62 116) scale(.55)"/>
+    <use href="#spark" transform="translate(328 116) scale(.55)"/>
+    <use href="#spark" transform="translate(195 422) scale(.7)"/>
+  </g>
+
+  <g stroke="#ced9e3" stroke-opacity=".12">
+    <path d="M-46 794a241 241 0 0 1 482 0"/>
+    <path d="M-18 794a213 213 0 0 1 426 0"/>
+    <path d="M19 794a176 176 0 0 1 352 0" stroke-dasharray="3 9"/>
+    <path d="m195 645 73 126H122l73-126Z"/>
+    <circle cx="195" cy="755" r="79"/>
+    <path d="M195 625v219M76 755h238" stroke-dasharray="2 10"/>
+  </g>
+</svg>

@@ -1,0 +1,164 @@
+.wgh-shell { --blue: #0798ed; --deep: #0878d0; --paper: #fffef8; position: relative; min-height: 0; background: #0a73c8; font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+.wgh-shell.is-embedded { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.wgh-shell.is-embedded::-webkit-scrollbar { display: none; }
+.wgh-shell * { box-sizing: border-box; }
+.wgh-shell button { font-family: inherit; cursor: pointer; }
+.wgh-page { position: relative; width: min(100%, 430px); margin: 0 auto; overflow: hidden; color: var(--deep); background: #fffefa; font-size: 12px; }
+.wgh-page::before { position: absolute; inset: 0; content: ""; pointer-events: none; opacity: .15; background-image: repeating-linear-gradient(0deg, rgba(69,151,188,.15) 0 1px, transparent 1px 4px); }
+.wgh-nav { position: absolute; z-index: 8; top: 0; right: 0; left: 0; display: grid; height: 46px; grid-template-columns: 40px 1fr 40px; align-items: center; padding: 5px 10px 0; color: #fff; }
+.wgh-nav button { display: grid; width: 32px; height: 32px; place-items: center; padding: 0; color: #fff; border: 0; background: transparent; }
+.wgh-nav button:last-child { justify-self: end; }
+.wgh-nav strong { font-family: "STKaiti", "Kaiti SC", serif; font-size: 15px; text-align: center; letter-spacing: .12em; text-shadow: 0 1px rgba(0,75,170,.3); }
+.wgh-hero { position: relative; height: 558px; overflow: hidden; background: #08a5ee; }
+.wgh-hero-benchmark { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+.wgh-paper { position: relative; width: calc(100% - 26px); margin: -16px auto 0; padding: 31px 20px 25px; border: 2px solid #a5def2; border-radius: 18px 18px 28px 28px; background: var(--paper); box-shadow: 0 5px 0 rgba(14,111,194,.12); }
+.wgh-personality { height: 630px; margin-top: -15px; padding: 0; overflow: hidden; border: 0; border-radius: 17px 17px 25px 25px; background: #fff9e9; box-shadow: 0 4px 0 rgba(127,111,84,.16); }
+.wgh-personality-art { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.wgh-personality-heading { position: absolute; z-index: 2; top: 73px; right: 22px; left: 22px; color: #777064; text-align: center; }
+.wgh-personality-heading h2 { margin: 0; font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; font-size: 27px; font-weight: 500; letter-spacing: .04em; line-height: 1.15; }
+.wgh-personality-heading span { display: block; margin-top: 5px; color: #c6bfaa; font-family: Arial, sans-serif; font-size: 12px; font-weight: 400; letter-spacing: .01em; }
+.wgh-section-heading { position: relative; z-index: 1; text-align: center; }
+.wgh-section-heading::before, .wgh-section-heading::after { position: absolute; top: 14px; width: 54px; height: 12px; content: ""; opacity: .72; }
+.wgh-section-heading::before { left: 6px; background: linear-gradient(135deg, transparent 46%, #e8d89f 48% 54%, transparent 56%), linear-gradient(45deg, transparent 44%, #f0e4b7 46% 52%, transparent 54%); }
+.wgh-section-heading::after { right: 6px; background: linear-gradient(45deg, transparent 46%, #d9e6cf 48% 54%, transparent 56%), linear-gradient(135deg, transparent 44%, #e9eedc 46% 52%, transparent 54%); }
+.wgh-section-heading span { display: block; margin-bottom: 3px; color: #bdc5b9; font-family: "Arial Narrow", sans-serif; font-size: 12px; letter-spacing: .13em; }
+.wgh-section-heading h2 { margin: 0; color: #686a68; font-family: "STKaiti", "Kaiti SC", serif; font-size: 27px; font-weight: 800; letter-spacing: .05em; line-height: 1.15; }
+.wgh-section-heading i { display: block; width: 106px; height: 5px; margin: 1px auto 13px; border-radius: 50%; background: rgba(120,212,240,.55); transform: rotate(-3deg); }
+.wgh-paper-copy { position: absolute; z-index: 2; top: 151px; right: 72px; left: 58px; margin: 0; color: #ad9d80; font-size: 14px; font-weight: 500; line-height: 1.75; text-align: left; }
+.wgh-brown-button, .wgh-blue-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 37px; padding: 0 18px; color: #fff; border: 0; border-radius: 7px; font-size: 14px; font-weight: 800; }
+.wgh-brown-button { position: absolute; z-index: 2; right: 92px; bottom: 34px; left: 92px; height: 62px; padding: 0 20px; background: #b3a087; border-radius: 10px; box-shadow: 0 4px 0 rgba(81,74,61,.23); font-size: 22px; font-weight: 500; }
+.wgh-brown-button span { margin-left: 4px; color: #fffef1; font-size: 20px; }
+.wgh-breakout, .wgh-diary { position: relative; background: #fffefa; }
+.wgh-breakout { padding: 26px 28px 25px; }
+.wgh-diary { padding: 39px 18px 28px; }
+.wgh-diary::before { position: absolute; top: 4px; right: 17%; left: 17%; height: 1px; content: ""; background: rgba(104,195,235,.28); }
+.wgh-breakout-title { position: relative; height: 190px; }
+.wgh-breakout-lockup { position: absolute; top: -8px; left: -11px; width: calc(100% + 22px); height: 205px; object-fit: contain; object-position: center; }
+.wgh-breakout-meta { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; margin: -1px 1px 11px; }
+.wgh-breakout-meta p { margin: 0; color: #dfb979; font-family: "PingFang SC", "Yuanti SC", sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .02em; }
+.wgh-breakout-meta span { color: #59b7df; font-family: "Arial Narrow", "PingFang SC", sans-serif; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.wgh-breakout-meta small { color: #bdc8c7; font-size: 12px; font-weight: 500; }
+.wgh-route-map { position: relative; height: 363px; }
+.wgh-route-item { position: absolute; width: 45%; min-width: 0; }
+.wgh-route-item.is-one { top: 0; left: 0; }
+.wgh-route-item.is-two { top: 47px; right: 0; }
+.wgh-route-item.is-three { top: 184px; left: 0; }
+.wgh-route-item.is-four { top: 230px; right: 0; }
+.wgh-scene-crop { display: block; width: 100%; height: 99px; border: 3px solid #0a99e4; background-image: url('/assets/winter-gathering/breakout-scenes-v2.jpg'); background-repeat: no-repeat; background-size: 200% 200%; }
+.wgh-route-item.is-one .wgh-scene-crop { border-radius: 42% 45% 38% 34% / 42% 35% 45% 39%; background-position: 0 0; }
+.wgh-route-item.is-two .wgh-scene-crop { border-radius: 35% 44% 43% 39% / 38% 41% 35% 44%; background-position: 100% 0; }
+.wgh-route-item.is-three .wgh-scene-crop { border-radius: 39% 35% 45% 43% / 43% 34% 38% 45%; background-position: 0 100%; }
+.wgh-route-item.is-four .wgh-scene-crop { border-radius: 38% 46% 40% 34% / 37% 35% 46% 42%; background-position: 100% 100%; }
+.wgh-route-item span { display: block; color: #68afd0; font-family: "Arial Narrow", "PingFang SC", sans-serif; font-size: 12px; font-weight: 700; line-height: 1.4; white-space: nowrap; }
+.wgh-route-item.is-one span, .wgh-route-item.is-three span { margin-top: 8px; padding-right: 3px; text-align: right; }
+.wgh-route-item.is-two span, .wgh-route-item.is-four span { margin: 0 0 8px; padding-left: 3px; text-align: left; }
+.wgh-route-arrow { position: absolute; z-index: 4; display: grid; width: 19px; height: 19px; place-items: center; margin: 0; color: #fff; border-radius: 50%; background: #0b99e5; box-shadow: 0 0 0 2px #dff5fb; font-family: Arial, sans-serif; font-size: 12px; line-height: 1; }
+.wgh-route-arrow.is-one { top: 26px; left: 47%; }
+.wgh-route-arrow.is-two { top: 135px; left: 48%; }
+.wgh-route-arrow.is-three { top: 212px; left: 48%; transform: rotate(180deg); }
+.wgh-route-arrow.is-four { top: 315px; left: 51%; transform: rotate(180deg); }
+.wgh-breakout-footer { display: flex; min-height: 119px; align-items: flex-end; justify-content: space-between; margin-top: -18px; padding: 0 3px 0 1px; }
+.wgh-breakout-deer { position: relative; width: 55%; height: 119px; }
+.wgh-breakout-deer img { position: absolute; bottom: -7px; left: -3px; width: 172px; height: 125px; object-fit: contain; object-position: left bottom; }
+.wgh-breakout-deer i { position: absolute; width: 11px; height: 11px; border: 2px solid #a4dbe7; border-radius: 50%; }
+.wgh-breakout-deer i:nth-of-type(1) { right: 2px; top: 1px; width: 28px; height: 28px; }
+.wgh-breakout-deer i:nth-of-type(2) { right: 28px; top: 35px; width: 17px; height: 17px; }
+.wgh-breakout-deer i:nth-of-type(3) { right: 52px; top: 59px; width: 8px; height: 8px; }
+.wgh-breakout-action { display: flex; width: 136px; flex: 0 0 136px; flex-direction: column; align-items: stretch; padding-bottom: 3px; }
+.wgh-breakout-action small { margin-bottom: 8px; color: #80c6df; font-family: "Arial Narrow", "PingFang SC", sans-serif; font-size: 12px; line-height: 1.35; text-align: center; }
+.wgh-breakout-action .wgh-blue-button { width: 100%; height: 55px; margin: 0; border-radius: 7px; font-size: 15px; font-weight: 500; box-shadow: 0 4px 0 #087fc4; }
+.wgh-breakout-action .wgh-blue-button span { margin-left: 5px; font-size: 15px; }
+.wgh-blue-button { min-width: 112px; margin-top: 14px; background: #078fe4; box-shadow: 0 3px 0 rgba(0,76,158,.18); }
+.wgh-diary-people { width: 82%; height: 192px; margin: 0 auto 5px; overflow: hidden; }
+.wgh-diary-people img { width: 100%; height: 100%; object-fit: cover; object-position: center 62%; }
+.wgh-note { position: relative; margin: 0 4px; padding: 26px 17px 18px; border: 4px solid #0499e6; border-radius: 8px; background: #fffef8; box-shadow: 0 0 0 3px rgba(255,255,255,.9) inset; transform: rotate(-1deg); }
+.wgh-note::after { position: absolute; right: 18px; top: -13px; width: 52px; height: 10px; content: ""; border: 3px solid #f1d05c; border-top: 0; border-radius: 0 0 20px 20px; transform: rotate(-10deg); }
+.wgh-paperclip { position: absolute; right: 26px; top: -19px; width: 12px; height: 35px; border: 2px solid #f2ca52; border-bottom: 0; border-radius: 8px 8px 0 0; transform: rotate(18deg); }
+.wgh-note h3 { margin: 0; color: #5d756e; font-family: "STKaiti", "Kaiti SC", serif; font-size: 20px; text-align: center; }
+.wgh-note small { display: block; margin: 2px 0 13px; color: #d4bd70; font-size: 12px; text-align: center; }
+.wgh-note p { margin: 0; color: #98a19a; font-size: 12px; line-height: 1.8; }
+.wgh-note .wgh-blue-button { display: flex; margin: 12px auto 0; }
+.wgh-diary-v2 { position: relative; overflow: hidden; background: #fffef9; }
+.wgh-diary-v2 > img { display: block; width: 100%; height: auto; }
+.wgh-diary-copy { position: absolute; z-index: 2; top: 327px; right: 62px; left: 62px; color: #8f8a75; }
+.wgh-diary-copy h3 { margin: 0; color: #5d756e; font-family: "PingFang SC", "Hiragino Sans GB", sans-serif; font-size: 21px; font-weight: 500; letter-spacing: .04em; }
+.wgh-diary-copy small { display: block; margin: 5px 0 17px; color: #d1b96e; font-size: 12px; line-height: 1.45; }
+.wgh-diary-copy p { margin: 0; font-size: 13px; line-height: 1.85; }
+.wgh-diary-copy p b { color: #7da8b7; font-weight: 700; }
+.wgh-diary-copy .wgh-blue-button { display: flex; width: 134px; height: 42px; margin: 20px auto 0; font-size: 15px; font-weight: 500; }
+.wgh-tail-flow { padding: 1px 0 0; background: #fffefa; }
+.wgh-tail-module { position: relative; padding: 28px 0 34px; }
+.wgh-module-lockup { display: block; width: 100%; height: auto; }
+.wgh-tail-primary { display: flex; min-width: 148px; height: 48px; align-items: center; justify-content: center; gap: 7px; margin: 18px auto 21px; padding: 0 22px; color: #fff; border: 0; border-radius: 7px; background: linear-gradient(180deg, #15a5f4 0%, #078fe4 100%); box-shadow: 0 4px 0 #087fc4; font-size: 15px; font-weight: 700; }
+.wgh-spa-title-crop { position: relative; height: 258px; overflow: hidden; }
+.wgh-spa-title-crop img { display: block; width: 100%; height: auto; }
+.wgh-spa-carousel-wrap { position: relative; }
+.wgh-spa-carousel { display: flex; height: 440px; overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; scroll-snap-type: x mandatory; scrollbar-width: none; touch-action: pan-x pan-y; }
+.wgh-spa-carousel::-webkit-scrollbar { display: none; }
+.wgh-spa-carousel figure { position: relative; min-width: 100%; height: 440px; margin: 0; overflow: hidden; scroll-snap-align: start; scroll-snap-stop: always; }
+.wgh-spa-carousel figure img { position: absolute; top: -258px; left: 0; display: block; width: 100%; height: auto; }
+.wgh-spa-dots { display: flex; height: 31px; align-items: center; justify-content: center; gap: 8px; }
+.wgh-spa-dots button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%; background: #d1d2d4; transition: width .2s ease, background .2s ease; }
+.wgh-spa-dots button.is-active { width: 17px; border-radius: 6px; background: #f52545; }
+.wgh-spa-action { display: flex; align-items: center; justify-content: space-between; padding: 0 28px; }
+.wgh-spa-action .wgh-tail-primary { margin: 14px 0 20px; }
+.wgh-spa-action p { margin: 0 3px 7px 0; color: #a8a7a0; font-size: 12px; line-height: 1.55; text-align: right; }
+.wgh-spa-action p b { color: #77bad8; font-size: 13px; }
+.wgh-tail-task-list { margin: 0 20px; padding: 3px 13px; border-radius: 13px; background: rgba(250,242,255,.82); }
+.wgh-tail-task-list p { display: flex; min-height: 70px; align-items: center; justify-content: space-between; gap: 12px; margin: 0; color: #8eb8cc; border-bottom: 1px solid rgba(99,176,216,.18); font-size: 12px; line-height: 1.45; }
+.wgh-tail-task-list p:last-child { border-bottom: 0; }
+.wgh-tail-task-list p span { display: flex; flex-direction: column; }
+.wgh-tail-task-list p b { margin-bottom: 3px; color: #4f9fc4; font-size: 15px; }
+.wgh-tail-task-list p small { font-size: 12px; }
+.wgh-tail-task-list button { flex: 0 0 70px; height: 32px; padding: 0; color: #fff; border: 0; border-radius: 16px; background: #109be5; font-size: 13px; font-weight: 700; }
+.wgh-snow-module { padding: 38px 0 34px; }
+.wgh-snow-title-crop { position: relative; height: 286px; overflow: hidden; }
+.wgh-snow-title-crop img { width: 100%; height: 286px; object-fit: contain; object-position: center top; }
+.wgh-module-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; margin: 2px 62px 12px; color: #67acd0; font-size: 15px; line-height: 1.5; }
+.wgh-module-meta b { font-weight: 600; }
+.wgh-module-meta time { color: #2999d7; font-size: 17px; font-weight: 800; white-space: nowrap; }
+.wgh-snow-route { position: relative; height: 520px; margin-top: 0; }
+.wgh-snow-photo, .wgh-snow-mascot { position: absolute; display: block; }
+.wgh-snow-photo { z-index: 1; object-fit: cover; border: 5px solid #3c8bd5; border-radius: 21px; background: #dcedf8; box-shadow: 0 5px 10px rgba(27,104,171,.14); }
+.wgh-snow-photo.is-one { top: 132px; left: 17px; width: 146px; height: 184px; transform: rotate(-4deg); }
+.wgh-snow-photo.is-two { top: 9px; right: 17px; width: 156px; height: 184px; transform: rotate(-6deg); }
+.wgh-snow-photo.is-three { top: 243px; right: 18px; width: 151px; height: 183px; transform: rotate(7deg); }
+.wgh-snow-copy { position: absolute; display: flex; flex-direction: column; color: #86bdd6; font-size: 12px; line-height: 1.48; }
+.wgh-snow-copy b { margin-bottom: 3px; color: #55a9ce; font-size: 15px; font-weight: 700; }
+.wgh-snow-copy.is-one { top: 38px; left: 169px; width: 74px; text-align: center; }
+.wgh-snow-copy.is-two { top: 211px; left: 176px; width: 76px; text-align: center; }
+.wgh-snow-copy.is-three { top: 355px; left: 54px; width: 172px; text-align: right; }
+.wgh-snow-arrow { position: absolute; z-index: 3; display: grid; width: 23px; height: 23px; place-items: center; color: #fff; border: 2px solid #e6f7ff; border-radius: 50%; background: #438ed1; font-family: Arial, sans-serif; font-size: 13px; font-style: normal; line-height: 1; }
+.wgh-snow-arrow.is-one { top: 108px; left: 238px; }
+.wgh-snow-arrow.is-two { top: 254px; left: 151px; }
+.wgh-snow-arrow.is-three { top: 314px; left: 229px; }
+.wgh-snow-mascot { bottom: 2px; left: 25px; width: 92px; height: 111px; object-fit: contain; }
+.wgh-snow-route .wgh-tail-primary { position: absolute; right: 54px; bottom: 13px; width: 178px; height: 56px; margin: 0; border-radius: 9px; font-size: 17px; }
+.wgh-gear-module { padding: 38px 0 0; }
+.wgh-gear-visual { position: relative; }
+.wgh-gear-subtitle { position: absolute; top: 16.5%; right: 0; left: 0; margin: 0; color: #9ca7c9; font-family: "STKaiti", "Kaiti SC", serif; font-size: 15px; line-height: 1.45; text-align: center; letter-spacing: .06em; }
+.wgh-tv-action { position: absolute; top: 84.6%; left: 60.1%; width: 28.8%; height: 38px; color: #c8904e; border: 0; border-radius: 12px; background: #fff8e8; box-shadow: 0 0 0 2px rgba(230,187,119,.28), 0 2px 4px rgba(71,48,25,.14); font-size: 14px; font-weight: 800; white-space: nowrap; }
+.wgh-search-tail { display: flex; width: 228px; height: 48px; align-items: center; margin: 18px auto 55px; color: #4f762e; border: 4px solid #79c837; border-radius: 8px; background: #fff; box-shadow: 0 2px 0 rgba(100,160,44,.15); font-size: 16px; }
+.wgh-search-tail span { align-self: stretch; display: flex; align-items: center; padding: 0 12px; color: #fff; background: #79c837; font-weight: 800; }
+.wgh-search-tail b { margin: 0 8px 0 11px; color: #65a736; font-size: 23px; line-height: 1; transform: rotate(-16deg); }
+.wgh-search-tail strong { color: #3d4a36; font-size: 17px; white-space: nowrap; }
+.wgh-shell.is-editing [data-wgh-edit-id] { outline-offset: 3px; cursor: move; touch-action: none; }
+.wgh-shell.is-editing [data-wgh-edit-id]:hover { outline: 1px dashed rgba(36,111,238,.65); }
+.wgh-editor-toggle { position: fixed; z-index: 1002; top: 14px; right: 16px; min-width: 98px; height: 36px; padding: 0 14px; color: #fff; border: 1px solid rgba(255,255,255,.32); border-radius: 9px; background: rgba(20,25,34,.88); box-shadow: 0 5px 18px rgba(0,0,0,.16); font-size: 13px; font-weight: 700; backdrop-filter: blur(12px); }
+.wgh-editor-selection { position: absolute; z-index: 1000; pointer-events: none; border: 2px solid #2477ee; background: rgba(36,119,238,.05); box-shadow: 0 0 0 1px rgba(255,255,255,.9) inset; }
+.wgh-editor-selection > span { position: absolute; bottom: 100%; left: -2px; max-width: 210px; padding: 4px 7px; overflow: hidden; color: #fff; border-radius: 5px 5px 0 0; background: #2477ee; font-size: 12px; font-weight: 700; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.wgh-editor-selection > button { position: absolute; right: -7px; bottom: -7px; width: 14px; height: 14px; padding: 0; pointer-events: auto; border: 2px solid #fff; border-radius: 3px; background: #2477ee; box-shadow: 0 1px 4px rgba(0,0,0,.2); cursor: nwse-resize; }
+.wgh-editor-panel { position: fixed; z-index: 1001; top: 62px; right: 16px; width: 288px; max-height: calc(100vh - 80px); padding: 16px; overflow-y: auto; color: #20242c; border: 1px solid rgba(15,23,42,.11); border-radius: 14px; background: rgba(255,255,255,.96); box-shadow: 0 18px 50px rgba(15,23,42,.18); font-size: 12px; backdrop-filter: blur(16px); }
+.wgh-editor-panel header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.wgh-editor-panel header strong { font-size: 16px; }
+.wgh-editor-panel header button { width: 28px; height: 28px; color: #69717e; border: 0; border-radius: 7px; background: #f0f2f5; font-size: 20px; }
+.wgh-editor-panel > p { margin: 0 0 14px; color: #69717e; font-size: 12px; line-height: 1.6; }
+.wgh-editor-panel label { display: grid; gap: 5px; color: #555d69; font-size: 12px; }
+.wgh-editor-panel select, .wgh-editor-panel input { width: 100%; height: 34px; padding: 0 9px; color: #20242c; border: 1px solid #dfe3e8; border-radius: 7px; background: #fff; font: inherit; }
+.wgh-editor-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.wgh-editor-fields > button, .wgh-editor-panel footer button { height: 34px; color: #374151; border: 1px solid #dfe3e8; border-radius: 7px; background: #f7f8fa; font-size: 12px; }
+.wgh-editor-fields > button { grid-column: 1 / -1; }
+.wgh-editor-panel footer { display: grid; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid #eceef1; }
+.wgh-editor-panel footer small { color: #8a919c; font-size: 12px; text-align: center; }
+@media (max-width: 850px) { .wgh-editor-panel { top: auto; right: 8px; bottom: 8px; left: 8px; width: auto; max-height: 44vh; } .wgh-editor-toggle { top: 8px; right: 8px; } }
+@media (max-width: 370px) { .wgh-hero { height: 480px; } .wgh-personality { height: 540px; } .wgh-personality-heading { top: 61px; } .wgh-paper-copy { top: 129px; right: 60px; left: 49px; font-size: 13px; } .wgh-brown-button { right: 78px; bottom: 29px; left: 78px; height: 53px; font-size: 19px; } }

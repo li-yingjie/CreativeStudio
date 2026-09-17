@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import * as Popover from '@radix-ui/react-popover'
 import { Tooltip } from './Tooltip'
 import { toast } from 'sonner'
 import ChatPreview from '@/modules/editor/components/preview/ChatPreview'
@@ -84,6 +85,36 @@ import SummerSurfH5Preview, {
   type SummerSurfSelection,
 } from './SummerSurfH5Preview'
 import SummerSurfEditPanel from './SummerSurfEditPanel'
+import H5LabEditStage, {
+  type H5LabAsset,
+  type H5LabStageApi,
+} from './h5-lab/H5LabEditStage'
+import H5LabEditPanel from './h5-lab/H5LabEditPanel'
+import H5LabPhonePreview from './h5-lab/H5LabPhonePreview'
+import { useH5LabHistory } from './h5-lab/useH5LabHistory'
+import type { H5LabLayer } from './h5-lab/h5-lab-layers'
+import { buildH5LabFrames } from './h5-lab/H5LabFrames'
+import {
+  h5LabPrototypeDiffCount,
+  h5LabRefContext,
+  loadH5LabPrototype,
+  saveH5LabPrototype,
+  type H5LabChatRef,
+  type H5LabHotspot,
+  type H5LabPrototype,
+} from './h5-lab/h5-lab-prototype'
+import {
+  H5_LAB_CASES,
+  H5_LAB_PROJECT_NAMES,
+  getH5LabCase,
+} from './h5-lab/h5-lab-cases'
+import {
+  h5LabDiffCount,
+  loadH5LabOverrides,
+  saveH5LabOverrides,
+  type H5LabOverrides,
+  type H5LabSelection,
+} from './h5-lab/h5-lab-overrides'
 import { summerSurfConfigForStorage } from './summerSurfLocalAssets'
 import XiahuaH5Preview, {
   activityScreens,
@@ -165,6 +196,15 @@ import {
 import AssetEditPanel from './AssetEditPanel'
 import VideoEditor from './VideoEditor'
 import ImageCanvasEditor from './ImageCanvasEditor'
+import MarketingImageCanvasEditor, {
+  ImageQuickTools as MarketingImageQuickTools,
+} from './MarketingImageCanvasEditor'
+import {
+  laneFromHomeScene,
+  laneFromKind,
+  seededProjectLane,
+  type WorkshopLane,
+} from './workshop-lanes'
 import ErrorBoundary from '@/shared/components/ErrorBoundary'
 import PlatformHome from './PlatformHome'
 import SideNav, {
@@ -177,6 +217,8 @@ import ComposerLocalFileButton from '@/shared/components/ComposerLocalFileButton
 import SideNavProductHeader from '@/shared/components/SideNavProductHeader'
 import SideNavSearchToolbar from '@/shared/components/SideNavSearchToolbar'
 import UnifiedToolbar from '@/modules/creator-center/UnifiedToolbar'
+import { AvatarMenu } from '@/modules/creator-center/TopNav'
+import { CREATOR_PROFILE } from '@/modules/creator-center/data'
 import SideNavPanelStateIcon from '@/shared/components/SideNavPanelStateIcon'
 import SideNavIconFooterActions, {
   SideNavCollapseFooterButton,
@@ -184,6 +226,7 @@ import SideNavIconFooterActions, {
 import { useSideNavConfig } from '@/shared/components/side-nav-config'
 import {
   useNavVersion,
+  usesIconRailCollapse,
   usesProductHeaderLayout,
   usesSchemeFourLayout,
   usesSearchToolbarLayout,
@@ -198,6 +241,7 @@ import { AppWindowLinearIcon } from 'master-icon/react/AppWindowLinearIcon'
 import { FolderCodeLinearIcon } from 'master-icon/react/FolderCodeLinearIcon'
 import { ToolboxLinearIcon } from 'master-icon/react/ToolboxLinearIcon'
 import { InboxLinearIcon } from 'master-icon/react/InboxLinearIcon'
+import { PackageLinearIcon } from 'master-icon/react/PackageLinearIcon'
 import { LightningLinearIcon } from 'master-icon/react/LightningLinearIcon'
 import { Notebook01LinearIcon } from 'master-icon/react/Notebook01LinearIcon'
 import { PinLinearIcon } from 'master-icon/react/PinLinearIcon'
@@ -243,7 +287,6 @@ import { ProjectObjectView, DatabaseView, type DbContent } from './ProjectObject
 import { PROJECT_DOCS, ACG_NEW_YEAR_PLAN_MD, XIAHUA_PLAN_MD } from './data/project-docs'
 import { CHAT_EMPTY_SUGGESTIONS, CHAT_SUGGESTIONS_BY_KIND, CHAT_SUGGESTIONS_BY_PROJECT } from './data/chat-suggestions'
 import { PROJECT_KINDS, SHAPE_BY_KIND, PROJECT_KIND_LABELS, type OutputShape } from './data/project-kinds'
-import { classifyProjectKind } from './project-kind-classifier'
 import { FlexAlignGlyph, ProductToolbar, ToolbarAction } from './Toolbar'
 import { Disclosure, FileTreeView } from './FileTreeView'
 import { getFileIcon } from './file-tree-utils'
@@ -347,8 +390,7 @@ import AcgGameplayComponentsWorkspace from './AcgGameplayComponentsWorkspace'
 import PublishDrawer from './PublishDrawer'
 import { getMiniProgramConfig, type MiniProgramConfig } from './MiniProgramConfigData'
 import { getMarketingH5Preview, type MarketingH5PreviewConfig } from './MarketingH5ConfigData'
-import { useRuntimeConfigStore, setRuntimeConfig } from './artifact/runtime-config-store'
-import { generateAvatarConfig } from './artifact/generate'
+import { useRuntimeConfigStore } from './artifact/runtime-config-store'
 
 /** Each platform project has a `ProjectKind` (the concrete product /
  *  case it represents) and an `OutputShape` (the abstract category that
@@ -372,11 +414,20 @@ import { generateAvatarConfig } from './artifact/generate'
 import {
   ArrowLeft,
   ArrowUp,
+  AlertTriangle,
+  Archive,
+  BadgeDollarSign,
+  Blocks,
+  BriefcaseBusiness,
+  Brush,
+  Camera,
   Check,
   CheckCircle2,
+  CheckSquare,
   ChevronDown,
   ChevronUp,
   ChevronRight,
+  Clapperboard,
   Clock,
   LayoutGrid,
   ListChecks,
@@ -392,12 +443,18 @@ import {
   Headphones,
   Menu4,
   Save,
+  PanelLeft,
   Pencil,
   Play,
   ExternalLink,
+  FileSearch,
+  Flag,
+  Flashlight,
+  Gift,
   Plus,
   Minus,
   RefreshCw,
+  Redo2,
   RotateCcw,
   Smartphone,
   Trash2,
@@ -405,13 +462,28 @@ import {
   ThumbsDown,
   ThumbsUp,
   Upload,
+  Undo2,
   X,
   MessageSquarePlus,
   Gamepad2,
   Image as ImageIcon,
   Lightbulb,
+  MessageCircleHeart,
+  MessageSquare,
   ShieldCheck,
+  MessageSquareText,
+  MessageSquareWarning,
+  MonitorPlay,
   BookOpen,
+  PencilLine,
+  Search,
+  Sparkles,
+  SquareUser,
+  Telescope,
+  Type,
+  UserRound,
+  UsersRound,
+  Video,
   WandSparkles,
   Zap,
   AppWindow,
@@ -1190,8 +1262,231 @@ const STANDALONE_WORKSHOP_MOTION_CSS_EASE = 'cubic-bezier(0.32,0.72,0,1)'
 const STANDALONE_WORKSHOP_NAV_ITEMS: SideNavItem[] = [
   { key: '灵感广场', label: '灵感广场', Icon: Lightbulb },
   { key: 'Skills', label: '技能库', Icon: FolderCodeLinearIcon },
-  { key: '资源库', label: '资源库', Icon: ToolboxLinearIcon },
+  {
+    key: '资源库',
+    label: '资源库',
+    Icon: InboxLinearIcon,
+  },
+  {
+    key: '评测库',
+    label: '评测库',
+    Icon: FileSearch,
+    dividerAfter: true,
+  },
+  {
+    key: '项目库',
+    label: '项目库',
+    Icon: PackageLinearIcon,
+    dividerAfter: true,
+  },
 ]
+
+type StandaloneSpaceTile = { label: string; Icon: LucideIcon }
+
+const STANDALONE_SPACE_SECTIONS: {
+  title: string
+  color: string
+  tiles: StandaloneSpaceTile[]
+}[] = [
+  {
+    title: '我的',
+    color: '#8b5cf6',
+    tiles: [
+      { Icon: UserRound, label: '个人空间' },
+      { Icon: Brush, label: '创意工坊' },
+    ],
+  },
+  {
+    title: '平台',
+    color: '#e72e75',
+    tiles: [
+      { Icon: CheckSquare, label: '解决方案' },
+      { Icon: Telescope, label: '前沿实验室' },
+    ],
+  },
+  {
+    title: '运营',
+    color: '#fa8b14',
+    tiles: [
+      { Icon: UsersRound, label: '作者运营' },
+      { Icon: BadgeDollarSign, label: '资金结算' },
+      { Icon: Archive, label: '版权运营' },
+      { Icon: Type, label: '敏感词运营' },
+      { Icon: MessageSquareText, label: '群聊' },
+      { Icon: Search, label: '抖音搜索' },
+      { Icon: MessageCircleHeart, label: '垂类运营' },
+      { Icon: Gamepad2, label: '抖音游戏' },
+      { Icon: FileSearch, label: '调研中台' },
+      { Icon: Flashlight, label: '热点资讯运营' },
+      { Icon: Video, label: '抖音直播运营' },
+      { Icon: Clapperboard, label: '抖音UGC' },
+      { Icon: Camera, label: '社交互动' },
+      { Icon: SquareUser, label: '直播用户平台' },
+      { Icon: Brush, label: '效果与创作' },
+    ],
+  },
+  {
+    title: '治理',
+    color: '#3b82f6',
+    tiles: [
+      { Icon: MonitorPlay, label: '视频治理' },
+      { Icon: Video, label: '直播治理' },
+      { Icon: SquareUser, label: '账号治理' },
+      { Icon: MessageSquare, label: 'IM治理' },
+      { Icon: Smartphone, label: '小程序治理' },
+      { Icon: ImageIcon, label: 'AIGC治理' },
+      { Icon: ShieldCheck, label: '版权治理' },
+      { Icon: Clapperboard, label: '短剧治理' },
+      { Icon: Gamepad2, label: '游戏治理' },
+      { Icon: BadgeDollarSign, label: '资金安全' },
+      { Icon: AlertTriangle, label: 'ZL治理' },
+      { Icon: MessageSquareWarning, label: '评论治理' },
+      { Icon: Blocks, label: '生态治理' },
+      { Icon: MessageSquareText, label: '舆情' },
+      { Icon: Gift, label: '投稿道具' },
+    ],
+  },
+  {
+    title: '职能',
+    color: '#8b5cf6',
+    tiles: [
+      { Icon: Sparkles, label: '开放平台' },
+      { Icon: PencilLine, label: '智能标注' },
+      { Icon: Flag, label: '数据BP' },
+      { Icon: WandSparkles, label: 'MagicX' },
+      { Icon: MessageSquare, label: '体验' },
+      { Icon: AppWindow, label: '产品研发' },
+      { Icon: BriefcaseBusiness, label: '劳动力管理' },
+    ],
+  },
+]
+
+/** 方案 7 的工作台品牌头：品牌标识、空间切换与收展入口属于同一上下文。 */
+function StandaloneWorkshopLogoHeader({
+  collapsed = false,
+  onToggle,
+}: {
+  collapsed?: boolean
+  onToggle: () => void
+}) {
+  const [activeSpace, setActiveSpace] = useState('创意工坊')
+
+  if (collapsed) {
+    return (
+      <div className="mt-4 flex h-10 items-center justify-center">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label="展开导航"
+          title="展开导航"
+          className="group relative flex size-8 -translate-x-px items-center justify-center rounded-lg text-[#565A60] transition-colors duration-150 hover:bg-black/[0.03] hover:text-[#161823] motion-reduce:transition-none"
+        >
+          <img
+            src="/assets/logo2.svg"
+            alt=""
+            aria-hidden
+            className="size-[18px] object-contain transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0 motion-reduce:transition-none"
+          />
+          <SideNavPanelStateIcon
+            collapsed
+            className="absolute size-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none"
+          />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-4 flex h-10 items-center gap-0.5 pl-5 pr-2">
+      <img
+        src="/assets/logo2.svg"
+        alt=""
+        aria-hidden
+        className="size-[18px] shrink-0 object-contain"
+      />
+      <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[#161823]">
+        抖音 AI 工作台
+      </span>
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <button
+            type="button"
+            aria-label={`切换工作空间，当前为${activeSpace}`}
+            className="flex h-6 max-w-[64px] shrink-0 items-center gap-0.5 rounded-md px-1 text-[11px] font-medium text-[#565A60] transition-colors hover:bg-black/[0.04] hover:text-[#161823]"
+          >
+            <span className="truncate">{activeSpace}</span>
+            <ChevronDown size={10} className="shrink-0" />
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            side="bottom"
+            align="start"
+            sideOffset={8}
+            collisionPadding={12}
+            aria-label="选择工作空间"
+            className="thin-scroll z-50 max-h-[var(--radix-popover-content-available-height)] overflow-y-auto rounded-xl border border-black/5 bg-white p-3 shadow-lg outline-none"
+            style={{ width: 'min(616px, calc(100vw - 24px))' }}
+          >
+            {STANDALONE_SPACE_SECTIONS.map((section) => (
+              <section key={section.title} className="rounded-lg p-3">
+                <h3 className="mb-2 text-[12px] font-normal leading-4 text-[#1c1f23]/55">
+                  {section.title}
+                </h3>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                  {section.tiles.map(({ Icon, label }) => {
+                    const selected = label === activeSpace
+                    return (
+                      <Popover.Close asChild key={label}>
+                        <button
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => setActiveSpace(label)}
+                          className={`flex min-w-0 items-center gap-2 rounded-lg border p-3 text-left text-[14px] leading-5 transition-colors ${
+                            selected
+                              ? 'border-[#1c1f23]/50 bg-black/[0.04]'
+                              : 'border-black/10 bg-white hover:bg-black/[0.03]'
+                          }`}
+                        >
+                          <Icon size={14} style={{ color: section.color }} />
+                          <span className="truncate text-[#1c1f23]">{label}</span>
+                        </button>
+                      </Popover.Close>
+                    )
+                  })}
+                </div>
+              </section>
+            ))}
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label="收起导航"
+        title="收起导航"
+        className="flex size-6 shrink-0 items-center justify-center rounded-md text-[#565A60] transition-colors hover:bg-black/[0.04] hover:text-[#161823]"
+      >
+        <SideNavPanelStateIcon className="size-4" />
+      </button>
+    </div>
+  )
+}
+
+function StandaloneWorkshopAccountMenu({ collapsed }: { collapsed: boolean }) {
+  return (
+    <div className="px-[var(--sn-px)] pb-2">
+      <div className="flex h-8 items-center justify-center">
+        <AvatarMenu
+          compact={collapsed}
+          label={collapsed ? undefined : CREATOR_PROFILE.name}
+          placement="sidebar"
+        />
+      </div>
+    </div>
+  )
+}
+
 function StandaloneWorkshopRail({
   activeNav,
   onExpand,
@@ -1224,40 +1519,23 @@ function StandaloneWorkshopRail({
       }}
       header={
         <>
-          <SideNavProductHeader
-            leadingText="创意工坊"
-            bottomGap={0}
+          <StandaloneWorkshopLogoHeader
             collapsed
             onToggle={onExpand}
           />
-          <div className="px-[var(--sn-px)] pb-3 pt-1">
+          <div className="px-[var(--sn-px)] pb-3 pt-4">
             <SideNavActionButton
               aria-label="新建项目"
               collapsed
               onClick={onNewProject}
+              style={{ height: 40 }}
             >
               <Plus size={16} strokeWidth={1.8} className="shrink-0" />
             </SideNavActionButton>
           </div>
         </>
       }
-      footer={
-        <div className="px-[var(--sn-px)] pb-2">
-          <button
-            type="button"
-            onClick={() => toast('我的草稿（演示）')}
-            aria-label="我的草稿 23"
-            title="我的草稿 23"
-            className="relative flex h-8 w-full items-center justify-center rounded-lg px-2 text-[12px] font-medium leading-4 text-[#252632]/80 transition-colors hover:bg-black/[0.03]"
-          >
-            <InboxLinearIcon size={16} className="shrink-0" />
-            <span
-              aria-hidden
-              className="absolute left-1/2 top-1/2 ml-1 mt-1 size-1 rounded-full bg-[#FE2C55]"
-            />
-          </button>
-        </div>
-      }
+      footer={<StandaloneWorkshopAccountMenu collapsed />}
     />
   )
 }
@@ -1464,6 +1742,8 @@ function PlatformSidebar({
     JINGXIN_LIVESTREAM_ASSET_PROJECT,
     LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
     MAGICX_HEADER_ASSET_PROJECT,
+    // h5-reference-lab 复刻出来的 benchmark case —— 和其它活动同级可打开、可编辑。
+    ...H5_LAB_PROJECT_NAMES,
     '射击小游戏',
     TAROT_INTEREST_CARD_PROJECT,
     // '抖音 AI 工坊设计探索' — 暂隐藏，保留配置与文件树供后续恢复。
@@ -1557,17 +1837,16 @@ function PlatformSidebar({
            分身变体没有 AI 创作入口；方案 2 / 4 / 6 显示各自顶部工具栏。 */
         standaloneWorkshopLayout ? (
           <>
-            <SideNavProductHeader
-              leadingText="创意工坊"
-              bottomGap={0}
+            <StandaloneWorkshopLogoHeader
               collapsed={collapsed}
               onToggle={() => onCollapseSidebar?.()}
             />
-            <div className="px-[var(--sn-px)] pb-3 pt-1">
+            <div className="px-[var(--sn-px)] pb-3 pt-4">
               <SideNavActionButton
                 aria-label="新建项目"
                 collapsed={collapsed}
                 onClick={onNewProject}
+                style={{ height: 40 }}
               >
                 <Plus size={16} strokeWidth={1.8} className="shrink-0" />
                 {!collapsed && '新建项目'}
@@ -1673,23 +1952,9 @@ function PlatformSidebar({
         ) : undefined
       }
       footer={
-        /* 方案 1 / 4 工坊底部与百科「我的词条」保持同一位置和行样式。 */
+        /* 独立工作台始终保留账号菜单，避免隐藏顶栏后失去导航方案入口。 */
         standaloneWorkshopLayout ? (
-          <div className="px-[var(--sn-px)] pb-2">
-            <button
-              type="button"
-              onClick={() => toast('我的草稿（演示）')}
-              aria-label="我的草稿 23"
-              title={collapsed ? '我的草稿 23' : undefined}
-              className={`flex h-8 w-full items-center rounded-lg px-2 text-[12px] font-medium leading-4 text-[#252632]/80 transition-colors hover:bg-black/[0.03] ${
-                collapsed ? 'justify-center gap-1' : 'gap-1.5'
-              }`}
-            >
-              <InboxLinearIcon size={16} className="shrink-0" />
-              {!collapsed && <span>我的草稿 23</span>}
-              <span aria-hidden className="size-1 shrink-0 rounded-full bg-[#FE2C55]" />
-            </button>
-          </div>
+          <StandaloneWorkshopAccountMenu collapsed={collapsed} />
         ) : navVersion === 3 ? (
           <div className="px-[var(--sn-px)] pb-3">
             <SideNavCollapseFooterButton
@@ -2669,6 +2934,8 @@ export default function VibeCodingPage({
 
   /* chat panel — always visible; flag kept for future collapse toggle */
   const [chatCollapsed] = useState(false)
+  /** 画布编辑里手动收起对话流。 */
+  const [h5LabChatCollapsed, setH5LabChatCollapsed] = useState(false)
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const [chatScrollElement, setChatScrollElement] = useState<HTMLDivElement | null>(null)
   const bindChatScrollRef = useCallback((node: HTMLDivElement | null) => {
@@ -2804,8 +3071,21 @@ export default function VibeCodingPage({
   const [createdProjectKinds, setCreatedProjectKinds] = useState<
     Record<string, ProjectKind>
   >({})
+  const [createdProjectLanes, setCreatedProjectLanes] = useState<
+    Record<string, WorkshopLane>
+  >({})
   const kindOf = (name: string): ProjectKind =>
     PROJECT_KINDS[name] ?? createdProjectKinds[name] ?? 'mini-program'
+  const rememberProjectLane = (name: string, lane: WorkshopLane) => {
+    setCreatedProjectLanes((prev) =>
+      prev[name] === lane ? prev : { ...prev, [name]: lane },
+    )
+  }
+  const laneOf = (name: string): WorkshopLane =>
+    createdProjectLanes[name] ??
+    seededProjectLane(name) ??
+    laneFromKind(kindOf(name)) ??
+    'marketing'
   /** Spec the user confirmed in GameConfirmCard — kept so the post-step
    *  user-echo bubble can read it back, and so the locked card still
    *  shows the chosen options. */
@@ -2929,7 +3209,13 @@ export default function VibeCodingPage({
     | 'tower-asset-apply'
     | 'tower-panel-action'
     | 'tower-map-edit'
-  type SentMessage = { id: string; text: string; trigger: MessageTrigger }
+  type SentMessage = {
+    id: string
+    text: string
+    trigger: MessageTrigger
+    /** 这条消息是带着画布上的某个元素发的。 */
+    canvasRef?: H5LabChatRef
+  }
   const messageSequenceRef = useRef(0)
   const createMessageId = () =>
     `m-${Date.now().toString(36)}-${(messageSequenceRef.current++).toString(36)}`
@@ -3260,9 +3546,8 @@ export default function VibeCodingPage({
   const isPlatform = layout === 'platform'
   const chatOnLeft = layout === 'code' || isPlatform
   const reduceSideNavMotion = useReducedMotion() ?? false
-  /* Platform-only: sidebar + chat widths are both user-draggable. Schemes
-   * 1 / 2 / 3 / 6 / 7 retain the shared icon rail when collapsed; the remaining
-   * schemes keep the legacy fully-hidden layout. */
+  /* Platform-only: sidebar + chat widths are both user-draggable. The selected
+   * navigation scheme owns whether collapse keeps the shared icon rail. */
   const sideNavProductId: ProductSideNavId =
     variant === 'avatar' ? 'ai-avatar' : 'workshop'
   const sidebarCollapsed = useProductSideNav(
@@ -3285,15 +3570,11 @@ export default function VibeCodingPage({
   const sidebarExpandButtonRef = useRef<HTMLButtonElement>(null)
   const { width: platformSidebarWidth, setWidth: setPlatformSidebarWidth } =
     useResizableSideNavWidth()
-  const effectivePlatformSidebarWidth = platformSidebarWidth
+  const effectivePlatformSidebarWidth = standaloneWorkshopLayout
+    ? 256
+    : platformSidebarWidth
   const sidebarRailCollapsed =
-    sidebarCollapsed &&
-    (navVersion === 1 ||
-      navVersion === 2 ||
-      navVersion === 3 ||
-      navVersion === 6 ||
-      navVersion === 7 ||
-      navVersion === 8)
+    sidebarCollapsed && usesIconRailCollapse(navVersion)
   const sidebarFullyHidden = sidebarCollapsed && !sidebarRailCollapsed
   const fullyHiddenSidebarWidth = navVersion === 1 ? 0 : 12
   const baseEffectiveSidebarWidth = sidebarCollapsed
@@ -3574,6 +3855,7 @@ export default function VibeCodingPage({
         prev[XIAHUA_BUILD_PROJECT] ?? prev[XIAHUA_PROJECT] ?? [],
     }))
     initProjectDefaults(XIAHUA_BUILD_PROJECT, false, 'marketing-h5', false)
+    rememberProjectLane(XIAHUA_BUILD_PROJECT, 'marketing')
     // 从头搭：预设、玩法、选版全部回到出厂态，不继承已上线那版的成品状态
     setXiahuaPreset(XIAHUA_PRESET)
     setXiahuaGameplay(XIAHUA_BUILD_BASELINE_GAMEPLAY)
@@ -3646,12 +3928,68 @@ export default function VibeCodingPage({
     )
   }
 
-  const submitFromHome = (text: string, attachment?: HomeAttachment) => {
+  const submitFromHome = (
+    text: string,
+    attachment?: HomeAttachment,
+    scene?: 'marketing' | 'game',
+  ) => {
     const trimmed = text.trim()
     if (!trimmed && !attachment) return
     const request =
       trimmed ||
       `请根据上传的「${attachment?.name ?? '活动策划文档'}」完整搭建活动`
+    const homeLane = laneFromHomeScene(scene)
+    // 首页 tab 决定走哪条功能线，不再靠文案关键词互相抢项目。
+    if (homeLane === 'game') {
+      if (/^【塔防(?:｜|】)/u.test(trimmed) || /塔防/i.test(trimmed)) {
+        startTowerDefenseFlow(request)
+        return
+      }
+      if (
+        /弹幕|射击|stg|roguelike|太空|飞机.*游戏|游戏.*飞机|garuda/i.test(
+          trimmed,
+        )
+      ) {
+        setHomeDraft('')
+        startGameFlow(request)
+        return
+      }
+      const name = makeNewProjectName(request)
+      if (projectTitle && !platformHomeOpen) {
+        projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
+      }
+      setCreatedProjectKinds((prev) => ({ ...prev, [name]: 'web-game' }))
+      rememberProjectLane(name, 'game')
+      setCreatedProjects((prev) =>
+        prev.includes(name) ? prev : [name, ...prev],
+      )
+      setPlatformOpenProjects((prev) => {
+        const next = new Set(prev)
+        next.add(name)
+        return next
+      })
+      pauseXiahuaReplayForProjectChange(name)
+      setProjectTitle(name)
+      projectTitleRef.current = name
+      activatePublishProject(name)
+      setHomeDraft('')
+      setPlatformHomeOpen(false)
+      setPlatformResourceLibraryOpen(false)
+      setPlatformSkillsOpen(false)
+      setPlatformCreativeSquareOpen(false)
+      setPlatformDataOpsOpen(false)
+      const sessionId = initProjectDefaults(name, true, 'web-game', false)
+      sendChat(
+        attachment ? `【已上传文档：${attachment.name}】${request}` : request,
+        {
+          fromHomeEntry: true,
+          projectId: name,
+          projectKind: 'web-game',
+          sessionId,
+        },
+      )
+      return
+    }
     // @模板 引用：从模板复刻新活动（换背景 / 换形象 / 换素材），走复刻回放。
     if (
       trimmed.includes(XIAHUA_TEMPLATE_TOKEN) ||
@@ -3689,6 +4027,7 @@ export default function VibeCodingPage({
       setPlatformCreativeSquareOpen(false)
       setPlatformDataOpsOpen(false)
       initProjectDefaults(XIAHUA_CLONE_PROJECT, false, 'marketing-h5', false)
+      rememberProjectLane(XIAHUA_CLONE_PROJECT, 'marketing')
       startTemplateClone(trimmed, { instant: true })
       return
     }
@@ -3704,29 +4043,14 @@ export default function VibeCodingPage({
       startXiahuaBuild(attachment.name, trimmed, { instant: true })
       return
     }
-    if (/^【塔防(?:｜|】)/u.test(trimmed) || /塔防/i.test(trimmed)) {
-      startTowerDefenseFlow(request)
-      return
-    }
-    // Game prompt → dedicated Garuda mock-generation flow (it materialises
-    // its own 射击小游戏 project). Runs before the generic path so the
-    // scripted build always wins.
-    if (
-      /弹幕|射击|stg|roguelike|太空|飞机.*游戏|游戏.*飞机|garuda/i.test(trimmed)
-    ) {
-      setHomeDraft('')
-      startGameFlow(request)
-      return
-    }
-    // Otherwise: create a fresh project, pick its kind from the prompt so the
-    // right-side preview routes correctly, register it in the sidebar, switch
-    // to it, then send the prompt into its (empty) chat.
-    const kind = classifyProjectKind(request)
+    // 运营活动 tab 一律走营销 H5，不按文案改线到游戏。
+    const kind = 'marketing-h5'
     const name = makeNewProjectName(request)
     if (projectTitle && !platformHomeOpen) {
       projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
     }
     setCreatedProjectKinds((prev) => ({ ...prev, [name]: kind }))
+    rememberProjectLane(name, 'marketing')
     setCreatedProjects((prev) => (prev.includes(name) ? prev : [name, ...prev]))
     setPlatformOpenProjects((prev) => {
       const next = new Set(prev)
@@ -3757,37 +4081,6 @@ export default function VibeCodingPage({
         sessionId,
       },
     )
-    // 从 0 生成：AI 分身 用对话需求实时生成 config（Kimi → JSON），写入运行时
-    // 配置后右侧预览自动打开并显示生成的分身。失败则回退到静态默认（陶白白）。
-    if (kind === 'ai-avatar') {
-      updateWorkshopTaskStatus(
-        name,
-        WORKSHOP_TASK_IDS.avatarConfig,
-        'running',
-      )
-      generateAvatarConfig(trimmed, name)
-        .then((cfg) => {
-          setRuntimeConfig(name, cfg)
-          updateWorkshopTaskStatus(
-            name,
-            WORKSHOP_TASK_IDS.avatarConfig,
-            'completed',
-          )
-          if (projectTitleRef.current === name) {
-            setOpenTabs((prev) =>
-              prev.length > 0 ? prev : defaultTabsForKind(name),
-            )
-          }
-        })
-        .catch((err) => {
-          console.warn('[generateAvatarConfig]', err)
-          updateWorkshopTaskStatus(
-            name,
-            WORKSHOP_TASK_IDS.avatarConfig,
-            'waiting-confirmation',
-          )
-        })
-    }
   }
 
   /** Kick off the Garuda mock-generation flow. Opens the project, seeds
@@ -3807,6 +4100,7 @@ export default function VibeCodingPage({
     setProjectTitle('射击小游戏')
     projectTitleRef.current = '射击小游戏'
     activatePublishProject('射击小游戏')
+    rememberProjectLane('射击小游戏', 'game')
     setSessions([{ id: sid, name: sessionName }])
     setActiveSessionId(sid)
     setPlatformHomeOpen(false)
@@ -3868,6 +4162,7 @@ export default function VibeCodingPage({
     setCreatedProjects((prev) =>
       prev.includes('射击小游戏') ? prev : ['射击小游戏', ...prev],
     )
+    rememberProjectLane('射击小游戏', 'game')
     setPlatformOpenProjects((prev) => {
       if (prev.has('射击小游戏')) return prev
       const next = new Set(prev)
@@ -4373,6 +4668,8 @@ export default function VibeCodingPage({
   ) => {
     const text = (override ?? chatDraft).trim()
     if (!text) return
+    // 从画布带进来的元素：发出去时补一行上下文，模型才知道在改哪一块。
+    const canvasRef = h5LabChatRef ?? undefined
     const targetProjectId = opts?.projectId ?? projectTitle
     const targetProjectKind = opts?.projectKind ?? kindOf(targetProjectId)
     const targetSessionId = opts?.sessionId ?? activeSessionId
@@ -4508,8 +4805,9 @@ export default function VibeCodingPage({
     )
     setSentMessages((prev) => [
       ...prev,
-      { id: messageId, text, trigger },
+      { id: messageId, text, trigger, canvasRef },
     ])
+    setH5LabChatRef(null)
     // Clear both the state AND the contentEditable DOM (innerText won't
     // auto-reset from setChatDraft since the div is uncontrolled).
     setComposerText('')
@@ -5702,6 +6000,10 @@ export default function VibeCodingPage({
    * 提案报告.md, 复盘.md, 执行看板.json …) into the 'briefs' / 'reports'
    * folders as the chat-driven steps complete. */
   const [projectTrees, setProjectTrees] = useState<Record<string, FileNode[]>>({
+    // h5-reference-lab 的复刻 case —— 树按各自源码列，产物视图走 marketing-h5 那套桶。
+    ...Object.fromEntries(
+      H5_LAB_CASES.map((item) => [item.project, item.fileTree]),
+    ),
     [TAROT_INTEREST_CARD_PROJECT]: fileTree,
     '陶白白 Sensei 分身': aiPersonaFileTree,
     粉丝互动机器人: aiPersonaFileTree,
@@ -6374,6 +6676,65 @@ export default function VibeCodingPage({
     setXiahuaHovered(null)
     toast('编辑修改已保存')
   }, [persistXiahuaEdits])
+  /* h5-reference-lab 复刻 case 的画布编辑。改动分两份：`applied` 是外面预览
+     和本地存储看到的，`draft` 是画布里正在改的 —— 点顶栏「应用」才合流。
+     编辑态不再放可交互预览，就是因为草稿和运行态不该同时在场互相打架。 */
+  const [h5LabSelected, setH5LabSelected] = useState<H5LabSelection | null>(null)
+  const [h5LabOverrides, setH5LabOverrides] = useState<H5LabOverrides>(() =>
+    loadH5LabOverrides(),
+  )
+  /* 图层树由画布现推；面板要反选图层，只能借画布暴露的句柄（两者是布局兄弟）。 */
+  const [h5LabLayers, setH5LabLayers] = useState<H5LabLayer[]>([])
+  const [h5LabHotspots, setH5LabHotspots] = useState<H5LabHotspot[]>([])
+  const [h5LabAssets, setH5LabAssets] = useState<H5LabAsset[]>([])
+  const h5LabStageRef = useRef<H5LabStageApi | null>(null)
+  /* 补交互生成的界面 + 热点连接关系 —— 同样分草稿和已应用两份。 */
+  const [h5LabPrototype, setH5LabPrototype] = useState<H5LabPrototype>(() =>
+    loadH5LabPrototype(),
+  )
+  const h5LabHistory = useH5LabHistory({
+    overrides: h5LabOverrides,
+    prototype: h5LabPrototype,
+  })
+  const h5LabDraft = h5LabHistory.overrides
+  const h5LabPrototypeDraft = h5LabHistory.prototype
+  /* 图片下钻：从页面选中的图片跳进素材库画布，改完再回到画布编辑。 */
+  const [h5LabAssetCanvas, setH5LabAssetCanvas] = useState<string | null>(null)
+  /* 顶栏页面选择器选中的帧 —— 预览和画布共用它，两边不会各看各的。 */
+  const [h5LabFrameId, setH5LabFrameId] = useState<string | null>(null)
+  const [h5LabFrameMenuOpen, setH5LabFrameMenuOpen] = useState(false)
+  const h5LabFrameMenuRef = useRef<HTMLDivElement>(null)
+  /* 从画布带进对话的元素引用 —— 挂在输入框上方，发出去时写进上下文。 */
+  const [h5LabChatRef, setH5LabChatRef] = useState<H5LabChatRef | null>(null)
+  /* 应用：草稿合流到已应用，写本地存储，并退回预览态 —— 交互要在外面试。 */
+  const applyH5LabEdits = useCallback(() => {
+    const persisted =
+      saveH5LabOverrides(h5LabDraft) && saveH5LabPrototype(h5LabPrototypeDraft)
+    setH5LabOverrides(h5LabDraft)
+    setH5LabPrototype(h5LabPrototypeDraft)
+    h5LabHistory.clear()
+    setEditPanelOpen(false)
+    setH5LabSelected(null)
+    setH5LabAssetCanvas(null)
+    setH5LabChatCollapsed(false)
+    if (persisted) toast('已应用，去预览里试试点触')
+    else toast.error('本地保存失败，改动仅保留在当前会话')
+  }, [h5LabDraft, h5LabHistory, h5LabPrototypeDraft])
+  /* 放弃：草稿回到上次应用的样子，人还留在画布里。 */
+  const discardH5LabEdits = useCallback(() => {
+    h5LabHistory.replace({ overrides: h5LabOverrides, prototype: h5LabPrototype })
+    setH5LabSelected(null)
+    toast('已放弃未应用的改动')
+  }, [h5LabHistory, h5LabOverrides, h5LabPrototype])
+  /* 退出：不提交，草稿留在本次会话里，重新进来接着改。 */
+  const closeH5LabEditor = useCallback(() => {
+    setEditPanelOpen(false)
+    setH5LabSelected(null)
+    setH5LabAssetCanvas(null)
+    // 收起对话流只在这一次编辑里有效，下次进来还是展开的 —— 否则再进画布
+    // 左边直接空一块，看着像出错了。
+    setH5LabChatCollapsed(false)
+  }, [])
   const closeSummerSurfEditor = useCallback(() => {
     let persisted = true
     try {
@@ -6437,6 +6798,19 @@ export default function VibeCodingPage({
     document.addEventListener('pointerdown', handler)
     return () => document.removeEventListener('pointerdown', handler)
   }, [xiahuaPageMenuOpen])
+  useEffect(() => {
+    if (!h5LabFrameMenuOpen) return
+    const handler = (e: PointerEvent) => {
+      if (
+        h5LabFrameMenuRef.current &&
+        !h5LabFrameMenuRef.current.contains(e.target as Node)
+      ) {
+        setH5LabFrameMenuOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [h5LabFrameMenuOpen])
   const onEditPanelDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
     editPanelDragRef.current = {
       startX: e.clientX,
@@ -9984,6 +10358,17 @@ export default function VibeCodingPage({
   // switching tabs collapses it (re-open it explicitly on the new tab) and
   // clears any opened game-asset canvas selection.
   useEffect(() => {
+    // 复刻 case 的画布编辑里，「预览 ⇄ 素材库」是图片下钻的内部跳转，人始终在
+    // 编辑态，换 tab 不该把编辑关掉。用当前 tab 判断而不是消费一次性标记 ——
+    // effect 跑几次都是同一个结论。
+    const labTab = openTabs[activePreviewTab]?.label ?? ''
+    if (
+      h5LabCase &&
+      editPanelOpen &&
+      (labTab === '预览' || labTab === ASSET_LIBRARY_LABEL)
+    ) {
+      return
+    }
     const frame = requestAnimationFrame(() => {
       if (isTowerDefenseProject) {
         const label = openTabs[activePreviewTab]?.label
@@ -10023,16 +10408,15 @@ export default function VibeCodingPage({
       setQixiSelected(null)
       setAcgFromDocSelected(null)
       setSummerSurfSelected(null)
+      setH5LabSelected(null)
       setGameSelectedObject(null)
       setTarotSelectedObject(null)
     })
     return () => cancelAnimationFrame(frame)
-  }, [
-    activePreviewTab,
-    isTowerDefenseProject,
-    openTabs,
-    towerDefenseFlow.tasks.length,
-  ])
+    // 只在换 tab 时跑；上面几个值只是判断"这次换 tab 该不该关编辑"，进依赖会
+    // 让它在开编辑的那一刻自己把自己关掉。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePreviewTab])
   // Each time quick edit closes, drop object selections so the next open
   // starts from the project-level field set rather than a stale element.
   useEffect(() => {
@@ -10041,6 +10425,7 @@ export default function VibeCodingPage({
       setH5Selected(null)
       setAcgFromDocSelected(null)
       setSummerSurfSelected(null)
+      setH5LabSelected(null)
       setGameSelectedObject(null)
       setTarotSelectedObject(null)
     })
@@ -10051,9 +10436,71 @@ export default function VibeCodingPage({
    * Unknown project names default to mini-program so arbitrary renames
    * don't accidentally flip the preview. */
   const activeProjectKind: ProjectKind = kindOf(projectTitle)
+  const projectLane = laneOf(projectTitle)
+  /** 当前项目是不是 h5-reference-lab 的复刻 case —— 它们走自己的编辑台。 */
+  const h5LabCase = getH5LabCase(projectTitle)
+  /** 草稿里的帧（含补出来的界面），面板和计数共用。 */
+  const h5LabFrameIds = h5LabCase
+    ? buildH5LabFrames(h5LabCase, h5LabPrototypeDraft.screens).map(
+        ({ id, label, generated }) => ({
+          id,
+          label,
+          generated: Boolean(generated),
+        }),
+      )
+    : []
+  /** 顶栏页面选择器实际生效的帧：没选过就落在第一帧，选过但帧没了也回落。 */
+  const h5LabActiveFrameId =
+    h5LabFrameId && h5LabFrameIds.some((frame) => frame.id === h5LabFrameId)
+      ? h5LabFrameId
+      : h5LabFrameIds[0]?.id
+  /* 图片下钻走「素材库」tab：进去切 tab、出来切回预览，画布编辑态一直留着。 */
+  const openH5LabAssetCanvas = useCallback((src?: string) => {
+    setH5LabAssetCanvas(src ?? '')
+    setOpenTabs((prev) => {
+      const index = prev.findIndex((tab) => tab.label === ASSET_LIBRARY_LABEL)
+      if (index >= 0) {
+        setActivePreviewTab(index)
+        return prev
+      }
+      const next = [...prev, { label: ASSET_LIBRARY_LABEL, closable: true }]
+      setActivePreviewTab(next.length - 1)
+      return next
+    })
+  }, [])
+  const closeH5LabAssetCanvas = useCallback(() => {
+    setH5LabAssetCanvas(null)
+    setOpenTabs((prev) => {
+      const index = prev.findIndex((tab) => tab.label === '预览')
+      if (index >= 0) setActivePreviewTab(index)
+      return prev
+    })
+  }, [])
+  /** 把画布上选中的元素挂到输入框上 —— 接着用自然语言改这一块。 */
+  const addH5LabRefToChat = useCallback((ref: H5LabChatRef) => {
+    setH5LabChatRef(ref)
+    toast(`已把「${ref.label}」带进对话`)
+    requestAnimationFrame(() => chatInputRef.current?.focus())
+  }, [])
+  /** 顶栏「应用 N」的 N —— 覆盖差异 + 交互/新界面差异。 */
+  const h5LabPendingCount = h5LabCase
+    ? h5LabDiffCount(
+        h5LabDraft,
+        h5LabOverrides,
+        h5LabFrameIds.map((frame) => frame.id),
+      ) +
+      h5LabPrototypeDiffCount(
+        h5LabPrototypeDraft,
+        h5LabPrototype,
+        h5LabCase.id,
+        h5LabFrameIds.map((frame) => frame.id),
+      )
+    : 0
   const h5CanvasModeOpen =
     canvasEditOpen &&
     activeProjectKind === 'marketing-h5' &&
+    // 复刻 case 有自己的编辑台，不接 ACG 的 H5 图层画布。
+    !h5LabCase &&
     // 这夏夯爆了预览自包含玩法，不接 ACG 的画布编辑链路。
     !isXiahuaFamily(projectTitle) &&
     projectTitle !== QIXI_BRIDGE_PROJECT &&
@@ -10069,16 +10516,32 @@ export default function VibeCodingPage({
   const xiahuaEditMode =
     editPanelOpen &&
     isXiahuaFamily(projectTitle) &&
-    isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label)
+    (isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label) ||
+      openTabs[activePreviewTab]?.label === '预览')
+  // 复刻 case 的画布编辑同理：项目导航自动收起，画布和属性面板才铺得开。
+  const h5LabEditMode =
+    editPanelOpen &&
+    Boolean(h5LabCase) &&
+    // 下钻素材库时 tab 切到「素材库」，但人还在编辑态，布局不该弹回来。
+    (openTabs[activePreviewTab]?.label === '预览' || h5LabAssetCanvas !== null)
   const projectSidebarHidden =
-    sidebarFullyHidden || immersiveCanvasModeOpen || xiahuaEditMode
+    sidebarFullyHidden ||
+    immersiveCanvasModeOpen ||
+    xiahuaEditMode ||
+    h5LabEditMode
   const effectiveSidebarWidth =
-    immersiveCanvasModeOpen || xiahuaEditMode ? 0 : baseEffectiveSidebarWidth
-  const effectiveChatWidth: string | number = previewHidden
-    ? isPlatform
-      ? `calc(100vw - ${effectiveSidebarWidth}px)`
-      : `min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px)`
-    : chatWidthPx
+    immersiveCanvasModeOpen || xiahuaEditMode || h5LabEditMode
+      ? 0
+      : baseEffectiveSidebarWidth
+  /* 画布编辑里对话流可以整条收起 —— 画布要横向铺开多帧，宽度比对话金贵。 */
+  const h5LabChatHidden = h5LabEditMode && h5LabChatCollapsed
+  const effectiveChatWidth: string | number = h5LabChatHidden
+    ? 0
+    : previewHidden
+      ? isPlatform
+        ? `calc(100vw - ${effectiveSidebarWidth}px)`
+        : `min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px)`
+      : chatWidthPx
   const effectiveChatLeft: string | number = previewHidden
     ? isPlatform
       ? `${effectiveSidebarWidth}px`
@@ -10392,6 +10855,45 @@ export default function VibeCodingPage({
               : undefined
           }
           config={summerSurfConfig}
+        />
+      </PhoneMockup>
+    )
+  ) : h5LabCase ? (
+    // h5-reference-lab 的 benchmark 复刻：编辑态铺开画板（对齐 OJO 的编辑台），
+    // 非编辑态回真机框，页面自身的交互照常可点。
+    editPanelOpen ? (
+      <H5LabEditStage
+        labCase={h5LabCase}
+        screens={h5LabPrototypeDraft.screens}
+        selection={h5LabSelected}
+        onSelect={setH5LabSelected}
+        overrides={h5LabDraft}
+        onOverrides={h5LabHistory.setOverrides}
+        onLayers={setH5LabLayers}
+        onHotspots={setH5LabHotspots}
+        onAssets={setH5LabAssets}
+        apiRef={h5LabStageRef}
+        focusFrameId={h5LabActiveFrameId}
+        onFocusFrame={setH5LabFrameId}
+        onAddToChat={addH5LabRefToChat}
+        pendingCount={h5LabPendingCount}
+        onDiscard={discardH5LabEdits}
+        canUndo={h5LabHistory.canUndo}
+        canRedo={h5LabHistory.canRedo}
+        onUndo={h5LabHistory.undo}
+        onRedo={h5LabHistory.redo}
+        onExit={closeH5LabEditor}
+        previewKey={miniAppKey}
+      />
+    ) : (
+      <PhoneMockup width={436} height={880} maxScale={1.2}>
+        <H5LabPhonePreview
+          labCase={h5LabCase}
+          overrides={h5LabOverrides}
+          prototype={h5LabPrototype}
+          frameId={h5LabActiveFrameId}
+          onFrameChange={setH5LabFrameId}
+          previewKey={miniAppKey}
         />
       </PhoneMockup>
     )
@@ -11258,7 +11760,7 @@ export default function VibeCodingPage({
         <aside
           className={`absolute z-30 flex flex-col ${
             isPlatform
-              ? `${immersiveCanvasModeOpen ? 'top-11' : 'top-0'} bottom-0 ${previewHidden ? '' : 'border-r border-[var(--divider-soft)]'}` : chatOnLeft ? 'left-5 top-14 bottom-5' : 'right-0 top-0 bottom-0'} ${chatCollapsed
+              ? `${immersiveCanvasModeOpen ? 'top-11' : 'top-0'} bottom-0 ${previewHidden ? '' : 'border-r border-[var(--divider-soft)]'}` : chatOnLeft ? 'left-5 top-14 bottom-5' : 'right-0 top-0 bottom-0'} ${chatCollapsed || h5LabChatHidden
               ? 'w-0 overflow-hidden'
               : isPlatform
                 ? ''
@@ -11830,6 +12332,14 @@ export default function VibeCodingPage({
                           className="flex justify-end"
                         >
                           <div className="max-w-[85%] rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">
+                            {m.canvasRef && (
+                              <span className="mb-1.5 flex items-center gap-1 rounded-md bg-[var(--color-ink)]/[0.06] px-1.5 py-1 text-[11.5px] text-[var(--color-ink)]/60">
+                                <LayoutGrid className="size-3 shrink-0" />
+                                <span className="min-w-0 truncate">
+                                  {m.canvasRef.frameLabel} · {m.canvasRef.label}
+                                </span>
+                              </span>
+                            )}
                             {m.text}
                           </div>
                         </motion.div>
@@ -11892,7 +12402,10 @@ export default function VibeCodingPage({
                             const cached = aiReplyCacheRef.current.get(replyKey)
                             const queueTurns = sentMessages.map((message) => ({
                               id: message.id,
-                              text: message.text,
+                              // 从画布带进来的元素补一行上下文，模型才知道在改哪块
+                              text: message.canvasRef
+                                ? `${h5LabRefContext(message.canvasRef)}\n${message.text}`
+                                : message.text,
                               includeInAiHistory: message.trigger === 'none',
                             }))
                             const active = isChatQueueTurnActive(
@@ -14143,7 +14656,8 @@ export default function VibeCodingPage({
                         (towerComposerAssetIds.length > 0 ||
                           towerComposerLocalFiles.length > 0)
                           ? 44
-                          : 0),
+                          : 0) +
+                        (h5LabChatRef ? 42 : 0),
                     }}
                     className="relative flex flex-col gap-4 overflow-hidden rounded-[24px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]"
                   >
@@ -14156,6 +14670,24 @@ export default function VibeCodingPage({
                           'linear-gradient(0deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 100%), linear-gradient(95deg, rgba(255,186,51,0.1) 7.59%, rgba(78,217,44,0.1) 23.2%, rgba(69,146,242,0.1) 44.7%, rgba(110,124,253,0.1) 66.3%, rgba(225,53,248,0.1) 92.3%)',
                       }}
                     />
+
+                    {/* 从画布带进来的元素 —— 挂在输入框上方，发出去时写进上下文。 */}
+                    {h5LabChatRef && (
+                      <div className="flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-[#2f6bff]/25 bg-[#2f6bff]/[0.06] px-2 py-1">
+                        <LayoutGrid className="size-3 shrink-0 text-[#2f6bff]" />
+                        <span className="min-w-0 max-w-[220px] truncate text-[11.5px] text-[#2f6bff]">
+                          {h5LabChatRef.frameLabel} · {h5LabChatRef.label}
+                        </span>
+                        <button
+                          type="button"
+                          title="移除引用"
+                          onClick={() => setH5LabChatRef(null)}
+                          className="flex size-4 shrink-0 items-center justify-center rounded text-[#2f6bff]/60 transition-colors hover:bg-[#2f6bff]/15 hover:text-[#2f6bff]"
+                        >
+                          <X className="size-2.5" />
+                        </button>
+                      </div>
+                    )}
 
                     {/* Input area — 卡片定高 114px，内容超出后内部滚动。 */}
                     {isTowerDefenseProject &&
@@ -14369,7 +14901,10 @@ export default function VibeCodingPage({
                     ? effectiveSidebarWidth
                     : previewHidden
                       ? `calc(${effectiveSidebarWidth}px + min(calc(100vw - ${effectiveSidebarWidth}px), ${PREVIEW_HIDDEN_CHAT_MAX}px))`
-                      : effectiveSidebarWidth + platformChatWidth,
+                      : // 画布编辑里收起对话流后，正文要把那一列的宽度也收回来，
+                        // 否则左边空一块、画布还是原来那么窄。
+                        effectiveSidebarWidth +
+                        (h5LabChatHidden ? 0 : platformChatWidth),
                 transition: standaloneOffsetTransition,
               }
             : undefined
@@ -15216,11 +15751,16 @@ export default function VibeCodingPage({
                             activeProjectKind === 'marketing-h5' &&
                             isMarketingPageCollectionTab(lbl)
                           const isUnifiedEditablePreview =
-                            isMarketingPageSurface ||
-                            (isTowerDefenseProject &&
-                              (lbl === FINISHED_PAGES_LABEL ||
-                                isTowerDefenseWorkspaceLabel(lbl))) ||
-                            (lbl === '预览' && activeProjectKind === 'web-game')
+                            (isMarketingPageSurface ||
+                              (isTowerDefenseProject &&
+                                (lbl === FINISHED_PAGES_LABEL ||
+                                  isTowerDefenseWorkspaceLabel(lbl))) ||
+                              (lbl === '预览' &&
+                                (activeProjectKind === 'marketing-h5' ||
+                                  activeProjectKind === 'web-game'))) &&
+                            // 下钻素材库画布时，素材画布自带一条工具条（返回 /
+                            // 删除 / 重置布局），这里让位，不叠两条。
+                            !(h5LabCase && h5LabAssetCanvas !== null)
                           if (isUnifiedEditablePreview) {
                             const isGamePreview =
                               activeProjectKind === 'web-game'
@@ -15232,6 +15772,100 @@ export default function VibeCodingPage({
                               xiahuaPages.find(
                                 (page) => page.id === xiahuaScreen,
                               ) ?? xiahuaPages[0]
+                            /* 复刻 case 的帧选择器 —— 和夯爆了那颗同一形态：预览时
+                               换手机框里的帧，编辑时把对应画板滚进视野。 */
+                            const h5LabCurrentFrame =
+                              h5LabFrameIds.find(
+                                (frame) => frame.id === h5LabActiveFrameId,
+                              ) ?? h5LabFrameIds[0]
+                            const h5LabChatToggle = h5LabEditMode ? (
+                              <button
+                                type="button"
+                                aria-pressed={h5LabChatCollapsed}
+                                title={
+                                  h5LabChatCollapsed ? '展开对话流' : '收起对话流'
+                                }
+                                onClick={() =>
+                                  setH5LabChatCollapsed((collapsed) => !collapsed)
+                                }
+                                className="flex size-7 shrink-0 items-center justify-center rounded-lg text-[#1c1f23]/55 transition-colors hover:bg-[#f5f7fa] hover:text-[#1c1f23] aria-pressed:bg-[#d4ebff] aria-pressed:text-[#357ef8]"
+                              >
+                                <PanelLeft className="size-3.5" />
+                              </button>
+                            ) : null
+                            const h5LabFramePicker =
+                              h5LabCase && h5LabCurrentFrame ? (
+                                <div ref={h5LabFrameMenuRef} className="relative">
+                                  <button
+                                    type="button"
+                                    aria-label="选择状态帧"
+                                    aria-haspopup="menu"
+                                    aria-expanded={h5LabFrameMenuOpen}
+                                    title={`${h5LabCase.project} · ${h5LabCurrentFrame.label}`}
+                                    onClick={() =>
+                                      setH5LabFrameMenuOpen((open) => !open)
+                                    }
+                                    className="inline-flex h-7 max-w-[132px] cursor-pointer items-center gap-1 rounded-lg bg-[#f5f7fa] px-2.5 text-left text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#eef1f5]"
+                                  >
+                                    <span className="min-w-0 max-w-[96px] truncate">
+                                      {h5LabCurrentFrame.label}
+                                    </span>
+                                    <ChevronDown
+                                      aria-hidden
+                                      className={`size-3.5 shrink-0 text-[#1c1f23]/45 transition-transform ${
+                                        h5LabFrameMenuOpen ? 'rotate-180' : ''
+                                      }`}
+                                    />
+                                  </button>
+                                  {h5LabFrameMenuOpen && (
+                                    <div
+                                      role="menu"
+                                      aria-label="状态帧"
+                                      className="absolute left-0 top-full z-50 mt-1 w-[168px] overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] py-1 shadow-[0_12px_28px_-8px_rgba(16,18,24,0.2)]"
+                                    >
+                                      {h5LabFrameIds.map((frame) => {
+                                        const selected =
+                                          frame.id === h5LabCurrentFrame.id
+                                        return (
+                                          <button
+                                            key={frame.id}
+                                            type="button"
+                                            role="menuitemradio"
+                                            aria-checked={selected}
+                                            onClick={() => {
+                                              // 换帧就是换页，选区跟着清掉，
+                                              // 免得画布高亮和选择器各指一处。
+                                              setH5LabFrameId(frame.id)
+                                              setH5LabSelected(null)
+                                              setH5LabFrameMenuOpen(false)
+                                            }}
+                                            className={`flex w-full cursor-pointer items-center gap-1.5 px-3 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--fill-subtle)] ${
+                                              selected
+                                                ? 'font-medium text-[var(--color-ink)]'
+                                                : 'text-[var(--color-ink)]/70'
+                                            }`}
+                                          >
+                                            {frame.generated && (
+                                              <span className="shrink-0 rounded-sm bg-[#2f6bff]/12 px-1 text-[10px] leading-[15px] text-[#2f6bff]">
+                                                新增
+                                              </span>
+                                            )}
+                                            <span className="min-w-0 flex-1 truncate">
+                                              {frame.label}
+                                            </span>
+                                            {selected && (
+                                              <Check
+                                                size={12}
+                                                className="ml-auto shrink-0 text-[#357ef8]"
+                                              />
+                                            )}
+                                          </button>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : null
                             const xiahuaPagePicker = isXiahuaFamily(
                               projectTitle,
                             ) ? (
@@ -15312,6 +15946,11 @@ export default function VibeCodingPage({
                                     </span>
                                   ) : isXiahuaFamily(projectTitle) ? (
                                     xiahuaPagePicker
+                                  ) : h5LabFramePicker ? (
+                                    <>
+                                      {h5LabChatToggle}
+                                      {h5LabFramePicker}
+                                    </>
                                   ) : (
                                     <span className="w-[196px] truncate rounded-lg bg-[#f5f7fa] px-2.5 py-1.5 text-[12px] font-semibold leading-4 text-[#1c1f23]">
                                       {toolbarProjectName}
@@ -15461,7 +16100,90 @@ export default function VibeCodingPage({
                                       </span>
                                       <span>编辑</span>
                                     </button>
-                                  ) : projectTitle === SUMMER_SURF_PROJECT ? (
+                                  ) : h5LabCase ? (
+                                    // 复刻 case 只有画布编辑这一档。进了编辑态，
+                                    // 这颗位置就换成「应用 N」+ 退出 —— 攒批提交和
+                                    // 退出模式是这一态最主要的两个动作，放画布里
+                                    // 反而要多找一层。
+                                    editPanelOpen ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          title="撤销（⌘Z / Ctrl+Z）"
+                                          onClick={h5LabHistory.undo}
+                                          disabled={!h5LabHistory.canUndo}
+                                          className="flex size-6 shrink-0 items-center justify-center rounded-lg text-[#1c1f23]/65 transition-colors hover:bg-[#f5f7fa] hover:text-[#1c1f23] disabled:cursor-not-allowed disabled:opacity-30"
+                                        >
+                                          <Undo2 className="size-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          title="重做（⇧⌘Z / Ctrl+Y）"
+                                          onClick={h5LabHistory.redo}
+                                          disabled={!h5LabHistory.canRedo}
+                                          className="flex size-6 shrink-0 items-center justify-center rounded-lg text-[#1c1f23]/65 transition-colors hover:bg-[#f5f7fa] hover:text-[#1c1f23] disabled:cursor-not-allowed disabled:opacity-30"
+                                        >
+                                          <Redo2 className="size-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          title="应用改动并回到预览"
+                                          onClick={applyH5LabEdits}
+                                          disabled={h5LabPendingCount === 0}
+                                          className="flex h-6 shrink-0 items-center gap-1 rounded-lg bg-[#357ef8] px-2 py-1 text-[12px] font-semibold leading-4 text-white transition-colors hover:bg-[#2a6ede] disabled:cursor-not-allowed disabled:bg-[#1c1f23]/10 disabled:text-[#1c1f23]/35"
+                                        >
+                                          <Check className="size-3.5" />
+                                          <span>应用</span>
+                                          {h5LabPendingCount > 0 && (
+                                            <span className="rounded bg-white/22 px-1 text-[11px] tabular-nums">
+                                              {h5LabPendingCount}
+                                            </span>
+                                          )}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          title="退出画布编辑"
+                                          onClick={closeH5LabEditor}
+                                          className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23]/65 transition-colors hover:bg-[#f5f7fa] hover:text-[#1c1f23]"
+                                        >
+                                          <X className="size-3.5" />
+                                          <span>退出</span>
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        title="画布编辑"
+                                        onClick={() => {
+                                          setCanvasEditOpen(false)
+                                          setH5LabChatCollapsed(false)
+                                          setH5LabSelected(null)
+                                          setH5LabFrameId(h5LabFrameIds[0]?.id ?? null)
+                                          setEditPanelOpen(true)
+                                        }}
+                                        className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa]"
+                                      >
+                                        <span className="flex size-4 items-center justify-center">
+                                          <span
+                                            aria-hidden
+                                            className="block h-3 w-[13.333px] bg-current"
+                                            style={{
+                                              maskImage:
+                                                'url(/icons/h5-editor/canvas.svg)',
+                                              WebkitMaskImage:
+                                                'url(/icons/h5-editor/canvas.svg)',
+                                              maskSize: 'contain',
+                                              WebkitMaskSize: 'contain',
+                                              maskRepeat: 'no-repeat',
+                                              WebkitMaskRepeat: 'no-repeat',
+                                              maskPosition: 'center',
+                                              WebkitMaskPosition: 'center',
+                                            }}
+                                          />
+                                        </span>
+                                        <span>画布编辑</span>
+                                      </button>
+                                    )                                  ) : projectTitle === SUMMER_SURF_PROJECT ? (
                                     <button
                                       type="button"
                                       aria-pressed={editPanelOpen}
@@ -15723,6 +16445,17 @@ export default function VibeCodingPage({
                                     else setEditPanelOpen(true)
                                   }}
                                 />
+                              ) : h5LabCase && lbl === '预览' ? (
+                                <ToolbarAction
+                                  icon={LayoutGrid}
+                                  label="画布编辑"
+                                  active={editPanelOpen}
+                                  onClick={() => {
+                                    setCanvasEditOpen(false)
+                                    if (editPanelOpen) closeH5LabEditor()
+                                    else setEditPanelOpen(true)
+                                  }}
+                                />
                               ) : activeProjectKind === 'marketing-h5' && lbl === '预览' ? null : isMarketingPageSurface ? (
                                 <div
                                   role="group"
@@ -15806,11 +16539,15 @@ export default function VibeCodingPage({
                                     setEditPanelOpen(true)
                                   }
                                 }}
-                                className={`relative flex min-h-0 flex-1 overflow-auto ${
-                    activeProjectKind === 'web-app' ||
-                    (activeProjectKind === 'web-game' && !isTowerDefenseProject)
-                      ? ''
-                      : 'pt-6 pb-12'
+                                className={`relative flex min-h-0 flex-1 ${
+                    h5LabEditMode
+                      ? 'overflow-hidden'
+                      : `overflow-auto ${
+                          activeProjectKind === 'web-app' ||
+                          (activeProjectKind === 'web-game' && !isTowerDefenseProject)
+                            ? ''
+                            : 'pt-6 pb-12'
+                        }`
                   }`}
                               >
                                 {themeMode === 'dark' &&
@@ -15846,32 +16583,39 @@ export default function VibeCodingPage({
                                       }}
                                     />
                                   )}
-                                {/* Zoom sizer — scales only the preview surface, centered
-                      (m-auto). Toolbar + dot-grid backdrop stay at 1x; scrolls
-                      when >100%, shrinks within the canvas when <100%. */}
-                                <div
-                                  className="relative z-10 m-auto"
-                                  style={{
-                                    width: `${previewZoom * 100}%`,
-                                    height: `${previewZoom * 100}%`,
-                                  }}
-                                >
+                                {h5LabEditMode ? (
+                                  /* H5 Lab 自己就是工作区的主画布。编辑时直接挂在
+                                     点阵工作区上，不再套预览模式的缩放/滚动容器。 */
+                                  <div className="relative z-10 flex min-h-0 min-w-0 flex-1">
+                                    {previewSurface}
+                                  </div>
+                                ) : (
+                                  /* Zoom sizer — scales only the preview surface, centered
+                                     (m-auto). Toolbar + dot-grid backdrop stay at 1x. */
                                   <div
-                                    className="flex flex-col"
+                                    className="relative z-10 m-auto"
                                     style={{
-                                      width: `${100 / previewZoom}%`,
-                                      height: `${100 / previewZoom}%`,
-                                      transform: `scale(${previewZoom})`,
-                                      transformOrigin: 'top left',
+                                      width: `${previewZoom * 100}%`,
+                                      height: `${previewZoom * 100}%`,
                                     }}
                                   >
-                                    <div className="flex min-h-0 flex-1 flex-col">
-                                      <div className="flex min-h-0 flex-1">
-                                        {previewSurface}
+                                    <div
+                                      className="flex flex-col"
+                                      style={{
+                                        width: `${100 / previewZoom}%`,
+                                        height: `${100 / previewZoom}%`,
+                                        transform: `scale(${previewZoom})`,
+                                        transformOrigin: 'top left',
+                                      }}
+                                    >
+                                      <div className="flex min-h-0 flex-1 flex-col">
+                                        <div className="flex min-h-0 flex-1">
+                                          {previewSurface}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
+                                )}
                               </div>
                               {xiahuaPanel && (
                                 // 产物栏定宽；再窄也不低于 280，低于这个宽度清单和素材板就没法读了
@@ -16786,7 +17530,10 @@ export default function VibeCodingPage({
                             }
                             // 素材 — visual asset grid using the same layout as 游戏 素材
                             // (grouped sections, zoom modal).
-                            if (label === ASSET_LIBRARY_LABEL) {
+                            if (
+                              label === ASSET_LIBRARY_LABEL &&
+                              projectLane === 'marketing'
+                            ) {
                               // 回放中素材库要跟着过程走 —— 清单刚对完的时候一张都还没生成，
                               // 直接摆成品图等于把后面的结果提前给了
                               if (
@@ -16808,10 +17555,9 @@ export default function VibeCodingPage({
                               return (
                                 <GarudaAssetsView
                                   key={projectTitle}
+                                  CanvasEditor={MarketingImageCanvasEditor}
+                                  QuickTools={MarketingImageQuickTools}
                                   groups={assetGroupsForProject(projectTitle)}
-                                  showPageUsage={
-                                    !isAssetOnlyProject(projectTitle)
-                                  }
                                 />
                               )
                             }
@@ -17020,6 +17766,29 @@ export default function VibeCodingPage({
                         // Every other tab — code files, MD artefacts, dashboards —
                         // routes through renderTab, which knows how to render each
                         // kind from its filename.
+                        // 复刻 case 的图片下钻：素材画布挂在「素材库」tab 下，
+                        // 它自带一条工具条，上面的预览工具栏已经让位。
+                        if (
+                          projectLane === 'marketing' &&
+                          h5LabCase &&
+                          h5LabAssetCanvas !== null &&
+                          activeLabel === ASSET_LIBRARY_LABEL
+                        ) {
+                          return (
+                            <MarketingImageCanvasEditor
+                              groups={[
+                                {
+                                  title: `${h5LabCase.project} · 页面用图`,
+                                  items: h5LabAssets.map((asset) => ({
+                                    src: asset.src,
+                                    label: asset.label,
+                                  })),
+                                },
+                              ]}
+                              onClose={closeH5LabAssetCanvas}
+                            />
+                          )
+                        }
                         if (activeProjectKind === 'web-game') {
                           if (
                             isTowerDefenseProject &&
@@ -17247,6 +18016,7 @@ export default function VibeCodingPage({
                         ))) &&
                       !immersiveCanvasModeOpen &&
                       !xiahuaEditMode &&
+                      !h5LabEditMode &&
                       !xiahuaArtifactView && (
                         <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2">
                           {isTowerDefenseProject && !towerMapEditorActive && (
@@ -17608,6 +18378,49 @@ export default function VibeCodingPage({
                             onClose={() => {
                               setQixiSelected(null)
                               setEditPanelOpen(false)
+                            }}
+                          />
+                        ) : h5LabCase ? (
+                          <H5LabEditPanel
+                            labCase={h5LabCase}
+                            selection={h5LabSelected}
+                            overrides={h5LabDraft}
+                            onOverrides={h5LabHistory.setOverrides}
+                            layers={h5LabLayers}
+                            onSelectPath={(path) =>
+                              h5LabStageRef.current?.selectPath(
+                                h5LabSelected?.stateId ??
+                                  h5LabCase.states[0]?.id ??
+                                  '',
+                                path,
+                              )
+                            }
+                            hotspots={h5LabHotspots}
+                            frames={h5LabFrameIds.map(({ id, label, generated }) => ({
+                              id,
+                              label,
+                              generated,
+                            }))}
+                            prototype={h5LabPrototypeDraft}
+                            onPrototype={h5LabHistory.setPrototype}
+                            onOpenAssetCanvas={openH5LabAssetCanvas}
+                            onAddToChat={() => {
+                              if (!h5LabSelected) return
+                              const frame = h5LabFrameIds.find(
+                                (item) => item.id === h5LabSelected.stateId,
+                              )
+                              addH5LabRefToChat({
+                                frameId: h5LabSelected.stateId,
+                                frameLabel: frame?.label ?? h5LabSelected.stateId,
+                                path: h5LabSelected.path,
+                                label: h5LabSelected.label,
+                                tag: h5LabSelected.tag,
+                                text: h5LabSelected.measured.text || undefined,
+                                src: h5LabSelected.measured.src || undefined,
+                              })
+                            }}
+                            onClose={() => {
+                              closeH5LabEditor()
                             }}
                           />
                         ) : activeProjectKind === 'marketing-h5' ? (

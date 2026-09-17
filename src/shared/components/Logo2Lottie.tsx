@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { useReducedMotion } from 'framer-motion'
 import type { AnimationItem, LottiePlayer } from 'lottie-web'
 
 /** 旋转圆圈 Logo（Lottie）— 素材 public/assets/logo2.json
  *  (rotating_circles_lottie_loop)。默认静止在第 0 帧；hover 时播放循环
- *  旋转，移开停回第 0 帧。`autoplay` 让它一直循环。`white` 反色成白色，
+ *  旋转，移开停在当前帧以免悬浮球淡出时跳变。`autoplay` 让它一直循环。`white` 反色成白色，
  *  用于深色/渐变底（如收起悬浮球）。
  *
  *  直接用 lottie-web 的 loadAnimation（在 effect 里 dynamic import），
@@ -20,6 +21,7 @@ export default function Logo2Lottie({
   const containerRef = useRef<HTMLDivElement>(null)
   const animRef = useRef<AnimationItem | null>(null)
   const [ready, setReady] = useState(false)
+  const reduceMotion = useReducedMotion() ?? false
   const filterClassName = white ? 'brightness-0 invert' : ''
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export default function Logo2Lottie({
           container: containerRef.current,
           renderer: 'svg',
           loop: true,
-          autoplay,
+          autoplay: autoplay && !reduceMotion,
           animationData: data,
         })
         animRef.current = anim
@@ -50,18 +52,17 @@ export default function Logo2Lottie({
       anim?.destroy()
       animRef.current = null
     }
-    // autoplay 固定不变；仅初始加载一次。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [autoplay, reduceMotion])
 
   return (
     <div
       className={['relative', className, filterClassName].filter(Boolean).join(' ')}
       onMouseEnter={() => {
-        if (!autoplay) animRef.current?.goToAndPlay(0, true)
+        if (!autoplay && !reduceMotion) animRef.current?.goToAndPlay(0, true)
       }}
       onMouseLeave={() => {
-        if (!autoplay) animRef.current?.goToAndStop(0, true)
+        // 展开时悬浮球会从鼠标下缩走；停在当前帧，避免淡出途中跳回首帧。
+        if (!autoplay) animRef.current?.pause()
       }}
     >
       {/* 素材四周留白较大，scale 放大裁掉边缘让圆圈铺满。 */}

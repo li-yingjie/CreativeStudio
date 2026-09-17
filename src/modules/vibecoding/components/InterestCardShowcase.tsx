@@ -1,6 +1,6 @@
 import { ChevronRight } from '@/shared/icons'
 
-/* ─── 「看看大家的兴趣卡」——「兴趣卡模板」这一栏的案例墙 ───
+/* ─── 兴趣互动案例墙 ───
  *
  * 设计稿 创中 AI创作 3477-14625：252px 玻璃卡片，上面是分类 Tag +
  * 标题 + 一句说明，下面探出一台手机，机身被卡片下沿裁掉。
@@ -58,18 +58,24 @@ const CARDS: InterestCard[] = [
 
 export default function InterestCardShowcase({
   onPick,
+  subcategory = '全部',
 }: {
   onPick: (card: { title: string; tag: string }) => void
+  subcategory?: string
 }) {
+  const visibleCards = CARDS.filter((card) => {
+    if (subcategory === '全部') return true
+    if (subcategory === '心理测试') return ['answers', 'love-reply'].includes(card.id)
+    if (subcategory === '知识问答') return ['words', 'color', 'dog'].includes(card.id)
+    return false
+  })
+
   return (
-    <section className="flex flex-col gap-[14px]">
-      <h3 className="px-1 text-[14px] font-semibold leading-[22px] text-[#0f0f12]">
-        看看大家的兴趣卡
-      </h3>
-      {/* 设计稿是一排五张 252px；这里跟灵感网格用同一套断点，
+    <section>
+      {/* 案例区桌面端一排四张；这里跟灵感网格用同一套断点，
           卡片跟着列宽收放（手机永远贴左 56px，不受宽度影响）。 */}
-      <div className="grid grid-cols-5 gap-3 max-xl:grid-cols-4 max-lg:grid-cols-3 max-md:grid-cols-2">
-        {CARDS.map((card) => (
+      <div className="grid grid-cols-4 gap-3 max-lg:grid-cols-3 max-md:grid-cols-2">
+        {visibleCards.map((card) => (
           <button
             key={card.id}
             type="button"

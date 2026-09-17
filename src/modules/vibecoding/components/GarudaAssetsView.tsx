@@ -1,29 +1,36 @@
 /* eslint-disable react-refresh/only-export-components -- asset schema and selectors are shared with the project toolbar */
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from 'react'
 import {
   ArrowLeft,
+  ArrowUp,
   Box,
   Check,
+  ChevronDown,
   Film,
+  FolderCode,
   FolderTree,
   Image as ImageIcon,
   LayoutGrid,
-  Layers,
   ListCollapse,
   Music2,
+  Plus,
   Upload,
 } from '@/shared/icons'
-import ImageCanvasEditor from './ImageCanvasEditor'
-import LayeredAssetEditor from './LayeredAssetEditor'
-import { resolveLayerManifest } from './AssetLayerManifest'
+import ImageCanvasEditor, { ImageQuickTools } from './ImageCanvasEditor'
 import {
   GARUDA_ASSET_GROUPS,
   resolveAssetPrompt,
   type AssetGroup,
   type AssetItem,
   type AssetKind,
-  type AssetLayerManifest,
 } from './ProjectAssetCatalog'
 import { resolveMarketingKingAssetUrl } from './marketingKingAssetCache'
 
@@ -34,12 +41,22 @@ const XiahuaMascot3DStudio = lazy(() => import('./XiahuaMascot3DStudio'))
  * Garuda 资产视图
  *
  * 直接从 /public/garuda/assets/ 读图，分组展示主角 / 敌人 / 道具 /
- * UI / 音效。图片点击后直接进入精确编辑器；音效、视频和 3D 素材
- * 保留各自必要的播放 / 查看详情。长帧序列只显示一个代表 + 帧数标签，
- * 避免一次性渲染数百张 webp。
+ * UI / 音效。点击缩略图打开放大预览。音效 / 视频 / 长帧序列只显示一个
+ * 代表 + 帧数标签，避免一次性渲染数百张 webp。点击素材后进入
+ * Figma 式 Prompt 详情，H5 与游戏共用同一套下钻逻辑。
  */
 
 export type { AssetGroup, AssetItem, AssetKind }
+
+type AssetCanvasEditor = ComponentType<{
+  groups: AssetGroup[]
+  onClose: () => void
+}>
+
+type AssetQuickTools = ComponentType<{
+  onCanvasEdit?: () => void
+  onUpload?: () => void
+}>
 
 interface GarudaAssetsViewProps {
   /** Group/items to render. Defaults to the Garuda game's GROUPS so
@@ -56,8 +73,9 @@ interface GarudaAssetsViewProps {
    *  toolbar / edit panel can bind to the specific asset object. */
   selectedAsset?: AssetItem | null
   onSelectAsset?: (a: AssetItem | null) => void
-  /** 纯素材项目没有页面对象，不展示无意义的“页面使用”视图。 */
-  showPageUsage?: boolean
+  /** 运营活动 / 互动游戏各带一套素材画布，默认走游戏这一路。 */
+  CanvasEditor?: AssetCanvasEditor
+  QuickTools?: AssetQuickTools
 }
 
 /** Derive frame-N's path from the frame-0 src by re-padding the trailing
@@ -164,23 +182,6 @@ export const KIND_META: Record<AssetKind, { label: string; icon: typeof ImageIco
 
 type AssetViewMode = 'grid' | 'list' | 'usage'
 
-const LAYERED_ASSET_VERSIONS_STORAGE_KEY = 'creative-studio.project-layered-assets.v1'
-
-type LayeredAssetVersion = {
-  manifest: AssetLayerManifest
-  version: number
-}
-
-function readLayeredAssetVersions(): Record<string, LayeredAssetVersion> {
-  if (typeof window === 'undefined') return {}
-  try {
-    const value = window.localStorage.getItem(LAYERED_ASSET_VERSIONS_STORAGE_KEY)
-    return value ? JSON.parse(value) as Record<string, LayeredAssetVersion> : {}
-  } catch {
-    return {}
-  }
-}
-
 const VIEW_MODE_META: Array<{
   value: AssetViewMode
   label: string
@@ -199,7 +200,6 @@ const PAGE_USAGE_ORDER = [
   '焦点视频页',
   '内容榜单页',
   '活动入口',
-  '找喜鹊关卡',
   'Feed 兴趣卡',
   '塔罗落地页',
   '首页',
@@ -210,9 +210,6 @@ const PAGE_USAGE_ORDER = [
 
 function usagePagesFor(item: AssetItem, sourceGroup: string): string[] {
   const id = item.id ?? ''
-
-  if (id === 'qixi-home-kv-v1') return ['活动首页']
-  if (id === 'qixi-level-01-v1') return ['找喜鹊关卡']
 
   if (id === 'ui-button-rank') return ['开始页', '排行榜页']
   if (
@@ -247,16 +244,16 @@ export default function GarudaAssetsView({
   onKindChange,
   selectedAsset: controlledSel,
   onSelectAsset,
-  showPageUsage = true,
+  CanvasEditor = ImageCanvasEditor,
+  QuickTools = ImageQuickTools,
 }: GarudaAssetsViewProps = {}) {
   const [internalKind, setInternalKind] = useState<AssetKind>('image')
   const [internalSel, setInternalSel] = useState<AssetItem | null>(null)
   const [canvasOpen, setCanvasOpen] = useState(false)
-  const [layerEditorItem, setLayerEditorItem] = useState<AssetItem | null>(null)
   const [viewMode, setViewMode] = useState<AssetViewMode>('grid')
   const [uploadedAssets, setUploadedAssets] = useState<AssetItem[]>([])
+  const [promptDrafts, setPromptDrafts] = useState<Record<string, string>>({})
   const [versionPicks, setVersionPicks] = useState<Record<string, number>>({})
-  const [layeredAssetVersions, setLayeredAssetVersions] = useState(readLayeredAssetVersions)
   const gridUploadInputRef = useRef<HTMLInputElement>(null)
   // Controlled when the parent (toolbar) drives the kind selection.
   const controlled = controlledKind !== undefined
@@ -300,13 +297,7 @@ export default function GarudaAssetsView({
     return Math.max(0, Math.min(versionPicks[assetKey(item)] ?? 0, count - 1))
   }
   const openAsset = (item: AssetItem) => {
-    const next = versionedAsset(item, versionIndexFor(item))
-    if ((next.kind ?? 'image') === 'image' && !next.modelSrc) {
-      setSelected(null)
-      setLayerEditorItem(next)
-      return
-    }
-    setSelected(next)
+    setSelected(versionedAsset(item, versionIndexFor(item)))
   }
   const selectVersion = (item: AssetItem, versionIndex: number) => {
     const safeIndex = Math.max(0, Math.min(versionIndex, assetSources(item).length - 1))
@@ -359,29 +350,7 @@ export default function GarudaAssetsView({
     }
   }, [sourceGroups])
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        LAYERED_ASSET_VERSIONS_STORAGE_KEY,
-        JSON.stringify(layeredAssetVersions),
-      )
-    } catch {
-      // Local persistence is best-effort in the prototype; the active session remains editable.
-    }
-  }, [layeredAssetVersions])
-
-  const displayGroups = useMemo(
-    () => resolvedGroups.map((group) => ({
-      ...group,
-      items: group.items.map((item) => {
-        const saved = layeredAssetVersions[assetKey(item)]
-        return saved
-          ? { ...item, layerManifest: saved.manifest, version: saved.version }
-          : item
-      }),
-    })),
-    [layeredAssetVersions, resolvedGroups],
-  )
+  const displayGroups = resolvedGroups
 
   // Which kinds actually have assets — only those get a tab.
   const kindCounts = displayGroups.reduce(
@@ -429,45 +398,14 @@ export default function GarudaAssetsView({
 
   if (canvasOpen) {
     return (
-      <ImageCanvasEditor
+      <CanvasEditor
         groups={garudaImageGroups(displayGroups)}
         onClose={() => setCanvasOpen(false)}
       />
     )
   }
 
-  if (layerEditorItem) {
-    const saved = layeredAssetVersions[assetKey(layerEditorItem)]
-    const editorItem = saved
-      ? { ...layerEditorItem, layerManifest: saved.manifest, version: saved.version }
-      : layerEditorItem
-    return (
-      <LayeredAssetEditor
-        key={assetKey(editorItem)}
-        item={editorItem}
-        initialManifest={resolveLayerManifest(editorItem)}
-        onBack={() => {
-          setLayerEditorItem(null)
-          setSelected(null)
-        }}
-        onSave={async (manifest) => {
-          const version = (saved?.version ?? editorItem.version ?? 1) + 1
-          setLayeredAssetVersions((current) => ({
-            ...current,
-            [assetKey(editorItem)]: { manifest, version },
-          }))
-          setSelected(null)
-          setLayerEditorItem(null)
-          toast.success(`已保存为 v${version}`, {
-            description: '扁平交付图与图层清单已同步生成。',
-          })
-        }}
-      />
-    )
-  }
-
-  // 视频 / 音频 / 3D 素材仍需要各自的播放或查看详情。
-  // 图片不经过这层，网格点击时已直接进入 LayeredAssetEditor。
+  // Asset opened → show the inline Prompt detail (not a fullscreen overlay).
   if (selected) {
     if (selected.modelSrc) {
       return (
@@ -478,13 +416,23 @@ export default function GarudaAssetsView({
         />
       )
     }
+    const assetKey = selected.id ?? selected.src
+    const resolvedPrompt = resolveAssetPrompt(selected)
     return (
-      <AssetMediaDetail
-        key={selected.id ?? selected.src}
+      <AssetPromptDetail
+        key={assetKey}
         item={selected}
         assets={visibleAssets}
+        prompt={promptDrafts[assetKey] ?? resolvedPrompt.text}
+        promptTag={resolvedPrompt.skillLabel}
+        model={resolvedPrompt.model}
+        QuickTools={QuickTools}
+        onPromptChange={(next) =>
+          setPromptDrafts((current) => ({ ...current, [assetKey]: next }))
+        }
         onSelect={openAsset}
         onSelectVersion={(asset, version) => selectVersion(asset, version)}
+        onCanvasEdit={() => setCanvasOpen(true)}
         onBack={() => setSelected(null)}
       />
     )
@@ -540,9 +488,7 @@ export default function GarudaAssetsView({
             aria-label="素材显示模式"
             className="flex items-center rounded-lg bg-[var(--fill-subtle)] p-0.5"
           >
-            {VIEW_MODE_META.filter(
-              (mode) => showPageUsage || mode.value !== 'usage',
-            ).map((mode) => {
+            {VIEW_MODE_META.map((mode) => {
               const Icon = mode.icon
               const active = viewMode === mode.value
               return (
@@ -565,7 +511,7 @@ export default function GarudaAssetsView({
               )
             })}
           </div>
-          {effectiveKind === 'image' && showPageUsage && (
+          {effectiveKind === 'image' && (
             <button
               type="button"
               onClick={() => setCanvasOpen(true)}
@@ -640,11 +586,7 @@ export default function GarudaAssetsView({
                       {sourceGroup}
                     </span>
                     <span className="text-[11.5px] text-[var(--color-ink)]/45">
-                      {item.modelSrc
-                        ? '3D 模型'
-                        : kindValue === 'image' && (item.layerManifest?.layers.length ?? 1) > 1
-                          ? `图像 · ${item.layerManifest?.layers.length} 层`
-                          : KIND_META[kindValue].label}
+                      {item.modelSrc ? '3D 模型' : KIND_META[kindValue].label}
                     </span>
                     <span className="truncate text-[11.5px] text-[var(--color-ink)]/45">
                       {promptMeta.model}
@@ -728,21 +670,46 @@ function AssetModelDetail({
   )
 }
 
-/** 视频 / 音频媒体详情：104px 素材轨 + 播放预览。 */
-function AssetMediaDetail({
+/** Figma 8:11955 — 104px material rail + preview + editable Prompt composer. */
+function AssetPromptDetail({
   item,
   assets,
+  prompt,
+  promptTag,
+  model,
+  QuickTools,
+  onPromptChange,
   onSelect,
   onSelectVersion,
+  onCanvasEdit,
   onBack,
 }: {
   item: AssetItem
   assets: AssetItem[]
+  prompt: string
+  promptTag: string
+  model: string
+  QuickTools: AssetQuickTools
+  onPromptChange: (next: string) => void
   onSelect: (item: AssetItem) => void
   onSelectVersion: (item: AssetItem, version: number) => void
+  onCanvasEdit: () => void
   onBack: () => void
 }) {
   const kind = item.kind ?? 'image'
+  const [saved, setSaved] = useState(false)
+  const [replacementSrc, setReplacementSrc] = useState<string | null>(null)
+  const uploadInputRef = useRef<HTMLInputElement>(null)
+
+  const openUpload = () => uploadInputRef.current?.click()
+  const replacePreview = (file: File | undefined) => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') setReplacementSrc(reader.result)
+    }
+    reader.readAsDataURL(file)
+  }
   const sourceItem = assets.find((asset) => assetKey(asset) === assetKey(item)) ?? item
   const sources = assetSources(sourceItem)
   const currentVersion = Math.max(0, Math.min((item.version ?? 1) - 1, sources.length - 1))
@@ -750,6 +717,16 @@ function AssetMediaDetail({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-surface-0)]">
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          replacePreview(event.target.files?.[0])
+          event.currentTarget.value = ''
+        }}
+      />
       <div className="flex h-10 shrink-0 items-center gap-2 border-b border-black/[0.06] px-3 py-1.5">
         <button
           type="button"
@@ -771,6 +748,16 @@ function AssetMediaDetail({
           <span className="rounded bg-[var(--fill-subtle)] px-1.5 py-0.5 text-[10px] tabular-nums text-[var(--color-ink)]/55">
             {item.frames} 帧
           </span>
+        )}
+        {kind === 'image' && (
+          <button
+            type="button"
+            onClick={openUpload}
+            className="ml-auto flex h-7 items-center gap-1.5 rounded-lg px-2 text-[12px] text-[var(--color-ink)]/65 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+          >
+            <Upload className="size-3.5" strokeWidth={1.8} />
+            上传
+          </button>
         )}
       </div>
 
@@ -856,12 +843,28 @@ function AssetMediaDetail({
                     </span>
                     <audio src={item.src} controls autoPlay />
                   </div>
+                ) : replacementSrc ? (
+                  <img
+                    src={replacementSrc}
+                    alt={`${item.label} 上传预览`}
+                    className="max-h-full max-w-full object-contain"
+                  />
                 ) : (
                   <FrameImage
                     item={item}
                     playing
                     className="max-h-full max-w-full object-contain"
                   />
+                )}
+                {kind === 'image' && (
+                  <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                    <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-visible rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]">
+                      <QuickTools
+                        onCanvasEdit={onCanvasEdit}
+                        onUpload={openUpload}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -909,6 +912,67 @@ function AssetMediaDetail({
             </div>
           </section>
 
+          <section
+            aria-label={`${item.label} Prompt`}
+            className="flex h-[172px] shrink-0 flex-col gap-2 overflow-hidden rounded-xl border border-white bg-white p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]"
+          >
+            <div className="flex min-h-0 flex-1 flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-[21px] items-center gap-1 rounded-lg bg-[rgba(83,96,143,0.12)] px-1 text-[12px] text-[#2e90fa]">
+                  <FolderCode className="size-3.5" strokeWidth={1.7} />
+                  {promptTag}
+                </span>
+                <span className="truncate text-[11px] text-[var(--color-ink)]/40">
+                  {model}
+                </span>
+              </div>
+              <textarea
+                aria-label={`${item.label} 生成 Prompt`}
+                value={prompt}
+                onChange={(event) => {
+                  setSaved(false)
+                  onPromptChange(event.target.value)
+                }}
+                spellCheck={false}
+                className="thin-scroll min-h-0 flex-1 resize-none border-0 bg-transparent text-[14px] leading-5 text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/35"
+                placeholder="输入生成这个素材的 Prompt…"
+              />
+            </div>
+
+            <div className="flex h-6 shrink-0 items-center justify-between">
+              <button
+                type="button"
+                aria-label="添加参考素材"
+                title="添加参考素材"
+                className="flex size-6 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors duration-150 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+              >
+                <Plus className="size-3.5" strokeWidth={1.8} />
+              </button>
+
+              <div className="flex items-center gap-2">
+                <span aria-live="polite" className="text-[11px] text-[var(--color-ink)]/45">
+                  {saved ? 'Prompt 已保存' : ''}
+                </span>
+                <button
+                  type="button"
+                  className="flex h-6 items-center gap-1 rounded-full px-2 text-[12px] font-semibold text-[var(--color-ink)]/80 transition-colors duration-150 hover:bg-[var(--fill-hover)]"
+                >
+                  Auto
+                  <ChevronDown className="size-3.5" strokeWidth={1.8} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="保存当前 Prompt"
+                  title="保存当前 Prompt"
+                  disabled={prompt.trim().length === 0}
+                  onClick={() => setSaved(true)}
+                  className="flex size-6 items-center justify-center rounded-full bg-[var(--color-ink)] text-white transition-opacity duration-150 disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <ArrowUp className="size-3.5" strokeWidth={2} />
+                </button>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -1056,11 +1120,6 @@ function AssetThumb({
           {item.frames && (
             <span className="absolute right-1 top-1 rounded-md bg-black/65 px-1.5 py-0.5 font-mono text-[9.5px] text-white/80">
               {item.frames}f
-            </span>
-          )}
-          {kind === 'image' && (item.layerManifest?.layers.length ?? 1) > 1 && (
-            <span className="absolute left-1 top-1 flex items-center gap-0.5 rounded-md bg-[#175CD3]/90 px-1.5 py-0.5 text-[9.5px] font-medium text-white">
-              <Layers className="size-2.5" strokeWidth={2} /> {item.layerManifest?.layers.length} 层
             </span>
           )}
           {item.modelSrc && (

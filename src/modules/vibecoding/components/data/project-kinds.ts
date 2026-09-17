@@ -8,6 +8,7 @@ import {
 import { QIXI_BRIDGE_PROJECT } from '../QixiBridgeData'
 import { ACG_FROM_DOC_PROJECT } from '../AcgFromDocData'
 import { ACG_REPLICA_PROJECT } from '../AcgReplicaData'
+import { H5_LAB_PROJECT_NAMES } from '../h5-lab/h5-lab-cases'
 
 export type OutputShape = 'app' | 'artifact' | 'code'
 
@@ -34,6 +35,10 @@ export const PROJECT_KINDS: Record<string, ProjectKind> = {
   [JINGXIN_LIVESTREAM_ASSET_PROJECT]: 'marketing-h5',
   [LIFE_SERVICE_RESOURCE_POSITION_PROJECT]: 'marketing-h5',
   [MAGICX_HEADER_ASSET_PROJECT]: 'marketing-h5',
+  // h5-reference-lab 的 benchmark 复刻 case —— 都是营销 H5 长页。
+  ...Object.fromEntries(
+    H5_LAB_PROJECT_NAMES.map((name) => [name, 'marketing-h5' as const]),
+  ),
 }
 
 export const SHAPE_BY_KIND: Record<ProjectKind, OutputShape> = {
