@@ -2514,6 +2514,7 @@ export default function PlatformHome({
   onSubmit: (
     text: string,
     attachment?: { name: string; size: number; type: string },
+    scene?: 'marketing' | 'game',
   ) => void
   onOpenResourceLibrary: () => void
 }) {
@@ -2795,9 +2796,18 @@ export default function PlatformHome({
       const selectedSkillScope = selectedHomeSkill
         ? `｜技能：${selectedHomeSkill.title}`
         : ''
-      return onSubmit(`【${scope}${selectedSkillScope}】${request}`, attachment)
+      return onSubmit(
+        `【${scope}${selectedSkillScope}】${request}`,
+        attachment,
+        activeScene === 'game' ? 'game' : 'marketing',
+      )
     }
-    if (!tool) return onSubmit(request, attachment)
+    if (!tool)
+      return onSubmit(
+        request,
+        attachment,
+        activeScene === 'game' ? 'game' : 'marketing',
+      )
     const picked = tool.params.map((p) => params[`${tool.key}.${p.label}`])
     // 选了活动模板 = 引用它复刻：把 token 带进 prompt，工坊按模板拆替换清单
     const usesTemplate =
@@ -2805,7 +2815,11 @@ export default function PlatformHome({
     const ps = picked.filter((v) => v !== '选择模板').join(' / ')
     const body = usesTemplate ? `${XIAHUA_TEMPLATE_TOKEN} ${request}` : request
     const scope = ps ? `【${tool.label}｜${ps}】` : `【${tool.label}】`
-    onSubmit(`${scope}${body}`, attachment)
+    onSubmit(
+      `${scope}${body}`,
+      attachment,
+      activeScene === 'game' ? 'game' : 'marketing',
+    )
   }
 
   return (
@@ -2950,21 +2964,21 @@ export default function PlatformHome({
                 {standaloneWorkshopLayout ? '创意工坊' : 'AI工坊'}
               </span>
             </div>
-            {standaloneWorkshopLayout && (
-              <StandaloneSceneSwitcher
-                activeScene={activeScene}
-                reduceMotion={reduceMotion}
-                onChange={(scene) => {
-                  setActiveScene(scene)
-                  setSelectedSubscene(null)
-                  setActiveSlotInstruction(null)
-                  setTool(null)
-                }}
-              />
-            )}
+            <StandaloneSceneSwitcher
+              activeScene={activeScene}
+              reduceMotion={reduceMotion}
+              onChange={(scene) => {
+                setActiveScene(scene)
+                setSelectedSubscene(null)
+                setActiveSlotInstruction(null)
+                setTool(null)
+              }}
+            />
             {!standaloneWorkshopLayout && (
               <p className="flex items-center gap-1 text-[16px] tracking-[0.32px] text-[#1C1F23]/60">
-                把好想法变成好玩法 <span aria-hidden>💡</span>
+                {activeScene === 'game'
+                  ? '用现在的游戏能力搭可玩项目'
+                  : '用活动营销能力搭 H5 与玩法页'}
               </p>
             )}
           </div>
