@@ -140,6 +140,15 @@ import {
 import AssetEditPanel from './AssetEditPanel'
 import VideoEditor from './VideoEditor'
 import ImageCanvasEditor from './ImageCanvasEditor'
+import MarketingImageCanvasEditor, {
+  ImageQuickTools as MarketingImageQuickTools,
+} from './MarketingImageCanvasEditor'
+import {
+  laneFromHomeScene,
+  laneFromKind,
+  seededProjectLane,
+  type WorkshopLane,
+} from './workshop-lanes'
 import ErrorBoundary from '@/shared/components/ErrorBoundary'
 import PlatformHome from './PlatformHome'
 import SideNav, {
@@ -194,7 +203,6 @@ import { ProjectObjectView, DatabaseView, type DbContent } from './ProjectObject
 import { PROJECT_DOCS, ACG_NEW_YEAR_PLAN_MD, XIAHUA_PLAN_MD } from './data/project-docs'
 import { CHAT_EMPTY_SUGGESTIONS, CHAT_SUGGESTIONS_BY_KIND, CHAT_SUGGESTIONS_BY_PROJECT } from './data/chat-suggestions'
 import { PROJECT_KINDS, SHAPE_BY_KIND, PROJECT_KIND_LABELS, type OutputShape } from './data/project-kinds'
-import { classifyProjectKind } from './project-kind-classifier'
 import { FlexAlignGlyph, ProductToolbar, ToolbarAction } from './Toolbar'
 import { Disclosure, FileTreeView } from './FileTreeView'
 import { getFileIcon } from './file-tree-utils'
@@ -278,8 +286,7 @@ import ProjectInfoView from './ProjectInfoView'
 import PublishDrawer from './PublishDrawer'
 import { getMiniProgramConfig, type MiniProgramConfig } from './MiniProgramConfigData'
 import { getMarketingH5Preview, type MarketingH5PreviewConfig } from './MarketingH5ConfigData'
-import { useRuntimeConfigStore, setRuntimeConfig } from './artifact/runtime-config-store'
-import { generateAvatarConfig } from './artifact/generate'
+import { useRuntimeConfigStore } from './artifact/runtime-config-store'
 
 /** Each platform project has a `ProjectKind` (the concrete product /
  *  case it represents) and an `OutputShape` (the abstract category that
@@ -2643,8 +2650,21 @@ export default function VibeCodingPage({
   const [createdProjectKinds, setCreatedProjectKinds] = useState<
     Record<string, ProjectKind>
   >({})
+  const [createdProjectLanes, setCreatedProjectLanes] = useState<
+    Record<string, WorkshopLane>
+  >({})
   const kindOf = (name: string): ProjectKind =>
     PROJECT_KINDS[name] ?? createdProjectKinds[name] ?? 'mini-program'
+  const rememberProjectLane = (name: string, lane: WorkshopLane) => {
+    setCreatedProjectLanes((prev) =>
+      prev[name] === lane ? prev : { ...prev, [name]: lane },
+    )
+  }
+  const laneOf = (name: string): WorkshopLane =>
+    createdProjectLanes[name] ??
+    seededProjectLane(name) ??
+    laneFromKind(kindOf(name)) ??
+    'marketing'
   /** Spec the user confirmed in GameConfirmCard — kept so the post-step
    *  user-echo bubble can read it back, and so the locked card still
    *  shows the chosen options. */
@@ -3241,6 +3261,7 @@ export default function VibeCodingPage({
         prev[XIAHUA_BUILD_PROJECT] ?? prev[XIAHUA_PROJECT] ?? [],
     }))
     initProjectDefaults(XIAHUA_BUILD_PROJECT, false, 'marketing-h5', false)
+    rememberProjectLane(XIAHUA_BUILD_PROJECT, 'marketing')
     // 从头搭：预设、玩法、选版全部回到出厂态，不继承已上线那版的成品状态
     setXiahuaPreset(XIAHUA_PRESET)
     setXiahuaGameplay(XIAHUA_BUILD_BASELINE_GAMEPLAY)
@@ -3248,12 +3269,64 @@ export default function VibeCodingPage({
     setXiahuaScriptKind('build')
   }
 
-  const submitFromHome = (text: string, attachment?: HomeAttachment) => {
+  const submitFromHome = (
+    text: string,
+    attachment?: HomeAttachment,
+    scene?: 'marketing' | 'game',
+  ) => {
     const trimmed = text.trim()
     if (!trimmed && !attachment) return
     const request =
       trimmed ||
       `请根据上传的「${attachment?.name ?? '活动策划文档'}」完整搭建活动`
+    const homeLane = laneFromHomeScene(scene)
+    // 首页 tab 决定走哪条功能线，不再靠文案关键词互相抢项目。
+    if (homeLane === 'game') {
+      if (
+        /弹幕|射击|stg|roguelike|太空|飞机.*游戏|游戏.*飞机|garuda/i.test(
+          trimmed,
+        )
+      ) {
+        setHomeDraft('')
+        startGameFlow(request)
+        return
+      }
+      const name = makeNewProjectName(request)
+      if (projectTitle && !platformHomeOpen) {
+        projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
+      }
+      setCreatedProjectKinds((prev) => ({ ...prev, [name]: 'web-game' }))
+      rememberProjectLane(name, 'game')
+      setCreatedProjects((prev) =>
+        prev.includes(name) ? prev : [name, ...prev],
+      )
+      setPlatformOpenProjects((prev) => {
+        const next = new Set(prev)
+        next.add(name)
+        return next
+      })
+      pauseXiahuaReplayForProjectChange(name)
+      setProjectTitle(name)
+      projectTitleRef.current = name
+      activatePublishProject(name)
+      setHomeDraft('')
+      setPlatformHomeOpen(false)
+      setPlatformResourceLibraryOpen(false)
+      setPlatformSkillsOpen(false)
+      setPlatformCreativeSquareOpen(false)
+      setPlatformDataOpsOpen(false)
+      const sessionId = initProjectDefaults(name, true, 'web-game', false)
+      sendChat(
+        attachment ? `【已上传文档：${attachment.name}】${request}` : request,
+        {
+          fromHomeEntry: true,
+          projectId: name,
+          projectKind: 'web-game',
+          sessionId,
+        },
+      )
+      return
+    }
     // @模板 引用：从模板复刻新活动（换背景 / 换形象 / 换素材），走复刻回放。
     if (
       trimmed.includes(XIAHUA_TEMPLATE_TOKEN) ||
@@ -3289,6 +3362,7 @@ export default function VibeCodingPage({
       setPlatformCreativeSquareOpen(false)
       setPlatformDataOpsOpen(false)
       initProjectDefaults(XIAHUA_CLONE_PROJECT, false, 'marketing-h5', false)
+      rememberProjectLane(XIAHUA_CLONE_PROJECT, 'marketing')
       startTemplateClone(trimmed, { instant: true })
       return
     }
@@ -3304,25 +3378,14 @@ export default function VibeCodingPage({
       startXiahuaBuild(attachment.name, trimmed, { instant: true })
       return
     }
-    // Game prompt → dedicated Garuda mock-generation flow (it materialises
-    // its own 射击小游戏 project). Runs before the generic path so the
-    // scripted build always wins.
-    if (
-      /弹幕|射击|stg|roguelike|太空|飞机.*游戏|游戏.*飞机|garuda/i.test(trimmed)
-    ) {
-      setHomeDraft('')
-      startGameFlow(request)
-      return
-    }
-    // Otherwise: create a fresh project, pick its kind from the prompt so the
-    // right-side preview routes correctly, register it in the sidebar, switch
-    // to it, then send the prompt into its (empty) chat.
-    const kind = classifyProjectKind(request)
+    // 运营活动 tab 一律走营销 H5，不按文案改线到游戏。
+    const kind = 'marketing-h5'
     const name = makeNewProjectName(request)
     if (projectTitle && !platformHomeOpen) {
       projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
     }
     setCreatedProjectKinds((prev) => ({ ...prev, [name]: kind }))
+    rememberProjectLane(name, 'marketing')
     setCreatedProjects((prev) => (prev.includes(name) ? prev : [name, ...prev]))
     setPlatformOpenProjects((prev) => {
       const next = new Set(prev)
@@ -3352,37 +3415,6 @@ export default function VibeCodingPage({
         sessionId,
       },
     )
-    // 从 0 生成：AI 分身 用对话需求实时生成 config（Kimi → JSON），写入运行时
-    // 配置后右侧预览自动打开并显示生成的分身。失败则回退到静态默认（陶白白）。
-    if (kind === 'ai-avatar') {
-      updateWorkshopTaskStatus(
-        name,
-        WORKSHOP_TASK_IDS.avatarConfig,
-        'running',
-      )
-      generateAvatarConfig(trimmed, name)
-        .then((cfg) => {
-          setRuntimeConfig(name, cfg)
-          updateWorkshopTaskStatus(
-            name,
-            WORKSHOP_TASK_IDS.avatarConfig,
-            'completed',
-          )
-          if (projectTitleRef.current === name) {
-            setOpenTabs((prev) =>
-              prev.length > 0 ? prev : defaultTabsForKind(name),
-            )
-          }
-        })
-        .catch((err) => {
-          console.warn('[generateAvatarConfig]', err)
-          updateWorkshopTaskStatus(
-            name,
-            WORKSHOP_TASK_IDS.avatarConfig,
-            'waiting-confirmation',
-          )
-        })
-    }
   }
 
   /** Kick off the Garuda mock-generation flow. Opens the project, seeds
@@ -3402,6 +3434,7 @@ export default function VibeCodingPage({
     setProjectTitle('射击小游戏')
     projectTitleRef.current = '射击小游戏'
     activatePublishProject('射击小游戏')
+    rememberProjectLane('射击小游戏', 'game')
     setSessions([{ id: sid, name: sessionName }])
     setActiveSessionId(sid)
     setPlatformHomeOpen(false)
@@ -3462,6 +3495,7 @@ export default function VibeCodingPage({
     setCreatedProjects((prev) =>
       prev.includes('射击小游戏') ? prev : ['射击小游戏', ...prev],
     )
+    rememberProjectLane('射击小游戏', 'game')
     setPlatformOpenProjects((prev) => {
       if (prev.has('射击小游戏')) return prev
       const next = new Set(prev)
@@ -7964,6 +7998,7 @@ export default function VibeCodingPage({
    * Unknown project names default to mini-program so arbitrary renames
    * don't accidentally flip the preview. */
   const activeProjectKind: ProjectKind = kindOf(projectTitle)
+  const projectLane = laneOf(projectTitle)
   /** 当前项目是不是 h5-reference-lab 的复刻 case —— 它们走自己的编辑台。 */
   const h5LabCase = getH5LabCase(projectTitle)
   /** 草稿里的帧（含补出来的界面），面板和计数共用。 */
@@ -13858,7 +13893,10 @@ export default function VibeCodingPage({
                             }
                             // 素材 — visual asset grid using the same layout as 游戏 素材
                             // (grouped sections, zoom modal).
-                            if (label === ASSET_LIBRARY_LABEL) {
+                            if (
+                              label === ASSET_LIBRARY_LABEL &&
+                              projectLane === 'marketing'
+                            ) {
                               // 回放中素材库要跟着过程走 —— 清单刚对完的时候一张都还没生成，
                               // 直接摆成品图等于把后面的结果提前给了
                               if (
@@ -13879,6 +13917,8 @@ export default function VibeCodingPage({
                               }
                               return (
                                 <GarudaAssetsView
+                                  CanvasEditor={MarketingImageCanvasEditor}
+                                  QuickTools={MarketingImageQuickTools}
                                   groups={
                                     projectTitle === SUMMER_SURF_PROJECT
                                       ? SUMMER_SURF_ASSET_GROUPS
@@ -14094,12 +14134,13 @@ export default function VibeCodingPage({
                         // 复刻 case 的图片下钻：素材画布挂在「素材库」tab 下，
                         // 它自带一条工具条，上面的预览工具栏已经让位。
                         if (
+                          projectLane === 'marketing' &&
                           h5LabCase &&
                           h5LabAssetCanvas !== null &&
                           activeLabel === ASSET_LIBRARY_LABEL
                         ) {
                           return (
-                            <ImageCanvasEditor
+                            <MarketingImageCanvasEditor
                               groups={[
                                 {
                                   title: `${h5LabCase.project} · 页面用图`,
@@ -14113,7 +14154,10 @@ export default function VibeCodingPage({
                             />
                           )
                         }
-                        if (activeProjectKind === 'web-game') {
+                        if (
+                          projectLane === 'game' &&
+                          activeProjectKind === 'web-game'
+                        ) {
                           if (activeLabel === '预览') return productView
                           if (activeLabel === ASSET_LIBRARY_LABEL) {
                             // 画布编辑 (图片) takes over the whole preview area: every image
