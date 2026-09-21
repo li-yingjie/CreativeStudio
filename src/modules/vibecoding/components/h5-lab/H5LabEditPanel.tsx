@@ -14,6 +14,7 @@ import {
   Plus,
   RotateCcw,
   Ruler,
+  Lock,
   Sparkles,
   Trash2,
   Type as TypeIcon,
@@ -27,9 +28,11 @@ import {
   type H5LabLayer,
 } from './h5-lab-layers'
 import {
+  h5LabPageSettings,
   linkKey,
   screenFromSuggestion,
   type H5LabHotspot,
+  type H5LabPageSettings,
   type H5LabPrototype,
   type H5LabTransition,
 } from './h5-lab-prototype'
@@ -61,6 +64,9 @@ interface Props {
   selection: H5LabSelection | null
   overrides: H5LabOverrides
   onOverrides: (next: H5LabOverrides, options?: H5LabHistoryOptions) => void
+  /** 当前槽位是否只编辑所选帧。 */
+  isSlotIndependent: boolean
+  onSlotIndependentChange: (path: string, independent: boolean) => void
   /** 当前聚焦状态帧的图层树（由画布现推）。 */
   layers: H5LabLayer[]
   onSelectPath: (path: string) => void
@@ -70,6 +76,8 @@ interface Props {
   frames: { id: string; label: string; generated?: boolean }[]
   prototype: H5LabPrototype
   onPrototype: (next: H5LabPrototype, options?: H5LabHistoryOptions) => void
+  /** 当前渲染页面的第一张头图；分享图未单独设置时直接跟随它。 */
+  defaultShareImage?: string
   /** 图片下钻素材库画布编辑。 */
   onOpenAssetCanvas: (src?: string) => void
   /** 把当前选中的元素带进对话。 */
@@ -79,11 +87,21 @@ interface Props {
 
 /* ── 原子控件 ── */
 
-function Row({ label, children, action }: { label: string; children?: ReactNode; action?: ReactNode }) {
+function Row({
+  label,
+  children,
+  action,
+  disabled = false,
+}: {
+  label: string
+  children?: ReactNode
+  action?: ReactNode
+  disabled?: boolean
+}) {
   return (
-    <div className="mb-2.5">
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-[11px] text-[var(--color-ink)]/50">{label}</span>
+    <div className={`mb-3 last:mb-0 ${disabled ? 'opacity-45' : ''}`}>
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="text-[12px] font-medium text-[var(--color-ink)]/58">{label}</span>
         {action}
       </div>
       {children}
@@ -101,12 +119,19 @@ function Group({
   children: ReactNode
 }) {
   return (
-    <section className="border-t border-[var(--divider-soft)] px-4 py-3.5 first:border-t-0">
-      <div className="mb-2.5 flex items-center gap-1.5">
-        <Icon size={12} strokeWidth={1.8} className="text-[var(--color-ink)]/45" />
-        <span className="text-[11.5px] font-medium text-[var(--color-ink)]/75">{title}</span>
-      </div>
-      {children}
+    <section className="border-t border-[var(--divider-soft)] first:border-t-0">
+      <details open className="group/panel-section">
+        <summary className="flex h-11 cursor-pointer list-none items-center gap-2 px-4 text-[13px] font-semibold text-[var(--color-ink)]/82 transition-colors hover:bg-[var(--fill-hover)] [&::-webkit-details-marker]:hidden">
+          <Icon size={13} strokeWidth={1.8} className="text-[var(--color-ink)]/48" />
+          <span>{title}</span>
+          <ChevronRight
+            size={13}
+            strokeWidth={2}
+            className="ml-auto text-[var(--color-ink)]/38 transition-transform group-open/panel-section:rotate-90"
+          />
+        </summary>
+        <div className="px-4 pb-4 pt-1">{children}</div>
+      </details>
     </section>
   )
 }
@@ -116,27 +141,53 @@ function NumField({
   placeholder,
   unit,
   prefix,
+  disabled = false,
   onChange,
 }: {
   value: number | undefined
   placeholder?: string | number
   unit?: string
   prefix?: string
+  disabled?: boolean
   onChange: (next: number | undefined) => void
 }) {
+  const hasOverride = value !== undefined
+  const displayedValue = value ?? placeholder ?? ''
   return (
-    <label className="flex h-7 min-w-0 flex-1 items-center gap-1 rounded-md border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] px-1.5 focus-within:border-[#2f6bff]/60">
-      {prefix && <span className="shrink-0 text-[10.5px] text-[var(--color-ink)]/35">{prefix}</span>}
+    <label
+      className={`flex h-9 min-w-0 flex-1 items-center gap-1.5 rounded-lg border px-2 transition-colors ${
+        disabled
+          ? 'cursor-not-allowed border-[var(--color-ink)]/[0.06] bg-[var(--color-ink)]/[0.035]'
+          : hasOverride
+            ? 'border-[#2f6bff]/25 bg-[#2f6bff]/[0.045] focus-within:border-[#2f6bff]/60'
+            : 'border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] focus-within:border-[#2f6bff]/60'
+      }`}
+    >
+      {prefix && (
+        <span className={`shrink-0 text-[11px] ${disabled ? 'text-[var(--color-ink)]/22' : 'text-[var(--color-ink)]/38'}`}>
+          {prefix}
+        </span>
+      )}
       <input
         type="number"
-        value={value ?? ''}
-        placeholder={placeholder === undefined ? '' : String(placeholder)}
+        value={displayedValue}
+        disabled={disabled}
         onChange={(event) =>
           onChange(event.target.value === '' ? undefined : Number(event.target.value))
         }
-        className="h-full min-w-0 flex-1 bg-transparent text-[11.5px] tabular-nums text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/25"
+        className={`h-full min-w-0 flex-1 bg-transparent text-[13px] font-medium tabular-nums outline-none ${
+          disabled
+            ? 'cursor-not-allowed text-[var(--color-ink)]/24'
+            : hasOverride
+              ? 'text-[#245eea]'
+              : 'text-[var(--color-ink)]'
+        }`}
       />
-      {unit && <span className="shrink-0 text-[10.5px] text-[var(--color-ink)]/35">{unit}</span>}
+      {unit && (
+        <span className={`shrink-0 text-[11px] ${disabled ? 'text-[var(--color-ink)]/20' : 'text-[var(--color-ink)]/38'}`}>
+          {unit}
+        </span>
+      )}
     </label>
   )
 }
@@ -146,33 +197,51 @@ function ColorRow({
   fallback,
   onChange,
   onClear,
+  disabled = false,
 }: {
   value: string | undefined
   fallback: string
   onChange: (next: string) => void
   onClear?: () => void
+  disabled?: boolean
 }) {
   const hex = /^#[0-9a-f]{6}$/i.test(value ?? '') ? (value as string) : '#1a1a1a'
+  const hasOverride = value !== undefined
   return (
-    <div className="flex h-7 items-center gap-1.5 rounded-md border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] px-1.5">
-      <label className="relative size-[15px] shrink-0 cursor-pointer overflow-hidden rounded-[3px] border border-[var(--color-ink)]/15">
+    <div
+      className={`flex h-9 items-center gap-2 rounded-lg border px-2 transition-colors ${
+        disabled
+          ? 'border-[var(--color-ink)]/[0.06] bg-[var(--color-ink)]/[0.035]'
+          : hasOverride
+            ? 'border-[#2f6bff]/25 bg-[#2f6bff]/[0.045]'
+            : 'border-[var(--color-ink)]/10 bg-[var(--color-surface-0)]'
+      }`}
+    >
+      <label className={`relative size-[18px] shrink-0 overflow-hidden rounded-[4px] border border-[var(--color-ink)]/15 ${disabled ? 'cursor-not-allowed grayscale opacity-40' : 'cursor-pointer'}`}>
         <span className="absolute inset-0" style={{ background: value ?? fallback }} />
         <input
           type="color"
           value={hex}
+          disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
-          className="absolute inset-0 cursor-pointer opacity-0"
+          className={`absolute inset-0 opacity-0 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           aria-label="取色"
         />
       </label>
       <input
         type="text"
-        value={value ?? ''}
-        placeholder={fallback}
+        value={value ?? fallback}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="h-full min-w-0 flex-1 bg-transparent text-[11.5px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/25"
+        className={`h-full min-w-0 flex-1 bg-transparent text-[13px] font-medium outline-none ${
+          disabled
+            ? 'cursor-not-allowed text-[var(--color-ink)]/24'
+            : hasOverride
+              ? 'text-[#245eea]'
+              : 'text-[var(--color-ink)]'
+        }`}
       />
-      {onClear && value !== undefined && (
+      {onClear && value !== undefined && !disabled && (
         <button
           type="button"
           onClick={onClear}
@@ -188,17 +257,84 @@ function ColorRow({
 
 function AddRow({ label, onAdd }: { label: string; onAdd: () => void }) {
   return (
-    <div className="mb-2.5 flex items-center justify-between">
-      <span className="text-[11px] text-[var(--color-ink)]/50">{label}</span>
+    <div className="mb-3 flex h-8 items-center justify-between last:mb-0">
+      <span className="text-[12px] font-medium text-[var(--color-ink)]/58">{label}</span>
       <button
         type="button"
         onClick={onAdd}
         title={`添加${label}`}
-        className="flex size-5 items-center justify-center rounded text-[var(--color-ink)]/40 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+        className="flex size-7 items-center justify-center rounded-md text-[var(--color-ink)]/40 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
       >
         <Plus size={12} strokeWidth={2} />
       </button>
     </div>
+  )
+}
+
+function ToggleRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  onChange: (next: boolean) => void
+}) {
+  return (
+    <div className="flex h-10 items-center justify-between">
+      <span className="text-[12px] font-medium text-[var(--color-ink)]/72">{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-label={label}
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+          checked ? 'bg-[#17171a]' : 'bg-[var(--color-ink)]/16'
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 size-4 rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.25)] transition-[left] ${
+            checked ? 'left-[18px]' : 'left-0.5'
+          }`}
+        />
+      </button>
+    </div>
+  )
+}
+
+function SelectField({
+  value,
+  hasOverride,
+  onChange,
+  children,
+  ariaLabel,
+}: {
+  value: string | number
+  hasOverride: boolean
+  onChange: (next: string) => void
+  children: ReactNode
+  ariaLabel: string
+}) {
+  return (
+    <label
+      className={`flex h-9 min-w-0 flex-1 items-center rounded-lg border px-2 transition-colors ${
+        hasOverride
+          ? 'border-[#2f6bff]/25 bg-[#2f6bff]/[0.045]'
+          : 'border-[var(--color-ink)]/10 bg-[var(--color-surface-0)]'
+      }`}
+    >
+      <select
+        aria-label={ariaLabel}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={`h-full min-w-0 flex-1 cursor-pointer bg-transparent text-[12px] font-medium outline-none ${
+          hasOverride ? 'text-[#245eea]' : 'text-[var(--color-ink)]'
+        }`}
+      >
+        {children}
+      </select>
+    </label>
   )
 }
 
@@ -210,6 +346,7 @@ const KIND_ICON: Record<H5LabSelection['kind'], typeof TypeIcon> = {
   button: LayoutTemplate,
   svg: Palette,
   box: BoxIcon,
+  group: Layers,
 }
 
 function LayerRow({
@@ -315,6 +452,8 @@ function FullStructure({
 type H5LabLinkDraft = { targetId: string; transition: H5LabTransition }
 type PanelMode = 'interaction' | 'design'
 
+const CHANNEL_PUBLISH_HOTSPOTS = new Set(['去查看', '去搜索', '去分享'])
+
 /* ── 面板 ── */
 
 export default function H5LabEditPanel({
@@ -322,12 +461,15 @@ export default function H5LabEditPanel({
   selection,
   overrides,
   onOverrides,
+  isSlotIndependent,
+  onSlotIndependentChange,
   layers,
   onSelectPath,
   hotspots,
   frames,
   prototype,
   onPrototype,
+  defaultShareImage = '',
   onOpenAssetCanvas,
   onAddToChat,
   onClose,
@@ -360,23 +502,58 @@ export default function H5LabEditPanel({
     () => labCase.states.map((item) => item.id),
     [labCase.states],
   )
+  const isSharedSlot = Boolean(
+    selection &&
+      selection.kind !== 'group' &&
+      sharedStateIds.includes(selection.stateId) &&
+      sharedStateIds.length > 1,
+  )
   const targetStateIds = useMemo(
     () =>
-      selection && sharedStateIds.includes(selection.stateId)
+      selection &&
+      selection.kind !== 'group' &&
+      sharedStateIds.includes(selection.stateId) &&
+      !isSlotIndependent
         ? sharedStateIds
         : selection
           ? [selection.stateId]
           : [],
-    [selection, sharedStateIds],
+    [isSlotIndependent, selection, sharedStateIds],
   )
   const currentLink = selection
     ? prototype.links[linkKey(selection.stateId, selection.path)]
     : undefined
+  const editableHotspots = useMemo(
+    () => hotspots.filter((item) => !CHANNEL_PUBLISH_HOTSPOTS.has(item.label.trim())),
+    [hotspots],
+  )
+  const selectedHotspot = selection
+    ? hotspots.find((item) => item.path === selection.path)
+    : undefined
+  const isChannelPublishSelection = Boolean(
+    selectedHotspot && CHANNEL_PUBLISH_HOTSPOTS.has(selectedHotspot.label.trim()),
+  )
   const isHotspot =
-    selection !== null && hotspots.some((item) => item.path === selection.path)
-  const linkedCount = hotspots.filter(
+    selection !== null && editableHotspots.some((item) => item.path === selection.path)
+  const linkedCount = editableHotspots.filter(
     (item) => prototype.links[linkKey(activeFrameId, item.path)],
   ).length
+  const pageSettings = h5LabPageSettings(prototype, labCase.id)
+  const shareImage = pageSettings.shareImage || defaultShareImage
+
+  const patchPageSettings = (patch: Partial<H5LabPageSettings>) => {
+    const settings = {
+      ...prototype.settings,
+      [labCase.id]: {
+        ...(prototype.settings[labCase.id] ?? {}),
+        ...patch,
+      },
+    }
+    onPrototype(
+      { ...prototype, settings },
+      { group: `page-settings|${labCase.id}|${Object.keys(patch).sort().join(',')}` },
+    )
+  }
 
   const setLink = (patch: Partial<H5LabLinkDraft>) => {
     if (!selection) return
@@ -404,6 +581,7 @@ export default function H5LabEditPanel({
       label: selection.label,
     })
     onPrototype({
+      ...prototype,
       screens: [...prototype.screens, screen],
       links: {
         ...prototype.links,
@@ -434,9 +612,25 @@ export default function H5LabEditPanel({
   const interactive =
     selection !== null &&
     (isHotspot || Boolean(currentLink) || forceInteraction === selectionKey)
-  const autoMode: PanelMode = selection && !interactive ? 'design' : 'interaction'
+  const autoMode: PanelMode =
+    selection && !interactive ? 'design' : 'interaction'
   const mode = modePick?.key === selectionKey ? modePick.mode : autoMode
   const setMode = (next: PanelMode) => setModePick({ key: selectionKey, mode: next })
+
+  const toggleSlotIndependence = () => {
+    if (!selection || !isSharedSlot) return
+    if (!isSlotIndependent) {
+      onSlotIndependentChange(selection.path, true)
+      toast('已解锁槽位，后续修改只作用于当前帧')
+      return
+    }
+    // 重新锁定时以当前帧为准覆盖其他帧，避免 UI 显示已同步但画面仍然分叉。
+    let next = h5LabResetSlot(overrides, sharedStateIds, selection.path)
+    if (node) next = h5LabPatchSlot(next, sharedStateIds, selection.path, node)
+    onOverrides(next, { group: `slot-resync|${selection.path}` })
+    onSlotIndependentChange(selection.path, false)
+    toast(`已按当前帧重新同步到 ${sharedStateIds.length} 帧`)
+  }
 
   const patchStyle = (patch: H5LabStyleOverride) => {
     if (!selection) return
@@ -446,7 +640,7 @@ export default function H5LabEditPanel({
       { group: `style|${selection.path}|${fields}` },
     )
   }
-  const patchNode = (patch: { text?: string; src?: string }) => {
+  const patchNode = (patch: { text?: string; html?: string; src?: string }) => {
     if (!selection) return
     const fields = Object.keys(patch).sort().join(',')
     onOverrides(h5LabPatchSlot(overrides, targetStateIds, selection.path, patch), {
@@ -470,6 +664,18 @@ export default function H5LabEditPanel({
   const m = selection?.measured
   const isText = selection?.kind === 'text' || selection?.kind === 'button'
   const isImage = selection?.kind === 'image'
+  const canAutoLayout = (m?.childCount ?? 0) > 0
+  const parentPath = selection
+    ? selection.path.split('>').slice(0, -1).join('>')
+    : ''
+  /* 「启用自动布局」只反映用户自己设过的覆盖。之前是 `style.layoutMode ?? 量出来的
+     display`，于是页面 CSS 本来就是 flex 的元素（以及打组后落在 flex 上下文里的
+     wrapper）一选中就显示成"已启用"，主轴/交叉轴还跟着亮起来 —— 用户没开过，
+     看着却像开了。量出来的值只在"启用"那一下用来播种，不参与开关状态。 */
+  const layoutOverride = style.layoutMode
+  const autoLayoutEnabled =
+    canAutoLayout && layoutOverride !== undefined && layoutOverride !== 'normal'
+  const effectiveLayoutMode = autoLayoutEnabled ? layoutOverride : 'normal'
   const activeStateLabel =
     labCase.states.find((item) => item.id === selection?.stateId)?.label ??
     labCase.states[0]?.label ??
@@ -478,27 +684,43 @@ export default function H5LabEditPanel({
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--color-surface-0)]">
       {/* Edit section */}
-      <div className="flex shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-4 py-2.5">
-        <span className="text-[12.5px] font-semibold text-[var(--color-ink)]">编辑</span>
+      <div className="flex h-13 shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-4">
+        <span className="text-[14px] font-semibold text-[var(--color-ink)]">编辑</span>
         {selection ? (
           <span className="flex min-w-0 items-center gap-1.5">
             <span className="shrink-0 rounded bg-[var(--color-ink)]/[0.07] px-1 py-px font-mono text-[10px] text-[var(--color-ink)]/55">
               {selection.tag}
             </span>
-            <span className="min-w-0 truncate text-[11px] text-[var(--color-ink)]/45">
+            <span className="min-w-0 truncate text-[12px] text-[var(--color-ink)]/50">
               {selection.label}
             </span>
-            {targetStateIds.length > 1 && (
-              <span
-                className="shrink-0 rounded bg-[#2f6bff]/10 px-1.5 py-0.5 text-[9.5px] font-medium text-[#2f6bff]"
-                title={`修改会同步到 ${targetStateIds.length} 个状态帧的同一槽位`}
+            {isSharedSlot && (
+              <button
+                type="button"
+                aria-pressed={!isSlotIndependent}
+                onClick={toggleSlotIndependence}
+                title={
+                  isSlotIndependent
+                    ? `当前只修改「${activeStateLabel}」；点击按当前帧重新同步`
+                    : `修改会同步到 ${sharedStateIds.length} 帧；点击解锁当前槽位`
+                }
+                className={`flex h-5 shrink-0 items-center gap-1 rounded px-1.5 text-[9.5px] font-medium transition-colors ${
+                  isSlotIndependent
+                    ? 'bg-[#f59e0b]/12 text-[#b86a00] hover:bg-[#f59e0b]/20'
+                    : 'bg-[#2f6bff]/10 text-[#2f6bff] hover:bg-[#2f6bff]/15'
+                }`}
               >
-                同步 {targetStateIds.length} 帧
-              </span>
+                {isSlotIndependent ? (
+                  <GitBranch size={9} strokeWidth={2} />
+                ) : (
+                  <Lock size={9} strokeWidth={2} />
+                )}
+                {isSlotIndependent ? '当前帧独立' : `同步 ${sharedStateIds.length} 帧`}
+              </button>
             )}
           </span>
         ) : (
-          <span className="min-w-0 truncate text-[11px] text-[var(--color-ink)]/45">
+          <span className="min-w-0 truncate text-[12px] text-[var(--color-ink)]/50">
             {labCase.project}
           </span>
         )}
@@ -514,8 +736,8 @@ export default function H5LabEditPanel({
 
       <div className="thin-scroll flex-1 overflow-y-auto">
 
-        {/* 交互 / 设计 —— 面板的第一层分类 */}
-        <div className="sticky top-0 z-10 flex gap-0.5 border-b border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-3 py-2">
+        {/* HTML/CSS 是实现层：这里把 computed style 翻译成设计表单。 */}
+        <div className="sticky top-0 z-10 flex gap-1 border-b border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-3 py-2.5">
           {(
             [
               ['interaction', '交互', GitBranch],
@@ -527,7 +749,7 @@ export default function H5LabEditPanel({
               type="button"
               aria-pressed={mode === id}
               onClick={() => setMode(id)}
-              className="flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md text-[12px] font-medium text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
+              className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg text-[13px] font-medium text-[var(--color-ink)]/48 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
             >
               <Icon size={12} strokeWidth={1.8} />
               {label}
@@ -539,7 +761,13 @@ export default function H5LabEditPanel({
           selection ? (
             /* 选中了具体元素：只给这一个元素的交互，不再回显整帧的盘点 */
             <Group title="交互" icon={GitBranch}>
-              {interactive ? (
+              {isChannelPublishSelection ? (
+                <div className="rounded-lg border border-[var(--color-ink)]/8 bg-[var(--color-ink)]/[0.025] px-3 py-2.5">
+                  <p className="text-[11.5px] leading-[1.7] text-[var(--color-ink)]/52">
+                    「{selection.label}」属于渠道发布行为，由发布配置统一接管，不在页面交互中配置。
+                  </p>
+                </div>
+              ) : interactive ? (
                 <>
 
                 <Row label="点击后跳到">
@@ -658,19 +886,100 @@ export default function H5LabEditPanel({
             </Group>
           ) : (
             <>
+            <Group title="端内设置" icon={LayoutTemplate}>
+              <ToggleRow
+                label="分享按钮"
+                checked={pageSettings.shareButton}
+                onChange={(shareButton) => patchPageSettings({ shareButton })}
+              />
+              <ToggleRow
+                label="返回按钮"
+                checked={pageSettings.backButton}
+                onChange={(backButton) => patchPageSettings({ backButton })}
+              />
+              <ToggleRow
+                label="启用滑动手势返回"
+                checked={pageSettings.swipeBack}
+                onChange={(swipeBack) => patchPageSettings({ swipeBack })}
+              />
+            </Group>
+
+            <Group title="分享信息设置" icon={ImageIcon}>
+              <div className={!pageSettings.shareButton ? 'pointer-events-none opacity-45' : ''}>
+                <div className="mb-3 flex overflow-hidden rounded-lg border border-[var(--color-ink)]/10 bg-[var(--color-ink)]/[0.025]">
+                  <div className="grid size-20 shrink-0 place-items-center overflow-hidden bg-[var(--color-ink)]/[0.04]">
+                    {shareImage ? (
+                      <img src={shareImage} alt="默认分享图" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon size={18} className="text-[var(--color-ink)]/28" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 px-3 py-2.5">
+                    <div className="truncate text-[12px] font-semibold text-[var(--color-ink)]/78">
+                      {pageSettings.shareTitle || labCase.project}
+                    </div>
+                    <div className="mt-1 line-clamp-2 text-[10.5px] leading-[1.5] text-[var(--color-ink)]/42">
+                      {pageSettings.shareDescription || labCase.summary}
+                    </div>
+                    {!pageSettings.shareImage && defaultShareImage && (
+                      <span className="mt-1.5 inline-flex rounded bg-[#635bff]/10 px-1.5 text-[9.5px] leading-4 text-[#635bff]">
+                        跟随页面头图
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <Row label="分享标题">
+                  <input
+                    value={pageSettings.shareTitle || labCase.project}
+                    onChange={(event) => patchPageSettings({ shareTitle: event.target.value })}
+                    className="h-9 w-full rounded-lg border border-[var(--color-ink)]/10 bg-white px-2.5 text-[12px] text-[var(--color-ink)] outline-none focus:border-[#635bff]/55"
+                  />
+                </Row>
+                <Row label="分享描述">
+                  <textarea
+                    value={pageSettings.shareDescription || labCase.summary}
+                    onChange={(event) =>
+                      patchPageSettings({ shareDescription: event.target.value })
+                    }
+                    rows={2}
+                    className="w-full resize-none rounded-lg border border-[var(--color-ink)]/10 bg-white px-2.5 py-2 text-[12px] leading-[1.55] text-[var(--color-ink)] outline-none focus:border-[#635bff]/55"
+                  />
+                </Row>
+                <Row
+                  label="分享图片"
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => patchPageSettings({ shareImage: '' })}
+                      className="text-[10.5px] text-[#635bff] hover:underline"
+                    >
+                      使用页面头图
+                    </button>
+                  }
+                >
+                  <input
+                    value={shareImage}
+                    onChange={(event) => patchPageSettings({ shareImage: event.target.value })}
+                    placeholder="默认调用页面头图"
+                    className="h-9 w-full rounded-lg border border-[var(--color-ink)]/10 bg-white px-2.5 text-[11px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/28 focus:border-[#635bff]/55"
+                  />
+                </Row>
+              </div>
+            </Group>
+
             <Group title="交互盘点" icon={GitBranch}>
               <p className="mb-2 text-[11px] leading-[1.65] text-[var(--color-ink)]/45">
                 这些 case 只反推了首屏，热点按下去之后原作没给。已接
                 <b className="mx-0.5 font-semibold text-[var(--color-ink)]/70">
-                  {linkedCount}/{hotspots.length}
+                  {linkedCount}/{editableHotspots.length}
                 </b>
                 个，其余可以选中后现补一屏。
               </p>
-              {hotspots.length === 0 ? (
+              {editableHotspots.length === 0 ? (
                 <p className="py-1 text-[11px] text-[var(--color-ink)]/35">这一帧没有可交互元素</p>
               ) : (
                 <ul className="-mx-1">
-                  {hotspots.map((hotspot) => {
+                  {editableHotspots.map((hotspot) => {
                     const link = prototype.links[linkKey(activeFrameId, hotspot.path)]
                     const target = frames.find((item) => item.id === link?.targetId)
                     return (
@@ -733,6 +1042,7 @@ export default function H5LabEditPanel({
                             ),
                           )
                           onPrototype({
+                            ...prototype,
                             screens: prototype.screens.filter((s) => s.id !== item.id),
                             links,
                           })
@@ -752,15 +1062,15 @@ export default function H5LabEditPanel({
         ) : (
           <>
             {/* ── 图层管理 ── */}
-            <section className="border-b border-[var(--divider-soft)] px-4 py-3.5">
-              <div className="mb-2.5 flex items-center gap-1.5">
-                <Layers size={12} strokeWidth={1.8} className="text-[var(--color-ink)]/45" />
-                <span className="text-[11.5px] font-medium text-[var(--color-ink)]/75">图层</span>
+            <section className="border-b border-[var(--divider-soft)] px-4 py-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Layers size={13} strokeWidth={1.8} className="text-[var(--color-ink)]/45" />
+                <span className="text-[13px] font-semibold text-[var(--color-ink)]/82">图层</span>
                 <span className="ml-auto truncate text-[10.5px] text-[var(--color-ink)]/35">
                   {activeStateLabel}
                 </span>
               </div>
-              <div className="mb-2 flex rounded-md bg-[var(--color-ink)]/[0.05] p-0.5">
+              <div className="mb-3 flex rounded-lg bg-[var(--color-ink)]/[0.05] p-0.5">
                 {(
                   [
                     ['element', '当前层级'],
@@ -772,7 +1082,7 @@ export default function H5LabEditPanel({
                     type="button"
                     aria-pressed={layerTab === id}
                     onClick={() => setLayerTab(id)}
-                    className="h-6 flex-1 rounded-[5px] text-[11px] text-[var(--color-ink)]/55 transition-colors aria-pressed:bg-[var(--color-surface-0)] aria-pressed:text-[var(--color-ink)] aria-pressed:shadow-[0_1px_2px_rgba(16,18,24,0.08)]"
+                    className="h-8 flex-1 rounded-[7px] text-[12px] text-[var(--color-ink)]/55 transition-colors aria-pressed:bg-[var(--color-surface-0)] aria-pressed:font-medium aria-pressed:text-[var(--color-ink)] aria-pressed:shadow-[0_1px_2px_rgba(16,18,24,0.08)]"
                   >
                     {label}
                   </button>
@@ -832,7 +1142,9 @@ export default function H5LabEditPanel({
                     <textarea
                       value={node?.text ?? m?.text ?? ''}
                       rows={3}
-                      onChange={(event) => patchNode({ text: event.target.value })}
+                      onChange={(event) =>
+                        patchNode({ text: event.target.value, html: undefined })
+                      }
                       className="w-full resize-y rounded-md border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] px-2 py-1.5 text-[11.5px] leading-[1.6] text-[var(--color-ink)] outline-none focus:border-[#2f6bff]/60"
                     />
                   </Group>
@@ -889,7 +1201,7 @@ export default function H5LabEditPanel({
                   </Group>
                 )}
 
-                <Group title="容器样式" icon={Eye}>
+                <Group title="背景与外观" icon={Eye}>
                   {style.background !== undefined ? (
                     <Row
                       label="背景"
@@ -931,10 +1243,11 @@ export default function H5LabEditPanel({
                       onChange={(next) => patchStyle({ radius: next })}
                     />
                   </Row>
-                  <Row label="颜色">
+                  <Row label="颜色" disabled={selection.kind === 'image'}>
                     <ColorRow
                       value={style.color}
                       fallback={m?.color ?? '#000000'}
+                      disabled={selection.kind === 'image'}
                       onChange={(next) => patchStyle({ color: next })}
                       onClear={() => patchStyle({ color: undefined })}
                     />
@@ -1054,54 +1367,293 @@ export default function H5LabEditPanel({
 
                 {isText && (
                   <Group title="文字" icon={TypeIcon}>
+                    <Row label="字体">
+                      {(() => {
+                        const resolved = style.fontFamily ?? m?.fontFamily ?? 'PingFang SC'
+                        const current = resolved.split(',')[0]?.trim().replace(/^['"]|['"]$/g, '')
+                        const families = [
+                          'PingFang SC',
+                          'Noto Sans SC',
+                          'Helvetica Neue',
+                          'Arial',
+                          'Georgia',
+                          'Courier New',
+                        ]
+                        return (
+                          <SelectField
+                            value={current}
+                            hasOverride={style.fontFamily !== undefined}
+                            ariaLabel="字体"
+                            onChange={(next) => patchStyle({ fontFamily: next })}
+                          >
+                            {!families.includes(current) && <option value={current}>{current}</option>}
+                            {families.map((family) => (
+                              <option key={family} value={family}>{family}</option>
+                            ))}
+                          </SelectField>
+                        )
+                      })()}
+                    </Row>
                     <div className="mb-2.5 flex gap-1.5">
+                      <SelectField
+                        value={style.fontWeight ?? m?.fontWeight ?? 400}
+                        hasOverride={style.fontWeight !== undefined}
+                        ariaLabel="字重"
+                        onChange={(next) => patchStyle({ fontWeight: Number(next) })}
+                      >
+                        <option value={300}>细体 · 300</option>
+                        <option value={400}>常规 · 400</option>
+                        <option value={500}>中等 · 500</option>
+                        <option value={600}>半粗 · 600</option>
+                        <option value={700}>粗体 · 700</option>
+                        <option value={900}>特粗 · 900</option>
+                      </SelectField>
                       <NumField
                         value={style.fontSize}
                         placeholder={m?.fontSize}
                         prefix="字号"
+                        unit="px"
                         onChange={(next) => patchStyle({ fontSize: next })}
-                      />
-                      <NumField
-                        value={style.fontWeight}
-                        placeholder="字重"
-                        prefix="字重"
-                        onChange={(next) => patchStyle({ fontWeight: next })}
                       />
                     </div>
                     <div className="mb-2.5 flex gap-1.5">
                       <NumField
                         value={style.lineHeight}
-                        placeholder="行高"
+                        placeholder={m?.lineHeight}
                         prefix="行高"
+                        unit="px"
                         onChange={(next) => patchStyle({ lineHeight: next })}
                       />
                       <NumField
                         value={style.letterSpacing}
-                        placeholder="字距"
+                        placeholder={m?.letterSpacing}
                         prefix="字距"
                         unit="px"
                         onChange={(next) => patchStyle({ letterSpacing: next })}
                       />
                     </div>
+                    <div className="mb-2.5 flex gap-1.5">
+                      {([
+                        ['B', (style.fontWeight ?? m?.fontWeight ?? 400) >= 600, () => patchStyle({ fontWeight: (style.fontWeight ?? m?.fontWeight ?? 400) >= 600 ? 400 : 700 })],
+                        ['I', (style.fontStyle ?? m?.fontStyle) === 'italic', () => patchStyle({ fontStyle: (style.fontStyle ?? m?.fontStyle) === 'italic' ? 'normal' : 'italic' })],
+                        ['U', (style.textDecoration ?? m?.textDecoration) === 'underline', () => patchStyle({ textDecoration: (style.textDecoration ?? m?.textDecoration) === 'underline' ? 'none' : 'underline' })],
+                      ] as const).map(([label, active, action]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          aria-label={label === 'B' ? '粗体' : label === 'I' ? '斜体' : '下划线'}
+                          aria-pressed={active}
+                          onClick={action}
+                          className={`flex h-8 flex-1 items-center justify-center rounded-lg border border-[var(--color-ink)]/10 text-[12px] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:border-[#2f6bff]/25 aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff] ${label === 'I' ? 'italic' : label === 'U' ? 'underline' : 'font-bold'}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <Row label="对齐">
                     <div className="flex overflow-hidden rounded-md border border-[var(--color-ink)]/10">
                       {(['left', 'center', 'right'] as const).map((align) => (
                         <button
                           key={align}
                           type="button"
-                          aria-pressed={style.textAlign === align}
-                          onClick={() =>
-                            patchStyle({ textAlign: style.textAlign === align ? undefined : align })
-                          }
+                          aria-pressed={(style.textAlign ?? m?.textAlign) === align}
+                          onClick={() => patchStyle({ textAlign: align })}
                           className="h-7 flex-1 border-r border-[var(--color-ink)]/8 text-[11px] text-[var(--color-ink)]/55 transition-colors last:border-r-0 hover:bg-[var(--fill-hover)] aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
                         >
                           {align === 'left' ? '左对齐' : align === 'center' ? '居中' : '右对齐'}
                         </button>
                       ))}
                     </div>
+                    </Row>
                   </Group>
                 )}
 
-                <Group title="尺寸与布局" icon={Ruler}>
+                <Group title="自动布局" icon={LayoutTemplate}>
+                  {canAutoLayout ? (
+                    <>
+                      <ToggleRow
+                        label="启用自动布局"
+                        checked={autoLayoutEnabled}
+                        onChange={(checked) =>
+                          patchStyle(
+                            checked
+                              ? {
+                                  // 播种成它现在的样子，开启这一下不改变外观
+                                  layoutMode:
+                                    m?.layoutMode && m.layoutMode !== 'normal'
+                                      ? m.layoutMode
+                                      : 'vertical',
+                                  justifyContent:
+                                    style.justifyContent ?? m?.justifyContent,
+                                  alignItems: style.alignItems ?? m?.alignItems,
+                                }
+                              : { layoutMode: 'normal' },
+                          )
+                        }
+                      />
+                      <div className={autoLayoutEnabled ? '' : 'pointer-events-none opacity-35'}>
+                        <Row label="流向">
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {(
+                              [
+                                ['vertical', '纵向', '↓'],
+                                ['horizontal', '横向', '→'],
+                                ['wrap', '自动换行', '↪'],
+                              ] as const
+                            ).map(([value, label, glyph]) => (
+                              <button
+                                key={value}
+                                type="button"
+                                aria-label={label}
+                                aria-pressed={effectiveLayoutMode === value}
+                                onClick={() => patchStyle({ layoutMode: value })}
+                                className="flex h-9 items-center justify-center gap-1 rounded-lg border border-[var(--color-ink)]/10 text-[11px] text-[var(--color-ink)]/58 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:border-[#2f6bff]/25 aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
+                              >
+                                <span className="text-[14px] leading-none">{glyph}</span>
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </Row>
+                        <Row label="尺寸策略">
+                          <div className="flex gap-1.5">
+                            <SelectField
+                              value={style.widthSizing ?? m?.widthSizing ?? 'fixed'}
+                              hasOverride={style.widthSizing !== undefined}
+                              ariaLabel="宽度尺寸策略"
+                              onChange={(next) =>
+                                patchStyle({ widthSizing: next as 'fixed' | 'fill' | 'hug' })
+                              }
+                            >
+                              <option value="fixed">宽 · 固定</option>
+                              <option value="fill">宽 · 填充</option>
+                              <option value="hug">宽 · 适应内容</option>
+                            </SelectField>
+                            <SelectField
+                              value={style.heightSizing ?? m?.heightSizing ?? 'fixed'}
+                              hasOverride={style.heightSizing !== undefined}
+                              ariaLabel="高度尺寸策略"
+                              onChange={(next) =>
+                                patchStyle({ heightSizing: next as 'fixed' | 'fill' | 'hug' })
+                              }
+                            >
+                              <option value="fixed">高 · 固定</option>
+                              <option value="fill">高 · 填充</option>
+                              <option value="hug">高 · 适应内容</option>
+                            </SelectField>
+                          </div>
+                        </Row>
+                        <Row label="主轴分布">
+                          <div className="grid grid-cols-4 gap-1">
+                            {(
+                              [
+                                ['flex-start', '起点'],
+                                ['center', '居中'],
+                                ['flex-end', '终点'],
+                                ['space-between', '两端'],
+                              ] as const
+                            ).map(([value, label]) => (
+                              <button
+                                key={value}
+                                type="button"
+                                aria-pressed={autoLayoutEnabled && style.justifyContent === value}
+                                onClick={() => patchStyle({ justifyContent: value })}
+                                className="h-8 rounded-md border border-[var(--color-ink)]/10 text-[10.5px] text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:border-[#2f6bff]/25 aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </Row>
+                        <Row label="交叉轴对齐">
+                          <div className="grid grid-cols-4 gap-1">
+                            {(
+                              [
+                                ['flex-start', '起点'],
+                                ['center', '居中'],
+                                ['flex-end', '终点'],
+                                ['stretch', '拉伸'],
+                              ] as const
+                            ).map(([value, label]) => (
+                              <button
+                                key={value}
+                                type="button"
+                                aria-pressed={autoLayoutEnabled && style.alignItems === value}
+                                onClick={() => patchStyle({ alignItems: value })}
+                                className="h-8 rounded-md border border-[var(--color-ink)]/10 text-[10.5px] text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:border-[#2f6bff]/25 aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </Row>
+                        <Row label="子项间距">
+                          <NumField
+                            value={style.gap}
+                            placeholder={m?.gap}
+                            unit="px"
+                            onChange={(next) => patchStyle({ gap: next })}
+                          />
+                        </Row>
+                        <Row label="内边距">
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <NumField
+                              value={style.paddingTop}
+                              placeholder={m?.paddingTop}
+                              prefix="上"
+                              unit="px"
+                              onChange={(next) => patchStyle({ paddingTop: next })}
+                            />
+                            <NumField
+                              value={style.paddingRight}
+                              placeholder={m?.paddingRight}
+                              prefix="右"
+                              unit="px"
+                              onChange={(next) => patchStyle({ paddingRight: next })}
+                            />
+                            <NumField
+                              value={style.paddingBottom}
+                              placeholder={m?.paddingBottom}
+                              prefix="下"
+                              unit="px"
+                              onChange={(next) => patchStyle({ paddingBottom: next })}
+                            />
+                            <NumField
+                              value={style.paddingLeft}
+                              placeholder={m?.paddingLeft}
+                              prefix="左"
+                              unit="px"
+                              onChange={(next) => patchStyle({ paddingLeft: next })}
+                            />
+                          </div>
+                        </Row>
+                        <ToggleRow
+                          label="裁切超出内容"
+                          checked={style.clipContent ?? m?.clipContent ?? false}
+                          onChange={(checked) => patchStyle({ clipContent: checked })}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-[var(--color-ink)]/12 bg-[var(--color-ink)]/[0.025] p-3">
+                      <p className="text-[11.5px] leading-5 text-[var(--color-ink)]/48">
+                        自动布局作用于包含子元素的容器。当前选中的是叶子元素。
+                      </p>
+                      {parentPath && (
+                        <button
+                          type="button"
+                          onClick={() => onSelectPath(parentPath)}
+                          className="mt-2 flex h-7 items-center gap-1 rounded-md bg-[#2f6bff]/10 px-2.5 text-[11px] font-medium text-[#2f6bff] transition-colors hover:bg-[#2f6bff]/15"
+                        >
+                          <LayoutTemplate size={11} strokeWidth={1.8} />
+                          选择父级容器
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </Group>
+
+                <Group title="位置大小与布局" icon={Ruler}>
                   <Row label="位置">
                     <div className="flex gap-1.5">
                       <NumField
