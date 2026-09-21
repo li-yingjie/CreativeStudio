@@ -9,35 +9,41 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import { toast } from 'sonner'
 import {
+  Copy,
   Maximize2,
   MessageSquarePlus,
   Minus,
-  Move,
+  PencilLine,
   Plus,
-  Redo2,
-  RotateCcw,
-  Type as TypeIcon,
-  Undo2,
+  Trash2,
 } from '@/shared/icons'
 import type { H5LabCase } from './h5-lab-cases'
 import { buildH5LabFrames } from './H5LabFrames'
 import {
+  applyH5LabPageSettings,
   findH5LabHotspots,
   type H5LabChatRef,
   type H5LabHotspot,
+  type H5LabPageSettings,
   type H5LabScreen,
 } from './h5-lab-prototype'
 import { buildH5LabLayers, type H5LabLayer } from './h5-lab-layers'
 import {
   applyH5LabBoard,
+  applyH5LabGroups,
   h5LabCss,
+  h5LabGroupId,
+  h5LabGroupPath,
   h5LabKindOf,
   h5LabLabelOf,
   h5LabNodeAt,
   h5LabPatchSlot,
   h5LabPathOf,
+  h5LabReset,
   type H5LabOverrides,
+  type H5LabGroup,
   type H5LabSelection,
 } from './h5-lab-overrides'
 import { useHostTitle } from './useHostTitle'
@@ -55,6 +61,9 @@ import type { H5LabHistoryOptions } from './useH5LabHistory'
 
 const MIN_ZOOM = 0.15
 const MAX_ZOOM = 3
+const DEFAULT_FRAME_LEFT_PADDING = 24
+const INITIAL_ZOOM = 0.5
+const CONTENT_INLINE_PADDING = 32
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value))
 
@@ -78,10 +87,15 @@ interface Props {
   labCase: H5LabCase
   /** 补交互时生成的界面，和 registry 里的状态态一起铺在画布上。 */
   screens: H5LabScreen[]
+  groups: H5LabGroup[]
+  onGroups: (groups: H5LabGroup[], options?: H5LabHistoryOptions) => void
   selection: H5LabSelection | null
   onSelect: (selection: H5LabSelection | null) => void
   overrides: H5LabOverrides
   onOverrides: (next: H5LabOverrides, options?: H5LabHistoryOptions) => void
+  /** 已解除多帧同步的槽位；这些路径只写当前状态帧。 */
+  independentPaths: ReadonlySet<string>
+  pageSettings: H5LabPageSettings
   /** 当前聚焦帧的图层树，推给右侧面板。 */
   onLayers: (layers: H5LabLayer[]) => void
   /** 当前聚焦帧的可交互热点 —— 面板靠它做交互盘点。 */
@@ -95,12 +109,8 @@ interface Props {
   onFocusFrame?: (frameId: string) => void
   /** 把选中的元素带进对话，接着聊着改。 */
   onAddToChat: (ref: H5LabChatRef) => void
-  /** 待应用的改动数 —— 顶栏「应用 N」用。 */
-  pendingCount: number
-  /** 放弃未应用的改动，回到上次应用的样子。 */
-  onDiscard: () => void
-  canUndo: boolean
-  canRedo: boolean
+  /** 给选中元素写一条标注，并带入对话继续描述修改。 */
+  onAnnotate: (ref: H5LabChatRef, note: string) => void
   onUndo: () => void
   onRedo: () => void
   /** ESC 退出画布编辑（不提交草稿）。 */
@@ -125,10 +135,14 @@ function sameBox(a: Box | null, b: Box | null) {
 export default function H5LabEditStage({
   labCase,
   screens,
+  groups,
+  onGroups,
   selection,
   onSelect,
   overrides,
   onOverrides,
+  independentPaths,
+  pageSettings,
   onLayers,
   onHotspots,
   onAssets,
@@ -136,10 +150,7 @@ export default function H5LabEditStage({
   focusFrameId,
   onFocusFrame,
   onAddToChat,
-  pendingCount,
-  onDiscard,
-  canUndo,
-  canRedo,
+  onAnnotate,
   onUndo,
   onRedo,
   onExit,
@@ -150,31 +161,27 @@ export default function H5LabEditStage({
   const scrollRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const frameRefs = useRef(new Map<string, HTMLDivElement>())
-  const [view, setView] = useState<CanvasView>({ zoom: 0.5, x: 32, y: 16 })
-  const viewRef = useRef(view)
-  const focusAnimationRef = useRef<number | null>(null)
+  const [view, setView] = useState<CanvasView>({
+    zoom: INITIAL_ZOOM,
+    x: DEFAULT_FRAME_LEFT_PADDING - CONTENT_INLINE_PADDING * INITIAL_ZOOM,
+    y: 16,
+  })
   const { zoom } = view
   const [spaceHeld, setSpaceHeld] = useState(false)
   const [panning, setPanning] = useState(false)
   const panRef = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null)
-  const [hoverBox, setHoverBox] = useState<(Box & { label: string }) | null>(null)
+  const [hoverBox, setHoverBox] = useState<
+    (Box & { label: string; stateId: string; path: string }) | null
+  >(null)
   const [selectionBox, setSelectionBox] = useState<Box | null>(null)
+  const [multiSelections, setMultiSelections] = useState<H5LabSelection[]>([])
+  const [multiBoxes, setMultiBoxes] = useState<Box[]>([])
   const [textEditingPath, setTextEditingPath] = useState<string | null>(null)
+  const [annotationPath, setAnnotationPath] = useState<string | null>(null)
+  const [annotationDraft, setAnnotationDraft] = useState('')
   // 覆盖写回后重新量一次选中框；也被滚动 / 缩放 / 尺寸变化触发。
   const [measureTick, setMeasureTick] = useState(0)
   const remeasure = useCallback(() => setMeasureTick((n) => n + 1), [])
-
-  useEffect(() => {
-    viewRef.current = view
-  }, [view])
-
-  const cancelFocusAnimation = useCallback(() => {
-    if (focusAnimationRef.current === null) return
-    cancelAnimationFrame(focusAnimationRef.current)
-    focusAnimationRef.current = null
-  }, [])
-
-  useEffect(() => cancelFocusAnimation, [cancelFocusAnimation])
 
   const css = useMemo(() => h5LabCss(overrides), [overrides])
   const frames = useMemo(() => buildH5LabFrames(labCase, screens), [labCase, screens])
@@ -184,8 +191,11 @@ export default function H5LabEditStage({
   )
   const sharedStateIdSet = useMemo(() => new Set(sharedStateIds), [sharedStateIds])
   const slotStateIds = useCallback(
-    (stateId: string) => (sharedStateIdSet.has(stateId) ? sharedStateIds : [stateId]),
-    [sharedStateIdSet, sharedStateIds],
+    (stateId: string, path: string) =>
+      sharedStateIdSet.has(stateId) && !independentPaths.has(path)
+        ? sharedStateIds
+        : [stateId],
+    [independentPaths, sharedStateIdSet, sharedStateIds],
   )
   const focusedStateId =
     selection?.stateId ??
@@ -204,13 +214,20 @@ export default function H5LabEditStage({
     applyingRef.current = true
     for (const frame of frames) {
       const root = frameRefs.current.get(frame.id)
-      if (root) applyH5LabBoard(root, overrides[frame.id] ?? {})
+      if (root) {
+        applyH5LabGroups(
+          root,
+          groups.filter((group) => group.stateId === frame.id),
+        )
+        applyH5LabBoard(root, overrides[frame.id] ?? {})
+        applyH5LabPageSettings(root, pageSettings)
+      }
     }
     // 自己写的这批 mutation 也会进 observer，下一帧再放行。
     requestAnimationFrame(() => {
       applyingRef.current = false
     })
-  }, [frames, overrides])
+  }, [frames, groups, overrides, pageSettings])
 
   useLayoutEffect(() => {
     applyOverrides()
@@ -264,7 +281,19 @@ export default function H5LabEditStage({
   const boxOf = useCallback((el: Element): Box | null => {
     const root = canvasRef.current
     if (!root) return null
-    const rect = el.getBoundingClientRect()
+    let rect = el.getBoundingClientRect()
+    if (el instanceof HTMLElement && el.hasAttribute('data-h5-group')) {
+      const childRects = Array.from(el.children)
+        .map((child) => child.getBoundingClientRect())
+        .filter((childRect) => childRect.width > 0 || childRect.height > 0)
+      if (childRects.length > 0) {
+        const left = Math.min(...childRects.map((item) => item.left))
+        const top = Math.min(...childRects.map((item) => item.top))
+        const right = Math.max(...childRects.map((item) => item.right))
+        const bottom = Math.max(...childRects.map((item) => item.bottom))
+        rect = new DOMRect(left, top, right - left, bottom - top)
+      }
+    }
     const base = root.getBoundingClientRect()
     return {
       left: rect.left - base.left,
@@ -283,9 +312,18 @@ export default function H5LabEditStage({
     setSelectionBox((prev) => (sameBox(prev, next) ? prev : next))
   }, [selection, boxOf, measureTick, zoom, view.x, view.y, css])
 
+  useLayoutEffect(() => {
+    const next = multiSelections.flatMap((item) => {
+      const root = frameRefs.current.get(item.stateId)
+      const node = root ? h5LabNodeAt(root, item.path) : null
+      const box = node ? boxOf(node) : null
+      return box ? [box] : []
+    })
+    setMultiBoxes(next)
+  }, [boxOf, css, measureTick, multiSelections, view.x, view.y, zoom])
+
   /** 以画布内某一点为锚缩放，Mac 触控板捏合时内容不会从指尖滑走。 */
   const zoomAt = useCallback((factor: number, x: number, y: number) => {
-    cancelFocusAnimation()
     setView((current) => {
       const nextZoom = clamp(current.zoom * factor, MIN_ZOOM, MAX_ZOOM)
       if (nextZoom === current.zoom) return current
@@ -296,7 +334,7 @@ export default function H5LabEditStage({
         y: y - (y - current.y) * ratio,
       }
     })
-  }, [cancelFocusAnimation])
+  }, [])
 
   const zoomFromCenter = useCallback(
     (factor: number) => {
@@ -309,7 +347,6 @@ export default function H5LabEditStage({
 
   /** 全部状态帧适应当前工作区，沿用「这夏夯爆了」旧画布的 fit 行为。 */
   const fit = useCallback(() => {
-    cancelFocusAnimation()
     const viewport = scrollRef.current
     const content = contentRef.current
     if (!viewport || !content) return
@@ -326,33 +363,7 @@ export default function H5LabEditStage({
       x: (viewport.clientWidth - contentWidth * nextZoom) / 2,
       y: (viewport.clientHeight - contentHeight * nextZoom) / 2,
     })
-  }, [cancelFocusAnimation])
-
-  // 顶栏或画板内选中别的帧时平滑带回视口中心；逐帧更新 view，选区框会一起走，
-  // 不会像单纯给 transform 加 transition 那样在动画中和元素错位。
-  useEffect(() => {
-    if (!focusFrameId) return
-    const node = frameRefs.current.get(focusFrameId)
-    const viewport = scrollRef.current
-    if (!node || !viewport) return
-    cancelFocusAnimation()
-    const startedAt = performance.now()
-    const duration = 220
-    const fromX = viewRef.current.x
-    const contentX = node.offsetLeft + node.offsetWidth / 2
-    const targetX = viewport.clientWidth / 2 - contentX * viewRef.current.zoom
-    if (Math.abs(targetX - fromX) < 0.5) return
-    const animate = (now: number) => {
-      const progress = Math.min(1, (now - startedAt) / duration)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      const x = fromX + (targetX - fromX) * eased
-      viewRef.current = { ...viewRef.current, x }
-      setView((current) => ({ ...current, x }))
-      if (progress < 1) focusAnimationRef.current = requestAnimationFrame(animate)
-      else focusAnimationRef.current = null
-    }
-    focusAnimationRef.current = requestAnimationFrame(animate)
-  }, [cancelFocusAnimation, focusFrameId])
+  }, [])
 
   // 触控板：双指平移；Mac 捏合会以 ctrlKey wheel 上报，按手势位置缩放。
   useEffect(() => {
@@ -360,7 +371,6 @@ export default function H5LabEditStage({
     if (!viewport) return
     const onWheel = (event: WheelEvent) => {
       event.preventDefault()
-      cancelFocusAnimation()
       const rect = viewport.getBoundingClientRect()
       if (event.ctrlKey || event.metaKey) {
         zoomAt(
@@ -384,7 +394,7 @@ export default function H5LabEditStage({
       viewport.removeEventListener('wheel', onWheel)
       window.removeEventListener('resize', onResize)
     }
-  }, [cancelFocusAnimation, remeasure, zoomAt])
+  }, [remeasure, zoomAt])
 
   /* ESC 退出画布编辑（正在就地改字时先退出改字）。 */
   useEffect(() => {
@@ -413,6 +423,11 @@ export default function H5LabEditStage({
       if (event.key !== 'Escape') return
       if (textEditingPath) return
       event.preventDefault()
+      if (selection || multiSelections.length > 0) {
+        setMultiSelections([])
+        onSelect(null)
+        return
+      }
       onExit()
     }
     const onKeyUp = (event: KeyboardEvent) => {
@@ -424,13 +439,69 @@ export default function H5LabEditStage({
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [onExit, onRedo, onUndo, textEditingPath])
+  }, [multiSelections.length, onExit, onRedo, onSelect, onUndo, selection, textEditingPath])
 
   /* ── 命中测试 / 选中 ── */
   const measure = useCallback(
     (stateId: string, path: string, el: HTMLElement): H5LabSelection => {
       const style = window.getComputedStyle(el)
-      const rect = el.getBoundingClientRect()
+      let rect = el.getBoundingClientRect()
+      if (el.hasAttribute('data-h5-group')) {
+        const childRects = Array.from(el.children)
+          .map((child) => child.getBoundingClientRect())
+          .filter((childRect) => childRect.width > 0 || childRect.height > 0)
+        if (childRects.length > 0) {
+          const left = Math.min(...childRects.map((item) => item.left))
+          const top = Math.min(...childRects.map((item) => item.top))
+          const right = Math.max(...childRects.map((item) => item.right))
+          const bottom = Math.max(...childRects.map((item) => item.bottom))
+          rect = new DOMRect(left, top, right - left, bottom - top)
+        }
+      }
+      /* Position 面板照 Figma：X/Y 是元素在父容器里的位置，对齐按钮把它贴到父容器
+         的边 / 中线。这里量的是去掉平移后的"基准位置"，对齐和改 X/Y 都是
+         「目标 − 基准 = 平移」，重复点不会越推越远。display:contents 的编组没有
+         自己的盒子，往上找第一个有盒子的祖先当父容器。 */
+      let box: HTMLElement | null = el.parentElement
+      while (box && window.getComputedStyle(box).display === 'contents') {
+        box = box.parentElement
+      }
+      const parentRect = box?.getBoundingClientRect()
+      const matrix =
+        style.transform && style.transform !== 'none'
+          ? new DOMMatrixReadOnly(style.transform)
+          : null
+      const translateX = matrix ? matrix.e : 0
+      const translateY = matrix ? matrix.f : 0
+      const layoutX = parentRect ? (rect.left - parentRect.left) / zoom - translateX : 0
+      const layoutY = parentRect ? (rect.top - parentRect.top) / zoom - translateY : 0
+      const fontSize = parseFloat(style.fontSize) || 0
+      const parsedWeight = Number(style.fontWeight)
+      const lineHeight = parseFloat(style.lineHeight)
+      const textAlign = ['center', 'right'].includes(style.textAlign)
+        ? (style.textAlign as 'center' | 'right')
+        : 'left'
+      const textDecoration = style.textDecorationLine.includes('underline')
+        ? 'underline'
+        : style.textDecorationLine.includes('line-through')
+          ? 'line-through'
+          : 'none'
+      const layoutMode = style.display.includes('flex')
+        ? style.flexWrap === 'wrap'
+          ? 'wrap'
+          : style.flexDirection === 'column' || style.flexDirection === 'column-reverse'
+            ? 'vertical'
+            : 'horizontal'
+        : 'normal'
+      const justifyContent = ['center', 'flex-end', 'space-between'].includes(
+        style.justifyContent,
+      )
+        ? (style.justifyContent as 'center' | 'flex-end' | 'space-between')
+        : 'flex-start'
+      const alignItems = ['center', 'flex-end', 'stretch'].includes(style.alignItems)
+        ? (style.alignItems as 'center' | 'flex-end' | 'stretch')
+        : 'flex-start'
+      const inlineSized = style.display.startsWith('inline')
       return {
         stateId,
         path,
@@ -440,9 +511,17 @@ export default function H5LabEditStage({
         measured: {
           width: Math.round(rect.width / zoom),
           height: Math.round(rect.height / zoom),
-          x: Math.round(el.offsetLeft),
-          y: Math.round(el.offsetTop),
+          x: Math.round(el.offsetLeft || rect.left),
+          y: Math.round(el.offsetTop || rect.top),
+          layoutX: Math.round(layoutX),
+          layoutY: Math.round(layoutY),
+          translateX: Math.round(translateX),
+          translateY: Math.round(translateY),
+          parentWidth: box ? box.clientWidth : 0,
+          parentHeight: box ? box.clientHeight : 0,
           text: (el.textContent ?? '').trim(),
+          html: el.innerHTML,
+          className: typeof el.className === 'string' ? el.className : '',
           src:
             el instanceof HTMLImageElement
               ? el.getAttribute('src') ?? ''
@@ -450,7 +529,36 @@ export default function H5LabEditStage({
           color: style.color,
           background: style.backgroundColor,
           radius: Math.round(parseFloat(style.borderTopLeftRadius) || 0),
-          fontSize: Math.round(parseFloat(style.fontSize) || 0),
+          fontFamily: style.fontFamily,
+          fontSize: Math.round(fontSize),
+          fontWeight: Number.isFinite(parsedWeight)
+            ? parsedWeight
+            : style.fontWeight === 'bold'
+              ? 700
+              : 400,
+          fontStyle: style.fontStyle === 'italic' || style.fontStyle === 'oblique'
+            ? 'italic'
+            : 'normal',
+          lineHeight: Math.round(Number.isFinite(lineHeight) ? lineHeight : fontSize * 1.2),
+          letterSpacing: Number.isFinite(parseFloat(style.letterSpacing))
+            ? parseFloat(style.letterSpacing)
+            : 0,
+          textAlign,
+          textDecoration,
+          childCount: Array.from(el.children).filter(
+            (child) => !['br', 'style', 'script'].includes(child.tagName.toLowerCase()),
+          ).length,
+          layoutMode,
+          justifyContent,
+          alignItems,
+          gap: Math.round(parseFloat(style.gap) || 0),
+          paddingTop: Math.round(parseFloat(style.paddingTop) || 0),
+          paddingRight: Math.round(parseFloat(style.paddingRight) || 0),
+          paddingBottom: Math.round(parseFloat(style.paddingBottom) || 0),
+          paddingLeft: Math.round(parseFloat(style.paddingLeft) || 0),
+          widthSizing: inlineSized ? 'hug' : 'fixed',
+          heightSizing: inlineSized ? 'hug' : 'fixed',
+          clipContent: ['hidden', 'clip'].includes(style.overflow),
         },
       }
     },
@@ -464,10 +572,15 @@ export default function H5LabEditStage({
         const root = frameRefs.current.get(frame.id)
         if (!root || !root.contains(target)) continue
         let el: Element = target
+        const group = el.closest<HTMLElement>('[data-h5-group]')
+        if (group && root.contains(group)) el = group
         // svg 内部的 path/g 不单独成对象，统一收敛到最外层 svg。
         const svg = el.closest('svg')
         if (svg && root.contains(svg)) el = svg
-        const path = h5LabPathOf(root, el as HTMLElement)
+        const groupId = (el as HTMLElement).dataset.h5Group
+        const path = groupId
+          ? h5LabGroupPath(groupId)
+          : h5LabPathOf(root, el as HTMLElement)
         if (!path) return null
         return { stateId: frame.id, path, el: el as HTMLElement }
       }
@@ -485,7 +598,6 @@ export default function H5LabEditStage({
         if (!node) return
         onFocusFrame?.(stateId)
         onSelect(measure(stateId, path, node))
-        node.scrollIntoView({ block: 'nearest', inline: 'nearest' })
         remeasure()
       },
     }
@@ -512,6 +624,159 @@ export default function H5LabEditStage({
   useEffect(() => {
     overridesRef.current = overrides
   }, [overrides])
+
+  const groupSelection = useCallback(() => {
+    const picked = multiSelections.length > 1 ? multiSelections : []
+    if (picked.length < 2) {
+      toast('按住 Shift 依次选择至少两个同级元素，再按 ⌘G 打组')
+      return
+    }
+    if (picked.some((item) => item.path.startsWith('@group:'))) {
+      toast.error('暂不支持嵌套编组，请先取消已有编组')
+      return
+    }
+    const stateId = picked[0].stateId
+    const root = frameRefs.current.get(stateId)
+    if (!root) return
+    const nodes = picked
+      .map((item) => h5LabNodeAt(root, item.path))
+      .filter((node): node is HTMLElement => Boolean(node))
+    const parent = nodes[0]?.parentElement
+    if (
+      !parent ||
+      nodes.length !== picked.length ||
+      nodes.some((node) => node.parentElement !== parent)
+    ) {
+      toast.error('只能将同一父级下的元素打组')
+      return
+    }
+    const siblings = Array.from(parent.children).filter(
+      (node): node is HTMLElement =>
+        node instanceof HTMLElement &&
+        !['STYLE', 'SCRIPT', 'BR'].includes(node.tagName) &&
+        !node.hasAttribute('data-h5-group'),
+    )
+    const indexes = nodes.map((node) => siblings.indexOf(node)).filter((index) => index >= 0)
+    if (indexes.length !== nodes.length) return
+    const first = Math.min(...indexes)
+    const last = Math.max(...indexes)
+    const range = siblings.slice(first, last + 1)
+    const childPaths = range.flatMap((node) => {
+      const path = h5LabPathOf(root, node)
+      return path ? [path] : []
+    })
+    if (childPaths.length < 2) return
+    const parentPath = parent === root ? '' : h5LabPathOf(root, parent) ?? ''
+    const id = `${labCase.id}-${Date.now().toString(36)}`
+    const next: H5LabGroup = {
+      id,
+      caseId: labCase.id,
+      stateId,
+      parentPath,
+      childPaths,
+      label: `编组 ${groups.filter((group) => group.caseId === labCase.id).length + 1}`,
+    }
+    onGroups([...groups, next], { group: `group|${stateId}|${id}` })
+    setMultiSelections([])
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const nextRoot = frameRefs.current.get(stateId)
+        const path = h5LabGroupPath(id)
+        const node = nextRoot ? h5LabNodeAt(nextRoot, path) : null
+        if (!node) return
+        onSelect(measure(stateId, path, node))
+        remeasure()
+      })
+    })
+    toast(`已将 ${childPaths.length} 个元素打组`)
+  }, [groups, labCase.id, measure, multiSelections, onGroups, onSelect, remeasure])
+
+  const ungroupSelection = useCallback(() => {
+    if (!selection) return
+    const id = h5LabGroupId(selection.path)
+    if (!id) {
+      toast('请先选中一个编组')
+      return
+    }
+    onOverrides(h5LabReset(overridesRef.current, selection.stateId, selection.path))
+    onGroups(groups.filter((group) => group.id !== id), {
+      group: `ungroup|${selection.stateId}|${id}`,
+    })
+    setMultiSelections([])
+    onSelect(null)
+    toast('已取消编组')
+  }, [groups, onGroups, onOverrides, onSelect, selection])
+
+  const toggleSelectionAutoLayout = useCallback(() => {
+    if (!selection || selection.measured.childCount === 0) {
+      toast('请选择包含子元素的容器或编组')
+      return
+    }
+    const current = overridesRef.current[selection.stateId]?.[selection.path]?.style
+    const enabled = (current?.layoutMode ?? selection.measured.layoutMode) !== 'normal'
+    onOverrides(
+      h5LabPatchSlot(
+        overridesRef.current,
+        [selection.stateId],
+        selection.path,
+        { style: { layoutMode: enabled ? 'normal' : 'vertical' } },
+      ),
+      { group: `auto-layout|${selection.stateId}|${selection.path}` },
+    )
+    remeasure()
+    toast(enabled ? '已关闭自动布局' : '已启用纵向自动布局')
+  }, [onOverrides, remeasure, selection])
+
+  useEffect(() => {
+    const onShortcut = (event: KeyboardEvent) => {
+      const target = event.target
+      const editing =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      if (editing) return
+      const key = event.key.toLowerCase()
+      if ((event.metaKey || event.ctrlKey) && key === 'g') {
+        event.preventDefault()
+        if (event.shiftKey) ungroupSelection()
+        else groupSelection()
+        return
+      }
+      if (event.shiftKey && !event.metaKey && !event.ctrlKey && key === 'a') {
+        event.preventDefault()
+        toggleSelectionAutoLayout()
+        return
+      }
+      if (!selection) return
+      if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(key)) {
+        event.preventDefault()
+        const step = event.shiftKey ? 10 : 1
+        const style = overridesRef.current[selection.stateId]?.[selection.path]?.style ?? {}
+        const x = style.offsetX ?? 0
+        const y = style.offsetY ?? 0
+        const patch =
+          key === 'arrowleft'
+            ? { offsetX: x - step }
+            : key === 'arrowright'
+              ? { offsetX: x + step }
+              : key === 'arrowup'
+                ? { offsetY: y - step }
+                : { offsetY: y + step }
+        onOverrides(
+          h5LabPatchSlot(
+            overridesRef.current,
+            [selection.stateId],
+            selection.path,
+            { style: patch },
+          ),
+          { group: `nudge|${selection.stateId}|${selection.path}` },
+        )
+        remeasure()
+      }
+    }
+    window.addEventListener('keydown', onShortcut)
+    return () => window.removeEventListener('keydown', onShortcut)
+  }, [groupSelection, onOverrides, remeasure, selection, toggleSelectionAutoLayout, ungroupSelection])
 
   const beginDrag = useCallback(
     (mode: 'move' | 'resize', event: { clientX: number; clientY: number }) => {
@@ -555,7 +820,7 @@ export default function H5LabEditStage({
               height: Math.max(8, Math.round(drag.baseH + dy)),
             }
       onOverrides(
-        h5LabPatchSlot(current, slotStateIds(drag.stateId), drag.path, { style }),
+        h5LabPatchSlot(current, slotStateIds(drag.stateId, drag.path), drag.path, { style }),
         { group: `drag|${drag.stateId}|${drag.path}|${drag.mode}` },
       )
       remeasure()
@@ -579,7 +844,24 @@ export default function H5LabEditStage({
     if (textEditingPath === hit.path) return // 正在改字，别打断光标
     event.preventDefault()
     event.stopPropagation()
+    setHoverBox(null)
     setTextEditingPath(null)
+    if (event.shiftKey) {
+      const picked = measure(hit.stateId, hit.path, hit.el)
+      const base = multiSelections.length > 0 ? multiSelections : selection ? [selection] : []
+      if (base.some((item) => item.stateId !== picked.stateId)) {
+        toast('多选只能在同一个状态帧内完成')
+        return
+      }
+      const exists = base.some((item) => item.path === picked.path)
+      const next = exists
+        ? base.filter((item) => item.path !== picked.path)
+        : [...base, picked]
+      setMultiSelections(next)
+      onSelect(next.at(-1) ?? null)
+      return
+    }
+    setMultiSelections([])
     if (selection && selection.stateId === hit.stateId && selection.path === hit.path) {
       beginDrag('move', event)
       return
@@ -609,7 +891,16 @@ export default function H5LabEditStage({
       return
     }
     const box = boxOf(hit.el)
-    setHoverBox(box ? { ...box, label: h5LabLabelOf(hit.el) } : null)
+    setHoverBox(
+      box
+        ? {
+            ...box,
+            label: h5LabLabelOf(hit.el),
+            stateId: hit.stateId,
+            path: hit.path,
+          }
+        : null,
+    )
   }
 
   /* ── 双击就地改字 ── */
@@ -639,7 +930,12 @@ export default function H5LabEditStage({
       setTextEditingPath(null)
       const text = (el.textContent ?? '').trim()
       onOverrides(
-        h5LabPatchSlot(overridesRef.current, slotStateIds(hit.stateId), hit.path, { text }),
+        h5LabPatchSlot(
+          overridesRef.current,
+          slotStateIds(hit.stateId, hit.path),
+          hit.path,
+          { text },
+        ),
       )
     }
     const onKey = (keyEvent: KeyboardEvent) => {
@@ -652,10 +948,24 @@ export default function H5LabEditStage({
     el.addEventListener('keydown', onKey)
   }
 
+  const multiUnion =
+    multiBoxes.length > 1
+      ? {
+          left: Math.min(...multiBoxes.map((box) => box.left)),
+          top: Math.min(...multiBoxes.map((box) => box.top)),
+          width:
+            Math.max(...multiBoxes.map((box) => box.left + box.width)) -
+            Math.min(...multiBoxes.map((box) => box.left)),
+          height:
+            Math.max(...multiBoxes.map((box) => box.top + box.height)) -
+            Math.min(...multiBoxes.map((box) => box.top)),
+        }
+      : null
+
   return (
     <div
       ref={rootRef}
-      className="relative flex h-full min-h-0 w-full overflow-hidden"
+      className="relative flex h-full min-h-0 w-full overflow-clip"
     >
       <style>{`
         [data-h5-frame]{contain:layout;}
@@ -681,7 +991,6 @@ export default function H5LabEditStage({
             if (spaceHeld || event.button === 1) {
               event.preventDefault()
               event.stopPropagation()
-              cancelFocusAnimation()
               panRef.current = {
                 px: event.clientX,
                 py: event.clientY,
@@ -736,16 +1045,16 @@ export default function H5LabEditStage({
                   style={{ gap: 8 * boardUiScale }}
                 >
                   <button
-                    type="button"
-                    data-h5-frame-picker
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onSelect(null)
-                      onFocusFrame?.(frame.id)
-                    }}
-                    className="flex w-full cursor-pointer items-baseline text-left"
-                    style={{ gap: 8 * boardUiScale, paddingLeft: 2 * boardUiScale }}
-                  >
+                      type="button"
+                      data-h5-frame-picker
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onSelect(null)
+                        onFocusFrame?.(frame.id)
+                      }}
+                      className="flex w-full cursor-pointer items-baseline text-left"
+                      style={{ gap: 8 * boardUiScale, paddingLeft: 2 * boardUiScale }}
+                    >
                     {frame.generated && (
                       <span
                         className="rounded-sm bg-[#2f6bff]/12 text-[#2f6bff]"
@@ -827,7 +1136,12 @@ export default function H5LabEditStage({
         </div>
 
         {/* hover 轮廓 */}
-        {hoverBox && (!selectionBox || hoverBox.top !== selectionBox.top) && (
+        {hoverBox &&
+          !(
+            selection &&
+            hoverBox.stateId === selection.stateId &&
+            hoverBox.path === selection.path
+          ) && (
           <div
             className="pointer-events-none absolute z-10 border border-[#2f6bff]/60"
             style={{
@@ -843,8 +1157,42 @@ export default function H5LabEditStage({
           </div>
         )}
 
+        {multiSelections.length > 1 && (
+          <>
+            {multiBoxes.map((box, index) => (
+              <div
+                key={`${multiSelections[index]?.path ?? index}`}
+                className="pointer-events-none absolute z-[19] border border-dashed border-[#2f6bff] bg-[#2f6bff]/[0.025]"
+                style={box}
+              />
+            ))}
+            {multiUnion && (
+              <div
+                className="pointer-events-none absolute z-[21] border border-[#2f6bff]/45"
+                style={multiUnion}
+              >
+                <span className="pointer-events-auto absolute -top-[24px] left-0 flex h-5 items-center overflow-hidden rounded bg-[#2f6bff] text-[10px] text-white shadow-sm">
+                  <span className="px-1.5">已选 {multiSelections.length} 个</span>
+                  <button
+                    type="button"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      groupSelection()
+                    }}
+                    className="h-full border-l border-white/30 px-1.5 font-medium transition-colors hover:bg-white/20"
+                  >
+                    打组 ⌘G
+                  </button>
+                </span>
+              </div>
+            )}
+          </>
+        )}
+
         {/* 选中框 + 手柄 —— 框体不吃事件，点击仍能落到更深的子元素上 */}
-        {selection && selectionBox && (
+        {selection && selectionBox && multiSelections.length <= 1 && (
           <div
             className="pointer-events-none absolute z-20"
             style={{
@@ -857,6 +1205,22 @@ export default function H5LabEditStage({
             <div className="absolute inset-0 border-[1.5px] border-[#2f6bff]" />
             <span className="absolute -top-[19px] left-0 flex items-center whitespace-nowrap rounded-sm bg-[#2f6bff] text-[10px] leading-[17px] text-white">
               <span className="px-1">{selection.label}</span>
+              <button
+                type="button"
+                title="标注"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  const key = `${selection.stateId}|${selection.path}`
+                  setAnnotationPath((current) => (current === key ? null : key))
+                  setAnnotationDraft('')
+                }}
+                className="pointer-events-auto flex h-[17px] items-center gap-0.5 border-l border-white/30 px-1 transition-colors hover:bg-white/20"
+              >
+                <PencilLine size={9} strokeWidth={2} />
+                标注
+              </button>
               {/* 选中的这块直接丢进对话，接着用自然语言改。 */}
               <button
                 type="button"
@@ -881,7 +1245,99 @@ export default function H5LabEditStage({
                 <MessageSquarePlus size={10} strokeWidth={2} />
                 对话
               </button>
+              <button
+                type="button"
+                title="复制元素 HTML"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  const root = frameRefs.current.get(selection.stateId)
+                  const node = root ? h5LabNodeAt(root, selection.path) : null
+                  void navigator.clipboard.writeText(node?.outerHTML ?? selection.measured.html)
+                }}
+                className="pointer-events-auto flex size-[17px] items-center justify-center border-l border-white/30 transition-colors hover:bg-white/20"
+              >
+                <Copy size={9} strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                title="删除元素"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  onOverrides(
+                    h5LabPatchSlot(
+                      overrides,
+                      slotStateIds(selection.stateId, selection.path),
+                      selection.path,
+                      { style: { hidden: true } },
+                    ),
+                    { group: `delete|${selection.path}` },
+                  )
+                  onSelect(null)
+                }}
+                className="pointer-events-auto flex size-[17px] items-center justify-center border-l border-white/30 transition-colors hover:bg-white/20"
+              >
+                <Trash2 size={9} strokeWidth={2} />
+              </button>
             </span>
+            {annotationPath === `${selection.stateId}|${selection.path}` && (
+              <div
+                role="dialog"
+                aria-label="添加元素标注"
+                className="pointer-events-auto absolute left-0 top-2 z-30 w-64 rounded-xl border border-black/10 bg-white p-2.5 text-[#1c1f23] shadow-[0_12px_30px_rgba(16,18,24,0.18)]"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold">
+                  <PencilLine size={11} strokeWidth={2} className="text-[#357ef8]" />
+                  标注「{selection.label}」
+                </div>
+                <textarea
+                  autoFocus
+                  value={annotationDraft}
+                  onChange={(event) => setAnnotationDraft(event.target.value)}
+                  placeholder="描述希望如何修改这个元素…"
+                  rows={3}
+                  className="w-full resize-none rounded-lg border border-black/10 px-2 py-1.5 text-[11px] leading-4 outline-none placeholder:text-black/30 focus:border-[#357ef8]/60"
+                />
+                <div className="mt-2 flex justify-end gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAnnotationPath(null)}
+                    className="h-7 rounded-md px-2.5 text-[11px] text-black/55 hover:bg-black/[0.04]"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!annotationDraft.trim()}
+                    onClick={() => {
+                      const frame = frames.find((item) => item.id === selection.stateId)
+                      onAnnotate(
+                        {
+                          frameId: selection.stateId,
+                          frameLabel: frame?.label ?? selection.stateId,
+                          path: selection.path,
+                          label: selection.label,
+                          tag: selection.tag,
+                          text: selection.measured.text || undefined,
+                          src: selection.measured.src || undefined,
+                        },
+                        annotationDraft.trim(),
+                      )
+                      setAnnotationPath(null)
+                      setAnnotationDraft('')
+                    }}
+                    className="h-7 rounded-md bg-[#357ef8] px-2.5 text-[11px] font-medium text-white hover:bg-[#2a6ede] disabled:cursor-not-allowed disabled:opacity-35"
+                  >
+                    添加标注
+                  </button>
+                </div>
+              </div>
+            )}
             {(
               [
                 ['-left-[4px] -top-[4px]', 'nwse-resize'],
@@ -904,60 +1360,18 @@ export default function H5LabEditStage({
           </div>
         )}
 
-        {/* 底部工具条 */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex flex-wrap items-center justify-center gap-2">
-          {/* 帧数和「放弃」跟其它浮动控件同排 —— 顶上不再压一条横栏，
-              也不会盖住画板标题。应用/退出在外层工具栏。 */}
-          <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-[var(--divider-soft)] bg-white px-2 py-1 shadow-[0_2px_10px_rgba(16,18,24,0.12)]">
-            <span className="text-[11px] text-[var(--color-ink)]/55">
-              Current page · {frames.length} 帧
-            </span>
-            {pendingCount > 0 && (
-              <button
-                type="button"
-                onClick={onDiscard}
-                title="放弃未应用的改动"
-                className="ml-1 flex h-5 items-center gap-1 rounded-full border-l border-[var(--divider-soft)] pl-2 text-[11px] text-[var(--color-ink)]/55 transition-colors hover:text-[var(--color-ink)]"
-              >
-                <RotateCcw size={10} strokeWidth={1.8} />
-                放弃 {pendingCount}
-              </button>
-            )}
+        {/* 缩放控件属于画布视口，不跟随画板平移或缩放。 */}
+        <div className="pointer-events-none absolute inset-0 z-30">
+          <div className="pointer-events-auto absolute bottom-4 left-4 rounded-lg border border-[var(--divider-soft)] bg-white/95 px-2.5 py-1.5 text-[10px] text-[var(--color-ink)]/48 shadow-[0_2px_8px_rgba(16,18,24,0.08)] backdrop-blur">
+            <span className="font-medium text-[var(--color-ink)]/65">Shift 点选</span>
+            <span className="mx-1.5 opacity-35">·</span>
+            <span>⌘G 打组</span>
+            <span className="mx-1.5 opacity-35">·</span>
+            <span>⇧A 自动布局</span>
+            <span className="mx-1.5 opacity-35">·</span>
+            <span>方向键微移</span>
           </div>
-          <div className="pointer-events-auto flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_10px_rgba(16,18,24,0.12)]">
-            <button
-              type="button"
-              disabled={!canUndo}
-              onClick={onUndo}
-              title="撤销（⌘Z / Ctrl+Z）"
-              className="flex size-6 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              <Undo2 size={13} strokeWidth={1.8} />
-            </button>
-            <button
-              type="button"
-              disabled={!canRedo}
-              onClick={onRedo}
-              title="重做（⇧⌘Z / Ctrl+Y）"
-              className="flex size-6 items-center justify-center rounded-full text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              <Redo2 size={13} strokeWidth={1.8} />
-            </button>
-          </div>
-          <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-[var(--divider-soft)] bg-white px-1.5 py-1 shadow-[0_2px_10px_rgba(16,18,24,0.12)]">
-            <span className="flex size-6 items-center justify-center rounded-full bg-[var(--color-ink)]/[0.08] text-[var(--color-ink)]">
-              <Move size={12} strokeWidth={1.8} />
-            </span>
-            <span className="flex items-center gap-1 px-1 text-[11px] text-[var(--color-ink)]/55">
-              <TypeIcon size={11} strokeWidth={1.8} />
-              双击改文案 · ESC 退出
-            </span>
-          </div>
-        </div>
-
-        {/* 与旧版画布一致：这里只保留一组缩放控件，固定在工作区右下角。 */}
-        <div className="absolute bottom-3 right-3 z-30">
-          <div className="flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_8px_rgba(16,18,24,0.10)]">
+          <div className="pointer-events-auto absolute bottom-4 right-4 flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_8px_rgba(16,18,24,0.10)]">
             <button
               type="button"
               title="适应屏幕"

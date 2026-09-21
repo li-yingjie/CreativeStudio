@@ -10,6 +10,7 @@ import {
   Layers,
   LayoutTemplate,
   MessageSquarePlus,
+  Move,
   Palette,
   Plus,
   RotateCcw,
@@ -701,6 +702,70 @@ function PaddingFields({
   )
 }
 
+/* ── Position：照 Figma 的 Position 区 ──
+   对齐（在父容器里贴左 / 水平居中 / 贴右，贴顶 / 垂直居中 / 贴底）、X / Y、
+   旋转 + 转 90° / 水平翻转 / 垂直翻转。X / Y 显示的是元素在父容器里的位置，
+   不是平移量；对齐和改 X / Y 都换算成平移写进覆盖。 */
+
+type AlignEdge = 'start' | 'center' | 'end'
+
+function AlignIcon({ axis, edge }: { axis: 'x' | 'y'; edge: AlignEdge }) {
+  const c = 'currentColor'
+  if (axis === 'x') {
+    const lineX = edge === 'start' ? 2.5 : edge === 'center' ? 8 : 13.5
+    const barX = edge === 'start' ? 4.5 : edge === 'center' ? 4 : 5.5
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d={`M${lineX} 2v12`} stroke={c} strokeWidth="1.3" strokeLinecap="round" />
+        <rect x={barX} y="4.5" width={edge === 'center' ? 8 : 6} height="2.5" rx="0.8" fill={c} />
+        <rect x={edge === 'end' ? 8.5 : barX} y="9" width={edge === 'center' ? 8 : 3} height="2.5" rx="0.8" fill={c} />
+      </svg>
+    )
+  }
+  const lineY = edge === 'start' ? 2.5 : edge === 'center' ? 8 : 13.5
+  const barY = edge === 'start' ? 4.5 : edge === 'center' ? 4 : 5.5
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d={`M2 ${lineY}h12`} stroke={c} strokeWidth="1.3" strokeLinecap="round" />
+      <rect x="4.5" y={barY} width="2.5" height={edge === 'center' ? 8 : 6} rx="0.8" fill={c} />
+      <rect x="9" y={edge === 'end' ? 8.5 : barY} width="2.5" height={edge === 'center' ? 8 : 3} rx="0.8" fill={c} />
+    </svg>
+  )
+}
+
+function IconSegment({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-1 overflow-hidden rounded-lg bg-[var(--color-ink)]/[0.045]">
+      {children}
+    </div>
+  )
+}
+
+function IconSegmentButton({
+  label,
+  pressed,
+  onClick,
+  children,
+}: {
+  label: string
+  pressed?: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      aria-pressed={pressed}
+      onClick={onClick}
+      className="grid h-8 flex-1 place-items-center border-r border-[var(--color-surface-0)] text-[var(--color-ink)]/55 transition-colors last:border-r-0 hover:bg-[var(--color-ink)]/[0.06] hover:text-[var(--color-ink)] aria-pressed:text-[#2f6bff]"
+    >
+      {children}
+    </button>
+  )
+}
+
 /* ── 图层行 ── */
 
 const KIND_ICON: Record<H5LabSelection['kind'], typeof TypeIcon> = {
@@ -1045,6 +1110,17 @@ export default function H5LabEditPanel({
       ? 'vertical'
       : 'horizontal'
   const wrapOn = effectiveLayoutMode === 'wrap'
+  /* Figma 的对齐：把元素贴到父容器的边 / 中线。平移 = 目标 − 基准位置，基准不含
+     平移，所以连点同一个按钮结果不变。 */
+  const alignInParent = (axis: 'x' | 'y', edge: 'start' | 'center' | 'end') => {
+    if (!m) return
+    const size = axis === 'x' ? m.width : m.height
+    const parent = axis === 'x' ? m.parentWidth : m.parentHeight
+    const base = axis === 'x' ? m.layoutX : m.layoutY
+    const target = edge === 'start' ? 0 : edge === 'center' ? (parent - size) / 2 : parent - size
+    const offset = Math.round(target - base)
+    patchStyle(axis === 'x' ? { offsetX: offset } : { offsetY: offset })
+  }
   /* 从「自由」切进纵向 / 横向时，把它现在的对齐和间距播种进覆盖 —— 页面本来就是
      flex 的元素这一下外观不会跳。已开启时只换方向，换行状态跟着保留。 */
   const setFlow = (next: 'normal' | 'vertical' | 'horizontal') => {
@@ -1449,6 +1525,110 @@ export default function H5LabEditPanel({
           )
         ) : (
           <>
+            {/* ── Position：照 Figma 放在属性面板最上面 ── */}
+            {selection && m && (
+              <Group title="位置" icon={Move}>
+                <Row label="对齐">
+                  <div className="flex gap-1.5">
+                    <IconSegment>
+                      {(['start', 'center', 'end'] as const).map((edge) => (
+                        <IconSegmentButton
+                          key={edge}
+                          label={edge === 'start' ? '左对齐' : edge === 'center' ? '水平居中' : '右对齐'}
+                          onClick={() => alignInParent('x', edge)}
+                        >
+                          <AlignIcon axis="x" edge={edge} />
+                        </IconSegmentButton>
+                      ))}
+                    </IconSegment>
+                    <IconSegment>
+                      {(['start', 'center', 'end'] as const).map((edge) => (
+                        <IconSegmentButton
+                          key={edge}
+                          label={edge === 'start' ? '顶部对齐' : edge === 'center' ? '垂直居中' : '底部对齐'}
+                          onClick={() => alignInParent('y', edge)}
+                        >
+                          <AlignIcon axis="y" edge={edge} />
+                        </IconSegmentButton>
+                      ))}
+                    </IconSegment>
+                  </div>
+                </Row>
+                <Row label="位置">
+                  <div className="flex gap-1.5">
+                    <NumField
+                      value={
+                        style.offsetX !== undefined ? m.layoutX + style.offsetX : undefined
+                      }
+                      placeholder={m.layoutX + m.translateX}
+                      prefix="X"
+                      onChange={(next) =>
+                        patchStyle({
+                          offsetX: next === undefined ? undefined : next - m.layoutX,
+                        })
+                      }
+                    />
+                    <NumField
+                      value={
+                        style.offsetY !== undefined ? m.layoutY + style.offsetY : undefined
+                      }
+                      placeholder={m.layoutY + m.translateY}
+                      prefix="Y"
+                      onChange={(next) =>
+                        patchStyle({
+                          offsetY: next === undefined ? undefined : next - m.layoutY,
+                        })
+                      }
+                    />
+                  </div>
+                </Row>
+                <Row label="旋转">
+                  <div className="flex gap-1.5">
+                    <NumField
+                      value={style.rotate}
+                      placeholder={0}
+                      prefix="∠"
+                      unit="°"
+                      onChange={(next) => patchStyle({ rotate: next })}
+                    />
+                    <IconSegment>
+                      <IconSegmentButton
+                        label="旋转 90°"
+                        onClick={() =>
+                          patchStyle({ rotate: (((style.rotate ?? 0) + 90) % 360) || undefined })
+                        }
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <path d="M11.5 3.5A5.5 5.5 0 1 0 13 8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                          <path d="M11.5 1.5v2.5H9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </IconSegmentButton>
+                      <IconSegmentButton
+                        label="水平翻转"
+                        pressed={Boolean(style.flipX)}
+                        onClick={() => patchStyle({ flipX: style.flipX ? undefined : true })}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <path d="M8 2v12" stroke="currentColor" strokeWidth="1.2" strokeDasharray="1.5 1.5" />
+                          <path d="M6 4 2.5 11H6V4ZM10 4l3.5 7H10V4Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                        </svg>
+                      </IconSegmentButton>
+                      <IconSegmentButton
+                        label="垂直翻转"
+                        pressed={Boolean(style.flipY)}
+                        onClick={() => patchStyle({ flipY: style.flipY ? undefined : true })}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <path d="M2 8h12" stroke="currentColor" strokeWidth="1.2" strokeDasharray="1.5 1.5" />
+                          <path d="M4 6 11 2.5V6H4ZM4 10l7 3.5V10H4Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                        </svg>
+                      </IconSegmentButton>
+                    </IconSegment>
+                  </div>
+                </Row>
+              </Group>
+            )}
+
             {/* ── 图层管理 ── */}
             <section className="border-b border-[var(--divider-soft)] px-4 py-4">
               <div className="mb-3 flex items-center gap-2">
@@ -2014,37 +2194,7 @@ export default function H5LabEditPanel({
                   )}
                 </Group>
 
-                <Group title="位置大小与布局" icon={Ruler}>
-                  <Row label="位置">
-                    <div className="flex gap-1.5">
-                      <NumField
-                        value={style.offsetX}
-                        placeholder={0}
-                        prefix="X"
-                        onChange={(next) => patchStyle({ offsetX: next })}
-                      />
-                      <NumField
-                        value={style.offsetY}
-                        placeholder={0}
-                        prefix="Y"
-                        onChange={(next) => patchStyle({ offsetY: next })}
-                      />
-                      <NumField
-                        value={style.zIndex}
-                        placeholder={0}
-                        prefix="Z"
-                        onChange={(next) => patchStyle({ zIndex: next })}
-                      />
-                    </div>
-                  </Row>
-                  <Row label="旋转">
-                    <NumField
-                      value={style.rotate}
-                      placeholder={0}
-                      unit="°"
-                      onChange={(next) => patchStyle({ rotate: next })}
-                    />
-                  </Row>
+                <Group title="尺寸与间距" icon={Ruler}>
                   {!canAutoLayout && (
                   <Row label="尺寸">
                     <div className="flex gap-1.5">
@@ -2096,6 +2246,14 @@ export default function H5LabEditPanel({
                         onChange={(next) => patchStyle({ marginY: next })}
                       />
                     </div>
+                  </Row>
+                  <Row label="层级">
+                    <NumField
+                      value={style.zIndex}
+                      placeholder={0}
+                      prefix="Z"
+                      onChange={(next) => patchStyle({ zIndex: next })}
+                    />
                   </Row>
                 </Group>
               </>
