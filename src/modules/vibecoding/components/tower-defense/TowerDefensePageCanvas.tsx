@@ -17,6 +17,13 @@ import {
   Zap,
 } from '@/shared/icons'
 import {
+  draftFromUi,
+  GAME_UI_CORNER_RADIUS,
+  GAME_UI_HEIGHT,
+  GAME_UI_WIDTH,
+  linkKey,
+} from './GameUiModel'
+import {
   TOWER_ARCHETYPES,
   type FastGameplayConfig,
   type TowerDefenseFlowState,
@@ -24,6 +31,7 @@ import {
   type TowerDefenseUiComponentId,
   type TowerSlot,
 } from './TowerDefenseFlowModel'
+import { TowerDefenseUiScreen } from './TowerDefenseUiScreen'
 
 type GameStatus = 'ready' | 'playing' | 'paused' | 'won' | 'lost'
 
@@ -169,15 +177,32 @@ function uiComponent(
 }
 
 function uiStyle(component: TowerDefenseUiComponentConfig | undefined): CSSProperties {
-  return {
+  const style: CSSProperties = {
     opacity: component?.emphasis === 'quiet' ? 0.72 : component?.emphasis === 'strong' ? 1 : 0.88,
     scale: (component?.scale ?? 100) / 100,
+  }
+  if (
+    component?.x == null ||
+    component?.y == null ||
+    component.width == null ||
+    component.height == null
+  ) {
+    return style
+  }
+  return {
+    ...style,
+    left: `${(component.x / GAME_UI_WIDTH) * 100}%`,
+    top: `${(component.y / GAME_UI_HEIGHT) * 100}%`,
+    width: `${(component.width / GAME_UI_WIDTH) * 100}%`,
+    height: `${(component.height / GAME_UI_HEIGHT) * 100}%`,
+    right: 'auto',
+    bottom: 'auto',
   }
 }
 
 function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
   return (
-    <div className="flex items-center gap-1.5 text-[10px]">
+    <div className="flex items-center gap-1.5 text-[13px]">
       {icon}
       <span className="sr-only">{label}</span>
       <strong className="font-semibold tabular-nums">{value}</strong>
@@ -188,6 +213,7 @@ function Metric({ icon, label, value }: { icon: ReactNode; label: string; value:
 export interface TowerDefensePageCanvasProps {
   flow: TowerDefenseFlowState
   onFlowChange: (flow: TowerDefenseFlowState) => void
+  useVisualAssets?: boolean
   suspended?: boolean
   className?: string
 }
@@ -199,6 +225,7 @@ export interface TowerDefensePageCanvasProps {
 export function TowerDefensePageCanvas({
   flow,
   onFlowChange,
+  useVisualAssets = flow.stage !== 'gameplay',
   suspended = false,
   className = '',
 }: TowerDefensePageCanvasProps) {
@@ -218,9 +245,12 @@ export function TowerDefensePageCanvas({
   const [heroProgress, setHeroProgress] = useState(94)
   const [heroTargetProgress, setHeroTargetProgress] = useState(94)
   const [skillCooldowns, setSkillCooldowns] = useState({ charge: 0, guard: 0 })
+  const [menuScreen, setMenuScreen] = useState<string | null>('start')
   const enemyId = useRef(0)
   const projectileId = useRef(0)
   const towerSlots = flow.towerSlots
+  const uiDraft = useMemo(() => draftFromUi(flow.ui), [flow.ui])
+  const showMenu = runtime.status === 'ready' && Boolean(menuScreen)
 
   const preset = VISUAL_PRESETS[flow.ui.visualPreset]
   const radius = flow.ui.cornerRadius
@@ -229,21 +259,51 @@ export function TowerDefensePageCanvas({
   const dock = uiComponent(flow, 'tower-dock')
   const controls = uiComponent(flow, 'battle-controls')
   const result = uiComponent(flow, 'result-panel')
-  const confirmedAssets = flow.assets.filter((asset) => asset.baseVisualStatus === 'confirmed')
-  const assetPreview = (asset: (typeof flow.assets)[number] | undefined) =>
-    asset?.visualVersions?.[asset.selectedVisualVersion ?? 0]?.src
+  // 玩法验证阶段沿用同一套 9:21 手机画布和完整交互，只隐藏正式素材；
+  // 视觉设定确认后再由后续阶段自然接管这些预览位。
+  const enabledAssets = useVisualAssets
+    ? flow.assets.filter((asset) => asset.enabled !== false)
+    : []
+  const assetPreview = (
+    asset: (typeof flow.assets)[number] | undefined,
+    preferredStateId?: string,
+  ) => {
+    if (!asset) return undefined
+    const preferredState = preferredStateId
+      ? asset.states.find((state) => state.id === preferredStateId)
+      : undefined
+    if (preferredState?.enabled === false) return undefined
+    const preferredDirection = preferredState
+      ? (preferredState.directions.find((direction) => direction === 'front' && !preferredState.disabledDirections?.includes(direction))
+        ?? preferredState.directions.find((direction) => !preferredState.disabledDirections?.includes(direction)))
+      : undefined
+    if (preferredState && !preferredDirection) return undefined
+    const directionMaterial = preferredDirection
+      ? preferredState?.directionMaterialRefs?.[preferredDirection]
+      : undefined
+    const generatedTask = preferredState && preferredDirection
+      ? flow.tasks.find((task) => task.assetId === asset.id && task.stateId === preferredState.id && task.direction === preferredDirection && task.status === 'completed')
+      : undefined
+    const generatedSource = generatedTask?.output?.previewUrl ?? generatedTask?.output?.spriteSheetUrl
+    const stateMaterial = directionMaterial ?? preferredState?.materialRef
+    if (!directionMaterial && generatedSource) return generatedSource
+    const versionIndex = stateMaterial?.kind === 'visual-version'
+      ? stateMaterial.versionIndex
+      : asset.selectedVisualVersion ?? 0
+    return asset.visualVersions?.[versionIndex]?.src
+  }
   const mapPreview = assetPreview(
-    confirmedAssets.find((asset) => asset.category === 'map')
-      ?? confirmedAssets.find((asset) => asset.category === 'visual-style'),
+    enabledAssets.find((asset) => asset.category === 'map')
+      ?? enabledAssets.find((asset) => asset.category === 'visual-style'),
   )
-  const heroPreview = assetPreview(confirmedAssets.find((asset) => asset.category === 'hero'))
-  const enemyPreviews = confirmedAssets
+  const heroPreview = assetPreview(enabledAssets.find((asset) => asset.category === 'hero'), 'idle')
+  const enemyPreviews = enabledAssets
     .filter((asset) => asset.category === 'enemy')
-    .map(assetPreview)
+    .map((asset) => assetPreview(asset, 'move'))
     .filter((src): src is string => Boolean(src))
-  const towerPreviews = confirmedAssets
+  const towerPreviews = enabledAssets
     .filter((asset) => asset.category === 'tower')
-    .map(assetPreview)
+    .map((asset) => assetPreview(asset, 'idle'))
     .filter((src): src is string => Boolean(src))
 
   const occupiedTowers = useMemo(
@@ -287,6 +347,7 @@ export function TowerDefensePageCanvas({
       ...flow,
       towerSlots: flow.towerSlots.map((slot) => ({ ...slot, occupiedBy: null, level: 0 })),
     })
+    setMenuScreen('start')
     setAnnouncement('已重置对局')
   }, [flow, onFlowChange, runtimeConfig])
 
@@ -471,12 +532,27 @@ export function TowerDefensePageCanvas({
     if (runtime.status === 'won' || runtime.status === 'lost') {
       enemyId.current = 0
       setRuntime(createRuntime(runtimeConfig, 'playing'))
+      setMenuScreen(null)
       setAnnouncement('已开始新一轮守卫')
       return
     }
     const status = runtime.status === 'playing' ? 'paused' : 'playing'
     setRuntime((current) => ({ ...current, status }))
+    if (status === 'playing') setMenuScreen(null)
     setAnnouncement(status === 'playing' ? '对局已开始' : '对局已暂停')
+  }
+
+  const activateMenuNode = (nodeId: string) => {
+    if (!menuScreen) return
+    const link = uiDraft.links[linkKey(menuScreen, nodeId)]
+    if (!link) return
+    if (link.targetId === 'battle') {
+      setMenuScreen(null)
+      setRuntime((current) => ({ ...current, status: 'playing' }))
+      setAnnouncement('对局已开始')
+      return
+    }
+    setMenuScreen(link.targetId)
   }
 
   const towerBuildCost = (tower: (typeof TOWER_ARCHETYPES)[number]) =>
@@ -558,35 +634,30 @@ export function TowerDefensePageCanvas({
       className={`relative flex min-h-[480px] min-w-0 flex-1 overflow-visible bg-transparent [container-type:size] ${className}`}
     >
       <div
-        className="relative z-10 m-auto aspect-[390/844] shrink-0 overflow-hidden rounded-[30px] border-[5px] border-[#111319] shadow-[0_30px_75px_-28px_rgba(15,23,27,0.5)]"
+        className="relative z-10 m-auto aspect-[390/853] shrink-0 overflow-hidden border-8 border-[#1a1c22] shadow-[0_21px_62px_rgba(0,0,0,0.35)]"
         style={{
-          width: 'min(390px, calc((100cqh - 48px) * 390 / 844), calc(100cqw - 48px))',
+          width: 'min(274px, calc((100cqh - 48px) * 390 / 853), calc(100cqw - 48px))',
+          borderRadius: Math.round((GAME_UI_CORNER_RADIUS * 274) / GAME_UI_WIDTH),
           background: preset.surface,
           color: preset.ink,
         }}
       >
-        <div className="absolute inset-x-0 top-0 z-50 flex h-7 items-center justify-between px-4 text-[7px] font-semibold">
-          <span>9:41</span>
-          <span className="h-1.5 w-14 rounded-full bg-current opacity-90" />
-          <span>5G · 100%</span>
-        </div>
-
         {hud?.visible ? (
           <div
-            className="absolute inset-x-0 top-0 z-30 flex h-[12%] items-end justify-between border-b border-white/10 px-4 pb-2.5"
+            className="absolute inset-x-0 top-0 z-30 flex h-[8%] items-center justify-between border-b border-white/10 px-3"
             style={{ ...uiStyle(hud), background: `${preset.surface}F2` }}
           >
             <Metric icon={<Heart className="size-3.5" style={{ color: preset.accent }} />} label="基地生命" value={runtime.baseHealth} />
             <div className="pb-0.5 text-center">
-              <p className="text-[9px] font-semibold">月隐林 · 01</p>
-              <p className="mt-0.5 text-[6px]" style={{ color: preset.muted }}>守住月光灯塔</p>
+              <p className="text-[12px] font-semibold">月隐林 · 01</p>
+              <p className="mt-0.5 text-[10px]" style={{ color: preset.muted }}>守住月光灯塔</p>
             </div>
             <Metric icon={<Coins className="size-3.5" style={{ color: preset.accent }} />} label="金币" value={runtime.coins} />
           </div>
         ) : null}
 
         <div
-          className="absolute inset-x-0 bottom-[21%] top-[12%] overflow-hidden"
+          className="absolute inset-x-0 bottom-[17%] top-[8%] overflow-hidden"
           style={{ background: preset.map }}
         >
           {mapPreview ? <img src={mapPreview} alt="已确认战场地图" className="absolute inset-0 size-full object-cover" /> : null}
@@ -766,7 +837,7 @@ export function TowerDefensePageCanvas({
               className="absolute left-1/2 top-[4%] z-30 w-[70%] -translate-x-1/2 rounded-full border border-white/12 px-3 py-2"
               style={{ ...uiStyle(progress), background: `${preset.surface}D9`, borderRadius: radius }}
             >
-              <div className="flex items-center justify-between text-[6px] font-medium"><span>第 {runtime.wave} 波</span><span style={{ color: preset.muted }}>{runtime.kills} 已消灭</span></div>
+              <div className="flex items-center justify-between text-[10px] font-medium"><span>第 {runtime.wave} 波</span><span style={{ color: preset.muted }}>{runtime.kills} 已消灭</span></div>
               <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/12"><i className="block h-full rounded-full" style={{ width: `${Math.min(100, (runtime.spawnedInWave / runtimeConfig.waveSize) * 100)}%`, background: preset.accent }} /></div>
             </div>
           ) : null}
@@ -782,7 +853,7 @@ export function TowerDefensePageCanvas({
             </div>
           ) : null}
 
-          {runtime.status === 'ready' || runtime.status === 'paused' ? (
+          {!showMenu && (runtime.status === 'ready' || runtime.status === 'paused') ? (
             <button type="button" onClick={togglePlay} className="absolute left-1/2 top-1/2 z-30 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full border border-white/18 bg-black/60 px-4 py-3 text-[9px] font-semibold text-white shadow-xl backdrop-blur-md hover:bg-black/75">
               <Play className="size-3.5" />{STATUS_COPY[runtime.status]}
             </button>
@@ -791,10 +862,10 @@ export function TowerDefensePageCanvas({
 
         {dock?.visible ? (
           <div
-            className="absolute inset-x-0 bottom-0 z-30 h-[21%] border-t border-white/10 px-3 py-2.5"
+            className="absolute inset-x-0 bottom-0 z-30 h-[17%] border-t border-white/10 px-3 py-2.5"
             style={{ ...uiStyle(dock), background: preset.surface }}
           >
-            <div className="mb-2 flex items-center justify-between text-[6px]" style={{ color: preset.muted }}><span>英雄守城 · 点击路线节点移动</span><span>{occupiedTowers.length} / {towerSlots.length} 已建造</span></div>
+            <div className="mb-2 flex items-center justify-between text-[10px]" style={{ color: preset.muted }}><span>英雄守城 · 点击路线节点移动</span><span>{occupiedTowers.length} / {towerSlots.length} 已建造</span></div>
             <div className="grid grid-cols-[1.25fr_1fr_1fr] gap-2">
               <div className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] p-2" style={{ borderRadius: radius }}>
                 <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-white/8">
@@ -826,8 +897,8 @@ export function TowerDefensePageCanvas({
           <div className="absolute inset-0 z-50 grid place-items-center bg-black/58 px-8 backdrop-blur-[2px]">
             <div className="w-full border border-white/14 p-5 text-center shadow-2xl" style={{ ...uiStyle(result), background: preset.surfaceRaised, borderRadius: Math.max(16, radius + 6) }}>
               <span className="mx-auto grid size-12 place-items-center rounded-2xl" style={{ background: `${preset.accent}26`, color: preset.accent }}><ShieldCheck className="size-6" /></span>
-              <h3 className="mt-3 text-[16px] font-semibold">{runtime.status === 'won' ? '守卫成功' : '灯塔失守'}</h3>
-              <p className="mt-1 text-[7px]" style={{ color: preset.muted }}>{runtime.status === 'won' ? '月光灯塔再次照亮了林地' : '调整塔位与经济后再次挑战'}</p>
+              <h3 className="mt-3 text-[18px] font-semibold">{runtime.status === 'won' ? '守卫成功' : '灯塔失守'}</h3>
+              <p className="mt-1 text-[12px]" style={{ color: preset.muted }}>{runtime.status === 'won' ? '月光灯塔再次照亮了林地' : '调整塔位与经济后再次挑战'}</p>
               <div className="mt-4 grid grid-cols-3 gap-2">
                 {[[runtime.kills, '消灭'], [runtime.wave, '波次'], [runtime.baseHealth, '生命']].map(([value, label]) => <div key={label} className="rounded-lg bg-white/[0.06] py-2"><strong className="block text-[12px]">{value}</strong><span className="text-[6px]" style={{ color: preset.muted }}>{label}</span></div>)}
               </div>
@@ -837,6 +908,21 @@ export function TowerDefensePageCanvas({
         ) : null}
 
         <button type="button" onClick={reset} className="absolute bottom-[22.5%] left-3 z-40 grid size-7 place-items-center rounded-lg border border-white/10 bg-black/24 text-white/70 backdrop-blur" aria-label="重开试玩" title="重开试玩"><RefreshCw className="size-3" /></button>
+
+        {showMenu && menuScreen ? (
+          <div className="absolute inset-0 z-[60]">
+            <TowerDefenseUiScreen
+              fill
+              interactive
+              screen={menuScreen}
+              screenMeta={uiDraft.screens.find((item) => item.id === menuScreen)}
+              nodes={uiDraft.nodes}
+              ui={flow.ui}
+              links={uiDraft.links}
+              onActivate={activateMenuNode}
+            />
+          </div>
+        ) : null}
       </div>
 
       <p className="sr-only" aria-live="polite">{announcement}</p>

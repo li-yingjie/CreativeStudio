@@ -268,6 +268,10 @@ interface StandaloneSubscene {
   toolbarParams?: readonly StandaloneToolbarParam[]
 }
 
+const CLASSIC_TOWER_DEFENSE_COMMAND = '生成经典路线塔防'
+const CLASSIC_TOWER_DEFENSE_PROMPT =
+  '生成一款塔防建造游戏，玩法：英雄和建筑塔守擂，角色：己方英雄，敌方6种兵种，世界观风格为：三国主题风格'
+
 interface H5InstructionSlots {
   theme: string
   audience: string
@@ -2600,6 +2604,15 @@ export default function PlatformHome({
   }
 
   const pickSubsceneCommand = (command: string) => {
+    if (
+      selectedSubscene?.key === 'tower-defense' &&
+      command === CLASSIC_TOWER_DEFENSE_COMMAND
+    ) {
+      setActiveSlotInstruction(null)
+      setDraft(CLASSIC_TOWER_DEFENSE_PROMPT)
+      return
+    }
+
     if (selectedSubscene?.key === 'h5' && command === H5_SLOT_COMMAND) {
       const slots = { ...DEFAULT_H5_INSTRUCTION_SLOTS }
       setH5InstructionSlots(slots)
@@ -3376,14 +3389,36 @@ export default function PlatformHome({
               没有灵感？试试点击以下需求
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              {SUGGESTIONS.map((s) => (
+              {(activeScene === 'game'
+                ? STANDALONE_SCENE_SUGGESTIONS.game.map((subscene) => ({
+                    key: subscene.key,
+                    label: subscene.label,
+                    prompt: subscene.prompt,
+                    scene: 'game' as const,
+                  }))
+                : SUGGESTIONS.map((label) => ({
+                    key: label,
+                    label,
+                    prompt: label,
+                    scene: 'marketing' as const,
+                  }))
+              ).map((chip) => (
                 <button
-                  key={s}
+                  key={chip.key}
                   type="button"
-                  onClick={() => onSubmit(s)}
+                  onClick={() => {
+                    if (chip.scene === 'game') {
+                      setDraft(chip.prompt)
+                      requestAnimationFrame(() =>
+                        composerTextareaRef.current?.focus(),
+                      )
+                      return
+                    }
+                    onSubmit(chip.prompt, undefined, chip.scene)
+                  }}
                   className="flex h-[42px] items-center gap-2 rounded-[12px] bg-[#F5F7FA] px-4 text-[14px] leading-5 text-[#090C14] transition-colors hover:bg-[#ECEFF5]"
                 >
-                  {s}
+                  {chip.label}
                   <ArrowUpRight size={12} strokeWidth={2} className="shrink-0 opacity-60" />
                 </button>
               ))}

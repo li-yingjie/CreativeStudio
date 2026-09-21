@@ -414,7 +414,7 @@ export function TowerDefenseGameplayWorkspace({
                 </div>
               </div>
 
-              <div className={`absolute left-1/2 top-[10.5%] z-40 -translate-x-1/2 rounded-full px-3 py-1.5 text-[7px] font-medium backdrop-blur ${STATUS_CLASS[runtime.status]}`}>
+              <div className={`absolute left-1/2 top-[8%] z-40 -translate-x-1/2 rounded-full px-3 py-1.5 text-[10px] font-medium backdrop-blur ${STATUS_CLASS[runtime.status]}`}>
                 {STATUS_COPY[runtime.status]}
               </div>
             </div>

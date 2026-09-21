@@ -94,8 +94,18 @@ export type TowerDefenseAssetCategory =
   | 'hero'
   | 'enemy'
   | 'tower'
+  | 'ui'
 
-export type TowerDefenseDirection = 'front' | 'back' | 'left' | 'right' | 'none'
+export type TowerDefenseDirection =
+  | 'front'
+  | 'front-right'
+  | 'right'
+  | 'back-right'
+  | 'back'
+  | 'back-left'
+  | 'left'
+  | 'front-left'
+  | 'none'
 
 export type SpriteLoopMode = 'loop' | 'once' | 'ping-pong'
 
@@ -109,6 +119,9 @@ export type AssetStateStatus =
 
 export type BaseVisualStatus = 'draft' | 'confirmed'
 
+export type TowerDefenseMaterialRef =
+  | { kind: 'visual-version'; versionIndex: number }
+
 export interface TowerDefenseAssetState {
   id: string
   name: string
@@ -118,6 +131,13 @@ export interface TowerDefenseAssetState {
   fps?: number
   /** Optional for older saved drafts; reconciliation infers it from the state. */
   loopMode?: SpriteLoopMode
+  /** The material currently used by this semantic slot, regardless of media type. */
+  materialRef?: TowerDefenseMaterialRef
+  /** Optional per-direction overrides; missing directions inherit materialRef. */
+  directionMaterialRefs?: Partial<Record<TowerDefenseDirection, TowerDefenseMaterialRef>>
+  /** A disabled slot remains planned and keeps its current material and history. */
+  enabled?: boolean
+  disabledDirections?: TowerDefenseDirection[]
   status: AssetStateStatus
 }
 
@@ -129,8 +149,17 @@ export interface TowerDefenseAsset {
   description: string
   accent: string
   baseVisualStatus: BaseVisualStatus
+  /** Planned assets are enabled by default; false only means excluded from the game. */
+  enabled?: boolean
   selectedVisualVersion?: number
-  visualVersions?: Array<{ id: string; src: string; width: number; height: number }>
+  visualVersions?: Array<{
+    id: string
+    src: string
+    width: number
+    height: number
+    source?: 'generated' | 'upload'
+    label?: string
+  }>
   states: TowerDefenseAssetState[]
 }
 
@@ -183,6 +212,10 @@ export interface TowerDefenseUiComponentConfig {
   visible: boolean
   emphasis: UiEmphasis
   scale: number
+  x?: number
+  y?: number
+  width?: number
+  height?: number
 }
 
 export interface TowerDefenseUiConfig {
@@ -191,6 +224,11 @@ export interface TowerDefenseUiConfig {
   compactMode: boolean
   cornerRadius: number
   components: TowerDefenseUiComponentConfig[]
+  layout?: import('./GameUiModel').GameUiNode[]
+  screens?: import('./GameUiModel').GameUiScreen[]
+  links?: Record<string, import('./GameUiModel').GameUiLink>
+  styleLock?: import('./GameUiModel').GameUiStyleLock
+  slices?: import('./GameUiSlices').GameUiSlice[]
 }
 
 export interface TowerDefenseBalanceConfig {
@@ -368,12 +406,22 @@ export function reconcileTowerDefenseSpriteTasks(
   return reconciled
 }
 
+export {
+  appendTowerDefenseVisualVersion,
+  fitTowerDefenseUploadSize,
+  visualVersionLabel,
+} from './TowerDefenseVisualVersion'
+
 export function getTowerDefenseDirectionLabel(direction: TowerDefenseDirection): string {
   return {
     front: '正面',
-    back: '背面',
-    left: '向左',
+    'front-right': '右前',
     right: '向右',
+    'back-right': '右后',
+    back: '背面',
+    'back-left': '左后',
+    left: '向左',
+    'front-left': '左前',
     none: '单向',
   }[direction]
 }

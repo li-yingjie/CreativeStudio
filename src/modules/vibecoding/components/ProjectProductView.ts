@@ -72,7 +72,7 @@ export const ACTIVITY_ASSETS_LABEL = '交付物'
 export const FINISHED_PAGES_LABEL = '页面'
 export const H5_GAMEPLAY_CONFIG_LABEL = '玩法配置'
 export const GAME_GAMEPLAY_CONFIG_LABEL = '游戏玩法配置'
-export const GAME_ASSET_LIBRARY_LABEL = '游戏资产库'
+export const GAME_ASSET_LIBRARY_LABEL = '素材库'
 export const GAME_UI_CONFIG_LABEL = '游戏 UI'
 export const GAME_BALANCE_CONFIG_LABEL = '平衡性编辑'
 const TOWER_DEFENSE_PROJECT_NAME = '暮光防线'
@@ -163,7 +163,6 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   玩法: GameController01LinearIcon,
   [H5_GAMEPLAY_CONFIG_LABEL]: Settings01LinearIcon,
   [GAME_GAMEPLAY_CONFIG_LABEL]: Settings01LinearIcon,
-  [GAME_ASSET_LIBRARY_LABEL]: Image01LinearIcon,
   [GAME_UI_CONFIG_LABEL]: LayoutGrid1LinearIcon,
   [GAME_BALANCE_CONFIG_LABEL]: Analytics01LinearIcon,
   能力技能: MagicWand01LinearIcon,
@@ -235,7 +234,6 @@ export const PRODUCT_CATEGORY_BADGES: Record<string, { bg: string; fg: string }>
   玩法: { bg: '#fde2e2', fg: '#e5484d' },
   [H5_GAMEPLAY_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
   [GAME_GAMEPLAY_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
-  [GAME_ASSET_LIBRARY_LABEL]: { bg: '#fde6f7', fg: '#d939b8' },
   [GAME_UI_CONFIG_LABEL]: { bg: '#e0ecff', fg: '#3370ff' },
   [GAME_BALANCE_CONFIG_LABEL]: { bg: '#fdf3ce', fg: '#c29104' },
   智能体: { bg: '#d9f4f4', fg: '#0e9c9c' },

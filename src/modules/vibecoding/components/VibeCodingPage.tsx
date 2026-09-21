@@ -269,16 +269,22 @@ import { TowerDefenseFastConfigPanel } from './tower-defense/TowerDefenseGamepla
 import { TowerDefenseUiEditorPanel } from './tower-defense/TowerDefenseUiWorkspace'
 import { TowerDefenseBalanceEditorPanel } from './tower-defense/TowerDefenseBalanceWorkspace'
 import TowerDefensePageCanvas from './tower-defense/TowerDefensePageCanvas'
+import TowerDefenseEditStage from './tower-defense/TowerDefenseEditStage'
+import TowerDefenseEditPanel from './tower-defense/TowerDefenseEditPanel'
+import { useTowerUiEditor } from './tower-defense/useTowerUiEditor'
 import {
   TOWER_DEFENSE_PROJECT_NAME,
   TOWER_DEFENSE_STAGE_ORDER,
   advanceTowerDefenseStage,
   createDefaultTowerDefenseFlowState,
+  appendTowerDefenseVisualVersion,
   getTowerDefenseDemoSpriteOutput,
+  getTowerDefenseDirectionLabel,
   getTowerDefenseSpriteTaskKey,
   reconcileTowerDefenseSpriteTasks,
   type TowerDefenseFlowState,
   type TowerDefenseDirection,
+  type TowerDefenseMaterialRef,
   type TowerDefenseStage,
   type SpriteTask,
 } from './tower-defense/TowerDefenseFlowModel'
@@ -488,8 +494,8 @@ import {
   Zap,
   AppWindow,
   BookmarkPlus,
-  Maximize2,
-  PanelRight,
+  Lock,
+  LockOpen,
 } from '@/shared/icons'
 import type { LucideIcon } from '@/shared/icons'
 
@@ -588,6 +594,12 @@ function isTowerDefenseWorkspaceLabel(label: string | undefined): boolean {
     label === TOWER_SPRITE_SHEET_TOOL_LABEL ||
     label === TOWER_MAP_EDITOR_TOOL_LABEL
   )
+}
+
+const TOWER_PREVIEW_TAB_LABEL = '预览'
+
+function isTowerPreviewTabLabel(label: string | undefined): boolean {
+  return label === TOWER_PREVIEW_TAB_LABEL || label === FINISHED_PAGES_LABEL
 }
 
 const TOWER_SPRITE_SHEET_TOOL_LABEL = 'Sprite Maker II'
@@ -1597,6 +1609,7 @@ function PlatformSidebar({
   onCollapseSidebar,
   towerAssetLibraryUi,
   onTowerAssetLibraryUiChange,
+  towerOpenedEditors,
 }: {
   /** Per-project file trees. Projects missing from this map render the
    *  "暂无文件" empty state when expanded. */
@@ -1670,6 +1683,8 @@ function PlatformSidebar({
   /** Demo UI variants live in Preferences instead of product controls. */
   towerAssetLibraryUi: TowerAssetLibraryUiScheme
   onTowerAssetLibraryUiChange: (scheme: TowerAssetLibraryUiScheme) => void
+  /** Advanced tower editors only enter the project tree after first open. */
+  towerOpenedEditors: string[]
 }) {
   /* Inline-rename state for the 项目列表 rows. */
   const [renamingProject, setRenamingProject] = useState<string | null>(null)
@@ -1723,7 +1738,10 @@ function PlatformSidebar({
     // （@模板 复刻）会进 createdProjects，但它们都固定钉在下面的列表里 ——
     // 过滤掉，避免侧栏重复列出（重复还会撞 React key）。
     ...createdProjects.filter(
-      (p) => p !== '射击小游戏' && p !== SUMMER_SURF_PROJECT,
+      (p) =>
+        p !== '射击小游戏' &&
+        p !== SUMMER_SURF_PROJECT &&
+        p !== TOWER_DEFENSE_PROJECT_NAME,
     ),
     // Workshop order: H5 → 游戏 → 兴趣卡；分身变体仍只显示分身。
     // 粉丝互动机器人 / 探店视频创作助手 / 每日打卡小程序 are hidden —
@@ -1744,6 +1762,7 @@ function PlatformSidebar({
     MAGICX_HEADER_ASSET_PROJECT,
     // h5-reference-lab 复刻出来的 benchmark case —— 和其它活动同级可打开、可编辑。
     ...H5_LAB_PROJECT_NAMES,
+    TOWER_DEFENSE_PROJECT_NAME,
     '射击小游戏',
     TAROT_INTEREST_CARD_PROJECT,
     // '抖音 AI 工坊设计探索' — 暂隐藏，保留配置与文件树供后续恢复。
@@ -1974,8 +1993,8 @@ function PlatformSidebar({
                 <div className="p-2">
                   <div className="px-2 pb-1.5 pt-1 text-[9px] font-medium text-[#161823]/38">界面方案</div>
                   {([
-                    { value: 'canvas', label: '游戏资产库 · 方案 A', note: '自由画布' },
-                    { value: 'catalog', label: '游戏资产库 · 方案 B', note: '网格目录与筛选' },
+                    { value: 'canvas', label: '素材库 · 方案 A', note: '自由画布' },
+                    { value: 'catalog', label: '素材库 · 方案 B', note: '网格目录与筛选' },
                   ] as const).map((option) => (
                     <button
                       key={option.value}
@@ -2460,7 +2479,7 @@ function PlatformSidebar({
                                 const kind = kindOf(name)
                                 // AI 分身 and 小程序 projects are config-driven;
                                 // other kinds bucket the raw file tree.
-                                const productTree = mergeCategoryExtras(
+                                let productTree = mergeCategoryExtras(
                                   kind === 'ai-avatar'
                                     ? buildAvatarProductView(
                                         tree,
@@ -2480,6 +2499,31 @@ function PlatformSidebar({
                                       n.name,
                                     ),
                                 )
+                                if (name === TOWER_DEFENSE_PROJECT_NAME) {
+                                  const visibleTowerCategories = new Set([
+                                    PAGE_CONFIG_LABEL,
+                                    GAME_GAMEPLAY_CONFIG_LABEL,
+                                    GAME_ASSET_LIBRARY_LABEL,
+                                    '项目文件',
+                                    ...towerOpenedEditors,
+                                  ])
+                                  productTree = productTree.filter((node) =>
+                                    visibleTowerCategories.has(node.name),
+                                  )
+                                  for (const label of [
+                                    TOWER_MAP_EDITOR_TOOL_LABEL,
+                                    TOWER_SPRITE_SHEET_TOOL_LABEL,
+                                  ]) {
+                                    if (
+                                      towerOpenedEditors.includes(label) &&
+                                      !productTree.some(
+                                        (node) => node.name === label,
+                                      )
+                                    ) {
+                                      productTree.push({ name: label, type: 'file' })
+                                    }
+                                  }
+                                }
                                 if (productTree.length === 0) return emptyStub
                                 return (
                                   // Match the project row's mx-3 inset so selected object
@@ -3092,6 +3136,7 @@ export default function VibeCodingPage({
   const [gameSpec, setGameSpec] = useState<GameSpecDraft | null>(null)
   const [towerDefenseFlow, setTowerDefenseFlow] =
     useState<TowerDefenseFlowState>(loadTowerDefenseFlow)
+  const towerUiEditor = useTowerUiEditor(towerDefenseFlow.ui)
   const [towerMapEditor, setTowerMapEditor] = useState(
     createDefaultTowerDefenseMapEditorState,
   )
@@ -3204,7 +3249,9 @@ export default function VibeCodingPage({
     | 'trigger'
     | 'proposal'
     | 'game'
+    | 'game-type-clarification'
     | 'tower-defense'
+    | 'tower-visual-reference'
     | 'tower-asset-generation'
     | 'tower-asset-apply'
     | 'tower-panel-action'
@@ -3241,8 +3288,19 @@ export default function VibeCodingPage({
       : [],
   )
   const [towerAssetChatJobs, setTowerAssetChatJobs] = useState<
-    Record<string, { assetId: string; status: 'generating' | 'completed' }>
+    Record<string, {
+      assetId: string
+      versionIndex: number
+      versionLabel: string
+      status: 'generating' | 'completed'
+    }>
   >({})
+  const [towerAssetPreviewRequest, setTowerAssetPreviewRequest] = useState<{
+    assetId: string
+    versionIndex: number
+    versionLabel: string
+    nonce: number
+  } | null>(null)
   const [towerAssetApplyJobs, setTowerAssetApplyJobs] = useState<
     Record<string, { assetIds: string[]; status: 'generating' | 'completed' }>
   >({})
@@ -3264,7 +3322,12 @@ export default function VibeCodingPage({
   const [towerVisualQuestionStep, setTowerVisualQuestionStep] = useState(0)
   const [towerVisualCustomInput, setTowerVisualCustomInput] = useState('')
   const [towerVisualGeneration, setTowerVisualGeneration] = useState<'questions' | 'generating' | 'ready'>('questions')
+  const [towerVisualIntentOpen, setTowerVisualIntentOpen] = useState(false)
+  const [towerVisualReferencePending, setTowerVisualReferencePending] = useState(false)
+  const [towerVisualAssetsApplied, setTowerVisualAssetsApplied] = useState(false)
+  const [towerOpenedEditors, setTowerOpenedEditors] = useState<string[]>([])
   const [towerVisibleAssetCount, setTowerVisibleAssetCount] = useState(0)
+  const [towerAssetProductionApplied, setTowerAssetProductionApplied] = useState(false)
   /* Chat session list — the header's conversation-name button opens a
    * dropdown of these, and the + button creates a fresh empty session. */
   type ChatSession = {
@@ -3901,6 +3964,13 @@ export default function VibeCodingPage({
     setPlatformCreativeSquareOpen(false)
     setPlatformDataOpsOpen(false)
     setTowerDefenseFlow(nextFlow)
+    towerUiEditor.resetFrom(nextFlow.ui)
+    setTowerVisualIntentOpen(false)
+    setTowerVisualReferencePending(false)
+    setTowerVisualGeneration('questions')
+    setTowerVisualAssetsApplied(false)
+    setTowerOpenedEditors([])
+    setTowerVisibleAssetCount(0)
     setTowerSelectedAssetId('map-moon-gate')
     setTowerSelectedTaskId(null)
     const sessionId = initProjectDefaults(
@@ -3920,6 +3990,7 @@ export default function VibeCodingPage({
     setChatCleared(false)
     setPreviewCollapsed(false)
     setPreviewZoom(1)
+    setCanvasEditOpen(false)
     setEditPanelOpen(true)
     updateWorkshopTaskStatus(
       TOWER_DEFENSE_PROJECT_NAME,
@@ -3990,6 +4061,7 @@ export default function VibeCodingPage({
       )
       return
     }
+    const needsGameTypeClarification = /^【互动游戏(?:｜|】)/u.test(trimmed)
     // @模板 引用：从模板复刻新活动（换背景 / 换形象 / 换素材），走复刻回放。
     if (
       trimmed.includes(XIAHUA_TEMPLATE_TOKEN) ||
@@ -4071,6 +4143,11 @@ export default function VibeCodingPage({
     // Enter the chat flow with the right pane closed (Artifacts-style); it
     // opens once a previewable artifact appears — see sendChat / seedProductTabs.
     const sessionId = initProjectDefaults(name, true, kind, false)
+    if (needsGameTypeClarification) {
+      setOpenTabs([{ label: '预览', closable: false }])
+      setActivePreviewTab(0)
+      setPreviewCollapsed(false)
+    }
     // 没匹配到活动流程的附件不能静默消失 —— 至少把文件名带进对话。
     sendChat(
       attachment ? `【已上传文档：${attachment.name}】${request}` : request,
@@ -4079,6 +4156,7 @@ export default function VibeCodingPage({
         projectId: name,
         projectKind: kind,
         sessionId,
+        clarifyGameType: needsGameTypeClarification,
       },
     )
   }
@@ -4311,7 +4389,7 @@ export default function VibeCodingPage({
   ) => {
     const k = projectKind
     if (name === TOWER_DEFENSE_PROJECT_NAME)
-      return [{ label: FINISHED_PAGES_LABEL, closable: false }]
+      return [{ label: TOWER_PREVIEW_TAB_LABEL, closable: false }]
     if (isAssetOnlyProject(name))
       return [
         { label: ASSET_LIBRARY_LABEL, closable: false },
@@ -4664,6 +4742,7 @@ export default function VibeCodingPage({
       projectId?: string
       projectKind?: ProjectKind
       sessionId?: string
+      clarifyGameType?: boolean
     },
   ) => {
     const text = (override ?? chatDraft).trim()
@@ -4673,7 +4752,82 @@ export default function VibeCodingPage({
     const targetProjectId = opts?.projectId ?? projectTitle
     const targetProjectKind = opts?.projectKind ?? kindOf(targetProjectId)
     const targetSessionId = opts?.sessionId ?? activeSessionId
+    const waitingForGameType =
+      sentMessages.at(-1)?.trigger === 'game-type-clarification'
+    if (waitingForGameType && /^【塔防】/u.test(text)) {
+      startTowerDefenseFlow(text)
+      return
+    }
+    if (waitingForGameType && /^【2D 射击】/u.test(text)) {
+      startGameFlow(text)
+      return
+    }
     const messageId = createMessageId()
+    const plannedState = [
+      ['idle', '待机'],
+      ['move', '移动'],
+      ['attack', '攻击'],
+      ['hit', '受击'],
+      ['death', '死亡'],
+      ['upgrade', '升级'],
+    ].find(([, label]) => text.includes(label))
+    const removesPlannedState = /去掉|删除|移除|取消/u.test(text)
+    if (
+      targetProjectId === TOWER_DEFENSE_PROJECT_NAME &&
+      towerDefenseFlow.stage === 'asset-production' &&
+      plannedState &&
+      removesPlannedState
+    ) {
+      const targetsAllUnits = /(?:所有|全部)(?:小兵|兵种|敌人)/u.test(text)
+      const targetAssets = towerDefenseFlow.assets.filter((asset) =>
+        targetsAllUnits
+          ? asset.category === 'enemy' && asset.id !== 'enemy-guanyu'
+          : text.includes(asset.name),
+      )
+      if (targetAssets.length > 0) {
+        const [stateId, stateLabel] = plannedState
+        const targetIds = new Set(targetAssets.map((asset) => asset.id))
+        const nextAssets = towerDefenseFlow.assets.map((asset) =>
+          targetIds.has(asset.id)
+            ? {
+                ...asset,
+                states: asset.states.filter((state) => state.id !== stateId),
+              }
+            : asset,
+        )
+        const updatedTargets = nextAssets.filter((asset) => targetIds.has(asset.id))
+        const updatedList = updatedTargets
+          .map(
+            (asset) =>
+              `- ${asset.name}：${asset.states.map((state) => state.name).join(' / ') || '无动态状态'}`,
+          )
+          .join('\n')
+        setTowerDefenseFlow((current) => ({
+          ...current,
+          assets: nextAssets,
+          tasks: reconcileTowerDefenseSpriteTasks(nextAssets, current.tasks),
+        }))
+        setChatCleared(false)
+        setSentMessages((current) => [
+          ...current,
+          { id: messageId, text, trigger: 'tower-panel-action' },
+        ])
+        setTowerPanelActionJobs((current) => ({
+          ...current,
+          [messageId]: {
+            reply: `已从 ${targetAssets.length} 项资产规划中移除“${stateLabel}”状态。\n更新后的生产 List：\n${updatedList}`,
+            status: 'completed',
+            stage: 'asset-production',
+          },
+        }))
+        setComposerText('')
+        requestAnimationFrame(() => {
+          const chatScroll = chatScrollRef.current
+          if (chatScroll) chatScroll.scrollTop = chatScroll.scrollHeight
+        })
+        return
+      }
+    }
     // Any chat the user sends after entering a project counts as engaging with
     // it → reveal the right preview pane (Artifacts-style). The initial
     // home-entry prompt is excluded so the pane stays closed until then.
@@ -4693,7 +4847,14 @@ export default function VibeCodingPage({
         text,
       )
     let trigger: MessageTrigger = 'none'
-    if (isTowerMapEditIntent) {
+    if (
+      towerVisualReferencePending &&
+      targetProjectId === TOWER_DEFENSE_PROJECT_NAME
+    ) {
+      trigger = 'tower-visual-reference'
+    } else if (opts?.clarifyGameType) {
+      trigger = 'game-type-clarification'
+    } else if (isTowerMapEditIntent) {
       trigger = 'tower-map-edit'
       setTowerMapEditJobs((current) => ({
         ...current,
@@ -4808,6 +4969,9 @@ export default function VibeCodingPage({
       { id: messageId, text, trigger, canvasRef },
     ])
     setH5LabChatRef(null)
+    if (trigger === 'tower-visual-reference') {
+      window.setTimeout(startTowerVisualGeneration, 0)
+    }
     // Clear both the state AND the contentEditable DOM (innerText won't
     // auto-reset from setChatDraft since the div is uncontrolled).
     setComposerText('')
@@ -4824,7 +4988,12 @@ export default function VibeCodingPage({
 
   const sendTowerAssetRegeneration = (assetId: string, versionLabel: string) => {
     const asset = towerDefenseFlow.assets.find((item) => item.id === assetId)
-    const text = `请基于「${asset?.name ?? '游戏资产'} · ${versionLabel}」的视觉设定重新生成一个新方案，保持世界观和角色识别一致，同时提供不同的构图与细节表现。`
+    const versionIndex = Math.max(
+      0,
+      (versionLabel.match(/方案\s*([A-Z])/u)?.[1]?.charCodeAt(0) ?? 65) - 65,
+    )
+    const source = asset?.visualVersions?.[versionIndex]
+    const text = `重新生成素材「${asset?.name ?? '游戏资产'} · ${versionLabel}」。素材分类：${asset?.category ?? '游戏素材'}；用途：${asset?.role ?? '游戏内视觉呈现'}；参考尺寸：${source ? `${source.width} × ${source.height}` : '沿用当前槽位'}。请保持当前项目的世界观、角色识别、色彩和轮廓规范不变，生成一个构图与细节表现不同的新方案，并将结果追加到该槽位的生成记录中。`
     const messageId = createMessageId()
     setChatCleared(false)
     setSentMessages((current) => [
@@ -4833,7 +5002,7 @@ export default function VibeCodingPage({
     ])
     setTowerAssetChatJobs((current) => ({
       ...current,
-      [messageId]: { assetId, status: 'generating' },
+      [messageId]: { assetId, versionIndex, versionLabel, status: 'generating' },
     }))
     setComposerText('')
     updateWorkshopTaskStatus(projectTitle, `chat:${messageId}`, 'running')
@@ -4844,9 +5013,13 @@ export default function VibeCodingPage({
     window.setTimeout(() => {
       setTowerAssetChatJobs((current) => ({
         ...current,
-        [messageId]: { assetId, status: 'completed' },
+        [messageId]: { assetId, versionIndex, versionLabel, status: 'completed' },
       }))
       updateWorkshopTaskStatus(projectTitle, `chat:${messageId}`, 'completed')
+      requestAnimationFrame(() => {
+        const chatScroll = chatScrollRef.current
+        if (chatScroll) chatScroll.scrollTop = chatScroll.scrollHeight
+      })
     }, 2200)
   }
 
@@ -6591,7 +6764,7 @@ export default function VibeCodingPage({
     wantsProposalDeepLink
       ? []
       : wantsTowerDefenseDeepLink
-        ? [{ label: FINISHED_PAGES_LABEL, closable: false }]
+        ? [{ label: TOWER_PREVIEW_TAB_LABEL, closable: false }]
         : [{ label: '预览', closable: false }],
   )
   const [activePreviewTab, setActivePreviewTab] = useState(0)
@@ -6669,6 +6842,8 @@ export default function VibeCodingPage({
   const [towerToolLayout, setTowerToolLayout] = useState<'split' | 'full'>(
     'split',
   )
+  const [towerAssetCanvasEditing, setTowerAssetCanvasEditing] = useState(false)
+  const towerLayoutLocked = towerToolLayout === 'split'
   const closeXiahuaEditor = useCallback(() => {
     persistXiahuaEdits()
     setEditPanelOpen(false)
@@ -6754,6 +6929,7 @@ export default function VibeCodingPage({
   /** Canvas editor — web-game images use the asset board; marketing H5 uses
    *  an immersive full-page canvas. Takes over the preview content when open. */
   const [canvasEditOpen, setCanvasEditOpen] = useState(false)
+  const pendingTowerCanvasEditRef = useRef(false)
   // AI 分身 preview scene — toggled from the toolbar dropdown (left of the
   // refresh icon): 'chat' = 私信/AI 聊天 surface; 'comment' = 评论区 surface.
   const [avatarScene, setAvatarScene] = useState<'chat' | 'comment'>('chat')
@@ -6957,22 +7133,32 @@ export default function VibeCodingPage({
 
   const focusPreviewTab = useCallback(
     (label: string) => {
-      const existing = openTabs.findIndex((tab) => tab.label === label)
+      const hasDistinctPreviewAndPages =
+        openTabs.some((tab) => tab.label === TOWER_PREVIEW_TAB_LABEL) &&
+        openTabs.some((tab) => tab.label === FINISHED_PAGES_LABEL)
+      const existing = openTabs.findIndex((tab) =>
+        !hasDistinctPreviewAndPages && isTowerPreviewTabLabel(label)
+          ? isTowerPreviewTabLabel(tab.label)
+          : tab.label === label,
+      )
       if (existing >= 0) {
         setActivePreviewTab(existing)
         return
       }
+      const nextLabel =
+        !hasDistinctPreviewAndPages && isTowerPreviewTabLabel(label)
+          ? TOWER_PREVIEW_TAB_LABEL
+          : label
       const next = [
         ...openTabs,
         {
-          label,
+          label: nextLabel,
           closable:
-            label !== '预览' &&
-            label !== FINISHED_PAGES_LABEL &&
-            label !== GAME_GAMEPLAY_CONFIG_LABEL &&
-            label !== GAME_ASSET_LIBRARY_LABEL &&
-            label !== GAME_UI_CONFIG_LABEL &&
-            label !== GAME_BALANCE_CONFIG_LABEL,
+            !isTowerPreviewTabLabel(nextLabel) &&
+            nextLabel !== GAME_GAMEPLAY_CONFIG_LABEL &&
+            nextLabel !== GAME_ASSET_LIBRARY_LABEL &&
+            nextLabel !== GAME_UI_CONFIG_LABEL &&
+            nextLabel !== GAME_BALANCE_CONFIG_LABEL,
         },
       ]
       setOpenTabs(next)
@@ -7004,6 +7190,17 @@ export default function VibeCodingPage({
 
   const openTowerDefenseStage = useCallback(
     (stage: TowerDefenseStage) => {
+      const editorLabel =
+        stage === 'ui-generation'
+          ? GAME_UI_CONFIG_LABEL
+          : stage === 'balance'
+            ? GAME_BALANCE_CONFIG_LABEL
+            : null
+      if (editorLabel) {
+        setTowerOpenedEditors((current) =>
+          current.includes(editorLabel) ? current : [...current, editorLabel],
+        )
+      }
       setTowerDefenseFlow((current) => ({
         ...current,
         stage,
@@ -7027,7 +7224,32 @@ export default function VibeCodingPage({
   )
 
   const openTowerDefenseMapEditor = useCallback(() => {
+    setTowerOpenedEditors((current) =>
+      current.includes(TOWER_MAP_EDITOR_TOOL_LABEL)
+        ? current
+        : [...current, TOWER_MAP_EDITOR_TOOL_LABEL],
+    )
     focusTowerDefenseToolTab(TOWER_MAP_EDITOR_TOOL_LABEL)
+    setCanvasEditOpen(false)
+    setEditPanelOpen(true)
+  }, [focusTowerDefenseToolTab])
+
+  const openTowerSpriteMakerTool = useCallback(() => {
+    setTowerOpenedEditors((current) =>
+      current.includes(TOWER_SPRITE_SHEET_TOOL_LABEL)
+        ? current
+        : [...current, TOWER_SPRITE_SHEET_TOOL_LABEL],
+    )
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      stage: 'asset-production',
+      furthestStageReached: advanceTowerDefenseStage(
+        current.furthestStageReached,
+        'asset-production',
+      ),
+      tasks: reconcileTowerDefenseSpriteTasks(current.assets, current.tasks),
+    }))
+    focusTowerDefenseToolTab(TOWER_SPRITE_SHEET_TOOL_LABEL)
     setCanvasEditOpen(false)
     setEditPanelOpen(true)
   }, [focusTowerDefenseToolTab])
@@ -7100,6 +7322,12 @@ export default function VibeCodingPage({
       setTowerVisualQuestionStep((current) => current + 1)
       return
     }
+    setTowerVisualIntentOpen(false)
+    setTowerVisualReferencePending(true)
+  }, [towerVisualCustomInput, towerVisualIntent, towerVisualQuestionStep])
+
+  const startTowerVisualGeneration = useCallback(() => {
+    setTowerVisualReferencePending(false)
     openTowerDefenseStage('art-direction')
     setTowerVisualGeneration('generating')
     setTowerVisibleAssetCount(0)
@@ -7116,7 +7344,15 @@ export default function VibeCodingPage({
         setTowerVisualGeneration('ready')
       }
     }, 1400)
-  }, [openTowerDefenseStage, towerDefenseFlow.assets, towerVisualCustomInput, towerVisualIntent, towerVisualQuestionStep])
+  }, [openTowerDefenseStage, towerDefenseFlow.assets])
+
+  const beginTowerVisualIntent = useCallback(() => {
+    setTowerVisualQuestionStep(0)
+    setTowerVisualCustomInput('')
+    setTowerVisualGeneration('questions')
+    setTowerVisualIntentOpen(true)
+    requestAnimationFrame(focusComposerAtEnd)
+  }, [])
 
   const confirmTowerVisualSelections = useCallback((selections: Array<{ assetId: string; versionIndex: number }>) => {
     if (!selections.length) return
@@ -7130,6 +7366,7 @@ export default function VibeCodingPage({
       if (chatScroll) chatScroll.scrollTop = chatScroll.scrollHeight
     })
     window.setTimeout(() => {
+      setTowerVisualAssetsApplied(true)
       setTowerDefenseFlow((current) => ({
         ...current,
         assets: current.assets.map((asset) => {
@@ -7140,6 +7377,19 @@ export default function VibeCodingPage({
       setTowerAssetApplyJobs((current) => ({ ...current, [messageId]: { assetIds: selections.map(({ assetId }) => assetId), status: 'completed' } }))
     }, 1800)
   }, [towerDefenseFlow.assets])
+
+  const addTowerVisualVersion = useCallback((
+    assetId: string,
+    version: NonNullable<TowerDefenseFlowState['assets'][number]['visualVersions']>[number],
+  ) => {
+    let versionIndex = -1
+    setTowerDefenseFlow((current) => {
+      const result = appendTowerDefenseVisualVersion(current.assets, assetId, version)
+      versionIndex = result.versionIndex
+      return result.versionIndex < 0 ? current : { ...current, assets: result.assets }
+    })
+    return versionIndex
+  }, [])
 
   const previewTowerVisualSelection = useCallback((assetId: string, versionIndex: number | null) => {
     setTowerDefenseFlow((current) => ({
@@ -7175,6 +7425,45 @@ export default function VibeCodingPage({
       }))
     }, 900)
   }, [towerDefenseFlow.stage])
+
+  const confirmTowerGameplay = useCallback(() => {
+    const config = towerDefenseFlow.gameplay
+    const availableTowerCount = towerDefenseFlow.towerSlots.length
+    const buildableAtStart = Math.floor(config.startingCoins / config.towerCost)
+    const pressure = Math.round(
+      (config.waveSize * config.enemyHealth * config.enemySpeed) /
+        Math.max(1, config.towerDamage * 7),
+    )
+    const input = [
+      '确认当前游戏玩法配置：',
+      `项目：${TOWER_DEFENSE_PROJECT_NAME}`,
+      '玩法原型：经典路线塔防 · 9:21 几何占位 Demo',
+      `1. 每波敌人数：${config.waveSize} 个`,
+      `2. 波次间隔：${config.waveInterval} 秒`,
+      `3. 敌人移动速度：${config.enemySpeed.toFixed(1)}×`,
+      `4. 初始金币：${config.startingCoins}`,
+      `5. 基础塔造价：${config.towerCost}`,
+      `6. 基地生命：${config.baseHealth} 点`,
+      `7. 敌人基础生命：${config.enemyHealth}`,
+      `8. 防御塔基础伤害：${config.towerDamage}`,
+      `9. 可建造塔位：${availableTowerCount} 个`,
+      `10. 开局预计可建：${buildableAtStart} 座基础塔`,
+      `11. 当前压力指数：${pressure} / 10`,
+      '请按以上配置确认玩法，并同步到当前可试玩 Demo。',
+    ].join('\n')
+    const reply = [
+      '已按本次确认项更新玩法 Demo。',
+      `节奏：每波 ${config.waveSize} 个敌人，间隔 ${config.waveInterval} 秒，移动速度 ${config.enemySpeed.toFixed(1)}×。`,
+      `经济：初始金币 ${config.startingCoins}，基础塔造价 ${config.towerCost}，开局可建 ${buildableAtStart} 座。`,
+      `攻防：基地生命 ${config.baseHealth}，敌人基础生命 ${config.enemyHealth}，防御塔基础伤害 ${config.towerDamage}。`,
+      `场地：保留 ${availableTowerCount} 个塔位；当前压力指数为 ${pressure} / 10。`,
+      '结论：上述数值已经同步到 9:21 几何占位 Demo，可继续试玩验证，或进入下一步游戏视觉设定。',
+    ].join('\n')
+    commitTowerPanelAction(input, reply, {
+      nextStage: 'art-direction',
+      nextLabel: '游戏视觉设定',
+    })
+  }, [commitTowerPanelAction, towerDefenseFlow.gameplay, towerDefenseFlow.towerSlots.length])
 
   const applyTowerDefenseMapEdits = useCallback(() => {
     const messageId = createMessageId()
@@ -7212,7 +7501,7 @@ export default function VibeCodingPage({
 
   const planTowerAssetProduction = useCallback(() => {
     const plannedAssets = towerDefenseFlow.assets.filter(
-      (asset) => asset.category !== 'map' && asset.baseVisualStatus === 'confirmed',
+      (asset) => asset.category !== 'map' && asset.enabled !== false,
     )
     const plannedStates = plannedAssets.reduce(
       (total, asset) => total + asset.states.length,
@@ -7225,12 +7514,24 @@ export default function VibeCodingPage({
         stage: 'asset-production',
         nextStage: 'asset-production',
         nextLabel: '应用资产生产规划',
+        onComplete: () => {
+          setTowerAssetProductionApplied(false)
+          openTowerDefenseStage('asset-production')
+        },
       },
     )
-  }, [commitTowerPanelAction, towerDefenseFlow.assets])
+  }, [commitTowerPanelAction, openTowerDefenseStage, towerDefenseFlow.assets])
 
-  const proceedFromTowerArtDirection = useCallback(() => {
+  const applyTowerAssetProductionPlan = useCallback(() => {
+    setTowerAssetProductionApplied(true)
     openTowerDefenseStage('asset-production')
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      tasks: reconcileTowerDefenseSpriteTasks(current.assets, current.tasks).map((task) => {
+        const output = getTowerDefenseDemoSpriteOutput(task)
+        return output ? { ...task, status: 'completed' as const, progress: 100, output } : task
+      }),
+    }))
   }, [openTowerDefenseStage])
 
   const updateTowerAssetState = useCallback(
@@ -7238,8 +7539,13 @@ export default function VibeCodingPage({
       assetId: string,
       stateId: string,
       patch: {
+        name?: string
         directions?: TowerDefenseDirection[]
         framesPerDirection?: number
+        materialRef?: TowerDefenseMaterialRef
+        directionMaterialRefs?: Partial<Record<TowerDefenseDirection, TowerDefenseMaterialRef>>
+        enabled?: boolean
+        disabledDirections?: TowerDefenseDirection[]
       },
     ) => {
       setTowerDefenseFlow((current) => {
@@ -7266,6 +7572,85 @@ export default function VibeCodingPage({
     [],
   )
 
+  const assignTowerAssetMaterial = useCallback((assetId: string, stateId: string, versionIndex: number) => {
+    const asset = towerDefenseFlow.assets.find((item) => item.id === assetId)
+    const state = asset?.states.find((item) => item.id === stateId)
+    if (!asset || !state) return
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      assets: current.assets.map((item) => item.id !== assetId
+        ? item
+        : {
+            ...item,
+            baseVisualStatus: 'confirmed' as const,
+            states: item.states.map((entry) => entry.id === stateId
+              ? { ...entry, materialRef: { kind: 'visual-version' as const, versionIndex } }
+              : entry),
+          }),
+    }))
+    const versionLabel = `方案 ${String.fromCharCode(65 + versionIndex)}`
+    commitTowerPanelAction(
+      `将「${asset.name} · ${versionLabel}」设为「${state.name}」状态的使用素材。`,
+      `已定位 ${asset.name} 的「${state.name}」素材槽位，并保持其他状态绑定不变；${versionLabel} 已替换为该状态的使用素材，游戏预览会在进入对应状态时读取新素材。`,
+    )
+  }, [commitTowerPanelAction, towerDefenseFlow.assets])
+
+  const assignTowerAssetDirectionMaterial = useCallback((assetId: string, stateId: string, direction: TowerDefenseDirection, versionIndex: number) => {
+    const asset = towerDefenseFlow.assets.find((item) => item.id === assetId)
+    const state = asset?.states.find((item) => item.id === stateId)
+    if (!asset || !state) return
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      assets: current.assets.map((item) => item.id !== assetId
+        ? item
+        : {
+            ...item,
+            baseVisualStatus: 'confirmed' as const,
+            states: item.states.map((entry) => entry.id !== stateId
+              ? entry
+              : {
+                  ...entry,
+                  directionMaterialRefs: {
+                    ...entry.directionMaterialRefs,
+                    [direction]: { kind: 'visual-version' as const, versionIndex },
+                  },
+                }),
+          }),
+    }))
+    const versionLabel = `方案 ${String.fromCharCode(65 + versionIndex)}`
+    commitTowerPanelAction(
+      `将「${asset.name} · ${versionLabel}」用于「${state.name} · ${getTowerDefenseDirectionLabel(direction)}」。`,
+      `已更新 ${asset.name} 的「${state.name}」方向素材；${getTowerDefenseDirectionLabel(direction)}使用 ${versionLabel}，其他方向继续使用原绑定或继承状态基准。`,
+    )
+  }, [commitTowerPanelAction, towerDefenseFlow.assets])
+
+  const updateTowerBaseMaterial = useCallback((assetId: string, versionIndex: number | null) => {
+    previewTowerVisualSelection(assetId, versionIndex)
+    if (towerDefenseFlow.stage !== 'asset-production' || versionIndex === null) return
+    const asset = towerDefenseFlow.assets.find((item) => item.id === assetId)
+    if (!asset) return
+    const versionLabel = `方案 ${String.fromCharCode(65 + versionIndex)}`
+    commitTowerPanelAction(
+      `将「${asset.name} · ${versionLabel}」设为当前槽位素材。`,
+      `已更新 ${asset.name} 的当前槽位素材，已有状态素材和生产任务保持不变；${versionLabel} 已同步刷新到游戏预览。`,
+    )
+  }, [commitTowerPanelAction, previewTowerVisualSelection, towerDefenseFlow.assets, towerDefenseFlow.stage])
+
+  const setTowerAssetEnabled = useCallback((assetId: string, enabled: boolean) => {
+    const asset = towerDefenseFlow.assets.find((item) => item.id === assetId)
+    if (!asset) return
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      assets: current.assets.map((item) => item.id === assetId ? { ...item, enabled } : item),
+    }))
+    commitTowerPanelAction(
+      `${enabled ? '重新启用' : '弃用'}「${asset.name}」素材槽位。`,
+      enabled
+        ? `已重新启用 ${asset.name}；原素材与全部生成记录保持不变，并重新参与游戏装配。`
+        : `已停用 ${asset.name}；槽位、当前素材与生成记录均已保留，可随时重新启用。`,
+    )
+  }, [commitTowerPanelAction, towerDefenseFlow.assets])
+
   const addTowerAssetState = useCallback((assetId: string) => {
     setTowerDefenseFlow((current) => {
       const assets = current.assets.map((asset) => {
@@ -7281,7 +7666,7 @@ export default function VibeCodingPage({
               directions:
                 asset.category === 'tower'
                   ? (['none'] as TowerDefenseDirection[])
-                  : (['front', 'back', 'left', 'right'] as TowerDefenseDirection[]),
+                  : (['front'] as TowerDefenseDirection[]),
               framesPerDirection: 8,
               fps: 12,
               loopMode: 'once' as const,
@@ -7624,14 +8009,18 @@ export default function VibeCodingPage({
 
   const openFileInTab = (filename: string, path?: string) => {
     if (isTowerDefenseProject) {
-      if (filename === FINISHED_PAGES_LABEL) {
-        focusPreviewTab(FINISHED_PAGES_LABEL)
+      if (isTowerPreviewTabLabel(filename)) {
+        focusPreviewTab(TOWER_PREVIEW_TAB_LABEL)
         setCanvasEditOpen(false)
         setEditPanelOpen(false)
         return
       }
       if (filename === TOWER_MAP_EDITOR_TOOL_LABEL) {
         openTowerDefenseMapEditor()
+        return
+      }
+      if (filename === TOWER_SPRITE_SHEET_TOOL_LABEL) {
+        openTowerSpriteMakerTool()
         return
       }
       const toolStage: TowerDefenseStage | null =
@@ -7645,14 +8034,9 @@ export default function VibeCodingPage({
               ? 'ui-generation'
               : filename === GAME_BALANCE_CONFIG_LABEL
                 ? 'balance'
-                : filename === TOWER_SPRITE_SHEET_TOOL_LABEL
-                  ? 'asset-production'
                 : null
       if (toolStage) {
         openTowerDefenseStage(toolStage)
-        if (filename === TOWER_SPRITE_SHEET_TOOL_LABEL) {
-          focusTowerDefenseToolTab(TOWER_SPRITE_SHEET_TOOL_LABEL)
-        }
         return
       }
     }
@@ -10017,27 +10401,25 @@ export default function VibeCodingPage({
     setActivePreviewTab(0)
   }, [createdProjectKinds, projectTitle])
 
-  // 塔防始终保留固定「页面」；工具 Tab 只表示右侧面板，可选中和关闭，
-  // 不会替换中间 Canvas。旧快照中的固定工具 Tab 在这里迁移为可关闭。
+  // 塔防始终保留固定「预览」；工具 Tab 只表示右侧面板，可选中和关闭，
+  // 不会替换中间 Canvas。旧快照中的「页面」和固定工具 Tab 在这里迁移。
   useEffect(() => {
     if (!isTowerDefenseProject) return
     const needsMigration =
-      openTabs[0]?.label !== FINISHED_PAGES_LABEL ||
+      openTabs[0]?.label !== TOWER_PREVIEW_TAB_LABEL ||
       openTabs.some(
         (tab, index) =>
-          tab.label === '预览' ||
+          tab.label === FINISHED_PAGES_LABEL ||
           (isTowerDefenseWorkspaceLabel(tab.label) && !tab.closable) ||
-          (tab.label === FINISHED_PAGES_LABEL && index > 0),
+          (tab.label === TOWER_PREVIEW_TAB_LABEL && index > 0),
       )
     if (!needsMigration) return
     const activeLabel = openTabs[activePreviewTab]?.label
     const cleaned = openTabs.filter(
-      (tab) =>
-        tab.label !== FINISHED_PAGES_LABEL &&
-        tab.label !== '预览',
+      (tab) => !isTowerPreviewTabLabel(tab.label),
     )
     const nextTabs = [
-      { label: FINISHED_PAGES_LABEL, closable: false },
+      { label: TOWER_PREVIEW_TAB_LABEL, closable: false },
       ...cleaned.map((tab) =>
         isTowerDefenseWorkspaceLabel(tab.label)
           ? { ...tab, closable: true }
@@ -10045,8 +10427,10 @@ export default function VibeCodingPage({
       ),
     ]
     setOpenTabs(nextTabs)
-    const nextActiveIndex = nextTabs.findIndex(
-      (tab) => tab.label === activeLabel,
+    const nextActiveIndex = nextTabs.findIndex((tab) =>
+      isTowerPreviewTabLabel(activeLabel)
+        ? isTowerPreviewTabLabel(tab.label)
+        : tab.label === activeLabel,
     )
     setActivePreviewTab(nextActiveIndex >= 0 ? nextActiveIndex : 0)
   }, [activePreviewTab, isTowerDefenseProject, openTabs])
@@ -10343,7 +10727,7 @@ export default function VibeCodingPage({
       if (hasPendingProduct) return
       setActivePreviewTab((current) => {
         const defaultLabel = isTowerDefenseProject
-          ? FINISHED_PAGES_LABEL
+          ? TOWER_PREVIEW_TAB_LABEL
           : isAssetOnlyProject(projectTitle)
           ? ASSET_LIBRARY_LABEL
           : '预览'
@@ -10369,7 +10753,23 @@ export default function VibeCodingPage({
     ) {
       return
     }
+    // 玩法配置/素材库点「画布编辑」会先跳回预览。换 tab 的收起逻辑
+    // 不能把刚打开的多页编辑立刻关掉。
+    if (
+      isTowerDefenseProject &&
+      pendingTowerCanvasEditRef.current &&
+      isTowerPreviewTabLabel(labTab)
+    ) {
+      pendingTowerCanvasEditRef.current = false
+      return
+    }
     const frame = requestAnimationFrame(() => {
+      if (isTowerDefenseProject && pendingTowerCanvasEditRef.current) {
+        pendingTowerCanvasEditRef.current = false
+        setEditPanelOpen(true)
+        setCanvasEditOpen(true)
+        return
+      }
       if (isTowerDefenseProject) {
         const label = openTabs[activePreviewTab]?.label
         const requestedStage: TowerDefenseStage | null =
@@ -10510,7 +10910,12 @@ export default function VibeCodingPage({
   const gameCanvasModeOpen =
     canvasEditOpen &&
     activeProjectKind === 'web-game' &&
+    !isTowerDefenseProject &&
     openTabs[activePreviewTab]?.label === '预览'
+  const towerUiEditMode =
+    canvasEditOpen &&
+    isTowerDefenseProject &&
+    isTowerPreviewTabLabel(openTabs[activePreviewTab]?.label)
   const immersiveCanvasModeOpen = h5CanvasModeOpen || gameCanvasModeOpen
   // 这夏夯爆了编辑态：进入编辑后左侧项目导航自动收起，给属性面板让位。
   const xiahuaEditMode =
@@ -10528,9 +10933,10 @@ export default function VibeCodingPage({
     sidebarFullyHidden ||
     immersiveCanvasModeOpen ||
     xiahuaEditMode ||
-    h5LabEditMode
+    h5LabEditMode ||
+    towerUiEditMode
   const effectiveSidebarWidth =
-    immersiveCanvasModeOpen || xiahuaEditMode || h5LabEditMode
+    immersiveCanvasModeOpen || xiahuaEditMode || h5LabEditMode || towerUiEditMode
       ? 0
       : baseEffectiveSidebarWidth
   /* 画布编辑里对话流可以整条收起 —— 画布要横向铺开多帧，宽度比对话金贵。 */
@@ -10696,8 +11102,21 @@ export default function VibeCodingPage({
   const towerMapEditorActive =
     isTowerDefenseProject &&
     openTabs[activePreviewTab]?.label === TOWER_MAP_EDITOR_TOOL_LABEL
+  const waitingForGameTypePreview =
+    activeProjectKind === 'web-game' &&
+    sentMessages.at(-1)?.trigger === 'game-type-clarification'
 
-  const previewSurface = !activeProjectHasTree ? (
+  const previewSurface = waitingForGameTypePreview ? (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-8 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--fill-subtle)] text-[var(--color-ink)]/30">
+        <Gamepad2 size={22} strokeWidth={1.6} />
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="text-[14px] font-medium text-[var(--color-ink)]/70">等待选择游戏类型</p>
+        <p className="text-[12px] leading-[1.6] text-[var(--color-ink)]/45">在左侧选择类型并确认发送后，这里会开始生成游戏预览</p>
+      </div>
+    </div>
+  ) : !activeProjectHasTree ? (
     emptyProjectPreview
   ) : towerMapEditorActive ? (
     <TowerDefenseMapEditorCanvas
@@ -10711,12 +11130,22 @@ export default function VibeCodingPage({
       onEditorChange={setTowerMapEditor}
       className="min-h-0 w-full flex-1"
     />
+  ) : isTowerDefenseProject && towerUiEditMode ? (
+    <TowerDefenseEditStage
+      editor={towerUiEditor}
+      ui={towerDefenseFlow.ui}
+      onExit={() => {
+        setCanvasEditOpen(false)
+        setEditPanelOpen(false)
+      }}
+    />
   ) : isTowerDefenseProject ? (
     <TowerDefensePageCanvas
       key={towerReplayKey}
       flow={towerDefenseFlow}
       onFlowChange={setTowerDefenseFlow}
-      suspended={editPanelOpen && towerToolLayout === 'full'}
+      useVisualAssets={towerVisualAssetsApplied}
+      suspended={editPanelOpen && !towerLayoutLocked}
       className="min-h-0 w-full flex-1"
     />
   ) : activeProjectKind === 'web-game' ? (
@@ -11185,7 +11614,10 @@ export default function VibeCodingPage({
    * key → a display label instead of mutating the key. */
   const [projectDisplayNames, setProjectDisplayNames] = useState<
     Record<string, string>
-  >({ [XIAHUA_PROJECT]: '这夏夯爆了' })
+  >({
+    [XIAHUA_PROJECT]: '这夏夯爆了',
+    [TOWER_DEFENSE_PROJECT_NAME]: '三国塔防',
+  })
   const displayProjectName = (name: string) =>
     projectDisplayNames[name]?.trim() || name
   const renameProject = (name: string, next: string) =>
@@ -11356,6 +11788,7 @@ export default function VibeCodingPage({
       createdProjects={createdProjects}
       towerAssetLibraryUi={towerAssetLibraryUi}
       onTowerAssetLibraryUiChange={changeTowerAssetLibraryUi}
+      towerOpenedEditors={towerOpenedEditors}
     />
   )
 
@@ -12331,7 +12764,7 @@ export default function VibeCodingPage({
                           }}
                           className="flex justify-end"
                         >
-                          <div className="max-w-[85%] rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">
+                          <div className="max-w-[85%] whitespace-pre-wrap rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">
                             {m.canvasRef && (
                               <span className="mb-1.5 flex items-center gap-1 rounded-md bg-[var(--color-ink)]/[0.06] px-1.5 py-1 text-[11.5px] text-[var(--color-ink)]/60">
                                 <LayoutGrid className="size-3 shrink-0" />
@@ -12343,13 +12776,63 @@ export default function VibeCodingPage({
                             {m.text}
                           </div>
                         </motion.div>
+                        {m.trigger === 'game-type-clarification' && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-4"
+                          >
+                            <div className="space-y-2 text-[13px] leading-6 text-[var(--color-ink)]/78">
+                              <p>我已经收到你的游戏构想。为了匹配正确的玩法框架，请先从下面三种游戏类型中选择一种开始：</p>
+                              <p className="text-[12px] text-[var(--color-ink)]/48">选择后会保留你刚才输入的需求，并进入对应的生成流程。</p>
+                            </div>
+                            <div>
+                              <p className="mb-2 text-[11px] font-medium text-[var(--color-ink)]/42">推荐继续</p>
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const original = m.text.replace(/^【[^】]+】/u, '').trim()
+                                    setComposerText(`【塔防】生成一款塔防建造游戏，玩法：英雄和建筑塔守擂，角色：己方英雄，敌方6种兵种，世界观风格为：三国主题风格${original ? `。补充需求：${original}` : ''}`)
+                                    focusComposerAtEnd()
+                                  }}
+                                  className="h-8 rounded-lg bg-[#161823] px-3 text-[11px] font-medium text-white hover:bg-black"
+                                >
+                                  塔防游戏 →
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const original = m.text.replace(/^【[^】]+】/u, '').trim()
+                                    setComposerText(`【割草】生成一款轻量割草游戏，玩法：英雄自动攻击并通过技能构筑抵御连续敌潮，角色：己方英雄与多种敌人，节奏：短局高反馈${original ? `。补充需求：${original}` : ''}`)
+                                    focusComposerAtEnd()
+                                  }}
+                                  className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]"
+                                >
+                                  割草游戏 →
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const original = m.text.replace(/^【[^】]+】/u, '').trim()
+                                    setComposerText(`【2D 射击】生成一款2D射击游戏，玩法：玩家控制角色移动、射击并躲避敌方攻击，角色：己方主角与多种敌人，表现：清晰弹道与即时命中反馈${original ? `。补充需求：${original}` : ''}`)
+                                    focusComposerAtEnd()
+                                  }}
+                                  className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]"
+                                >
+                                  2D 射击游戏 →
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
                         {m.trigger === 'tower-asset-generation' && (() => {
                           const job = towerAssetChatJobs[m.id]
                           const asset = towerDefenseFlow.assets.find(
                             (item) => item.id === job?.assetId,
                           )
                           if (job?.status === 'completed') {
-                            const preview = asset?.visualVersions?.[0]?.src
+                            const preview = asset?.visualVersions?.[job.versionIndex]?.src
                             return (
                               <motion.button
                                 type="button"
@@ -12358,6 +12841,12 @@ export default function VibeCodingPage({
                                 onClick={() => {
                                   if (!asset) return
                                   setTowerSelectedAssetId(asset.id)
+                                  setTowerAssetPreviewRequest({
+                                    assetId: asset.id,
+                                    versionIndex: job.versionIndex,
+                                    versionLabel: job.versionLabel,
+                                    nonce: Date.now(),
+                                  })
                                   openTowerDefenseStage(
                                     towerDefenseFlow.stage === 'asset-production'
                                       ? 'asset-production'
@@ -12392,7 +12881,7 @@ export default function VibeCodingPage({
                               className="flex items-center gap-2 text-[13px] text-[var(--color-ink)]/72"
                             >
                               <span className="size-3.5 animate-spin rounded-full border-2 border-[var(--color-ink)]/15 border-t-[var(--color-ink)]/70" />
-                              正在生成图片，新方案已在右侧游戏资产库中创建。
+                              正在生成图片，新方案已在右侧素材库中创建。
                             </motion.div>
                           )
                         })()}
@@ -12509,19 +12998,54 @@ export default function VibeCodingPage({
                               {action?.status === 'completed' && (
                                 <>
                                   <p className="text-[13px] leading-6 text-[var(--color-ink)]/78">分析摘要：已核对每波敌人数、波次间隔、初始金币、建造成本和基地生命，当前参数能够形成“获取资源—选择塔型—抵御波次—结算反馈”的完整核心循环。</p>
-                                  <p className="text-[13px] leading-6 text-[var(--color-ink)]"><strong>结论：</strong>{action.reply}</p>
+                                  <p className="whitespace-pre-wrap text-[13px] leading-6 text-[var(--color-ink)]"><strong>结论：</strong>{action.reply}</p>
                                   <button type="button" onClick={() => openTowerDefenseDeliverable('gameplay')} className="flex w-full items-center gap-3 rounded-xl border border-black/[0.08] bg-white p-3 text-left hover:bg-[#fafafa]">
                                     <span className="grid size-9 place-items-center rounded-lg bg-sky-50 text-sky-600">文</span>
                                     <span className="min-w-0 flex-1"><strong className="block text-[12px]">塔防玩法方案.md</strong><span className="block truncate text-[10px] text-[var(--color-ink)]/42">核心循环、Fast 参数与试玩验证结论</span></span>
                                     <span className="text-[var(--color-ink)]/35">›</span>
                                   </button>
-                                  {action.nextStage && <button type="button" onClick={() => openTowerDefenseStage(action.nextStage!)} className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]">下一步：{action.nextLabel ?? getTowerDefenseStageTabLabel(action.nextStage)} →</button>}
+                                  {action.nextStage && <button type="button" onClick={() => action.nextStage === 'art-direction' ? beginTowerVisualIntent() : action.nextStage === 'asset-production' ? applyTowerAssetProductionPlan() : openTowerDefenseStage(action.nextStage!)} className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]">下一步：{action.nextLabel ?? getTowerDefenseStageTabLabel(action.nextStage)} →</button>}
                                 </>
                               )}
                             </div>
                           </Fragment>
                         )
                       })}
+
+                    {isTowerDefenseProject && towerVisualReferencePending && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-3"
+                      >
+                        <div className="space-y-1.5 text-[13px] leading-6 text-[var(--color-ink)]/78">
+                          <p>视觉方向已经确认。你还有图片、视频、GIF 或其他素材需要作为生成参考吗？</p>
+                          <p className="text-[12px] text-[var(--color-ink)]/46">可以通过输入框添加附件并补充说明；如果没有，我会直接规划右侧素材库并开始逐张生成。</p>
+                        </div>
+                        <div>
+                          <p className="mb-2 text-[11px] font-medium text-[var(--color-ink)]/42">推荐继续</p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setComposerText('补充视觉参考：')
+                                focusComposerAtEnd()
+                              }}
+                              className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]"
+                            >
+                              添加参考素材
+                            </button>
+                            <button
+                              type="button"
+                              onClick={startTowerVisualGeneration}
+                              className="h-8 rounded-lg bg-[#161823] px-3 text-[11px] font-medium text-white hover:bg-black"
+                            >
+                              没有，直接生成 →
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
 
                     {isTowerDefenseProject && towerVisualGeneration !== 'questions' && (
                       <div className="space-y-3">
@@ -12552,14 +13076,14 @@ export default function VibeCodingPage({
                       </div>
                     )}
 
-                    {sentMessages
+                    {!isTowerDefenseProject && sentMessages
                       .filter((message) => message.trigger === 'tower-asset-generation')
                       .map((message) => {
                         const job = towerAssetChatJobs[message.id]
                         const asset = towerDefenseFlow.assets.find(
                           (item) => item.id === job?.assetId,
                         )
-                        const preview = asset?.visualVersions?.[0]?.src
+                        const preview = asset?.visualVersions?.[job?.versionIndex ?? 0]?.src
                         return (
                           <Fragment key={`asset-generation-${message.id}`}>
                             <motion.div
@@ -12579,6 +13103,12 @@ export default function VibeCodingPage({
                                 onClick={() => {
                                   if (!asset) return
                                   setTowerSelectedAssetId(asset.id)
+                                  setTowerAssetPreviewRequest({
+                                    assetId: asset.id,
+                                    versionIndex: job?.versionIndex ?? 0,
+                                    versionLabel: job?.versionLabel ?? '新方案',
+                                    nonce: Date.now(),
+                                  })
                                   openTowerDefenseStage(
                                     towerDefenseFlow.stage === 'asset-production'
                                       ? 'asset-production'
@@ -12611,7 +13141,7 @@ export default function VibeCodingPage({
                                 className="flex items-center gap-2 text-[13px] text-[var(--color-ink)]/72"
                               >
                                 <span className="size-3.5 animate-spin rounded-full border-2 border-[var(--color-ink)]/15 border-t-[var(--color-ink)]/70" />
-                                正在生成图片，新方案已同步到右侧游戏资产库。
+                                正在生成图片，新方案已同步到右侧素材库。
                               </motion.div>
                             )}
                           </Fragment>
@@ -12646,7 +13176,15 @@ export default function VibeCodingPage({
                                   <span className="grid size-9 place-items-center rounded-lg bg-emerald-50 text-emerald-600">文</span>
                                   <span className="min-w-0 flex-1"><strong className="block text-[12px]">游戏美术设定.md</strong><span className="block truncate text-[10px] text-[var(--color-ink)]/42">已确认视觉、引用关系与游戏预览绑定</span></span><span className="text-[var(--color-ink)]/35">›</span>
                                 </button>
-                                <div><p className="mb-2 text-[11px] font-medium text-[var(--color-ink)]/42">推荐继续</p><button type="button" onClick={planTowerAssetProduction} className="h-8 rounded-lg bg-[#161823] px-3 text-[11px] font-medium text-white hover:bg-black">资产生产 →</button></div>
+                                <div>
+                                  <p className="mb-1 text-[11px] font-medium text-[var(--color-ink)]/42">推荐继续 · 以下功能可任选</p>
+                                  <p className="mb-2 text-[10px] leading-4 text-[var(--color-ink)]/38">视觉设定之后不再限制编辑顺序，可以直接进入任一生产或编辑工具。</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    <button type="button" onClick={planTowerAssetProduction} className="h-8 rounded-lg bg-[#161823] px-3 text-[11px] font-medium text-white hover:bg-black">资产生产 →</button>
+                                    <button type="button" onClick={openTowerDefenseMapEditor} className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]">地图编辑 →</button>
+                                    <button type="button" onClick={openTowerSpriteMakerTool} className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]">序列帧工具 →</button>
+                                  </div>
+                                </div>
                               </motion.div>
                             ) : (
                               <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 text-[13px] text-[var(--color-ink)]/72">
@@ -12675,7 +13213,7 @@ export default function VibeCodingPage({
                               {action?.status === 'completed' && (
                                 <>
                                   <p className="text-[13px] leading-6 text-[var(--color-ink)]/78">分析摘要：已汇总本轮右侧编辑器的修改，并检查其与当前玩法、资产绑定、页面预览和后续阶段输入是否一致。</p>
-                                  <p className="text-[13px] leading-6 text-[var(--color-ink)]"><strong>结论：</strong>{action.reply}</p>
+                                  <p className="whitespace-pre-wrap text-[13px] leading-6 text-[var(--color-ink)]"><strong>结论：</strong>{action.reply}</p>
                                   {action.stage === 'asset-production' && (
                                     <div className="overflow-hidden rounded-xl border border-black/[0.08] bg-white">
                                       <div className="grid grid-cols-[1fr_1.2fr_.8fr] border-b border-black/[0.06] bg-[#f7f7f8] px-3 py-2 text-[10px] font-medium text-[var(--color-ink)]/48"><span>资产</span><span>状态规划</span><span>方向</span></div>
@@ -14560,6 +15098,78 @@ export default function VibeCodingPage({
                     )}
                   </div>
                 )}
+
+                {isTowerDefenseProject && sentMessages
+                  .filter((message) => message.trigger === 'tower-asset-generation')
+                  .map((message) => {
+                    const job = towerAssetChatJobs[message.id]
+                    const asset = towerDefenseFlow.assets.find(
+                      (item) => item.id === job?.assetId,
+                    )
+                    const preview = asset?.visualVersions?.[job?.versionIndex ?? 0]?.src
+                    return (
+                      <Fragment key={`latest-asset-generation-${message.id}`}>
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex justify-end"
+                        >
+                          <div className="max-w-[85%] rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">
+                            {message.text}
+                          </div>
+                        </motion.div>
+                        {job?.status === 'completed' ? (
+                          <motion.button
+                            type="button"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            onClick={() => {
+                              if (!asset) return
+                              setTowerSelectedAssetId(asset.id)
+                              setTowerAssetPreviewRequest({
+                                assetId: asset.id,
+                                versionIndex: job.versionIndex,
+                                versionLabel: job.versionLabel,
+                                nonce: Date.now(),
+                              })
+                              openTowerDefenseStage(
+                                towerDefenseFlow.stage === 'asset-production'
+                                  ? 'asset-production'
+                                  : 'art-direction',
+                              )
+                            }}
+                            className="w-full overflow-hidden rounded-xl border border-black/[0.08] bg-white text-left shadow-sm transition hover:border-black/20 hover:shadow-md"
+                          >
+                            {preview ? (
+                              <img
+                                src={preview}
+                                alt={`${asset?.name ?? '游戏资产'}新生成方案`}
+                                className="block max-h-48 w-full bg-[#f5f5f6] object-cover"
+                              />
+                            ) : (
+                              <div className="aspect-[16/9] bg-[#eef0f2]" />
+                            )}
+                            <span className="flex items-center justify-between gap-3 px-3 py-2.5">
+                              <span>
+                                <strong className="block text-[12px] font-semibold text-[var(--color-ink)]">{asset?.name ?? '游戏资产'} · 新生成方案</strong>
+                                <span className="text-[10px] text-[var(--color-ink)]/45">已追加至该槽位的生成记录</span>
+                              </span>
+                              <span className="shrink-0 text-[11px] font-medium text-[var(--color-ink)]/62">查看生成记录 →</span>
+                            </span>
+                          </motion.button>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-center gap-2 text-[13px] text-[var(--color-ink)]/72"
+                          >
+                            <span className="size-3.5 animate-spin rounded-full border-2 border-[var(--color-ink)]/15 border-t-[var(--color-ink)]/70" />
+                            正在重新生成，右侧生成记录已新增任务…
+                          </motion.div>
+                        )}
+                      </Fragment>
+                    )
+                  })}
               </div>
 
               {/* ── Composer — matches Figma Prompt Input: white card with
@@ -14571,7 +15181,7 @@ export default function VibeCodingPage({
                 awaiting submission, the composer is swapped with a focus
                 hint bar so the user has only one input target. ── */}
               <div className="mx-5 flex-shrink-0">
-                {isTowerDefenseProject && towerDefenseFlow.stage === 'art-direction' && towerVisualGeneration === 'questions' && (() => {
+                {isTowerDefenseProject && towerVisualIntentOpen && towerVisualGeneration === 'questions' && (() => {
                   const questions = [
                     { key: 'world', title: '这次游戏发生在什么样的世界？', hint: '用于统一地图、阵营、角色和建筑的叙事语言。', options: ['三国史诗', '暗夜幻想', '轻松幻想'] },
                     { key: 'style', title: '画面应该采用哪种视觉表现？', hint: '将直接影响角色比例、材质、轮廓和场景细节。', options: ['国风厚涂', '卡通渲染', '水墨剪影'] },
@@ -14629,7 +15239,7 @@ export default function VibeCodingPage({
                     </div>
                   )
                 })()}
-                {isTowerDefenseProject && towerDefenseFlow.stage === 'art-direction' && towerVisualGeneration === 'questions' ? null : proposalFormPendingLabel ? (
+                {isTowerDefenseProject && towerVisualIntentOpen && towerVisualGeneration === 'questions' ? null : proposalFormPendingLabel ? (
                   <div className="flex items-center gap-2 rounded-full bg-[var(--fill-subtle)] px-4 py-2 ring-1 ring-[var(--divider-soft)]">
                     <FileText
                       size={12}
@@ -15523,6 +16133,8 @@ export default function VibeCodingPage({
                     {openTabs.map((tab, i) => {
                       const isActive = i === activePreviewTab
                       const TabIcon = productLabelIcon(tab.label)
+                      const previewTabLock =
+                        isTowerDefenseProject && isTowerPreviewTabLabel(tab.label)
                       return (
                         <button
                           type="button"
@@ -15534,22 +16146,55 @@ export default function VibeCodingPage({
                         : 'text-[var(--color-ink)]/50 hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/80'
                     }`}
                         >
-                          {/* Leading slot: shows the tab icon by default; for
-                        closable tabs the close button overlays it on hover, so
-                        every tab keeps the same width and icon position. */}
+                          {/* Only 预览 owns the 4-lane lock. Other tabs just
+                        follow that state and keep their own icon. */}
                           <span className="relative flex h-[14px] w-[14px] shrink-0 items-center justify-center">
-                            <TabIcon
-                              size={13}
-                              strokeWidth={1.8}
-                              className={`opacity-70 ${tab.closable ? 'transition-opacity group-hover:opacity-0' : ''}`}
-                            />
+                            {previewTabLock ? (
+                              <span
+                                role="button"
+                                aria-pressed={towerLayoutLocked}
+                                aria-label={
+                                  towerLayoutLocked
+                                    ? '解锁预览，其他标签全屏并收起预览'
+                                    : '锁定预览，其他标签保持四栏分栏'
+                                }
+                                title={
+                                  towerLayoutLocked
+                                    ? '已锁定四栏 · 再点解锁'
+                                    : '未锁定 · 再点锁定四栏'
+                                }
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  setTowerToolLayout((layout) =>
+                                    layout === 'full' ? 'split' : 'full',
+                                  )
+                                }}
+                                className={`flex size-full cursor-pointer items-center justify-center rounded-sm ${
+                                  towerLayoutLocked
+                                    ? 'text-[var(--color-ink)]/80'
+                                    : 'text-[var(--color-ink)]/42'
+                                }`}
+                              >
+                                {towerLayoutLocked ? (
+                                  <Lock size={13} strokeWidth={1.8} />
+                                ) : (
+                                  <LockOpen size={13} strokeWidth={1.8} />
+                                )}
+                              </span>
+                            ) : (
+                              <TabIcon
+                                size={13}
+                                strokeWidth={1.8}
+                                className={`opacity-70 ${tab.closable ? 'transition-opacity group-hover:opacity-0' : ''}`}
+                              />
+                            )}
                             {tab.closable && (
                               <span
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   closeTab(i)
                                 }}
-                                className="absolute inset-0 flex items-center justify-center rounded text-[var(--color-ink)]/40 opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--color-ink)]/80"
+                                className="absolute inset-0 flex cursor-pointer items-center justify-center rounded text-[var(--color-ink)]/40 opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--color-ink)]/80"
                               >
                                 <X size={12} strokeWidth={2.2} />
                               </span>
@@ -15613,8 +16258,24 @@ export default function VibeCodingPage({
                           for (const node of productTree) {
                             flat.push({ label: node.name })
                           }
+                          const towerAdvancedToolsUnlocked =
+                            towerVisualGeneration === 'ready' ||
+                            towerVisualAssetsApplied
+                          if (isTowerDefenseProject && !towerAdvancedToolsUnlocked) {
+                            const availableBeforeVisual = new Set([
+                              GAME_GAMEPLAY_CONFIG_LABEL,
+                              GAME_ASSET_LIBRARY_LABEL,
+                              '项目文件',
+                            ])
+                            for (let index = flat.length - 1; index >= 0; index -= 1) {
+                              if (!availableBeforeVisual.has(flat[index].label)) {
+                                flat.splice(index, 1)
+                              }
+                            }
+                          }
                           if (
                             isTowerDefenseProject &&
+                            towerAdvancedToolsUnlocked &&
                             !flat.some(
                               (item) =>
                                 item.label === TOWER_MAP_EDITOR_TOOL_LABEL,
@@ -15624,6 +16285,7 @@ export default function VibeCodingPage({
                           }
                           if (
                             isTowerDefenseProject &&
+                            towerAdvancedToolsUnlocked &&
                             !flat.some(
                               (item) =>
                                 item.label === TOWER_SPRITE_SHEET_TOOL_LABEL,
@@ -15753,7 +16415,7 @@ export default function VibeCodingPage({
                           const isUnifiedEditablePreview =
                             (isMarketingPageSurface ||
                               (isTowerDefenseProject &&
-                                (lbl === FINISHED_PAGES_LABEL ||
+                                (isTowerPreviewTabLabel(lbl) ||
                                   isTowerDefenseWorkspaceLabel(lbl))) ||
                               (lbl === '预览' &&
                                 (activeProjectKind === 'marketing-h5' ||
@@ -16009,19 +16671,52 @@ export default function VibeCodingPage({
                                     </span>
                                   </button>
                                   {isTowerDefenseProject ? (
-                                    <button
-                                      type="button"
-                                      aria-pressed={editPanelOpen}
-                                      title="打开游戏工具"
-                                      onClick={() => {
-                                        setCanvasEditOpen(false)
-                                        setEditPanelOpen((open) => !open)
-                                      }}
-                                      className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa] aria-pressed:bg-[#f5f7fa]"
-                                    >
-                                      <ToolsLinearIcon className="size-4" />
-                                      <span>工具</span>
-                                    </button>
+                                    <>
+                                      {towerUiEditMode ? (
+                                        <button
+                                          type="button"
+                                          title="退出画布编辑"
+                                          onClick={() => {
+                                            setCanvasEditOpen(false)
+                                            setEditPanelOpen(false)
+                                          }}
+                                          className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23]/65 transition-colors hover:bg-[#f5f7fa] hover:text-[#1c1f23]"
+                                        >
+                                          <X className="size-3.5" />
+                                          <span>退出</span>
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          title="画布编辑"
+                                          onClick={() => {
+                                            if (
+                                              !isTowerPreviewTabLabel(
+                                                openTabs[activePreviewTab]?.label,
+                                              )
+                                            ) {
+                                              pendingTowerCanvasEditRef.current = true
+                                              focusPreviewTab(TOWER_PREVIEW_TAB_LABEL)
+                                            }
+                                            if (!canvasEditOpen) {
+                                              towerUiEditor.resetFrom(towerDefenseFlow.ui)
+                                            }
+                                            setEditPanelOpen(true)
+                                            setCanvasEditOpen(true)
+                                          }}
+                                          className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa]"
+                                        >
+                                          <span className="flex size-4 items-center justify-center">
+                                            <img
+                                              src="/icons/h5-editor/canvas.svg"
+                                              alt=""
+                                              className="h-3 w-[13.333px]"
+                                            />
+                                          </span>
+                                          <span>画布编辑</span>
+                                        </button>
+                                      )}
+                                    </>
                                   ) : xiahuaArtifactView ? null : isXiahuaFamily(
                                       projectTitle,
                                     ) ? (
@@ -16540,7 +17235,7 @@ export default function VibeCodingPage({
                                   }
                                 }}
                                 className={`relative flex min-h-0 flex-1 ${
-                    h5LabEditMode
+                    h5LabEditMode || towerUiEditMode
                       ? 'overflow-hidden'
                       : `overflow-auto ${
                           activeProjectKind === 'web-app' ||
@@ -16583,8 +17278,8 @@ export default function VibeCodingPage({
                                       }}
                                     />
                                   )}
-                                {h5LabEditMode ? (
-                                  /* H5 Lab 自己就是工作区的主画布。编辑时直接挂在
+                                {h5LabEditMode || towerUiEditMode ? (
+                                  /* H5 Lab / 游戏 UI 自己就是工作区的主画布。编辑时直接挂在
                                      点阵工作区上，不再套预览模式的缩放/滚动容器。 */
                                   <div className="relative z-10 flex min-h-0 min-w-0 flex-1">
                                     {previewSurface}
@@ -17689,6 +18384,7 @@ export default function VibeCodingPage({
                         }
                         if (
                           activeProjectKind === 'web-game' &&
+                          !isTowerDefenseProject &&
                           activeLabel === '预览' &&
                           canvasEditOpen
                         ) {
@@ -17792,7 +18488,7 @@ export default function VibeCodingPage({
                         if (activeProjectKind === 'web-game') {
                           if (
                             isTowerDefenseProject &&
-                            (activeLabel === FINISHED_PAGES_LABEL ||
+                            (isTowerPreviewTabLabel(activeLabel) ||
                               isTowerDefenseWorkspaceLabel(activeLabel))
                           )
                             return productView
@@ -18017,6 +18713,7 @@ export default function VibeCodingPage({
                       !immersiveCanvasModeOpen &&
                       !xiahuaEditMode &&
                       !h5LabEditMode &&
+                      !towerUiEditMode &&
                       !xiahuaArtifactView && (
                         <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2">
                           {isTowerDefenseProject && !towerMapEditorActive && (
@@ -18075,33 +18772,66 @@ export default function VibeCodingPage({
                   {editPanelOpen &&
                     !immersiveCanvasModeOpen &&
                     !(
+                      isTowerDefenseProject &&
+                      !towerUiEditMode &&
+                      !towerLayoutLocked &&
+                      isTowerPreviewTabLabel(openTabs[activePreviewTab]?.label)
+                    ) &&
+                    !(
                       activeProjectKind === 'web-game' &&
                       gameSelectedAsset?.kind === 'video'
                     ) && (
                       <aside
                         aria-label="编辑栏"
                         data-edit-panel-layout={
-                          isTowerDefenseProject && towerToolLayout === 'full'
+                          isTowerDefenseProject && !towerLayoutLocked && !towerUiEditMode
                             ? 'overlay'
                             : 'docked'
                         }
                         className={
-                          isTowerDefenseProject && towerToolLayout === 'full'
+                          isTowerDefenseProject && !towerLayoutLocked && !towerUiEditMode
                             ? 'absolute inset-0 z-50 min-h-0 bg-[var(--color-surface-0)]'
                             : 'relative shrink-0 border-l border-[var(--divider-soft)]'
                         }
                         style={
-                          isTowerDefenseProject && towerToolLayout === 'full'
+                          isTowerDefenseProject && !towerLayoutLocked && !towerUiEditMode
                             ? undefined
                             : {
                                 width: isTowerDefenseProject
-                                  ? Math.max(400, editPanelWidth)
+                                  ? Math.max(towerUiEditMode ? 340 : 400, editPanelWidth)
                                   : editPanelWidth,
                               }
                         }
                       >
-                        {isTowerDefenseProject ? (
+                        {towerUiEditMode ? (
+                          <TowerDefenseEditPanel
+                            editor={towerUiEditor}
+                            ui={towerDefenseFlow.ui}
+                            onUiChange={(nextUi) =>
+                              setTowerDefenseFlow((current) => ({
+                                ...current,
+                                ui: nextUi,
+                              }))
+                            }
+                            onApply={() =>
+                              setTowerDefenseFlow((current) => ({
+                                ...current,
+                                ui: towerUiEditor.applyTo(current.ui),
+                              }))
+                            }
+                            onClose={() => {
+                              setCanvasEditOpen(false)
+                              setEditPanelOpen(false)
+                            }}
+                          />
+                        ) : isTowerDefenseProject ? (
                           <div className="flex h-full min-h-0 flex-col bg-[var(--color-surface-0)]">
+                            {!(
+                              towerDefenseFlow.stage === 'art-direction' ||
+                              (towerDefenseFlow.stage === 'asset-production' &&
+                                openTabs[activePreviewTab]?.label !== TOWER_SPRITE_SHEET_TOOL_LABEL &&
+                                openTabs[activePreviewTab]?.label !== TOWER_MAP_EDITOR_TOOL_LABEL)
+                            ) && (
                             <div className="flex h-11 shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-3">
                               <div className="min-w-0 flex-1">
                                 <div className="truncate text-[12px] font-semibold text-[var(--color-ink)]">
@@ -18114,32 +18844,8 @@ export default function VibeCodingPage({
                                   右侧工具 · 页面预览保持同步
                                 </div>
                               </div>
-                              <button
-                                type="button"
-                                aria-label={
-                                  towerToolLayout === 'full'
-                                    ? '切换为分屏'
-                                    : '切换为全屏'
-                                }
-                                title={
-                                  towerToolLayout === 'full'
-                                    ? '分屏显示'
-                                    : '全屏显示'
-                                }
-                                onClick={() =>
-                                  setTowerToolLayout((layout) =>
-                                    layout === 'full' ? 'split' : 'full',
-                                  )
-                                }
-                                className="flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-                              >
-                                {towerToolLayout === 'full' ? (
-                                  <PanelRight size={15} />
-                                ) : (
-                                  <Maximize2 size={15} />
-                                )}
-                              </button>
                             </div>
+                            )}
                             <div className="min-h-0 flex-1 overflow-hidden">
                               {openTabs[activePreviewTab]?.label === TOWER_MAP_EDITOR_TOOL_LABEL ? (
                                 <TowerDefenseMapEditorPanel
@@ -18163,13 +18869,7 @@ export default function VibeCodingPage({
                                       gameplay,
                                     }))
                                   }
-                                  onConfirm={() =>
-                                    commitTowerPanelAction(
-                                      '确认当前玩法参数，并将这版 Fast 玩法更新到游戏。',
-                                      '玩法已更新，当前参数已同步到可试玩版本。',
-                                      { nextStage: 'art-direction', nextLabel: '游戏视觉设定' },
-                                    )
-                                  }
+                                  onConfirm={confirmTowerGameplay}
                                 />
                               ) : towerDefenseFlow.stage ===
                                   'art-direction' ||
@@ -18201,8 +18901,12 @@ export default function VibeCodingPage({
                                   }}
                                   onRegenerateAsset={sendTowerAssetRegeneration}
                                   onCreateSprite={openTowerAssetInSpriteMaker}
-                                  onReferenceChange={previewTowerVisualSelection}
-                                  onPreviewOpen={() => setTowerToolLayout('full')}
+                                  onAddVisualVersion={addTowerVisualVersion}
+                                  onReferenceChange={updateTowerBaseMaterial}
+                                  onSetAssetEnabled={setTowerAssetEnabled}
+                                  canvasEditing={towerAssetCanvasEditing}
+                                  onCanvasEditingChange={setTowerAssetCanvasEditing}
+                                  previewRequest={towerAssetPreviewRequest}
                                   visibleImageCount={
                                     towerDefenseFlow.stage === 'art-direction'
                                       ? towerVisibleAssetCount
@@ -18212,8 +18916,11 @@ export default function VibeCodingPage({
                                     towerDefenseFlow.stage === 'art-direction' &&
                                     towerVisualGeneration === 'generating'
                                   }
+                                  productionApplied={towerAssetProductionApplied}
                                   onConfirmSelections={confirmTowerVisualSelections}
                                   onUpdateState={updateTowerAssetState}
+                                  onAssignMaterial={assignTowerAssetMaterial}
+                                  onAssignDirectionMaterial={assignTowerAssetDirectionMaterial}
                                   onAddState={addTowerAssetState}
                                   onDeleteState={deleteTowerAssetState}
                                   onGenerateCell={(assetId, stateId, direction) =>
@@ -18240,10 +18947,25 @@ export default function VibeCodingPage({
                                   onAddTowerSlot={addTowerBuildSlot}
                                   onMoveTowerSlot={moveTowerBuildSlot}
                                   onDeleteTowerSlot={deleteTowerBuildSlot}
+                                  uiSlices={towerDefenseFlow.ui.slices ?? []}
+                                  uiNodes={towerUiEditor.nodes}
+                                  uiScreens={towerUiEditor.screens}
+                                  onDeleteUiSlice={(sliceId) =>
+                                    setTowerDefenseFlow((current) => ({
+                                      ...current,
+                                      ui: {
+                                        ...current.ui,
+                                        slices: (current.ui.slices ?? []).filter(
+                                          (item) => item.id !== sliceId,
+                                        ),
+                                      },
+                                    }))
+                                  }
                                   onProceed={
-                                    towerDefenseFlow.stage ===
-                                    'art-direction'
-                                      ? proceedFromTowerArtDirection
+                                    towerDefenseFlow.stage === 'art-direction'
+                                      ? undefined
+                                      : !towerAssetProductionApplied
+                                        ? applyTowerAssetProductionPlan
                                       : () =>
                                           commitTowerPanelAction(
                                             '确认当前资产制作结果，并更新到游戏版本。',
@@ -18474,8 +19196,7 @@ export default function VibeCodingPage({
                             )
                           })()
                         )}
-                        {(!isTowerDefenseProject ||
-                          towerToolLayout === 'split') && (
+                        {(!isTowerDefenseProject || towerLayoutLocked) && (
                           <div
                             role="separator"
                             aria-label="调整编辑栏宽度"

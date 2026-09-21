@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#10261F"/>
+  <rect x="0" y="0" width="390" height="844" fill="url(#glow)"/>
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="28%" r="70%">
+      <stop offset="0%" stop-color="#D8FF6A" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#10261F" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="18" y="16" width="56" height="6" rx="3" fill="#F0FFF7" opacity="0.35"/>
+  <rect x="160" y="16" width="70" height="6" rx="3" fill="#F0FFF7" opacity="0.55"/>
+  <rect x="316" y="16" width="56" height="6" rx="3" fill="#F0FFF7" opacity="0.35"/>
+  <rect x="24" y="110" width="342" height="430" rx="22" fill="#1C3B2E"/>
+  <path d="M60 140 C90 220 160 230 250 250 C320 265 300 330 210 380 C140 420 80 410 90 490 C110 560 250 540 270 600" stroke="#D8FF6A" stroke-width="10" stroke-linecap="round" opacity="0.35"/>
+  
+  <text x="195" y="300" text-anchor="middle" fill="#F0FFF7" font-family="PingFang SC, sans-serif" font-size="26" font-weight="600">月隐林 · 01</text>
+  <text x="195" y="334" text-anchor="middle" fill="#9BC2AD" font-family="PingFang SC, sans-serif" font-size="13">第 2 波</text>
+  <rect x="36" y="370" width="318" height="52" rx="14" fill="#1C3B2E"/>
+  <text x="56" y="401" fill="#F0FFF7" font-family="PingFang SC, sans-serif" font-size="13">生命 10</text>
+  <text x="334" y="401" text-anchor="end" fill="#D8FF6A" font-family="PingFang SC, sans-serif" font-size="13">金币 268</text><rect x="36" y="434" width="318" height="52" rx="14" fill="#1C3B2E"/>
+  <text x="56" y="465" fill="#F0FFF7" font-family="PingFang SC, sans-serif" font-size="13">波次 2 / 3</text>
+  <text x="334" y="465" text-anchor="end" fill="#D8FF6A" font-family="PingFang SC, sans-serif" font-size="13">塔位 3 / 6</text>
+  <rect x="72" y="720" width="246" height="44" rx="14" fill="#D8FF6A"/>
+  <text x="195" y="748" text-anchor="middle" fill="#10261F" font-family="PingFang SC, sans-serif" font-size="14" font-weight="600">连射塔</text><rect x="72" y="776" width="246" height="44" rx="14" fill="#D8FF6A"/>
+  <text x="195" y="804" text-anchor="middle" fill="#10261F" font-family="PingFang SC, sans-serif" font-size="14" font-weight="600">冰霜塔</text><rect x="72" y="832" width="246" height="44" rx="14" fill="#D8FF6A"/>
+  <text x="195" y="860" text-anchor="middle" fill="#10261F" font-family="PingFang SC, sans-serif" font-size="14" font-weight="600">轰击塔</text>
+  <rect x="24" y="800" width="342" height="22" rx="11" fill="#1C3B2E"/>
+  <text x="195" y="815" text-anchor="middle" fill="#9BC2AD" font-family="PingFang SC, sans-serif" font-size="10">方案 B · 占位成品 · battle</text>
+</svg>

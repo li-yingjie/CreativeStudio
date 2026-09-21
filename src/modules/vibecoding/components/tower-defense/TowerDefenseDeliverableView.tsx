@@ -91,11 +91,12 @@ export interface TowerDefenseDeliverableViewProps {
 }
 
 const CATEGORY_LABELS: Record<TowerDefenseAssetCategory, string> = {
-  'visual-style': '视觉风格',
-  map: '地图',
-  hero: '英雄',
-  enemy: '敌人',
-  tower: '防御塔',
+  'visual-style': '素材-视觉风格',
+  map: '素材-地图',
+  hero: '素材-英雄',
+  enemy: '素材-敌人',
+  tower: '素材-建筑塔',
+  ui: 'UI',
 }
 
 const TASK_STATUS_LABELS: Record<SpriteTaskStatus, string> = {

@@ -20,6 +20,7 @@ import {
   IconArrowUp,
   IconArrowUpRight,
   IconArrowsDiagonal,
+  IconArrowsDiagonalMinimize,
   IconArrowsSort,
   IconFolderPlus,
   IconArrowsLeftRight,
@@ -83,6 +84,7 @@ import {
   IconGauge,
   IconGavel,
   IconGift,
+  IconGripVertical,
   IconGitBranch,
   IconHeadphones,
   IconHeadset,
@@ -102,6 +104,7 @@ import {
   IconListTree,
   IconLoader2,
   IconLock,
+  IconLockOpen,
   IconLogout,
   IconMail,
   IconMenu2,
@@ -296,10 +299,13 @@ export const Layers = wrap(IconStack2)
 export const LayoutDashboard = wrap(IconLayoutDashboard)
 export const LayoutGrid = wrap(IconLayoutGrid)
 export const Lock = wrap(IconLock)
+export const LockOpen = wrap(IconLockOpen)
 export const LayoutTemplate = wrap(IconLayout)
 export const Library = wrap(IconBooks)
 export const Lightbulb = wrap(IconBulb)
 export const Maximize2 = wrap(IconArrowsDiagonal)
+export const Minimize2 = wrap(IconArrowsDiagonalMinimize)
+export const GripVertical = wrap(IconGripVertical)
 export const ListCollapse = wrap(IconListTree)
 export const ListChecks = wrap(IconListCheck)
 export const Loader2 = wrap(IconLoader2)

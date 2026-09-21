@@ -37,7 +37,17 @@ const STATUS_META: Record<SpriteTaskStatus, { label: string; className: string }
   failed: { label: '失败', className: 'bg-red-50 text-red-500' },
 }
 
-const DIRECTION_LABEL: Record<TowerDefenseDirection, string> = { front: '正面', back: '背面', left: '向左', right: '向右', none: '单向' }
+const DIRECTION_LABEL: Record<TowerDefenseDirection, string> = {
+  front: '正面',
+  'front-right': '右前',
+  right: '向右',
+  'back-right': '右后',
+  back: '背面',
+  'back-left': '左后',
+  left: '向左',
+  'front-left': '左前',
+  none: '单向',
+}
 
 function getLaunchScreen(source?: SpriteMakerLaunchSource | null): Exclude<ToolScreen, 'tasks'> {
   if (!source) return 'home'

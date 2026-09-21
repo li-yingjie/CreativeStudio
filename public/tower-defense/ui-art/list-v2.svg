@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#10261F"/>
+  <rect x="0" y="0" width="390" height="844" fill="url(#glow)"/>
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="28%" r="70%">
+      <stop offset="0%" stop-color="#D8FF6A" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#10261F" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="18" y="16" width="56" height="6" rx="3" fill="#F0FFF7" opacity="0.35"/>
+  <rect x="160" y="16" width="70" height="6" rx="3" fill="#F0FFF7" opacity="0.55"/>
+  <rect x="316" y="16" width="56" height="6" rx="3" fill="#F0FFF7" opacity="0.35"/>
+  
+  
+  <text x="195" y="300" text-anchor="middle" fill="#F0FFF7" font-family="PingFang SC, sans-serif" font-size="26" font-weight="600">本周守卫榜</text>
+  <text x="195" y="334" text-anchor="middle" fill="#9BC2AD" font-family="PingFang SC, sans-serif" font-size="13">按评分排名</text>
+  <rect x="36" y="370" width="318" height="52" rx="14" fill="#1C3B2E"/>
+  <text x="56" y="401" fill="#F0FFF7" font-family="PingFang SC, sans-serif" font-size="13">01  月隐守夜人</text>
+  <text x="334" y="401" text-anchor="end" fill="#D8FF6A" font-family="PingFang SC, sans-serif" font-size="13">986</text><rect x="36" y="434" width="318" height="52" rx="14" fill="#1C3B2E"/>
+  <text x="56" y="465" fill="#F0FFF7" font-family="PingFang SC, sans-serif" font-size="13">02  林间哨</text>
+  <text x="334" y="465" text-anchor="end" fill="#D8FF6A" font-family="PingFang SC, sans-serif" font-size="13">942</text><rect x="36" y="498" width="318" height="52" rx="14" fill="#1C3B2E"/>
+  <text x="56" y="529" fill="#F0FFF7" font-family="PingFang SC, sans-serif" font-size="13">03  纸境旅人</text>
+  <text x="334" y="529" text-anchor="end" fill="#D8FF6A" font-family="PingFang SC, sans-serif" font-size="13">901</text>
+  <rect x="72" y="620" width="246" height="44" rx="14" fill="#D8FF6A"/>
+  <text x="195" y="648" text-anchor="middle" fill="#10261F" font-family="PingFang SC, sans-serif" font-size="14" font-weight="600">返回开始页</text>
+  <rect x="24" y="800" width="342" height="22" rx="11" fill="#1C3B2E"/>
+  <text x="195" y="815" text-anchor="middle" fill="#9BC2AD" font-family="PingFang SC, sans-serif" font-size="10">方案 B · 占位成品 · list</text>
+</svg>

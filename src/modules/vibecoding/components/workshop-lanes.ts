@@ -16,6 +16,7 @@ export function laneFromKind(kind: ProjectKind): WorkshopLane | undefined {
 
 const SEEDED_PROJECT_LANES: Record<string, WorkshopLane> = {
   射击小游戏: 'game',
+  暮光防线: 'game',
   '抖音 ACG 游戏新春会': 'marketing',
   '夯爆了 已上线': 'marketing',
   '夏日冲浪 · 顺风顺水': 'marketing',

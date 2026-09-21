@@ -1085,7 +1085,7 @@ function ExportCard({
           onClick={onImportAsset}
           className="flex w-full items-center justify-center rounded-[12px] bg-[var(--ink)] px-3.5 py-3 text-sm font-medium text-[var(--bg)] transition hover:opacity-90"
         >
-          导入游戏资产库
+          导入素材库
         </button>
       </div>
     </div>
