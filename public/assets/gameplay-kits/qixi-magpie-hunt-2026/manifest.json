@@ -1,0 +1,54 @@
+{
+  "$schema": "gameplay-package/v1alpha1",
+  "id": "gameplay.hidden-object.magpie-hunt",
+  "version": "0.7.0",
+  "status": "integration_required",
+  "category": "hidden-object",
+  "compatibleSurfaces": ["douyin-h5", "lynx", "web-preview"],
+  "selection": {
+    "useWhen": ["lightweight_mass_participation", "multi_scene_discovery", "task_driven_return", "milestone_reward"],
+    "avoidWhen": ["realtime_multiplayer", "missing_hotspot_manifest", "missing_reward_or_risk_service"]
+  },
+  "preset": {
+    "id": "qixi-magpie-bridge-2026",
+    "schedule": { "start": "2026-08-15T00:00:00+08:00", "end": "2026-08-19T23:59:59+08:00" },
+    "round": { "durationSeconds": 90, "warningThresholdSeconds": 10, "pauseEnabled": false },
+    "stages": [
+      { "id": "stage-1", "targetCount": 5 },
+      { "id": "stage-2", "targetCount": 6 },
+      { "id": "stage-3", "targetCount": 6, "milestoneRewardRef": "coupon.stage-3" },
+      { "id": "stage-4", "targetCount": 7 },
+      { "id": "stage-5", "targetCount": 7 },
+      { "id": "stage-6", "targetCount": 8 },
+      { "id": "stage-7", "targetCount": 8, "milestoneRewardRef": "coupon.stage-7" }
+    ],
+    "attemptPolicy": { "initialGrant": 1, "consumeOnStart": 1, "refundOnFailure": false },
+    "rewards": { "perCompletedLevel": { "type": "lottery_chance", "amount": 1 } }
+  },
+  "requiredInputs": ["sceneAssetRefs", "hotspotManifest", "attemptPolicy", "rewardPolicyRef", "riskPolicyRef"],
+  "optionalInputs": ["taskPolicyRef", "sharePolicyRef", "leaderboardRef", "audioRef"],
+  "outputs": ["attempt_ledger", "level_progress", "reward_receipt", "activity_ledger"],
+  "events": ["gameplay.viewed", "level.started", "target.found", "target.missed", "level.completed", "level.failed", "attempt.granted", "reward.granted", "share.returned"],
+  "dependencies": [
+    { "id": "task-service", "required": true, "status": "unverified" },
+    { "id": "reward-service", "required": true, "status": "unverified" },
+    { "id": "lottery-service", "required": true, "status": "documented" },
+    { "id": "risk-service", "required": true, "status": "unverified" },
+    { "id": "share-service", "required": true, "status": "documented" }
+  ],
+  "validation": [
+    { "code": "HOTSPOT_COUNT_MISMATCH", "severity": "error", "rule": "hotspot count equals stage targetCount" },
+    { "code": "SOURCE_TOTAL_CONFLICT", "severity": "error", "rule": "resolved product total matches the sum of all stage targetCount values" },
+    { "code": "HOTSPOT_OUT_OF_SAFE_AREA", "severity": "error", "rule": "every hotspot is inside normalized safe area" },
+    { "code": "MISSING_REWARD_POLICY", "severity": "error", "rule": "rewardPolicyRef is resolvable" },
+    { "code": "MISSING_RISK_POLICY", "severity": "error", "rule": "riskPolicyRef is resolvable" },
+    { "code": "DUPLICATE_MILESTONE_RECEIPT", "severity": "error", "rule": "milestone reward is idempotent per uid and stage" },
+    { "code": "RETURN_CHANNEL_AMBIGUOUS", "severity": "error", "rule": "task invite return and ordinary share return use distinct channel ids" }
+  ],
+  "source": {
+    "document": "https://bytedance.larkoffice.com/docx/Q9Esd0NW0ojx2Vxu4TycirMynzc",
+    "documentRevision": 10,
+    "figma": "https://www.figma.com/design/NJuTLKg2n5omaJaR05aQSA/七夕互动玩法-找茬?node-id=1204-120121",
+    "verifiedAt": "2026-08-10"
+  }
+}

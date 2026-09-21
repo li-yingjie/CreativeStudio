@@ -1,0 +1,869 @@
+[
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/6cf95a17843e4dd38f18eaf97fc0f166~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "collage",
+    "labelKeys": [
+      "key-visual",
+      "collage",
+      "premium-design"
+    ],
+    "title": "岬角灯塔·纸面航线",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5 的触感型编辑纸张拼贴；暖米白色纤维纸底；一个占主导地位、边缘不规则撕裂的纪实照片碎片；少量从主场景提取的低细节纸面回声；仅一条细砖红色路线；轻微网点；大量留白。\n\n创作一张精致、原创的旅行编辑艺术图。主题是迎着海风的海岸灯塔与一名独行旅人。暖米白纤维纸背景并保留充足留白；主体为一个占主导位置的不规则撕边纪实照片碎片；周围仅放少量取自同一灯塔、海岸、海沫和被风压弯草地的低细节视觉回声；加入一条细砖红色路线；整体具有可触摸的模拟拼贴感、轻微网点与哑光纸纤维。不要出现任何可读文字、品牌标志或水印。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/e3a2062586fc4810a2ca18f187e9ad8a~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1024x1536&magic_type=image_png",
+    "slug": "collage",
+    "labelKeys": [
+      "key-visual",
+      "collage",
+      "premium-design"
+    ],
+    "title": "雨夜电车·纸面回声",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5 的触感型编辑纸张拼贴；暖米白色纤维纸底；一个占主导地位、边缘不规则撕裂的纪实照片碎片；少量从主场景提取的低细节纸面回声；仅一条细砖红色路线；轻微网点；大量留白。\n\n创作一张原创纸面回声编辑拼贴。场景：蓝调时刻，一辆红色城市电车驶过被雨浸透的老街区，一人撑透明伞等候。竖版 4:5；主体为一个不规则撕边纪实照片碎片。照片外只延展由照片自身提取的低细节回声：简化湿轨、电车窗矩形、伞弧、雨中倒影和屋顶剪影。一条细砖红色路线进入画面、藏到照片后再出现。保留大量留白和极少定位印刷记号。触感模拟拼贴、哑光纸纤维、轻微网点，暗红、蓝灰与橄榄色。保持系列统一但使用全新场景与版式。不要可读文字、标志、水印、杂乱剪贴簿装饰或无关元素。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1024,
+    "height": 1536,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/e1e1b456fcea4f06b0980f15486b6f82~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1003x1568&magic_type=image_png",
+    "slug": "collage",
+    "labelKeys": [
+      "key-visual",
+      "collage",
+      "premium-design"
+    ],
+    "title": "雪岭木屋·纸面回声",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5 的触感型编辑纸张拼贴；暖米白色纤维纸底；一个占主导地位、边缘不规则撕裂的纪实照片碎片；少量从主场景提取的低细节纸面回声；仅一条细砖红色路线；轻微网点；大量留白。\n\n只使用这里描述的视觉机制，创作原创纸面回声编辑拼贴，不复制既有题材或版式。场景：日出刚过，阿尔卑斯雪原边缘的一座孤独深色木屋，一条滑雪痕弯向木屋。竖版 4:5；一个撕边纪实照片碎片偏置于上半部。低细节纸面回声必须来自照片本身：简化雪脊、屋顶斜线、少量松树剪影和弯曲雪痕。一条克制的砖红细线与雪痕互动但不能像地图。大面积安静留白。冷蓝、燕麦色、炭黑和极少锈红，轻微网点与毛边纸。不要可读文字、标志、水印、通用贴纸或与照片无关的装饰碎片。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1003,
+    "height": 1568,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/a0525d6dcbac4098aec9dc495b9f9683~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "collage",
+    "labelKeys": [
+      "key-visual",
+      "collage",
+      "premium-design"
+    ],
+    "title": "荒漠天文台·纸面航线",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5 的触感型编辑纸张拼贴；暖米白色纤维纸底；一个占主导地位、边缘不规则撕裂的纪实照片碎片；少量从主场景提取的低细节纸面回声；仅一条细砖红色路线；轻微网点；大量留白。\n\n创作一张原创纸面回声编辑拼贴。场景：辽阔锈色荒漠中的小型白色天文台圆顶，浅色白昼月亮悬空，一名极小的野外研究员背离圆顶行走。竖版 4:5；以含圆顶和荒漠的撕边纪实照片为主体。周围低细节剪纸回声只来自同一场景：圆顶弧线、层叠沙丘、月轮、风线与微小行人。细砖红色路线绕一圈后退出。大量留白，编辑设计精准。模拟旅行手账与博物馆刊物结合，轻微网点、哑光纸纤维，沙色、米白、灰蓝与砖红。不要可读文字、标志、水印、无关图标、繁忙剪贴簿或复制既有构图。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/a84110431ecf48f783c6528aa21882c1~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "collage",
+    "labelKeys": [
+      "key-visual",
+      "collage",
+      "premium-design"
+    ],
+    "title": "晨雾渡船·纸面回声",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5 的触感型编辑纸张拼贴；暖米白色纤维纸底；一个占主导地位、边缘不规则撕裂的纪实照片碎片；少量从主场景提取的低细节纸面回声；仅一条细砖红色路线；轻微网点；大量留白。\n\n创作一张原创纸面回声编辑拼贴。场景：清晨木制客渡船横穿宽阔雾河，载着自行车与三名小小通勤者；远处集镇隐在雾里。竖版 4:5；不同于高竖主体，用一条横贯中部的宽撕边纪实照片碎片。照片外的低细节回声只取自照片：层叠水纹、渡船顶篷、自行车轮圆形与雾中屋顶。仅一条细砖红路线横过水纹回声，终止在一个小剪纸通勤者附近。大量留白；燕麦色、褪青、烟灰与暗锈红，触感模拟编辑刊物、轻微网点。保持系列统一但采用新构图。不要可读文字、标志、水印、无关图标或复制题材。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/1a1c9bd0f9544beaa6d9e7fcdec56f76~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1254x1254&magic_type=image_png",
+    "slug": "food",
+    "labelKeys": [
+      "key-visual",
+      "food",
+      "illustration"
+    ],
+    "title": "麻婆豆腐·复古食谱",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：方形的 20 世纪中期食谱插画，融合复古丝网印刷与孔版印刷；暖米白色无涂层纸；严格限用米白、暗芥末黄、深海军蓝、森林绿和砖红；造型粗壮简化；可见油墨颗粒与轻微套色偏移。\n\n创作一张精致原创的方形食物插画。俯拍一碗四川麻婆豆腐，可见豆腐块、肉末、红辣椒、葱花与一把小瓷勺。碗居中并留有呼吸空间；暖米白纸上融合 20 世纪中期食谱画与复古孔版印刷；严格限色，造型粗壮简化，油墨颗粒可见并有轻微套色偏移。不要可读文字、标志或水印。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1254,
+    "height": 1254,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/5eee3eaa015147b29abacda708c03501~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1254x1254&magic_type=image_png",
+    "slug": "food",
+    "labelKeys": [
+      "key-visual",
+      "food",
+      "illustration"
+    ],
+    "title": "担担面·孔版食谱",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：方形的 20 世纪中期食谱插画，融合复古丝网印刷与孔版印刷；暖米白色无涂层纸；严格限用米白、暗芥末黄、深海军蓝、森林绿和砖红；造型粗壮简化；可见油墨颗粒与轻微套色偏移。\n\n创作一张原创方形复古食物印刷图。主题：俯拍担担面，清楚显示旋涡状面条、肉末、葱花、芝麻和一小汪辣油；一双简化的深色筷子斜向伸入。方形 1:1，碗居中且留白；仅用五个小型几何或食材符号形成不对称平衡。造型粗壮简化，粗粝油墨颗粒、轻微套色偏移，诱人但不写实。不要可读文字、标签、标志、水印、华丽边框、三维渲染或过多道具。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1254,
+    "height": 1254,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/c9ba99a0cd254a5dbdfb0fd2a166e417~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1254x1254&magic_type=image_png",
+    "slug": "food",
+    "labelKeys": [
+      "key-visual",
+      "food",
+      "illustration"
+    ],
+    "title": "小笼包·孔版食谱",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：方形的 20 世纪中期食谱插画，融合复古丝网印刷与孔版印刷；暖米白色无涂层纸；严格限用米白、暗芥末黄、深海军蓝、森林绿和砖红；造型粗壮简化；可见油墨颗粒与轻微套色偏移。\n\n创作一张原创方形复古食物印刷图。俯拍圆竹蒸笼，内有七只小笼包，一只被简洁深色筷子略微夹起；旁边放一小碟黑醋和两丝姜。蒸笼略偏左，保留安静留白；右侧只用少量圆形、短条和食材剪影平衡。保持系列线重与触感，但构图不同。不要可读文字、标签、标志、水印、华丽装饰、现代商品摄影或真实阴影。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1254,
+    "height": 1254,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/821316528e6842ca939d8ea8846237bb~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1254x1254&magic_type=image_png",
+    "slug": "food",
+    "labelKeys": [
+      "key-visual",
+      "food",
+      "illustration"
+    ],
+    "title": "云吞汤·复古食谱",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：方形的 20 世纪中期食谱插画，融合复古丝网印刷与孔版印刷；暖米白色无涂层纸；严格限用米白、暗芥末黄、深海军蓝、森林绿和砖红；造型粗壮简化；可见油墨颗粒与轻微套色偏移。\n\n创作一张原创方形复古食物印刷图。俯拍一碗清汤云吞，六只折叠云吞、几片青菜、葱圈和一把小陶勺。碗置于右下，左上保留大面积米白留白；只用四个抽象符号呼应褶皱和水纹。严格限色、粗壮简化造型、粗粝油墨颗粒与轻微套色偏移。保持系列触感但采用全新版式。不要可读文字、标志、水印、华丽边框、写实灯光或过多道具。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1254,
+    "height": 1254,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/2795239045534ef1adda22c01bb7d9c0~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1254x1254&magic_type=image_png",
+    "slug": "food",
+    "labelKeys": [
+      "key-visual",
+      "food",
+      "illustration"
+    ],
+    "title": "烤鸭拼盘·复古食谱",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：方形的 20 世纪中期食谱插画，融合复古丝网印刷与孔版印刷；暖米白色无涂层纸；严格限用米白、暗芥末黄、深海军蓝、森林绿和砖红；造型粗壮简化；可见油墨颗粒与轻微套色偏移。\n\n创作一张原创方形复古食物印刷图。俯拍椭圆盘中整齐码放的烤鸭片，砖红脆皮、浅色薄饼、葱段与一小碗深色酱料。椭圆盘从左下斜向右上，以少量海军蓝矩形和芥末黄圆点平衡。暖米白纸、严格限色、简化大胆形状、可见油墨颗粒与轻微套色偏移。与系列统一但构图全新。不要可读文字、标志、水印、写实桌景、华丽边框或杂乱道具。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1254,
+    "height": 1254,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/683e1e7c9286496dad70550ebaab1869~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1254x1254&magic_type=image_png",
+    "slug": "food",
+    "labelKeys": [
+      "key-visual",
+      "food",
+      "illustration"
+    ],
+    "title": "芒果糯米饭·孔版食谱",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：方形的 20 世纪中期食谱插画，融合复古丝网印刷与孔版印刷；暖米白色无涂层纸；严格限用米白、暗芥末黄、深海军蓝、森林绿和砖红；造型粗壮简化；可见油墨颗粒与轻微套色偏移。\n\n创作一张原创方形复古食物印刷图。俯拍陶盘中的切片芒果与椰香糯米饭，两片薄荷叶和一小股椰浆。采用活泼但稀疏的放射构图：盘子略高于中心，周围只有一个芥末黄日轮、几根海军蓝短线和森林绿叶片回声。暖米白纸、严格限色、触感颗粒与轻微套色偏移。保持系列统一但版式鲜明不同。不要可读文字、标志、水印、渐变、写实三维、华丽边框或过度装饰。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1254,
+    "height": 1254,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/672b18c7a59541f6b1e9d29e7b1584e4~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "illustration",
+    "labelKeys": [
+      "key-visual",
+      "illustration",
+      "premium-design"
+    ],
+    "title": "裂光孤舟·俯瞰水墨",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5 的崇高感俯瞰水墨空间；地形、海洋与风暴云故意保持暧昧；人物或动物小于画面 1%；粗糙纤维纸上使用炭黑、深赭、烟褐和克制的淡金，呈现干笔、淡墨洇染与哑光水粉颗粒。\n\n创作一张原创竖版艺术图：从极高的斜俯视角观察，一只极小的孤独木舟横渡巨大黑褐墨海里的一道狭窄发光裂缝。海涌、侵蚀地形和折叠云层保持难以辨认；极大留白；仅一个精准星芒。使用炭黑、深赭、烟褐与克制淡金；干笔脊线、淡墨洇染、粗糙纸张和哑光水粉颗粒。不要文字、标志或水印。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/8c4b1f37d47746fdb2963715a48a0ce3~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "illustration",
+    "labelKeys": [
+      "key-visual",
+      "illustration",
+      "premium-design"
+    ],
+    "title": "白鹤深渊·俯瞰水墨",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5 的崇高感俯瞰水墨空间；地形、海洋与风暴云故意保持暧昧；人物或动物小于画面 1%；粗糙纤维纸上使用炭黑、深赭、烟褐和克制的淡金，呈现干笔、淡墨洇染与哑光水粉颗粒。\n\n创作一张原创竖版水墨空间图。一只极小白鹤飞越由黑褐墨脊形成的巨大环形深坑；这些脊线可同时像海浪、侵蚀大地或风暴云。极高斜俯视；白鹤位于上三分之一边缘附近，占画面远低于 1%，同心干笔地形主导画面。近黑炭色、深赭、烟褐，白鹤仅一点克制象牙白。粗纤维纸、淡墨洇染、哑光水粉颗粒、极大留白与古老安静的威胁。保持系列层级但创造全新几何。不要文字、标志、水印、直白山景、城堡或彩色星云。竖版 4:5。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/24a5650178794945b22f5bcbf706c074~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "illustration",
+    "labelKeys": [
+      "key-visual",
+      "illustration",
+      "premium-design"
+    ],
+    "title": "红伞回岭·俯瞰水墨",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5 的崇高感俯瞰水墨空间；地形、海洋与风暴云故意保持暧昧；人物或动物小于画面 1%；粗糙纤维纸上使用炭黑、深赭、烟褐和克制的淡金，呈现干笔、淡墨洇染与哑光水粉颗粒。\n\n创作一张原创竖版水墨空间图。一名撑暗锈红伞的极小旅人站在悬于巨大近黑虚空上的刀锋般回折山脊。地形需同时像折绸、侵蚀高原和破浪。高位斜俯视，从左上到右下形成宽阔 S 曲线与巨大留白。只用炭黑、深赭、烟褐和唯一的锈红伞，不得再有亮色。粗纸纤维、干笔、积墨与哑光水粉；旅人仅用于标示尺度。不要文字、标志、水印、庙宇、幻想城市或装饰星点。竖版 4:5。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/b027d61431a3465b91cd84686b1d0faa~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "illustration",
+    "labelKeys": [
+      "key-visual",
+      "illustration",
+      "premium-design"
+    ],
+    "title": "矿脉双骑·俯瞰水墨",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5 的崇高感俯瞰水墨空间；地形、海洋与风暴云故意保持暧昧；人物或动物小于画面 1%；粗糙纤维纸上使用炭黑、深赭、烟褐和克制的淡金，呈现干笔、淡墨洇染与哑光水粉颗粒。\n\n创作一张原创竖版水墨空间图。两名几乎看不见的骑手穿过一片浅色矿物三角洲，分叉水道切入无边黑褐墨野。近乎垂直俯拍，分叉本身构成画面，同时像闪电伤痕、河床和开裂漆面。两名骑手合计小于画面 1%，位于左下三分之一。仅一缕淡金沿水道闪过，其余为炭黑、深赭与烟褐。重干笔脊线、淡墨洇染、粗纸与哑光颗粒。不要文字、标志、水印、明显地图、建筑或彩色奇幻特效。竖版 4:5。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/07a5790cbb9242ffbc6f15aa1ea7abf3~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "illustration",
+    "labelKeys": [
+      "key-visual",
+      "illustration",
+      "premium-design"
+    ],
+    "title": "一线悬桥·俯瞰水墨",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5 的崇高感俯瞰水墨空间；地形、海洋与风暴云故意保持暧昧；人物或动物小于画面 1%；粗糙纤维纸上使用炭黑、深赭、烟褐和克制的淡金，呈现干笔、淡墨洇染与哑光水粉颗粒。\n\n创作一张原创竖版水墨空间图。一座发丝般细的悬桥跨越两片横扫画面的墨色高原之间的巨大黑色深渊，一名极小独行者恰在桥中点。极高斜俯视，桥斜跨巨大留白。高原应像干涸墨浪和侵蚀云层，而非写实山体。炭黑、深赭、烟褐；仅在中点行者处有一点淡金。粗纤维纸、干笔脊线、积墨和哑光水粉颗粒。保持尺度与克制，创造全新几何。不要文字、标志、水印、庙宇、城市、明亮奇幻特效或明显的摄影桥梁。竖版 4:5。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/46b81249fa17415c8f1959367338af15~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "illustration",
+    "labelKeys": [
+      "key-visual",
+      "illustration",
+      "premium-design"
+    ],
+    "title": "孤台横光·俯瞰水墨",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5 的崇高感俯瞰水墨空间；地形、海洋与风暴云故意保持暧昧；人物或动物小于画面 1%；粗糙纤维纸上使用炭黑、深赭、烟褐和克制的淡金，呈现干笔、淡墨洇染与哑光水粉颗粒。\n\n创作一张原创竖版水墨空间图。一座极小孤立石制信标位于巨型阶地黑色高原边缘，发出唯一一道狭窄水平淡金光。高位斜俯视；巨大阶地以交替暗带横扫画面并溶入几乎空无的烟雾虚空，可同时像沉积层、浪潮或折纸。信标小于画面 1%。近黑炭色、深赭、烟褐，只允许一道淡金光。粗纤维纸、干笔、淡墨洇染与哑光水粉。不要文字、标志、水印、幻想城堡、月亮、彩色天空或通用概念图景。竖版 4:5。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/3cb0cea916334f439b46a25e44b4c4c0~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1672x941&magic_type=image_png",
+    "slug": "tech-trend",
+    "labelKeys": [
+      "key-visual",
+      "tech-trend",
+      "premium-design"
+    ],
+    "title": "地下档案·检查室",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：宽银幕 16:9 的地下市政档案馆电影剧照；一名身穿灰色工装制服、身份模糊的档案职员；精准克制的机构空间几何；灰绿色与脏青色荧光灯；保留材质细节的石墨色阴影；远处仅一处微弱的烟草琥珀色实景灯；细腻电影颗粒；且必须只有一个轻微却不可能的异常现象，制造程序化威胁感。\n\n创作一张原创地下档案检查室电影剧照。中远景观察一名独自工作的档案职员，视线依次穿过三重重复玻璃隔断与门框；相机稳定、平视，严格一点透视；灰绿色与脏青色机构荧光灯，深黑阴影仍保留材质，极远处一盏微弱烟草琥珀色维修灯。唯一的不可能异常：中央玻璃上的冷凝水向上流动。安静、程序化威胁。不要霓虹赛博朋克、文字、标志、水印或黑边。宽银幕 16:9。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1672,
+    "height": 941,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/90eabb65769d458485af20deaed563ab~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1672x941&magic_type=image_png",
+    "slug": "tech-trend",
+    "labelKeys": [
+      "key-visual",
+      "tech-trend",
+      "premium-design"
+    ],
+    "title": "逆序楼层·电梯厅",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：宽银幕 16:9 的地下市政档案馆电影剧照；一名身穿灰色工装制服、身份模糊的档案职员；精准克制的机构空间几何；灰绿色与脏青色荧光灯；保留材质细节的石墨色阴影；远处仅一处微弱的烟草琥珀色实景灯；细腻电影颗粒；且必须只有一个轻微却不可能的异常现象，制造程序化威胁感。\n\n创作地下市政档案馆八镜头原创序列中的一张电影剧照。情节：抵达。档案职员独自站在宽阔电梯厅，远墙重复四扇相同钢制电梯门；唯一异常是一组楼层指示灯以逆序亮起，但不能出现可读数字。稳定平视广角、严格正面透视；人物小且偏离中心，前景被黑暗安保桌和玻璃边部分遮挡，机构建筑压制人物。灰绿顶灯、脏青反光、暗部保留金属和混凝土细节，画面右深处仅一盏弱烟草琥珀色服务灯。程序化平静、监控感、安静威胁与细腻颗粒。保持系列世界但不复用构图。不要霓虹赛博、青橙俗套、死黑、动作姿势、可读文字、标志、水印或黑边。16:9。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1672,
+    "height": 941,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/d3ebc5899935440e8fc5e5635778c40e~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1672x941&magic_type=image_png",
+    "slug": "tech-trend",
+    "labelKeys": [
+      "key-visual",
+      "tech-trend",
+      "premium-design"
+    ],
+    "title": "逆流文件·传送廊",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：宽银幕 16:9 的地下市政档案馆电影剧照；一名身穿灰色工装制服、身份模糊的档案职员；精准克制的机构空间几何；灰绿色与脏青色荧光灯；保留材质细节的石墨色阴影；远处仅一处微弱的烟草琥珀色实景灯；细腻电影颗粒；且必须只有一个轻微却不可能的异常现象，制造程序化威胁感。\n\n创作地下市政档案馆八镜头原创序列中的一张电影剧照。情节：传送。档案职员走在一面长磨砂玻璃墙后，数十根透明气动管从头顶穿过。唯一异常是一枚密封文件胶囊逆着所有气流指示方向移动，且无可读标签。稳定横向广角、精准透视，前景货架形成画中框；职员小而位于最左。灰绿机构荧光、脏青玻璃、保留材质的石墨黑，远端一盏弱烟草琥珀灯。程序化平静、安静威胁与细腻颗粒。保持制作设计但使用新空间构图。不要霓虹赛博、动作、青橙俗套、死黑、可读文字、标志、水印或黑边。16:9。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1672,
+    "height": 941,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/3422a57433d244afac79681d396186ad~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1672x941&magic_type=image_png",
+    "slug": "tech-trend",
+    "labelKeys": [
+      "key-visual",
+      "tech-trend",
+      "premium-design"
+    ],
+    "title": "多出一人·监控室",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：宽银幕 16:9 的地下市政档案馆电影剧照；一名身穿灰色工装制服、身份模糊的档案职员；精准克制的机构空间几何；灰绿色与脏青色荧光灯；保留材质细节的石墨色阴影；远处仅一处微弱的烟草琥珀色实景灯；细腻电影颗粒；且必须只有一个轻微却不可能的异常现象，制造程序化威胁感。\n\n创作地下市政档案馆八镜头原创序列中的一张电影剧照。情节：发现。透过玻璃隔断，从稳定的高位墙角观察下沉监控室，档案职员独自坐着。旧显示器网格均显示空档案走廊；唯一异常是其中一台屏幕在职员身后多出一名站立者，而真实房间无人。界面不得有可读文字。重复矩形、前景门框、人物微小孤立、几何精准。屏幕脏青光照亮职员，大部分灰绿顶灯熄灭，远处仅一点烟草琥珀灯，暗面保留细节。克制、安静、威胁、细腻颗粒。不要惊吓脸、霓虹赛博、动作姿势、可读文字、标志、水印或黑边。16:9。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1672,
+    "height": 941,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/e0b15ad68bcc4bdc91afd01daef593ef~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1672x941&magic_type=image_png",
+    "slug": "tech-trend",
+    "labelKeys": [
+      "key-visual",
+      "tech-trend",
+      "premium-design"
+    ],
+    "title": "逆流卡片·淹水库",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：宽银幕 16:9 的地下市政档案馆电影剧照；一名身穿灰色工装制服、身份模糊的档案职员；精准克制的机构空间几何；灰绿色与脏青色荧光灯；保留材质细节的石墨色阴影；远处仅一处微弱的烟草琥珀色实景灯；细腻电影颗粒；且必须只有一个轻微却不可能的异常现象，制造程序化威胁感。\n\n创作地下市政档案馆八镜头原创序列中的一张电影剧照。情节：破口。档案职员脚踝浸在静水中，站在极高的移动档案架之间。唯一异常是散落索引卡逆流漂向封闭排水口。相机低至水面并保持稳定，一点透视直望长廊；货架边缘和倒影构成画中框，职员小而位于消失点。稀疏脏青顶灯，石墨色货架保留标签和锈蚀材质但无可读文字，远处倒映一盏烟草琥珀应急灯。安静机构危险，不要动作；细腻颗粒。不要霓虹赛博、青橙大片感、死黑、可读文字、标志、水印或黑边。16:9。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1672,
+    "height": 941,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/dd002b1dc76e490197144585eaa66811~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1672x941&magic_type=image_png",
+    "slug": "tech-trend",
+    "labelKeys": [
+      "key-visual",
+      "tech-trend",
+      "premium-design"
+    ],
+    "title": "站立倒影·夜餐厅",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：宽银幕 16:9 的地下市政档案馆电影剧照；一名身穿灰色工装制服、身份模糊的档案职员；精准克制的机构空间几何；灰绿色与脏青色荧光灯；保留材质细节的石墨色阴影；远处仅一处微弱的烟草琥珀色实景灯；细腻电影颗粒；且必须只有一个轻微却不可能的异常现象，制造程序化威胁感。\n\n创作地下市政档案馆八镜头原创序列中的一张电影剧照。情节：暂停。档案职员仍穿灰色工装，独坐在空旷机构夜餐厅最远端；固定桌椅严格重复。所有自动售货机熄灭，只有一台内部发出弱烟草琥珀光；唯一异常是玻璃中职员倒影站着，而真人坐着。透过半开的服务窗口远距离平视广角观察，前景不锈钢台遮住部分视野。灰绿荧光、脏青瓷砖、保留细节的石墨阴影与克制颗粒。安静且程序化，不做恐怖煽情。不要霓虹赛博、可读商品文字、标志、水印、动作、黑边或青橙俗套。16:9。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1672,
+    "height": 941,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/15993e8f18424b70b8203a0b7d174acd~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1672x941&magic_type=image_png",
+    "slug": "tech-trend",
+    "labelKeys": [
+      "key-visual",
+      "tech-trend",
+      "premium-design"
+    ],
+    "title": "逆行轨车·装卸区",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：宽银幕 16:9 的地下市政档案馆电影剧照；一名身穿灰色工装制服、身份模糊的档案职员；精准克制的机构空间几何；灰绿色与脏青色荧光灯；保留材质细节的石墨色阴影；远处仅一处微弱的烟草琥珀色实景灯；细腻电影颗粒；且必须只有一个轻微却不可能的异常现象，制造程序化威胁感。\n\n创作地下市政档案馆八镜头原创序列中的一张电影剧照。情节：撤离。档案职员穿过巨大地下装卸区，重复混凝土柱、钢制档案箱与一辆空窄轨车延伸远方。唯一异常是轨车自行朝牵引电缆拖尾的反方向移动。相机从前景箱体后以稳定长焦横向观察，透视精准，职员小且被部分遮挡。脏青工业荧光、保留阴影细节的石墨与氧化黄铜表面，远处一串烟草琥珀服务灯。平静的机构威胁，没有追逐，细腻颗粒。保持系列制作连续性。不要霓虹赛博、爆炸、英雄姿势、可读标签、标志、水印或黑边。16:9。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1672,
+    "height": 941,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/213cba9c8155418e8bb4952461f57e77~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1672x941&magic_type=image_png",
+    "slug": "tech-trend",
+    "labelKeys": [
+      "key-visual",
+      "tech-trend",
+      "premium-design"
+    ],
+    "title": "未离开的倒影·出口",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：宽银幕 16:9 的地下市政档案馆电影剧照；一名身穿灰色工装制服、身份模糊的档案职员；精准克制的机构空间几何；灰绿色与脏青色荧光灯；保留材质细节的石墨色阴影；远处仅一处微弱的烟草琥珀色实景灯；细腻电影颗粒；且必须只有一个轻微却不可能的异常现象，制造程序化威胁感。\n\n创作地下市政档案馆八镜头原创序列中的一张电影剧照。情节：离开，但悬而未决。档案职员背对相机站在玻璃安检闸机前，面对被雨压暗的室外楼梯。唯一异常是玻璃倒影中的同一职员正面朝向相机并仍停在原处，五官隐在阴影。稳定对称的中广角，层叠玻璃框与重复闸机，两侧大面积空置，无戏剧动作。身后灰绿与脏青机构光，外部冷雨蓝，档案馆深处一点烟草琥珀灯；暗部保留材质，细腻颗粒。安静暧昧，不做超自然奇观。不要清晰面部、霓虹赛博、惊吓、可读文字、标志、水印、黑边或死黑。16:9。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1672,
+    "height": 941,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/aa6acd6ae0864ea39ffcf7953e241965~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "dreamy",
+    "labelKeys": [
+      "key-visual",
+      "illustration",
+      "dreamy"
+    ],
+    "title": "仪式光冠·静湖",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5、围绕静止黑青色湖面的高冲击仪式超现实主义；微小且无身份的提灯守望者；巨大的发光有机几何；氧化绿、乳白火光、焦金与一丝锈红；雕刻式线条、摄影颗粒、受控光晕，并让上下方向保持暧昧。\n\n创作一张原创高冲击竖版超现实艺术图。绝对静止的夜湖上，一只半透明芦苇编织的仪式木筏载着七名微小无名提灯守望者。上方倒悬一只由数千盏暖灯和丝状烟雾构成的巨型冠状有机体；湖面倒影让上下方向难以分辨。近黑青、氧化绿、乳白火光与焦金；触感雕刻线条、摄影颗粒和发光光晕。不要神话人物、巨手、文字、标志或水印。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/bbcad14b3e2a4d05afc1f172b0e36d56~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "dreamy",
+    "labelKeys": [
+      "key-visual",
+      "illustration",
+      "dreamy"
+    ],
+    "title": "湖下光根·仰视",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5、围绕静止黑青色湖面的高冲击仪式超现实主义；微小且无身份的提灯守望者；巨大的发光有机几何；氧化绿、乳白火光、焦金与一丝锈红；雕刻式线条、摄影颗粒、受控光晕，并让上下方向保持暧昧。\n\n创作一张原创高冲击竖版超现实光系列图。相机沉在绝对黑绿色湖下，锐利仰望水面上的圆形芦苇筏，筏上七名无名提灯守望者。从筏下垂一株由数千根乳白与焦金光丝组成的巨型根状生物，充满水下前景并扰乱上下方向。人物是透过波纹玻璃看到的微小黑影，无脸。极端眩晕视角，近黑青、氧化绿、乳白火、焦金和一丝锈红；雕刻式触感线条、摄影颗粒、保留光丝细节的光晕。保持系列材料与色彩但改变几何和机位。不要巨手、船只、美杜莎意象、血腥、可读文字、标志、水印或光滑塑料三维。4:5。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/6b0706a3c6e8425192d0815c8044724b~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "dreamy",
+    "labelKeys": [
+      "key-visual",
+      "illustration",
+      "dreamy"
+    ],
+    "title": "风琴生物·提灯队列",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5、围绕静止黑青色湖面的高冲击仪式超现实主义；微小且无身份的提灯守望者；巨大的发光有机几何；氧化绿、乳白火光、焦金与一丝锈红；雕刻式线条、摄影颗粒、受控光晕，并让上下方向保持暧昧。\n\n创作一张原创高冲击竖版超现实光系列图。十二名微小无名提灯者列队走过黑湖上的窄黑石堤。以戏剧性倾斜机位置身队列中，近处黑色肩膀和高芦苇部分遮挡下方前景。上空一只由弯曲透明肋骨和数千滴暖光构成的巨型风琴生物横弯天际，仿佛倾听队列。地平线故意倾斜，构图不居中，尺度压迫。近黑青与氧化绿对比乳白火光、焦金和少量锈红；雕刻式流动线条、触感颗粒、保留细节的光晕。不要可识别神话、巨手、船、血腥、文字、标志、水印或通用奇幻海报。4:5。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/14af61e50f874e48a697e52c706c3b5e~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "dreamy",
+    "labelKeys": [
+      "key-visual",
+      "illustration",
+      "dreamy"
+    ],
+    "title": "月舟环流·光种喷泉",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5、围绕静止黑青色湖面的高冲击仪式超现实主义；微小且无身份的提灯守望者；巨大的发光有机几何；氧化绿、乳白火光、焦金与一丝锈红；雕刻式线条、摄影颗粒、受控光晕，并让上下方向保持暧昧。\n\n创作一张原创高冲击竖版超现实光系列图。近乎垂直俯视黑湖，三只小型月牙芦苇舟环绕一道不可能存在的垂直暖光喷泉。喷出的不是水，而是数千颗向上升起的发光种子；黑色倒影向下钻入螺旋虚空，让深度无法判断。每只船仅载两名无名守望者和一盏灯。强烈偏心螺旋构图、巨大暗留白，船只标示尺度。近黑青、氧化绿、乳白火、焦金和一丝锈红；雕刻线条、摄影颗粒、受控光晕。保持材料世界但创造全新几何。不要神话人物、手、帆船索具、血腥、可读文字、标志、水印或光滑三维。4:5。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/95b8e194d3894b12a803d764d19b9e60~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1122x1402&magic_type=image_png",
+    "slug": "dreamy",
+    "labelKeys": [
+      "key-visual",
+      "illustration",
+      "dreamy"
+    ],
+    "title": "反生之树·长桥",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n系列视觉语言：竖版 4:5、围绕静止黑青色湖面的高冲击仪式超现实主义；微小且无身份的提灯守望者；巨大的发光有机几何；氧化绿、乳白火光、焦金与一丝锈红；雕刻式线条、摄影颗粒、受控光晕，并让上下方向保持暧昧。\n\n创作一张原创高冲击竖版超现实光系列图。一座细长黑桥横跨静止深青湖，九名微小无名人物单列提着暗灯。巨型半透明余烬树偏在左上，细密发光枝条大多伸出画框；它的倒影并不向下复制，反而从湖中沿桥周围向上长出第二个更亮树冠。近处黑布旗和芦苇从右侧切入，制造景深与轻微遮挡。侧向长视角、极大留白、发光体偏心、人物极小，地平难辨；应有仪式性危险和物理暧昧，而非只求漂亮。近黑青、氧化绿、乳白火、焦金与一丝锈红；雕刻式流动线条、摄影颗粒、受控光晕并保留细节。不要神话人物、巨手、船、美杜莎、血腥、可读文字、标志、水印、通用奇幻海报或光滑塑料三维。4:5。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1122,
+    "height": 1402,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/0d84742b54894c8fb0a15c45da0168b8~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1024x1280&magic_type=image_png",
+    "slug": "sand-bureaucracy",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "illustration"
+    ],
+    "title": "宫殿如浪倾覆",
+    "prompt": "使用模型：Nano Banana 2（接口模型名：nano_banana2）。\n\n生成一张原创的竖版4:5东方权力寓言概念图。不要画一座普通矗立的宫殿；宫殿本身必须像一堵正在翻卷的巨浪：数百层深色朝廷屋檐与立柱沿着弧形浪壁向前卷起，最上方形成悬空浪头，建筑檐角像冻结的浪花，底部由沙尘与白色水雾共同冲刷。低机位仰视，巨构占画面上方四分之三；画面最下方正中央只有一名极小的紫袍使者，双手持玉笏，背对观众。赭石、烟尘金、石墨黑、暗紫配色，尺度反差极端，光从巨浪建筑背后切开边缘。核心是“权力建筑发生液化并向人物倾覆”，不是漂浮城堡。不要文字、标志、水印，不要现代物件，不要人群，不要普通古建筑摄影。",
+    "textArray": [],
+    "model": "nano_banana2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1024,
+    "height": 1280,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/036df04e681440dfaa905e27485d2020~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1024x1280&magic_type=image_png",
+    "slug": "sand-bureaucracy",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "illustration"
+    ],
+    "title": "朝廷泄洪",
+    "prompt": "使用模型：Nano Banana 2（接口模型名：nano_banana2）。\n\n生成一张原创的竖版4:5东方权力寓言概念图。视线从狭窄宫门内向外看，形成强烈框中框；门外不是庭院，而是一座无边朝廷巨构横跨天际，长达数公里的黑色宫墙垂直落下，屋檐和阶梯在半途直接转化为巨大白色瀑布，像制度本身正在泄洪。远处高台只有一尊冷峻石像，近景门槛上站着一名极小的紫袍官员。稳定中轴、极端纵深、冷灰蓝与暗金色，云海遮住地面，建筑细节清楚，瀑布必须从宫殿结构中生长出来。不要文字、标志、水印，不要现代物件，不要普通仙宫风景，不要多人群像。",
+    "textArray": [],
+    "model": "nano_banana2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1024,
+    "height": 1280,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/e479c7d95ca14a9d99079083615bc4f4~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1024x1280&magic_type=image_png",
+    "slug": "sand-bureaucracy",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "illustration"
+    ],
+    "title": "云海帝座",
+    "prompt": "使用模型：Nano Banana 2（接口模型名：nano_banana2）。\n\n生成一张原创的竖版4:5东方权力寓言概念图。一条极长的黑石朝会大道从画面底部延伸到云海尽头，尽头的帝座并非家具，而是一整座把山体掏空后形成的朝廷建筑：两侧数百道垂直宫柱如帷幕落入云中，中央巨大的无面石雕半身像嵌在弧形宫墙里。最下方只有一名极小紫袍使者持玉笏前行，人物不到画面高度的二十分之一。严格中轴对称，冷灰蓝云海、暗铜檐口、少量赭红服饰，压迫而安静，光只勾亮大道和石像边缘。不要文字、标志、水印，不要现代物件，不要普通宫殿，不要热闹人群，不要英雄姿态。",
+    "textArray": [],
+    "model": "nano_banana2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1024,
+    "height": 1280,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/dc17dbca647b41adb57c901a8c40b880~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1024x1280&magic_type=image_png",
+    "slug": "sand-bureaucracy",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "illustration"
+    ],
+    "title": "悬崖宫城",
+    "prompt": "使用模型：Nano Banana 2（接口模型名：nano_banana2）。\n\n生成一张原创竖版4:5东方权力寓言概念图。无边云海上，一座朝廷宫城不是建在悬崖上，而是整个悬崖本身被雕刻成宫殿：山体横截面布满成千上万根垂直宫柱，屋檐从岩层中连续伸出，数道瀑布从高处宫门倾泻并在云中消失。侧逆光勾出暗铜檐口，冷灰蓝云海占据大面积留白。画面下方一条窄桥上只有一名极小紫袍使者，正走向山体内部。尺度极端、安静、不可抗拒。不要文字、标志、水印，不要现代物件，不要普通悬崖寺庙，不要人群。",
+    "textArray": [],
+    "model": "nano_banana2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1024,
+    "height": 1280,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/335c8097d7984e7b8c17b5b280d4e588~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1024x1280&magic_type=image_png",
+    "slug": "sand-bureaucracy",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "illustration"
+    ],
+    "title": "制度石柱帷幕",
+    "prompt": "使用模型：Nano Banana 2（接口模型名：nano_banana2）。\n\n生成一张原创竖版4:5东方权力寓言概念图。远处一座黑色朝廷巨殿悬在云海上，殿前并排垂下数百根极长石柱，像一整面无法穿越的制度帷幕；柱顶屋檐只有少量暗金光，柱底没入白色云浪。近景是一片空旷黑石平台，一名极小紫袍官员独自站在中央，头顶的巨大无面石像只露出半张脸并与宫墙融为一体。严格对称、深远透视、冷灰蓝和暗铜色，压迫却不喧闹。不要文字、标志、水印，不要现代物件，不要普通佛像，不要人群，不要战斗。",
+    "textArray": [],
+    "model": "nano_banana2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1024,
+    "height": 1280,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/40a24562616c4344853ad950d007c829~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1536x864&magic_type=image_png",
+    "slug": "neon-ritual-cinema",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "tech-trend"
+    ],
+    "title": "同步空洗衣机",
+    "prompt": "使用模型：Nano Banana 2（接口模型名：nano_banana2）。\n\n创作一张原创的16:9宽银幕电影静帧。场景是深夜废弃的环形自助洗衣房：湿润黑色瓷砖地面，成排洗衣机围成近乎宗教祭坛的圆环，一名穿黑色长外套的沉默男子站在圆心，面部大半隐入阴影。摄影机保持冷静、稳定、精确对称，前景留出大片空地，人物只占画面很小比例。仅使用两种强烈人造色光：冷青色顶灯切开空间，品红色灯光从机器内部渗出；中间色调很少，暗部仍保留金属、皮革和潮湿墙面的细节。唯一不合理之处：所有空洗衣机正在同步缓慢旋转。画面极静、压迫、梦魇般催眠，35毫米胶片颗粒，轻微宽银幕镜头畸变。不要文字、字幕、标志、水印，不要动作场面，不要赛博朋克城市霓虹招牌，不要血腥。",
+    "textArray": [],
+    "model": "nano_banana2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1536,
+    "height": 864,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/dd71853aac554079aa3c8d785ff0fc15~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1536x864&magic_type=image_png",
+    "slug": "neon-ritual-cinema",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "tech-trend"
+    ],
+    "title": "逆重力冰坑",
+    "prompt": "使用模型：Nano Banana 2（接口模型名：nano_banana2）。\n\n创作一张原创16:9宽银幕电影静帧。黎明前的冰冻荒原被挖出一个完美同心圆巨坑，坑壁层层下降，像一座没有观众的露天审判庭；一名穿黑色长外套的沉默男子站在最下方圆心，人物极小。摄影机位于高处，稳定、精确、冷静，画面保留巨大空地。仅用冰冷青蓝环境光与沿圆环分布的少量品红信号灯，暗部保留岩石、积雪和皮革细节。唯一异常：坑底的雪正沿逆重力方向缓慢升起。梦魇般安静，35毫米胶片颗粒，克制而压迫。不要文字、字幕、标志、水印，不要动作场面，不要飞船，不要赛博朋克城市。",
+    "textArray": [],
+    "model": "nano_banana2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1536,
+    "height": 864,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/f3de4e9609384e098387890a94799674~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1536x864&magic_type=image_png",
+    "slug": "neon-ritual-cinema",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "tech-trend"
+    ],
+    "title": "屏幕祭坛",
+    "prompt": "使用模型：Nano Banana 2（接口模型名：nano_banana2）。\n\n创作一张原创16:9宽银幕电影静帧。废弃电视台主控室被改造成幽暗的仪式空间，数百块老式方形屏幕沿左右墙面组成严格对称的高墙，所有屏幕只发出深品红色；中央走道被一束冷青色顶光切开，一名穿黑色长外套的人背对观众站在远处，人物只占画面很小比例。摄影机正面平视，稳定透视，大量黑色负空间，湿地面微弱反光。唯一异常：每块屏幕里都显示同一间空房，但其中一块多出一个静止人影。极静、缓慢、催眠，35毫米胶片颗粒。不要可读文字、标志、水印，不要炫技光效，不要城市霓虹，不要动作场面。",
+    "textArray": [],
+    "model": "nano_banana2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1536,
+    "height": 864,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/517e2d138f2b49aabea2545e318bf423~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1536x864&magic_type=image_png",
+    "slug": "neon-ritual-cinema",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "tech-trend"
+    ],
+    "title": "空剧院凝视",
+    "prompt": "使用模型：Nano Banana 2（接口模型名：nano_banana2）。\n\n创作一张原创16:9宽银幕电影静帧。深夜空无一人的旧圆形剧院，观众席沉入石墨黑，舞台上只有一名穿黑色长外套的男子，站姿僵直、表情不可见；舞台后方一整面暗红丝绒幕布被一道冷青色竖光切成两半，包厢边缘只有少量品红小灯。摄影机位于最后一排，极远景，严格中轴对称，让人物被巨大建筑吞没。唯一异常：所有空座椅都整齐朝向观众而不是舞台。暗部仍保留木纹、尘埃和旧织物质感，梦魇般安静，35毫米胶片颗粒。不要文字、字幕、标志、水印，不要表演动作，不要血腥，不要豪华金色歌剧院。",
+    "textArray": [],
+    "model": "nano_banana2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1536,
+    "height": 864,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/bfe24232b36846fcba1a2724943d4554~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1536x864&magic_type=image_png",
+    "slug": "cosmic-civilization",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "tech-trend"
+    ],
+    "title": "遗迹拱门",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n使用 GPT Image 2 生成一张原创16:9横版宇宙文明概念图。被时间侵蚀的青黑色巨型遗迹城市沉在无边浅海中，数百座高耸石拱门沿中轴向远方收束；尽头悬着一轮冰蓝色天体，它不是太阳，而是一座发光的人造空洞结构。前景只有四名极小考察者站在水面石阶上，形成极端尺度对比。冷青、石墨黑、少量骨白光，空气中有细雾与水汽，建筑细节清晰，构图安静、神秘、非人类文明感。不要飞船大战，不要激光，不要城市霓虹，不要文字、标志、水印，不要直接模仿任何影视作品。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1536,
+    "height": 864,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/0fa24d13784c4097b21e03206be7b42e~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1536x864&magic_type=image_png",
+    "slug": "cosmic-civilization",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "tech-trend"
+    ],
+    "title": "沙漠机械遗骸",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n使用 GPT Image 2 生成一张原创16:9横版宇宙文明概念图。灰白沙漠中半埋着一枚直径数公里的环形生物机械遗骸，外层像风化岩石与金属骨骼，中央是完全无光的圆形深洞，形态让人联想到眼睛但不能画成真实眼球。前景五名极小考察者排成谨慎的弧线，人物不到画面高度的三十分之一。阴天散射光，骨白、烟灰、少量冷金属蓝，沙尘围绕遗骸缓慢旋转，非人类文明、安静、令人不安。不要怪兽，不要血肉细节，不要飞船大战，不要激光，不要文字、标志、水印。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1536,
+    "height": 864,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/49c164aed4d4437687b7e0fda73a1f88~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1536x864&magic_type=image_png",
+    "slug": "cosmic-civilization",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "tech-trend"
+    ],
+    "title": "环形峡谷",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n使用 GPT Image 2 生成一张原创16:9横版宇宙文明概念图。超广角远景，一名极小旅人站在金色荒漠的黑色岩脊上，前方是一座无法丈量的环形峡谷：岩层沿圆弧向内翻卷，峡谷内壁嵌着重复的无窗建筑带与白色垂直光瀑，圆心深处只有一束微弱冷光。大面积赭金沙地与深黑负空间，人物作为唯一尺度标记，风把细沙吹成横向薄雾。画面安静、抽象、像文明遗迹而非自然景区。不要飞船，不要城市霓虹，不要战争，不要文字、标志、水印。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1536,
+    "height": 864,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/bdcdb03028f747b8955c3378578b5342~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1536x864&magic_type=image_png",
+    "slug": "cosmic-civilization",
+    "labelKeys": [
+      "key-visual",
+      "premium-design",
+      "tech-trend"
+    ],
+    "title": "人造太阳巨门",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n使用 GPT Image 2 生成一张原创16:9横版宇宙文明概念图。暮色中的巨大石质城市沿山谷层层展开，所有街道和拱门都朝向中央一座比城市更高的矩形巨门；巨门内部悬着一枚温暖白金色人工太阳，光线穿过雾气，把建筑边缘变成细金线。前景广场上只有极小的人群和仪式旗杆，人物用于强调尺度，不要主角特写。古老石材与精密几何共存，烟灰、暗金、骨白配色，庄严、宁静、非人类文明。不要现代摩天楼，不要飞船大战，不要激光，不要文字、标志、水印。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1536,
+    "height": 864,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/41f2442a49704f73838ccffbd2771f67~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1024x1280&magic_type=image_png",
+    "slug": "mirror-palace",
+    "labelKeys": [
+      "key-visual",
+      "dreamy",
+      "illustration"
+    ],
+    "title": "红日天镜",
+    "prompt": "使用模型：Seedream 4.5（接口模型名：seedream4.5）。\n\n生成一张原创的竖版4:5东方幻想概念图。绝对中轴对称：一座深墨色仙宫悬在无限平静的天镜水面上，宫殿与倒影上下严丝合缝，水天边界几乎消失；一轮低饱和朱红圆日位于屋脊正后方，细长红色光柱从屋檐垂入倒影。主体周围只有大片冷白雾、浅青灰天空和极少量飞鸟，宫殿边缘像水墨被水汽轻微晕开。画面下方中央只有一名极小的白衣旅人作为尺度标记。黑、冷白、雾青、朱红四种主色，安静、庄严、空灵，建筑轮廓清晰但不堆装饰。不要文字、标志、水印，不要金色豪华宫殿，不要拥挤人物，不要普通山水旅游照。",
+    "textArray": [],
+    "model": "seedream45_volc",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1024,
+    "height": 1280,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/dcbe92b4b183429cab8103ce51fdc950~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1024x1280&magic_type=image_png",
+    "slug": "mirror-palace",
+    "labelKeys": [
+      "key-visual",
+      "dreamy",
+      "illustration"
+    ],
+    "title": "冰镜仙宫",
+    "prompt": "使用模型：Seedream 4.5（接口模型名：seedream4.5）。\n\n生成一张原创竖版4:5东方幻想概念图。绝对中轴对称，一座冰白色仙宫从天镜水面升起，塔楼像半透明冰晶，倒影与实景上下严丝合缝；宫殿背后是一轮极淡的朱红圆日，红色只出现于圆日和三条极细垂直光缝。大片冷白雾与浅青天空吞没边缘，远处几只白鹤，画面最下方中央只有一名极小的深色旅人。留白超过一半，建筑轮廓清楚但不繁复，水墨晕染与冰晶材质并存，安静、庄严、非人尺度。不要文字、标志、水印，不要金色，不要人群，不要普通雪山宫殿。",
+    "textArray": [],
+    "model": "seedream45_volc",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1024,
+    "height": 1280,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/36090ee5bdb34e87b091793c139cdf39~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1024x1280&magic_type=image_png",
+    "slug": "mirror-palace",
+    "labelKeys": [
+      "key-visual",
+      "dreamy",
+      "illustration"
+    ],
+    "title": "雾环宫阙",
+    "prompt": "使用模型：Seedream 4.5（接口模型名：seedream4.5）。\n\n生成一张原创竖版4:5东方幻想概念图。深墨色仙宫位于完全平静的镜面湖中央，严格中轴对称，水中倒影完整；宫殿上方的云雾形成一个巨大而柔和的白色圆环漩涡，但不能像风暴，漩涡中心露出一轮低饱和朱红日。屋檐、雾气与倒影边缘像宣纸水墨缓慢渗化，黑、雾白、青灰、朱红四色。画面下方只有一艘极小无篷黑船，船上单人作为尺度标记。大片留白，安静空灵，建筑不堆装饰。不要文字、标志、水印，不要闪电，不要战争，不要普通山水画。",
+    "textArray": [],
+    "model": "seedream45_volc",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1024,
+    "height": 1280,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/57569be0835d43d4bded4356270280be~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1024x1280&magic_type=image_png",
+    "slug": "mirror-palace",
+    "labelKeys": [
+      "key-visual",
+      "dreamy",
+      "illustration"
+    ],
+    "title": "红柱天镜",
+    "prompt": "使用模型：Seedream 4.5（接口模型名：seedream4.5）。\n\n生成一张原创竖版4:5东方幻想概念图。无限浅青雾海中，一座黑色仙宫只保留屋顶与数十根极细朱红立柱，立柱向下延伸进入镜面并继续成为倒影，形成上下贯通的红色节奏；宫殿后方是一轮巨大但低饱和的红日，整体严格中轴对称。前景空旷，中央一名极小白衣人站在水面上，水面没有波纹。建筑边缘带轻微水墨溶解感，黑、冷白、雾青、朱红，极简、庄严、非现实尺度。不要文字、标志、水印，不要金色豪华细节，不要人群，不要繁忙背景。",
+    "textArray": [],
+    "model": "seedream45_volc",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1024,
+    "height": 1280,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/bdb63b9a01eb41bc998e5d8bf54d74c8~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1536x864&magic_type=image_png",
+    "slug": "character-dossier",
+    "labelKeys": [
+      "premium-design",
+      "illustration",
+      "tech-trend"
+    ],
+    "title": "星翼术士档案",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n使用 GPT Image 2 生成一张原创16:9横版角色研究档案海报，角色名必须准确写作“LYRA VESPER”。暖灰白纸张网格底，左侧约三分之一是角色半身主视觉：原创的年轻女性天文术士，深蓝短发、银色发饰、半透明几何星翼、克制神情；右侧和下方用清晰模块展示眼部特写、星翼结构拆解、服装正背面小比例图、银质仪器素描、材料色板和危险等级。奶油白、墨黑、雾蓝、少量暗红，现代编辑设计与精密研究档案结合，细线、编号、坐标、局部放大框，信息密度高但层级清楚。除“LYRA VESPER”外不要生成大段可读正文，可使用短编号和抽象标记。不要使用任何现有动漫或游戏角色，不要标志、水印，不要纯立绘，不要杂乱拼贴。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1536,
+    "height": 864,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/8e74f3e6c30a4fbfb766ac19fcc31356~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1536x864&magic_type=image_png",
+    "slug": "character-dossier",
+    "labelKeys": [
+      "premium-design",
+      "illustration",
+      "tech-trend"
+    ],
+    "title": "火山测绘师档案",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n使用 GPT Image 2 生成一张原创16:9横版角色研究档案海报，角色名必须准确写作“SABLE MERIDIAN”。暖灰白纸张网格底，左侧约三分之一是角色半身主视觉：原创的女性火山测绘师，深棕皮肤、黑色短卷发、焦黑长外套、铜制测量环与暗红玻璃护目镜；右侧和下方用清晰模块展示眼部特写、耐热外套结构、折叠测量器、火山岩样本、服装正背面小比例图、风险刻度。奶油白、炭黑、氧化铜、少量熔岩红，现代编辑设计与精密研究档案结合，细线、编号、坐标、局部放大框，信息密度高但层级清楚。除“SABLE MERIDIAN”外不要生成大段可读正文，可使用短编号和抽象标记。不要使用任何现有动漫或游戏角色，不要标志、水印，不要纯立绘，不要杂乱拼贴。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1536,
+    "height": 864,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/400aa26100d04d5f973742d7875070a8~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1536x864&magic_type=image_png",
+    "slug": "character-dossier",
+    "labelKeys": [
+      "premium-design",
+      "illustration",
+      "tech-trend"
+    ],
+    "title": "深海机械师档案",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n使用 GPT Image 2 生成一张原创16:9横版角色研究档案海报，角色名必须准确写作“NERIS COIL”。暖灰白纸张网格底，左侧约三分之一是角色半身主视觉：原创的深海机械师，银灰短发、冷静表情、黑色防水工作服、半透明青蓝呼吸鳃片与细小金属导管；右侧和下方用清晰模块展示眼部特写、人工鳃结构剖面、潜水工具拆解、服装正背面小比例图、材料色板和压力等级。奶油白、墨黑、海水青、少量橙色警示，现代编辑设计与精密研究档案结合，细线、编号、坐标、局部放大框，信息密度高但层级清楚。除“NERIS COIL”外不要生成大段可读正文，可使用短编号和抽象标记。不要使用任何现有动漫或游戏角色，不要标志、水印，不要纯立绘，不要杂乱拼贴。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1536,
+    "height": 864,
+    "status": "draft"
+  },
+  {
+    "imageUrl": "https://p6-magic.byteimg.com/tos-cn-i-tokbwntzau/f2224403c3d848cea5ab8c3fa4c0c6f7~tplv-tokbwntzau-recrop:0:0:0:0:0:0:q90.jpg?size=1536x864&magic_type=image_png",
+    "slug": "character-dossier",
+    "labelKeys": [
+      "premium-design",
+      "illustration",
+      "tech-trend"
+    ],
+    "title": "沙漠天象官档案",
+    "prompt": "使用模型：GPT Image 2（接口模型名：gpt_image_2）。\n\n使用 GPT Image 2 生成一张原创16:9横版角色研究档案海报，角色名必须准确写作“ORIN VALE”。暖灰白纸张网格底，左侧约三分之一是角色半身主视觉：原创的年轻男性沙漠天象记录官，深色卷发、沉静神情、层叠米白披风、黑曜石胸针与一圈悬浮的细金属星盘；右侧和下方用清晰模块展示眼部特写、披风分层结构、星盘机械图、鞋靴与配饰、服装正背面小比例图、沙金色板和观测等级。奶油白、墨黑、沙金、少量靛蓝，现代编辑设计与精密研究档案结合，细线、编号、坐标、局部放大框，信息密度高但层级清楚。除“ORIN VALE”外不要生成大段可读正文，可使用短编号和抽象标记。不要使用任何现有动漫或游戏角色，不要标志、水印，不要纯立绘，不要杂乱拼贴。",
+    "textArray": [],
+    "model": "gpt_5_4_image_2",
+    "refSource": "https://magicx.bytedance.net/",
+    "width": 1536,
+    "height": 864,
+    "status": "draft"
+  }
+]

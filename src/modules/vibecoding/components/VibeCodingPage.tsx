@@ -46,6 +46,38 @@ import PlatformPlaceholderView from './PlatformPlaceholderView'
 import XiaohuaFeedPreview from './XiaohuaFeedPreview'
 import AgentHubPreview from './AgentHubPreview'
 import MarketingH5Preview from './MarketingH5Preview'
+import QixiBridgeWireframe, {
+  QixiAssetPlaceholder,
+} from './QixiBridgeWireframe'
+import {
+  QIXI_PAGE_CONTENT_STORAGE_KEY,
+  getInitialQixiPageContent,
+  type QixiPageContent,
+  type QixiPageSelection,
+} from './QixiPageModel'
+import QixiPageEditPanel from './QixiPageEditPanel'
+import { QIXI_BRIDGE_PROJECT } from './QixiBridgeData'
+import QixiGenerationReplay from './QixiGenerationReplay'
+import type { QixiReplayTarget } from './QixiGenerationReplayScript'
+import QixiReplayWorkspace from './QixiReplayWorkspace'
+import AcgFromDocH5 from './AcgFromDocH5'
+import AcgReplicaH5 from './AcgReplicaH5'
+import { ACG_REPLICA_PROJECT } from './AcgReplicaData'
+import AcgFromDocEditPanel from './AcgFromDocEditPanel'
+import AcgFromDocGenerationReplay from './AcgFromDocGenerationReplay'
+import type { AcgFromDocReplayTarget } from './AcgFromDocGenerationReplayScript'
+import {
+  AcgFromDocDocumentsWorkspace,
+  AcgFromDocGameplayWorkspace,
+} from './AcgFromDocReplayWorkspace'
+import {
+  ACG_FROM_DOC_PAGE_CONTENT_STORAGE_KEY,
+  ACG_FROM_DOC_PROJECT,
+  getInitialAcgFromDocPageContent,
+  type AcgFromDocPageContent,
+  type AcgFromDocSelection,
+} from './AcgFromDocData'
+import { ACG_FROM_DOC_BRAND_KIT_CANDIDATES } from '../assets/acgExperienceBrandKit.ts'
 import SummerSurfH5Preview, {
   SUMMER_SURF_CONFIG_STORAGE_KEY,
   getInitialSummerSurfEditConfig,
@@ -96,7 +128,13 @@ import XiahuaEditPanel, { type XiahuaOverrides, type XiahuaSel } from './XiahuaE
 import XiahuaGameplayWorkspace from './XiahuaGameplayWorkspace'
 import XiahuaEditCanvas from './XiahuaEditCanvas'
 import XiahuaBuildFlow from './XiahuaBuildFlow'
+import AcgGenerationReplay from './AcgGenerationReplay'
+import type { AcgReplayTarget } from './AcgGenerationReplayScript'
+import AcgReplayWorkspace from './AcgReplayWorkspace'
+import type { BuildCard } from './XiahuaChatUI'
 import SummerSurfConversationMock from './SummerSurfConversationMock'
+import AssetOnlyProjectConversation from './AssetOnlyProjectConversation'
+import { getAssetOnlyProjectConversation } from './data/asset-only-project-conversations'
 import {
   LEGACY_XIAHUA_TEMPLATE_TOKEN,
   TEMPLATE_CLONE_PROJECT,
@@ -120,6 +158,7 @@ import {
   XIAHUA_BUILD_BASELINE_GAMEPLAY,
   type XiahuaGameplay,
 } from './XiahuaGameplay'
+import { rebaseGeneratedLotteryGameplay } from '../gameplay/lotteryPackage'
 import { XIAHUA_PRESET, cardArt, type ActivityPreset } from './ActivityPreset'
 import H5CanvasEditor from './H5CanvasEditor'
 import H5CanvasLayerTree from './H5CanvasLayerTree'
@@ -137,12 +176,38 @@ import GarudaAssetsView, {
 } from './GarudaAssetsView'
 import {
   ACG_NEW_YEAR_ASSET_GROUPS,
+  EVERNIGHT_ASSET_GROUPS,
+  HOT_TOPIC_BANNER_ASSET_GROUPS,
+  JINGXIN_LIVESTREAM_ASSET_GROUPS,
+  LIFE_SERVICE_RESOURCE_POSITION_ASSET_GROUPS,
+  MAGICX_HEADER_ASSET_GROUPS,
+  ACG_FROM_DOC_ASSET_GROUPS,
+  ACG_REPLICA_ASSET_GROUPS,
+  QIXI_ASSET_GROUPS,
+  SPRING_GALA_ASSET_GROUPS,
   SUMMER_SURF_ASSET_GROUPS,
+  XINZAI_IP_ASSET_GROUPS,
   XIAHUA_ASSET_GROUPS,
 } from './ProjectAssetCatalog'
+import DocumentedActivityWorkspace from './DocumentedActivityWorkspace'
+import {
+  DOCUMENTED_ACTIVITY_CASES,
+  EVERNIGHT_PROJECT,
+  SPRING_GALA_PROJECT,
+  documentedActivityLabels,
+} from './DocumentedActivityData'
 import AssetEditPanel from './AssetEditPanel'
 import VideoEditor from './VideoEditor'
 import ImageCanvasEditor from './ImageCanvasEditor'
+import MarketingImageCanvasEditor, {
+  ImageQuickTools as MarketingImageQuickTools,
+} from './MarketingImageCanvasEditor'
+import {
+  laneFromHomeScene,
+  laneFromKind,
+  seededProjectLane,
+  type WorkshopLane,
+} from './workshop-lanes'
 import ErrorBoundary from '@/shared/components/ErrorBoundary'
 import PlatformHome from './PlatformHome'
 import SideNav, {
@@ -177,8 +242,9 @@ import SideNavResizeHandle from '@/shared/components/SideNavResizeHandle'
 import { useResizableSideNavWidth } from '@/shared/hooks/useResizableSideNavWidth'
 import { AppWindowLinearIcon } from 'master-icon/react/AppWindowLinearIcon'
 import { FolderCodeLinearIcon } from 'master-icon/react/FolderCodeLinearIcon'
-import { PackageLinearIcon } from 'master-icon/react/PackageLinearIcon'
+import { ToolboxLinearIcon } from 'master-icon/react/ToolboxLinearIcon'
 import { InboxLinearIcon } from 'master-icon/react/InboxLinearIcon'
+import { PackageLinearIcon } from 'master-icon/react/PackageLinearIcon'
 import { LightningLinearIcon } from 'master-icon/react/LightningLinearIcon'
 import { Notebook01LinearIcon } from 'master-icon/react/Notebook01LinearIcon'
 import { PinLinearIcon } from 'master-icon/react/PinLinearIcon'
@@ -192,12 +258,44 @@ import GarudaEditPanel from './GarudaEditPanel'
 import ProductEditPanel from './ProductEditPanel'
 import GameGenerationFlow, { GameBuildProgress } from './GameGenerationFlow'
 import type { GameSpecDraft } from './GameConfirmCard'
+import TowerDefenseFlowChat from './tower-defense/TowerDefenseFlowChat'
+import TowerDefenseDeliverableView, {
+  getTowerDefenseDeliverableMeta,
+} from './tower-defense/TowerDefenseDeliverableView'
+import TowerDefenseAssetLibrary from './tower-defense/TowerDefenseAssetLibrary'
+import TowerDefenseSpriteToolPanel, { type SpriteMakerLaunchSource } from './tower-defense/TowerDefenseSpriteToolPanel'
+import TowerDefenseMapEditorPanel, {
+  TowerDefenseMapEditorCanvas,
+} from './tower-defense/TowerDefenseMapEditorPanel'
+import { createDefaultTowerDefenseMapEditorState } from './tower-defense/TowerDefenseMapEditorModel'
+import { TowerDefenseFastConfigPanel } from './tower-defense/TowerDefenseGameplayWorkspace'
+import { TowerDefenseUiEditorPanel } from './tower-defense/TowerDefenseUiWorkspace'
+import { TowerDefenseBalanceEditorPanel } from './tower-defense/TowerDefenseBalanceWorkspace'
+import TowerDefensePageCanvas from './tower-defense/TowerDefensePageCanvas'
+import TowerDefenseEditStage from './tower-defense/TowerDefenseEditStage'
+import TowerDefenseEditPanel from './tower-defense/TowerDefenseEditPanel'
+import { useTowerUiEditor } from './tower-defense/useTowerUiEditor'
+import {
+  TOWER_DEFENSE_PROJECT_NAME,
+  TOWER_DEFENSE_STAGE_ORDER,
+  advanceTowerDefenseStage,
+  createDefaultTowerDefenseFlowState,
+  appendTowerDefenseVisualVersion,
+  getTowerDefenseDemoSpriteOutput,
+  getTowerDefenseDirectionLabel,
+  getTowerDefenseSpriteTaskKey,
+  reconcileTowerDefenseSpriteTasks,
+  type TowerDefenseFlowState,
+  type TowerDefenseDirection,
+  type TowerDefenseMaterialRef,
+  type TowerDefenseStage,
+  type SpriteTask,
+} from './tower-defense/TowerDefenseFlowModel'
 import AiPersonaChatPreview, { type TriggerSimulation } from './AiPersonaChatPreview'
 import { ProjectObjectView, DatabaseView, type DbContent } from './ProjectObjectViews'
 import { PROJECT_DOCS, ACG_NEW_YEAR_PLAN_MD, XIAHUA_PLAN_MD } from './data/project-docs'
 import { CHAT_EMPTY_SUGGESTIONS, CHAT_SUGGESTIONS_BY_KIND, CHAT_SUGGESTIONS_BY_PROJECT } from './data/chat-suggestions'
 import { PROJECT_KINDS, SHAPE_BY_KIND, PROJECT_KIND_LABELS, type OutputShape } from './data/project-kinds'
-import { classifyProjectKind } from './project-kind-classifier'
 import { FlexAlignGlyph, ProductToolbar, ToolbarAction } from './Toolbar'
 import { Disclosure, FileTreeView } from './FileTreeView'
 import { getFileIcon } from './file-tree-utils'
@@ -205,8 +303,15 @@ import MentionPicker, { type MentionItem } from './MentionPicker'
 import TriggerDetailView from './TriggerDetailView'
 import { ChatFormCard, ChatFormStep, ChatFormSubmit } from './ChatFormCard'
 import SkillsLibraryPage from './skills/SkillsLibraryPage'
+import { skills as skillLibraryItems } from './skills/skills-data'
+import InspirationGalleryPage, {
+  type InspirationItem,
+} from './inspiration/InspirationGalleryPage'
 import ProjectLibraryPage from './projects/ProjectLibraryPage'
 import ResourceLibraryPage from './resources/ResourceLibraryPage'
+import { resources as resourceLibraryItems } from './resources/resources-data'
+import AssetCenterPage from './assets/AssetCenterPage'
+import { ASSET_CATALOG } from '../assets/assetCatalog'
 import DataOpsView, { type DataOpsProject } from './DataOpsView'
 import ProposalGoalCard, { type ProposalGoalDraft } from './ProposalGoalCard'
 import ProposalDiagnosisCard from './ProposalDiagnosisCard'
@@ -238,7 +343,6 @@ import {
 } from './ProposalChips'
 import MarkdownView from './MarkdownView'
 import {
-  RESOURCES,
   type Capability,
   type Resource,
 } from './ResourceLibraryData'
@@ -249,14 +353,25 @@ import {
   ABILITY_CONFIG_LABEL,
   AVATAR_SKILL_LABEL,
   AVATAR_TRIGGER_LABEL,
+  ACTIVITY_ASSETS_LABEL,
   ASSET_LIBRARY_LABEL,
   BASIC_INFO_LABEL,
   DATA_CONFIG_LABEL,
   DATABASE_LABEL,
+  FINISHED_PAGES_LABEL,
+  GAME_ASSET_LIBRARY_LABEL,
+  GAME_BALANCE_CONFIG_LABEL,
+  GAME_GAMEPLAY_CONFIG_LABEL,
+  GAME_UI_CONFIG_LABEL,
   H5_GAMEPLAY_CONFIG_LABEL,
+  JINGXIN_LIVESTREAM_ASSET_PROJECT,
   INTEREST_CARD_CONFIG_LABEL,
+  LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
+  MAGICX_HEADER_ASSET_PROJECT,
   GAMEPLAY_CONFIG_LABEL,
+  getDeliverableIcon,
   getProductPages,
+  isAssetOnlyProject,
   PAGE_CONFIG_LABEL,
   PERSONA_CONFIG_LABEL,
   PROJECT_DOCUMENT_LABEL,
@@ -265,6 +380,7 @@ import {
   PRODUCT_CATEGORY_BADGES,
   TRIGGER_CONFIG_LABEL,
   WEB_PAGES,
+  XINZAI_IP_ASSET_PROJECT,
   type FileNode,
   type ProjectKind,
 } from './ProjectProductView'
@@ -278,11 +394,12 @@ import MiniProgramAgentView from './MiniProgramAgentView'
 import MiniProgramSettingsForm from './MiniProgramSettingsForm'
 import MarketingDocEditor from './MarketingDocEditor'
 import ProjectInfoView from './ProjectInfoView'
+import AcgCoreFlowView from './AcgCoreFlowView'
+import AcgGameplayComponentsWorkspace from './AcgGameplayComponentsWorkspace'
 import PublishDrawer from './PublishDrawer'
 import { getMiniProgramConfig, type MiniProgramConfig } from './MiniProgramConfigData'
 import { getMarketingH5Preview, type MarketingH5PreviewConfig } from './MarketingH5ConfigData'
-import { useRuntimeConfigStore, setRuntimeConfig } from './artifact/runtime-config-store'
-import { generateAvatarConfig } from './artifact/generate'
+import { useRuntimeConfigStore } from './artifact/runtime-config-store'
 
 /** Each platform project has a `ProjectKind` (the concrete product /
  *  case it represents) and an `OutputShape` (the abstract category that
@@ -360,6 +477,7 @@ import {
   MessageSquarePlus,
   Gamepad2,
   Image as ImageIcon,
+  Lightbulb,
   MessageCircleHeart,
   MessageSquare,
   ShieldCheck,
@@ -380,6 +498,8 @@ import {
   Zap,
   AppWindow,
   BookmarkPlus,
+  Lock,
+  LockOpen,
 } from '@/shared/icons'
 import type { LucideIcon } from '@/shared/icons'
 
@@ -402,6 +522,109 @@ interface FileDiff {
   added: number
   removed: number
   lines: DiffLine[]
+}
+
+const TOWER_DEFENSE_FLOW_STORAGE_KEY =
+  'douyin-ai-workshop:tower-defense-flow:v3'
+
+function loadTowerDefenseFlow(): TowerDefenseFlowState {
+  const fallback = createDefaultTowerDefenseFlowState()
+  if (typeof window === 'undefined') return fallback
+  try {
+    const raw = window.sessionStorage.getItem(TOWER_DEFENSE_FLOW_STORAGE_KEY)
+    if (!raw) return fallback
+    const stored = JSON.parse(raw) as Partial<TowerDefenseFlowState>
+    if (!Array.isArray(stored.assets) || !Array.isArray(stored.tasks))
+      return fallback
+    return {
+      ...fallback,
+      ...stored,
+      tasks: stored.tasks.map((task) =>
+        task.status === 'generating'
+          ? { ...task, status: 'queued' as const, progress: 0 }
+          : task,
+      ),
+    }
+  } catch {
+    return fallback
+  }
+}
+
+function createTowerDefenseFileTree(): FileNode[] {
+  return [
+    {
+      name: 'docs',
+      type: 'dir',
+      children: [
+        { name: '塔防玩法方案.md', type: 'file' },
+        { name: '游戏美术设定.md', type: 'file' },
+        { name: '资产生产清单.json', type: 'file' },
+        { name: '游戏 UI 规范.md', type: 'file' },
+        { name: '平衡性报告.md', type: 'file' },
+      ],
+    },
+    {
+      name: 'gameplay',
+      type: 'dir',
+      children: [{ name: 'tower-defense.json', type: 'file' }],
+    },
+    {
+      name: 'assets',
+      type: 'dir',
+      children: [
+        { name: 'asset-production-plan.json', type: 'file' },
+        { name: 'sprite-manifest.json', type: 'file' },
+      ],
+    },
+    {
+      name: 'ui',
+      type: 'dir',
+      children: [{ name: 'game-ui.json', type: 'file' }],
+    },
+    {
+      name: 'balance',
+      type: 'dir',
+      children: [{ name: 'balance-profile.json', type: 'file' }],
+    },
+  ]
+}
+
+function isTowerDefenseWorkspaceLabel(label: string | undefined): boolean {
+  return (
+    label === GAME_GAMEPLAY_CONFIG_LABEL ||
+    label === GAME_ASSET_LIBRARY_LABEL ||
+    label === GAME_UI_CONFIG_LABEL ||
+    label === GAME_BALANCE_CONFIG_LABEL ||
+    label === TOWER_SPRITE_SHEET_TOOL_LABEL ||
+    label === TOWER_MAP_EDITOR_TOOL_LABEL
+  )
+}
+
+const TOWER_PREVIEW_TAB_LABEL = '预览'
+
+function isTowerPreviewTabLabel(label: string | undefined): boolean {
+  return label === TOWER_PREVIEW_TAB_LABEL || label === FINISHED_PAGES_LABEL
+}
+
+const TOWER_SPRITE_SHEET_TOOL_LABEL = 'Sprite Maker II'
+const TOWER_MAP_EDITOR_TOOL_LABEL = '地图编辑'
+
+function getTowerDefenseStageTabLabel(stage: TowerDefenseStage): string {
+  if (stage === 'gameplay') return GAME_GAMEPLAY_CONFIG_LABEL
+  if (stage === 'art-direction' || stage === 'asset-production')
+    return GAME_ASSET_LIBRARY_LABEL
+  if (stage === 'ui-generation') return GAME_UI_CONFIG_LABEL
+  return GAME_BALANCE_CONFIG_LABEL
+}
+
+function getTowerDefenseDeliverableStage(
+  label: string,
+): TowerDefenseStage | null {
+  return (
+    TOWER_DEFENSE_STAGE_ORDER.find(
+      (stage) => getTowerDefenseDeliverableMeta(stage).fileName === label,
+    ) ?? null
+  )
 }
 
 const FILE_DIFFS: FileDiff[] = [
@@ -725,9 +948,37 @@ const MENTION_ICON_PATHS: Record<MentionKind, string[]> = {
     'M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z',
   ],
   resources: ['m16 6 4 14', 'M12 6v14', 'M8 8v12', 'M4 4v16'],
+  knowledge: [
+    'M4 19.5A2.5 2.5 0 0 1 6.5 17H20',
+    'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z',
+  ],
+  inspiration: [
+    'M9 18h6',
+    'M10 22h4',
+    'M8.7 14.8A7 7 0 1 1 15.3 14.8C14.5 15.5 14 16.5 14 18h-4c0-1.5-.5-2.5-1.3-3.2z',
+  ],
+  assets: [
+    'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z',
+    'm3.3 7 8.7 5 8.7-5',
+    'M12 22V12',
+  ],
 }
 
-type MentionKind = 'skills' | 'tools' | 'files' | 'triggers' | 'resources'
+type MentionKind =
+  | 'skills'
+  | 'tools'
+  | 'files'
+  | 'triggers'
+  | 'resources'
+  | 'knowledge'
+  | 'inspiration'
+  | 'assets'
+
+type ComposerMention = {
+  id: string
+  name: string
+  kind: MentionKind
+}
 
 /** Create a small SVG glyph element for a mention kind. Inline SVG so
  *  the pill renders without requiring React to mount a component. */
@@ -774,23 +1025,28 @@ function buildMentionPill(
   return span
 }
 
-/** Flatten a project FileNode tree into the flat list the mention
- *  picker consumes. Folders become `foo/` paths so `@src` and
- *  `@src/pages/index.tsx` both end up unique. */
-function flattenFileTreeForMention(
-  nodes: FileNode[],
-  prefix = '',
-): { id: string; name: string }[] {
-  const out: { id: string; name: string }[] = []
-  for (const n of nodes) {
-    const path = prefix + n.name
-    if (n.type === 'file') {
-      out.push({ id: path, name: path })
-    } else if (n.children) {
-      out.push(...flattenFileTreeForMention(n.children, path + '/'))
+/** Rebuild the uncontrolled composer after a platform page temporarily
+ * unmounts it. `chatDraft` carries the readable text while this mention list
+ * carries the stable registry identity needed to reconstruct atomic pills. */
+function restoreComposerContent(
+  editor: HTMLDivElement,
+  draft: string,
+  mentions: readonly ComposerMention[],
+) {
+  editor.replaceChildren()
+  let cursor = 0
+  for (const mention of mentions) {
+    const index = draft.indexOf(mention.name, cursor)
+    if (index < 0) continue
+    if (index > cursor) {
+      editor.append(document.createTextNode(draft.slice(cursor, index)))
     }
+    editor.append(buildMentionPill(mention, mention.kind))
+    cursor = index + mention.name.length
   }
-  return out
+  if (cursor < draft.length) {
+    editor.append(document.createTextNode(draft.slice(cursor)))
+  }
 }
 
 /** Resolve the icon for a product-view tab / dropdown label so the top
@@ -801,6 +1057,8 @@ function flattenFileTreeForMention(
  *  extension-based file icon. `parent` is the dropdown row's category;
  *  internal detail labels keep a `知识·` / `技能·` prefix. */
 function productLabelIcon(label: string, parent?: string): LucideIcon {
+  const deliverableIcon = getDeliverableIcon(label)
+  if (deliverableIcon) return deliverableIcon
   if (parent === PAGE_CONFIG_LABEL || label.startsWith(`${PAGE_CONFIG_LABEL}·`))
     return AppWindow
   if (parent === '知识库' || label.startsWith('知识·')) return BookOpen
@@ -1018,6 +1276,7 @@ const WORKSHOP_SCHEME_TWO_TOOLBAR_ACTIONS = [
 const STANDALONE_WORKSHOP_MOTION_DURATION = 0.24
 const STANDALONE_WORKSHOP_MOTION_CSS_EASE = 'cubic-bezier(0.32,0.72,0,1)'
 const STANDALONE_WORKSHOP_NAV_ITEMS: SideNavItem[] = [
+  { key: '灵感广场', label: '灵感广场', Icon: Lightbulb },
   { key: 'Skills', label: '技能库', Icon: FolderCodeLinearIcon },
   {
     key: '资源库',
@@ -1248,16 +1507,16 @@ function StandaloneWorkshopRail({
   activeNav,
   onExpand,
   onNewProject,
+  onOpenInspiration,
   onOpenResourceLibrary,
   onOpenSkills,
-  onOpenCreativeSquare,
 }: {
   activeNav: string | null
   onExpand: () => void
   onNewProject: () => void
+  onOpenInspiration: () => void
   onOpenResourceLibrary: () => void
   onOpenSkills: () => void
-  onOpenCreativeSquare: () => void
 }) {
   return (
     <SideNav
@@ -1270,9 +1529,9 @@ function StandaloneWorkshopRail({
       items={STANDALONE_WORKSHOP_NAV_ITEMS}
       activeKey={activeNav}
       onSelect={(key) => {
-        if (key === '资源库') onOpenResourceLibrary()
+        if (key === '灵感广场') onOpenInspiration()
+        else if (key === '资源库') onOpenResourceLibrary()
         else if (key === 'Skills') onOpenSkills()
-        else if (key === '项目库') onOpenCreativeSquare()
       }}
       header={
         <>
@@ -1303,6 +1562,18 @@ function cleanTreePath(path: string) {
     .replace(/^__product__\/[^/]+\/项目文件\//, '')
 }
 
+type TowerAssetLibraryUiScheme = 'canvas' | 'catalog'
+const TOWER_ASSET_LIBRARY_UI_STORAGE_KEY = 'creative-studio:tower-asset-library-ui'
+
+function readTowerAssetLibraryUiScheme(): TowerAssetLibraryUiScheme {
+  if (typeof window === 'undefined') return 'canvas'
+  const fromUrl = new URLSearchParams(window.location.search).get('asset-ui')
+  if (fromUrl === 'canvas' || fromUrl === 'catalog') return fromUrl
+  return window.localStorage.getItem(TOWER_ASSET_LIBRARY_UI_STORAGE_KEY) === 'catalog'
+    ? 'catalog'
+    : 'canvas'
+}
+
 /** Left-side project sidebar shown in the Platform layout. Contains brand
  *  chrome, the + 新建项目 button, platform nav (Skills / 资源库 / 创意广场),
  *  and a multi-project tree where the expanded project reuses the shared
@@ -1319,9 +1590,9 @@ function PlatformSidebar({
   setOpenProjects,
   onSwitchProject,
   onCollapseAll,
+  onOpenInspiration,
   onOpenResourceLibrary,
   onOpenSkills,
-  onOpenCreativeSquare,
   activeNav,
   activeRoute,
   activeFilePath,
@@ -1340,6 +1611,9 @@ function PlatformSidebar({
   collapsed = false,
   onOpenPlaceholder,
   onCollapseSidebar,
+  towerAssetLibraryUi,
+  onTowerAssetLibraryUiChange,
+  towerOpenedEditors,
 }: {
   /** Per-project file trees. Projects missing from this map render the
    *  "暂无文件" empty state when expanded. */
@@ -1360,12 +1634,12 @@ function PlatformSidebar({
   onSwitchProject: (name: string) => void
   /** Collapse every open folder + project down to the root level. */
   onCollapseAll: () => void
+  /** Open the visual inspiration gallery. */
+  onOpenInspiration: () => void
   /** Open the dedicated 资源库 page on the right side. */
   onOpenResourceLibrary: () => void
   /** Open the Skills placeholder page. */
   onOpenSkills: () => void
-  /** Open the 创意广场 placeholder page. */
-  onOpenCreativeSquare: () => void
   /** Open the 数据运营 placeholder page. */
   /** Which top-level nav is currently active — drives the highlight.
    *  除固定几项外，也可以是占位页 label（评测库）。 */
@@ -1410,6 +1684,11 @@ function PlatformSidebar({
   onOpenPlaceholder?: (label: string) => void
   /** 底部「收起导航」— 与创作者中心首页一致。 */
   onCollapseSidebar?: () => void
+  /** Demo UI variants live in Preferences instead of product controls. */
+  towerAssetLibraryUi: TowerAssetLibraryUiScheme
+  onTowerAssetLibraryUiChange: (scheme: TowerAssetLibraryUiScheme) => void
+  /** Advanced tower editors only enter the project tree after first open. */
+  towerOpenedEditors: string[]
 }) {
   /* Inline-rename state for the 项目列表 rows. */
   const [renamingProject, setRenamingProject] = useState<string | null>(null)
@@ -1425,6 +1704,7 @@ function PlatformSidebar({
   const [sidebarSearch, setSidebarSearch] = useState('')
   /* Which project row's 更多 (重命名 / 删除) menu is open. */
   const [moreMenuProject, setMoreMenuProject] = useState<string | null>(null)
+  const [preferencesOpen, setPreferencesOpen] = useState(false)
   const moreMenuRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!moreMenuProject) return
@@ -1462,17 +1742,31 @@ function PlatformSidebar({
     // （@模板 复刻）会进 createdProjects，但它们都固定钉在下面的列表里 ——
     // 过滤掉，避免侧栏重复列出（重复还会撞 React key）。
     ...createdProjects.filter(
-      (p) => p !== '射击小游戏' && p !== SUMMER_SURF_PROJECT,
+      (p) =>
+        p !== '射击小游戏' &&
+        p !== SUMMER_SURF_PROJECT &&
+        p !== TOWER_DEFENSE_PROJECT_NAME,
     ),
     // Workshop order: H5 → 游戏 → 兴趣卡；分身变体仍只显示分身。
     // 粉丝互动机器人 / 探店视频创作助手 / 每日打卡小程序 are hidden —
     // config exists but there's no scripted demo flow for them yet.
     '陶白白 Sensei 分身',
-    XIAHUA_PROJECT,
-    SUMMER_SURF_PROJECT,
+    QIXI_BRIDGE_PROJECT,
+    ACG_FROM_DOC_PROJECT,
+    ACG_REPLICA_PROJECT,
     ACG_NEW_YEAR_PROJECT,
+    XIAHUA_PROJECT,
+    SPRING_GALA_PROJECT,
+    EVERNIGHT_PROJECT,
+    SUMMER_SURF_PROJECT,
+    HOT_TOPIC_BANNER_PROJECT,
+    XINZAI_IP_ASSET_PROJECT,
+    JINGXIN_LIVESTREAM_ASSET_PROJECT,
+    LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
+    MAGICX_HEADER_ASSET_PROJECT,
     // h5-reference-lab 复刻出来的 benchmark case —— 和其它活动同级可打开、可编辑。
     ...H5_LAB_PROJECT_NAMES,
+    TOWER_DEFENSE_PROJECT_NAME,
     '射击小游戏',
     TAROT_INTEREST_CARD_PROJECT,
     // '抖音 AI 工坊设计探索' — 暂隐藏，保留配置与文件树供后续恢复。
@@ -1506,20 +1800,20 @@ function PlatformSidebar({
       .toLocaleLowerCase('zh-CN')
       .includes(normalizedSidebarSearch)
 
-  /* 顶部导航项 — 走统一 SideNav 菜单；分身变体为 技能库/资源库。 */
+  /* 顶部导航项 — 走统一 SideNav 菜单。 */
   const navItems: SideNavItem[] =
     variant === 'avatar'
       ? [
           { key: 'Skills', label: '技能库', Icon: FolderCodeLinearIcon },
-          { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
+          { key: '资源库', label: '资源库', Icon: ToolboxLinearIcon },
         ]
       : standaloneWorkshopLayout
         ? STANDALONE_WORKSHOP_NAV_ITEMS
         : [
-            { key: 'Skills', label: 'Skills', Icon: FolderCodeLinearIcon },
-            { key: '资源库', label: '资源库', Icon: InboxLinearIcon },
+            { key: '灵感广场', label: '灵感广场', Icon: Lightbulb },
+            { key: 'Skills', label: '技能库', Icon: FolderCodeLinearIcon },
+            { key: '资源库', label: '资源库', Icon: ToolboxLinearIcon },
             // 运营数据已并入创作者中心（顶栏「首页」的数据看板），侧栏不再入口
-            { key: '项目库', label: '项目库', Icon: PackageLinearIcon },
           ]
   const visibleNavItems =
     searchToolbarLayout && normalizedSidebarSearch
@@ -1556,9 +1850,9 @@ function PlatformSidebar({
       items={sideNavItems}
       activeKey={activeNav}
       onSelect={(key) => {
-        if (key === '资源库') onOpenResourceLibrary()
+        if (key === '灵感广场') onOpenInspiration()
+        else if (key === '资源库') onOpenResourceLibrary()
         else if (key === 'Skills') onOpenSkills()
-        else if (key === '项目库') onOpenCreativeSquare()
         else onOpenPlaceholder?.(key)
       }}
       header={
@@ -1638,7 +1932,7 @@ function PlatformSidebar({
                   {...(usesSchemeFourLayout(navVersion)
                     ? {
                         leadingText:
-                          variant === 'avatar' ? '管理分身' : '开启创作',
+                          variant === 'avatar' ? '管理分身' : '创意工坊',
                       }
                     : {
                         icon:
@@ -1693,10 +1987,45 @@ function PlatformSidebar({
           </div>
         ) : (navVersion === 1 || usesSchemeFourLayout(navVersion)) &&
           variant === 'workshop' ? (
-          <div className={collapsed ? 'px-[var(--sn-px)] pb-3' : 'pb-3'}>
+          <div className={`relative ${collapsed ? 'px-[var(--sn-px)] pb-3' : 'pb-3'}`}>
+            {preferencesOpen && !collapsed && (
+              <div className="absolute bottom-11 left-3 z-50 w-[248px] overflow-hidden rounded-xl border border-black/[0.08] bg-white shadow-[0_18px_48px_rgba(22,24,35,0.18)]">
+                <div className="border-b border-black/[0.06] px-3.5 py-3">
+                  <div className="text-[12px] font-semibold text-[#161823]">偏好设置</div>
+                  <div className="mt-0.5 text-[9px] text-[#161823]/38">Demo 界面方案会自动保留</div>
+                </div>
+                <div className="p-2">
+                  <div className="px-2 pb-1.5 pt-1 text-[9px] font-medium text-[#161823]/38">界面方案</div>
+                  {([
+                    { value: 'canvas', label: '素材库 · 方案 A', note: '自由画布' },
+                    { value: 'catalog', label: '素材库 · 方案 B', note: '网格目录与筛选' },
+                  ] as const).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        onTowerAssetLibraryUiChange(option.value)
+                        setPreferencesOpen(false)
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left ${towerAssetLibraryUi === option.value ? 'bg-[#f2f3f5]' : 'hover:bg-[#f7f7f8]'}`}
+                    >
+                      <span className={`grid size-4 shrink-0 place-items-center rounded-full border ${towerAssetLibraryUi === option.value ? 'border-[#161823] bg-[#161823] text-white' : 'border-[#161823]/18'}`}>
+                        {towerAssetLibraryUi === option.value && <Check className="size-2.5" />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[11px] font-medium text-[#161823]">{option.label}</span>
+                        <span className="block text-[9px] text-[#161823]/38">{option.note}</span>
+                      </span>
+                    </button>
+                  ))}
+                  <div className="mt-1 border-t border-black/[0.06] px-2 py-2 text-[9px] leading-4 text-[#161823]/34">后续页面画布、Chat Feed 等方案也统一放在这里。</div>
+                </div>
+              </div>
+            )}
             <button
               type="button"
-              onClick={() => toast('偏好设置（演示）')}
+              onClick={() => setPreferencesOpen((open) => !open)}
+              aria-expanded={preferencesOpen}
               aria-label="偏好设置"
               title={collapsed ? '偏好设置' : undefined}
               className={`flex h-8 w-full items-center gap-1.5 rounded-lg text-[12px] font-medium text-[#252632]/80 transition-colors hover:bg-black/[0.03] ${
@@ -2154,7 +2483,7 @@ function PlatformSidebar({
                                 const kind = kindOf(name)
                                 // AI 分身 and 小程序 projects are config-driven;
                                 // other kinds bucket the raw file tree.
-                                const productTree = mergeCategoryExtras(
+                                let productTree = mergeCategoryExtras(
                                   kind === 'ai-avatar'
                                     ? buildAvatarProductView(
                                         tree,
@@ -2165,7 +2494,7 @@ function PlatformSidebar({
                                           tree,
                                           getMiniProgramConfig(name),
                                         )
-                                      : buildProductView(tree, kind),
+                                      : buildProductView(tree, kind, name),
                                   categoryExtras,
                                   name,
                                 ).filter(
@@ -2174,6 +2503,31 @@ function PlatformSidebar({
                                       n.name,
                                     ),
                                 )
+                                if (name === TOWER_DEFENSE_PROJECT_NAME) {
+                                  const visibleTowerCategories = new Set([
+                                    PAGE_CONFIG_LABEL,
+                                    GAME_GAMEPLAY_CONFIG_LABEL,
+                                    GAME_ASSET_LIBRARY_LABEL,
+                                    '项目文件',
+                                    ...towerOpenedEditors,
+                                  ])
+                                  productTree = productTree.filter((node) =>
+                                    visibleTowerCategories.has(node.name),
+                                  )
+                                  for (const label of [
+                                    TOWER_MAP_EDITOR_TOOL_LABEL,
+                                    TOWER_SPRITE_SHEET_TOOL_LABEL,
+                                  ]) {
+                                    if (
+                                      towerOpenedEditors.includes(label) &&
+                                      !productTree.some(
+                                        (node) => node.name === label,
+                                      )
+                                    ) {
+                                      productTree.push({ name: label, type: 'file' })
+                                    }
+                                  }
+                                }
                                 if (productTree.length === 0) return emptyStub
                                 return (
                                   // Match the project row's mx-3 inset so selected object
@@ -2196,13 +2550,15 @@ function PlatformSidebar({
                                         onOpenProduct(name, n.name)
                                       }
                                       showDirChildren={false}
-                                      // 四级分类：模块只「选中查看」；只有「项目文件」是
-                                      // 文件夹，可以在左侧展开出真实源码目录。
+                                      // 四级分类：大多数模块只「选中查看」；交付物必须
+                                      // 在左侧展开到具体 Lynx/H5/资源位交付件，项目文件则
+                                      // 继续作为开发者源码文件夹。
                                       // 只在产物树一级判定：项目文件=文件夹，其余=模块；
                                       // 更深层返回 undefined，回落到「文件夹可继续展开」。
                                       canExpandDir={(n, _p, d) =>
                                         d === 1
-                                          ? n.name === '项目文件'
+                                          ? n.name === '项目文件' ||
+                                            n.name === ACTIVITY_ASSETS_LABEL
                                           : undefined
                                       }
                                       roundedRows
@@ -2235,7 +2591,9 @@ function PlatformSidebar({
                                                     `/${AVATAR_TRIGGER_LABEL}/`,
                                                   )
                                                 ? LightningLinearIcon
-                                                : PRODUCT_CATEGORY_ICONS[n.name]
+                                                : path.includes(`/${ACTIVITY_ASSETS_LABEL}/`)
+                                                  ? getDeliverableIcon(n.name)
+                                                  : PRODUCT_CATEGORY_ICONS[n.name]
                                       }
                                       // 关键节点（产品树一级）上彩色图标底板；子级叶子
                                       // 保持单色（depth 从 1 起算）。
@@ -2245,7 +2603,8 @@ function PlatformSidebar({
                                           : undefined
                                       }
                                       isActive={
-                                        name === activeProjectName
+                                        name === activeProjectName &&
+                                        activeNav === null
                                           ? (node, path) =>
                                               node.name === activeFilePath ||
                                               cleanTreePath(path) ===
@@ -2314,8 +2673,29 @@ function PlatformSidebar({
 /** AI 分身样板项目 — workshop 变体从侧栏隐藏它，avatar 变体只展示它。 */
 const AVATAR_PROJECT = '陶白白 Sensei 分身'
 const TAROT_INTEREST_CARD_PROJECT = '塔罗兴趣卡'
-const ACG_NEW_YEAR_PROJECT = '抖音 ACG 游戏新春会'
+const ACG_NEW_YEAR_PROJECT = '2026 抖音 ACG 新春会'
 const SUMMER_SURF_PROJECT = '夏日冲浪 · 顺风顺水'
+const HOT_TOPIC_BANNER_PROJECT = '生服热点 Banner'
+const assetGroupsForProject = (projectName: string): AssetGroup[] => {
+  if (projectName === QIXI_BRIDGE_PROJECT) return QIXI_ASSET_GROUPS
+  if (projectName === ACG_REPLICA_PROJECT) return ACG_REPLICA_ASSET_GROUPS
+  if (projectName === ACG_FROM_DOC_PROJECT)
+    return ACG_FROM_DOC_ASSET_GROUPS
+  if (projectName === HOT_TOPIC_BANNER_PROJECT)
+    return HOT_TOPIC_BANNER_ASSET_GROUPS
+  if (projectName === XINZAI_IP_ASSET_PROJECT) return XINZAI_IP_ASSET_GROUPS
+  if (projectName === JINGXIN_LIVESTREAM_ASSET_PROJECT)
+    return JINGXIN_LIVESTREAM_ASSET_GROUPS
+  if (projectName === LIFE_SERVICE_RESOURCE_POSITION_PROJECT)
+    return LIFE_SERVICE_RESOURCE_POSITION_ASSET_GROUPS
+  if (projectName === MAGICX_HEADER_ASSET_PROJECT)
+    return MAGICX_HEADER_ASSET_GROUPS
+  if (projectName === SPRING_GALA_PROJECT) return SPRING_GALA_ASSET_GROUPS
+  if (projectName === EVERNIGHT_PROJECT) return EVERNIGHT_ASSET_GROUPS
+  if (projectName === SUMMER_SURF_PROJECT) return SUMMER_SURF_ASSET_GROUPS
+  if (isXiahuaFamily(projectName)) return XIAHUA_ASSET_GROUPS
+  return ACG_NEW_YEAR_ASSET_GROUPS
+}
 /** 已经做完并上线的那一版活动 —— 侧栏里的成品样板，也是模板的来源。 */
 const XIAHUA_PROJECT = '夯爆了 已上线'
 /** 首页传策划文档进来时新建的活动 —— 0→1 全过程在它身上从零跑一遍。 */
@@ -2326,6 +2706,8 @@ const XIAHUA_CLONE_PROJECT = TEMPLATE_CLONE_PROJECT
 /** 这两个项目共用「这夏夯爆了」这套活动预览/搭建机制（成品、新建）。 */
 const isXiahuaFamily = (t: string) =>
   t === XIAHUA_PROJECT || t === XIAHUA_BUILD_PROJECT
+const isMarketingPageCollectionTab = (label?: string) =>
+  label === FINISHED_PAGES_LABEL
 /** 「数据库」节点的表结构 —— 全部从当前玩法配置推导：卡池、档位、任务、
  *  抽卡参数改了行就跟着变，不存在一份写死的终态副本。 */
 const xiahuaDatabaseContent = (
@@ -2493,6 +2875,21 @@ const readXiahuaEditStorage = (): XiahuaEditStorage => {
   }
 }
 type HomeAttachment = { name: string; size: number; type: string }
+type PlatformSurface =
+  | 'home'
+  | 'workspace'
+  | 'assets'
+  | 'resources'
+  | 'skills'
+  | 'inspiration'
+  | 'projects'
+  | 'data'
+  | `placeholder:${string}`
+
+type AssetCenterReturnTarget = {
+  projectName: string
+  tabLabel: string
+}
 /** 工坊首屏落在这夏夯爆了（侧栏默认只展开它，ACG 收起）。 */
 const WORKSHOP_DEFAULT_PROJECT = XIAHUA_PROJECT
 const WORKSHOP_TASK_IDS = {
@@ -2516,6 +2913,18 @@ export default function VibeCodingPage({
   onCanvasModeChange?: (open: boolean) => void
 }) {
   const isAvatarStudio = variant === 'avatar'
+  const [towerAssetLibraryUi, setTowerAssetLibraryUi] = useState<TowerAssetLibraryUiScheme>(readTowerAssetLibraryUiScheme)
+  const changeTowerAssetLibraryUi = useCallback((scheme: TowerAssetLibraryUiScheme) => {
+    setTowerAssetLibraryUi(scheme)
+    try {
+      window.localStorage.setItem(TOWER_ASSET_LIBRARY_UI_STORAGE_KEY, scheme)
+      const params = new URLSearchParams(window.location.search)
+      params.set('asset-ui', scheme)
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
+    } catch {
+      // The in-memory preference still applies when browser storage is unavailable.
+    }
+  }, [])
   const setWorkshopTaskStatus = useWorkshopTaskStatus(
     (state) => state.setTaskStatus,
   )
@@ -2544,9 +2953,22 @@ export default function VibeCodingPage({
   const navVersion = useNavVersion((state) => state.version)
   const standaloneWorkshopLayout =
     variant === 'workshop' && usesStandaloneWorkshopLayout(navVersion)
-  const initialResourceLibraryFromQuery =
+  /* Freeze mount-time deep-link flags. Recomputing these from the live URL
+   * made the standalone boot effect fire again when leaving ?page=assets,
+   * which unexpectedly sent project navigation to Home. */
+  const initialResourceLibraryFromQuery = useRef(
     typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('page') === 'resources'
+      new URLSearchParams(window.location.search).get('page') === 'resources',
+  ).current
+  const initialAssetCenterFromQuery = useRef(
+    typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('page') === 'assets',
+  ).current
+  const initialPlatformPageFromQuery = useRef(
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('page')
+      : null,
+  ).current
   // Standalone build — no router; the top-left back button is a no-op.
   const handleBack = useCallback(() => {
     /* intentionally empty in standalone */
@@ -2563,7 +2985,51 @@ export default function VibeCodingPage({
   /** 画布编辑里手动收起对话流。 */
   const [h5LabChatCollapsed, setH5LabChatCollapsed] = useState(false)
   const chatScrollRef = useRef<HTMLDivElement>(null)
+  const [chatScrollElement, setChatScrollElement] = useState<HTMLDivElement | null>(null)
+  const bindChatScrollRef = useCallback((node: HTMLDivElement | null) => {
+    chatScrollRef.current = node
+    setChatScrollElement((current) => current === node ? current : node)
+  }, [])
   const chatScrollEdges = useScrollEdges(chatScrollRef)
+
+  // Feed 始终追随最新内容：除了新消息挂载，还覆盖流式文本增长、
+  // 阶段卡展开和图片加载造成的高度变化。
+  useEffect(() => {
+    if (!chatScrollElement) return
+    let frame = 0
+    const scrollToLatest = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        chatScrollElement.scrollTop = chatScrollElement.scrollHeight
+      })
+    }
+    const resizeObserver = new ResizeObserver(scrollToLatest)
+    const observeChildren = () => {
+      resizeObserver.disconnect()
+      resizeObserver.observe(chatScrollElement)
+      Array.from(chatScrollElement.children).forEach((child) => {
+        if (child instanceof HTMLElement) resizeObserver.observe(child)
+      })
+    }
+    const mutationObserver = new MutationObserver(() => {
+      observeChildren()
+      scrollToLatest()
+    })
+    mutationObserver.observe(chatScrollElement, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    })
+    chatScrollElement.addEventListener('load', scrollToLatest, true)
+    observeChildren()
+    scrollToLatest()
+    return () => {
+      cancelAnimationFrame(frame)
+      mutationObserver.disconnect()
+      resizeObserver.disconnect()
+      chatScrollElement.removeEventListener('load', scrollToLatest, true)
+    }
+  }, [chatScrollElement])
 
   /* form state — cascading: step 2 unlocks after scene, step 3 after
    *  appType. step 3 picks capabilities, step 4 picks personalization tags.
@@ -2640,19 +3106,66 @@ export default function VibeCodingPage({
   /** Projects materialized at runtime by the game-generation flow. The
    *  Garuda case starts off-list and only appears in the sidebar once
    *  the user has confirmed the spec card and kicked off building. */
-  const [createdProjects, setCreatedProjects] = useState<string[]>([])
+  const [createdProjects, setCreatedProjects] = useState<string[]>(() =>
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('project') ===
+      TOWER_DEFENSE_PROJECT_NAME
+      ? [TOWER_DEFENSE_PROJECT_NAME]
+      : [],
+  )
   /** Kind for projects created at runtime (the home "新建项目" flow). Seeded
    *  projects resolve through the static PROJECT_KINDS map; this covers the
    *  rest. `kindOf` is the single lookup used everywhere in this component. */
   const [createdProjectKinds, setCreatedProjectKinds] = useState<
     Record<string, ProjectKind>
   >({})
+  const [createdProjectLanes, setCreatedProjectLanes] = useState<
+    Record<string, WorkshopLane>
+  >({})
   const kindOf = (name: string): ProjectKind =>
     PROJECT_KINDS[name] ?? createdProjectKinds[name] ?? 'mini-program'
+  const rememberProjectLane = (name: string, lane: WorkshopLane) => {
+    setCreatedProjectLanes((prev) =>
+      prev[name] === lane ? prev : { ...prev, [name]: lane },
+    )
+  }
+  const laneOf = (name: string): WorkshopLane =>
+    createdProjectLanes[name] ??
+    seededProjectLane(name) ??
+    laneFromKind(kindOf(name)) ??
+    'marketing'
   /** Spec the user confirmed in GameConfirmCard — kept so the post-step
    *  user-echo bubble can read it back, and so the locked card still
    *  shows the chosen options. */
   const [gameSpec, setGameSpec] = useState<GameSpecDraft | null>(null)
+  const [towerDefenseFlow, setTowerDefenseFlow] =
+    useState<TowerDefenseFlowState>(loadTowerDefenseFlow)
+  const towerUiEditor = useTowerUiEditor(towerDefenseFlow.ui)
+  const [towerMapEditor, setTowerMapEditor] = useState(
+    createDefaultTowerDefenseMapEditorState,
+  )
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(
+        TOWER_DEFENSE_FLOW_STORAGE_KEY,
+        JSON.stringify(towerDefenseFlow),
+      )
+    } catch {
+      // Session persistence is a convenience; the active flow remains usable.
+    }
+  }, [towerDefenseFlow])
+  const [towerSelectedAssetId, setTowerSelectedAssetId] = useState<string | null>(
+    'visual-world-style',
+  )
+  const [towerSelectedTaskId, setTowerSelectedTaskId] = useState<string | null>(
+    null,
+  )
+  const [towerSpriteLaunchSource, setTowerSpriteLaunchSource] =
+    useState<SpriteMakerLaunchSource | null>(null)
+  const [towerComposerAssetIds, setTowerComposerAssetIds] = useState<string[]>([])
+  const [towerComposerLocalFiles, setTowerComposerLocalFiles] = useState<
+    { id: string; name: string; type: string }[]
+  >([])
   /** Markdown content for files generated by the proposal flow, keyed by
    *  filename (e.g. '商家目标卡.md'). The file tree carries the structure;
    *  this map carries the body so the renderer can show real content when
@@ -2682,15 +3195,36 @@ export default function VibeCodingPage({
   >([])
   const [chatCleared, setChatCleared] = useState(false)
   const [chatDraft, setChatDraft] = useState('')
+  const [composerMentions, setComposerMentions] = useState<ComposerMention[]>([])
   /* Composer is a contentEditable div so @mention picks render as
    * inline pills. `chatInputRef` points at the div; `chatDraft` mirrors
    * the div's plain-text content via its onInput. External setters
    * (clear-on-send, programmatic fill) go through `setComposerText`
    * so the DOM and state stay in lockstep. */
   const chatInputRef = useRef<HTMLDivElement>(null)
-  const setComposerText = (next: string) => {
-    if (chatInputRef.current) chatInputRef.current.innerText = next
+  const setComposerText = (
+    next: string,
+    mentions: readonly ComposerMention[] = [],
+  ) => {
+    if (chatInputRef.current) {
+      restoreComposerContent(chatInputRef.current, next, mentions)
+    }
     setChatDraft(next)
+    setComposerMentions(mentions.map((mention) => ({ ...mention })))
+  }
+  const focusComposerAtEnd = () => {
+    window.requestAnimationFrame(() => {
+      const editor = chatInputRef.current
+      if (!editor) return
+      editor.focus()
+      const selection = window.getSelection()
+      if (!selection) return
+      const range = document.createRange()
+      range.selectNodeContents(editor)
+      range.collapse(false)
+      selection.removeAllRanges()
+      selection.addRange(range)
+    })
   }
   /* @mention picker — opens when the user types "@" in the composer.
    * `anchor` positions the popover above the input; clearing it closes
@@ -2713,7 +3247,19 @@ export default function VibeCodingPage({
    *   • 'none'    — plain message, just rendered as a user bubble
    */
   type MessageTrigger =
-    'none' | 'publish' | 'needs' | 'trigger' | 'proposal' | 'game'
+    | 'none'
+    | 'publish'
+    | 'needs'
+    | 'trigger'
+    | 'proposal'
+    | 'game'
+    | 'game-type-clarification'
+    | 'tower-defense'
+    | 'tower-visual-reference'
+    | 'tower-asset-generation'
+    | 'tower-asset-apply'
+    | 'tower-panel-action'
+    | 'tower-map-edit'
   type SentMessage = {
     id: string
     text: string
@@ -2733,11 +3279,66 @@ export default function VibeCodingPage({
             trigger: 'proposal',
           },
         ]
+      : typeof window !== 'undefined' &&
+          new URLSearchParams(window.location.search).get('project') ===
+            TOWER_DEFENSE_PROJECT_NAME
+        ? [
+            {
+              id: 'tower-defense-deep-link',
+              text: towerDefenseFlow.prompt,
+              trigger: 'tower-defense',
+            },
+          ]
       : [],
   )
+  const [towerAssetChatJobs, setTowerAssetChatJobs] = useState<
+    Record<string, {
+      assetId: string
+      versionIndex: number
+      versionLabel: string
+      status: 'generating' | 'completed'
+    }>
+  >({})
+  const [towerAssetPreviewRequest, setTowerAssetPreviewRequest] = useState<{
+    assetId: string
+    versionIndex: number
+    versionLabel: string
+    nonce: number
+  } | null>(null)
+  const [towerAssetApplyJobs, setTowerAssetApplyJobs] = useState<
+    Record<string, { assetIds: string[]; status: 'generating' | 'completed' }>
+  >({})
+  const [towerPanelActionJobs, setTowerPanelActionJobs] = useState<
+    Record<string, { reply: string; status: 'updating' | 'completed'; stage: TowerDefenseStage; nextStage?: TowerDefenseStage; nextLabel?: string }>
+  >({})
+  const [towerMapEditJobs, setTowerMapEditJobs] = useState<
+    Record<
+      string,
+      {
+        kind: 'intent' | 'apply'
+        status: 'preparing' | 'ready' | 'applying' | 'completed'
+        assetIds: string[]
+        fileNames: string[]
+      }
+    >
+  >({})
+  const [towerVisualIntent, setTowerVisualIntent] = useState({ world: '', style: '', mood: '' })
+  const [towerVisualQuestionStep, setTowerVisualQuestionStep] = useState(0)
+  const [towerVisualCustomInput, setTowerVisualCustomInput] = useState('')
+  const [towerVisualGeneration, setTowerVisualGeneration] = useState<'questions' | 'generating' | 'ready'>('questions')
+  const [towerVisualIntentOpen, setTowerVisualIntentOpen] = useState(false)
+  const [towerVisualReferencePending, setTowerVisualReferencePending] = useState(false)
+  const [towerVisualAssetsApplied, setTowerVisualAssetsApplied] = useState(false)
+  const [towerOpenedEditors, setTowerOpenedEditors] = useState<string[]>([])
+  const [towerVisibleAssetCount, setTowerVisibleAssetCount] = useState(0)
+  const [towerAssetProductionApplied, setTowerAssetProductionApplied] = useState(false)
   /* Chat session list — the header's conversation-name button opens a
    * dropdown of these, and the + button creates a fresh empty session. */
-  type ChatSession = { id: string; name: string }
+  type ChatSession = {
+    id: string
+    name: string
+    seededHistory?: 'asset-only'
+  }
   /* Sessions belong to the active project. Project switches snapshot
    * the array (and the matching `activeSessionId`) into projectChatsRef
    * and restore the target project's own list. Each project starts with
@@ -2755,6 +3356,7 @@ export default function VibeCodingPage({
   type SessionChatSnapshot = {
     sentMessages: SentMessage[]
     chatDraft: string
+    composerMentions: ComposerMention[]
     chatCleared: boolean
     needsFlowActive: boolean
     needsThinkingVisible: boolean
@@ -2808,11 +3410,83 @@ export default function VibeCodingPage({
    * Submitting returns to the normal workspace with the prompt routed
    * through sendChat. Closes when the user activates a project via
    * sidebar click. */
-  const [platformHomeOpen, setPlatformHomeOpen] = useState(() => {
-    if (typeof window === 'undefined') return true
+  /* Platform-level navigation is one exclusive state. The previous group of
+   * independent booleans could render two surfaces and highlight two nav
+   * branches at once (notably a direct ?page=assets load also kept Home open). */
+  const [platformSurface, setPlatformSurface] = useState<PlatformSurface>(() => {
+    if (typeof window === 'undefined') return 'home'
     const params = new URLSearchParams(window.location.search)
-    return !params.get('project') && params.get('page') !== 'resources'
+    const page = params.get('page')
+    if (page === 'assets') {
+      const asset = ASSET_CATALOG.find((item) => item.id === params.get('asset'))
+      return asset?.category === 'brand' || asset?.category === 'ip' ? 'skills' : 'resources'
+    }
+    if (page === 'resources' || page === 'skills' || page === 'inspiration' || page === 'projects' || page === 'data') return page
+    return params.get('project') ? 'workspace' : 'home'
   })
+  const platformHomeOpen = platformSurface === 'home'
+  const platformAssetCenterOpen = platformSurface === 'assets'
+  const platformResourceLibraryOpen = platformSurface === 'resources'
+  const platformSkillsOpen = platformSurface === 'skills'
+  const platformInspirationOpen = platformSurface === 'inspiration'
+  const platformCreativeSquareOpen = platformSurface === 'projects'
+  const platformDataOpsOpen = platformSurface === 'data'
+  const platformPlaceholderPage = platformSurface.startsWith('placeholder:')
+    ? platformSurface.slice('placeholder:'.length)
+    : null
+
+  const setExclusiveSurface = useCallback(
+    (surface: PlatformSurface, open: boolean) => {
+      setPlatformSurface((current) => {
+        if (open) return surface
+        if (surface.startsWith('placeholder:')) {
+          return current.startsWith('placeholder:') ? 'workspace' : current
+        }
+        return current === surface ? 'workspace' : current
+      })
+    },
+    [],
+  )
+  const setPlatformHomeOpen = useCallback(
+    (open: boolean) => setExclusiveSurface('home', open),
+    [setExclusiveSurface],
+  )
+  const setPlatformAssetCenterOpen = useCallback(
+    (open: boolean) => setExclusiveSurface('assets', open),
+    [setExclusiveSurface],
+  )
+  const setPlatformResourceLibraryOpen = useCallback(
+    (open: boolean) => setExclusiveSurface('resources', open),
+    [setExclusiveSurface],
+  )
+  const setPlatformSkillsOpen = useCallback(
+    (open: boolean) => setExclusiveSurface('skills', open),
+    [setExclusiveSurface],
+  )
+  const setPlatformInspirationOpen = useCallback(
+    (open: boolean) => setExclusiveSurface('inspiration', open),
+    [setExclusiveSurface],
+  )
+  const setPlatformCreativeSquareOpen = useCallback(
+    (open: boolean) => setExclusiveSurface('projects', open),
+    [setExclusiveSurface],
+  )
+  const setPlatformDataOpsOpen = useCallback(
+    (open: boolean) => setExclusiveSurface('data', open),
+    [setExclusiveSurface],
+  )
+  const setPlatformPlaceholderPage = useCallback(
+    (label: string | null) => {
+      setPlatformSurface((current) =>
+        label
+          ? `placeholder:${label}`
+          : current.startsWith('placeholder:')
+            ? 'workspace'
+            : current,
+      )
+    },
+    [],
+  )
   const [homeDraft, setHomeDraft] = useState('')
   /* 第五人格 needs-collection mock — only surfaces when the user sends a
    * message containing 第五人格/小程序. Default off so the chat starts in
@@ -3104,6 +3778,7 @@ export default function VibeCodingPage({
     setChatCleared(true)
     setSentMessages([])
     setComposerText('')
+    setTowerComposerAssetIds([])
     setMentionAnchor(null)
     setScene('')
     setAppType('')
@@ -3170,6 +3845,7 @@ export default function VibeCodingPage({
     }
     handleNewSession()
     setPlatformSkillsOpen(false)
+    setPlatformAssetCenterOpen(false)
     setPlatformResourceLibraryOpen(false)
     setPlatformCreativeSquareOpen(false)
     setPlatformDataOpsOpen(false)
@@ -3234,6 +3910,7 @@ export default function VibeCodingPage({
     projectTitleRef.current = XIAHUA_BUILD_PROJECT
     activatePublishProject(XIAHUA_BUILD_PROJECT)
     setPlatformHomeOpen(false)
+    setPlatformAssetCenterOpen(false)
     setPlatformResourceLibraryOpen(false)
     setPlatformSkillsOpen(false)
     setPlatformCreativeSquareOpen(false)
@@ -3245,6 +3922,7 @@ export default function VibeCodingPage({
         prev[XIAHUA_BUILD_PROJECT] ?? prev[XIAHUA_PROJECT] ?? [],
     }))
     initProjectDefaults(XIAHUA_BUILD_PROJECT, false, 'marketing-h5', false)
+    rememberProjectLane(XIAHUA_BUILD_PROJECT, 'marketing')
     // 从头搭：预设、玩法、选版全部回到出厂态，不继承已上线那版的成品状态
     setXiahuaPreset(XIAHUA_PRESET)
     setXiahuaGameplay(XIAHUA_BUILD_BASELINE_GAMEPLAY)
@@ -3252,12 +3930,142 @@ export default function VibeCodingPage({
     setXiahuaScriptKind('build')
   }
 
-  const submitFromHome = (text: string, attachment?: HomeAttachment) => {
+  const startTowerDefenseFlow = (userPrompt: string) => {
+    if (projectTitle && !platformHomeOpen) {
+      projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
+    }
+    const prompt =
+      userPrompt.replace(/^【[^】]+】/u, '').trim() ||
+      '做一个守护月光灯塔的暗夜森林塔防游戏，节奏轻快，适合单手游玩。'
+    const nextFlow = createDefaultTowerDefenseFlowState()
+    nextFlow.prompt = prompt
+
+    setCreatedProjectKinds((prev) => ({
+      ...prev,
+      [TOWER_DEFENSE_PROJECT_NAME]: 'web-game',
+    }))
+    setCreatedProjects((prev) =>
+      prev.includes(TOWER_DEFENSE_PROJECT_NAME)
+        ? prev
+        : [TOWER_DEFENSE_PROJECT_NAME, ...prev],
+    )
+    setPlatformOpenProjects((prev) =>
+      new Set(prev).add(TOWER_DEFENSE_PROJECT_NAME),
+    )
+    setProjectTrees((prev) => ({
+      ...prev,
+      [TOWER_DEFENSE_PROJECT_NAME]: createTowerDefenseFileTree(),
+    }))
+    pauseXiahuaReplayForProjectChange(TOWER_DEFENSE_PROJECT_NAME)
+    setProjectTitle(TOWER_DEFENSE_PROJECT_NAME)
+    projectTitleRef.current = TOWER_DEFENSE_PROJECT_NAME
+    activatePublishProject(TOWER_DEFENSE_PROJECT_NAME)
+    setHomeDraft('')
+    setPlatformHomeOpen(false)
+    setPlatformAssetCenterOpen(false)
+    setPlatformResourceLibraryOpen(false)
+    setPlatformSkillsOpen(false)
+    setPlatformCreativeSquareOpen(false)
+    setPlatformDataOpsOpen(false)
+    setTowerDefenseFlow(nextFlow)
+    towerUiEditor.resetFrom(nextFlow.ui)
+    setTowerVisualIntentOpen(false)
+    setTowerVisualReferencePending(false)
+    setTowerVisualGeneration('questions')
+    setTowerVisualAssetsApplied(false)
+    setTowerOpenedEditors([])
+    setTowerVisibleAssetCount(0)
+    setTowerSelectedAssetId('map-moon-gate')
+    setTowerSelectedTaskId(null)
+    const sessionId = initProjectDefaults(
+      TOWER_DEFENSE_PROJECT_NAME,
+      false,
+      'web-game',
+      false,
+    )
+    setSessions([{ id: sessionId, name: '塔防游戏生成' }])
+    setSentMessages([
+      {
+        id: createMessageId(),
+        text: userPrompt,
+        trigger: 'tower-defense',
+      },
+    ])
+    setChatCleared(false)
+    setPreviewCollapsed(false)
+    setPreviewZoom(1)
+    setCanvasEditOpen(false)
+    setEditPanelOpen(true)
+    updateWorkshopTaskStatus(
+      TOWER_DEFENSE_PROJECT_NAME,
+      WORKSHOP_TASK_IDS.gameGeneration,
+      'waiting-confirmation',
+    )
+  }
+
+  const submitFromHome = (
+    text: string,
+    attachment?: HomeAttachment,
+    scene?: 'marketing' | 'game',
+  ) => {
     const trimmed = text.trim()
     if (!trimmed && !attachment) return
     const request =
       trimmed ||
       `请根据上传的「${attachment?.name ?? '活动策划文档'}」完整搭建活动`
+    const homeLane = laneFromHomeScene(scene)
+    // 首页 tab 决定走哪条功能线，不再靠文案关键词互相抢项目。
+    if (homeLane === 'game') {
+      if (/^【塔防(?:｜|】)/u.test(trimmed) || /塔防/i.test(trimmed)) {
+        startTowerDefenseFlow(request)
+        return
+      }
+      if (
+        /弹幕|射击|stg|roguelike|太空|飞机.*游戏|游戏.*飞机|garuda/i.test(
+          trimmed,
+        )
+      ) {
+        setHomeDraft('')
+        startGameFlow(request)
+        return
+      }
+      const name = makeNewProjectName(request)
+      if (projectTitle && !platformHomeOpen) {
+        projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
+      }
+      setCreatedProjectKinds((prev) => ({ ...prev, [name]: 'web-game' }))
+      rememberProjectLane(name, 'game')
+      setCreatedProjects((prev) =>
+        prev.includes(name) ? prev : [name, ...prev],
+      )
+      setPlatformOpenProjects((prev) => {
+        const next = new Set(prev)
+        next.add(name)
+        return next
+      })
+      pauseXiahuaReplayForProjectChange(name)
+      setProjectTitle(name)
+      projectTitleRef.current = name
+      activatePublishProject(name)
+      setHomeDraft('')
+      setPlatformHomeOpen(false)
+      setPlatformResourceLibraryOpen(false)
+      setPlatformSkillsOpen(false)
+      setPlatformCreativeSquareOpen(false)
+      setPlatformDataOpsOpen(false)
+      const sessionId = initProjectDefaults(name, true, 'web-game', false)
+      sendChat(
+        attachment ? `【已上传文档：${attachment.name}】${request}` : request,
+        {
+          fromHomeEntry: true,
+          projectId: name,
+          projectKind: 'web-game',
+          sessionId,
+        },
+      )
+      return
+    }
+    const needsGameTypeClarification = /^【互动游戏(?:｜|】)/u.test(trimmed)
     // @模板 引用：从模板复刻新活动（换背景 / 换形象 / 换素材），走复刻回放。
     if (
       trimmed.includes(XIAHUA_TEMPLATE_TOKEN) ||
@@ -3288,11 +4096,14 @@ export default function VibeCodingPage({
       activatePublishProject(XIAHUA_CLONE_PROJECT)
       setHomeDraft('')
       setPlatformHomeOpen(false)
+      setPlatformAssetCenterOpen(false)
       setPlatformResourceLibraryOpen(false)
       setPlatformSkillsOpen(false)
+      setPlatformInspirationOpen(false)
       setPlatformCreativeSquareOpen(false)
       setPlatformDataOpsOpen(false)
       initProjectDefaults(XIAHUA_CLONE_PROJECT, false, 'marketing-h5', false)
+      rememberProjectLane(XIAHUA_CLONE_PROJECT, 'marketing')
       startTemplateClone(trimmed, { instant: true })
       return
     }
@@ -3308,25 +4119,14 @@ export default function VibeCodingPage({
       startXiahuaBuild(attachment.name, trimmed, { instant: true })
       return
     }
-    // Game prompt → dedicated Garuda mock-generation flow (it materialises
-    // its own 射击小游戏 project). Runs before the generic path so the
-    // scripted build always wins.
-    if (
-      /弹幕|射击|stg|roguelike|太空|飞机.*游戏|游戏.*飞机|garuda/i.test(trimmed)
-    ) {
-      setHomeDraft('')
-      startGameFlow(request)
-      return
-    }
-    // Otherwise: create a fresh project, pick its kind from the prompt so the
-    // right-side preview routes correctly, register it in the sidebar, switch
-    // to it, then send the prompt into its (empty) chat.
-    const kind = classifyProjectKind(request)
+    // 运营活动 tab 一律走营销 H5，不按文案改线到游戏。
+    const kind = 'marketing-h5'
     const name = makeNewProjectName(request)
     if (projectTitle && !platformHomeOpen) {
       projectChatsRef.current.set(projectTitle, captureProjectSnapshot())
     }
     setCreatedProjectKinds((prev) => ({ ...prev, [name]: kind }))
+    rememberProjectLane(name, 'marketing')
     setCreatedProjects((prev) => (prev.includes(name) ? prev : [name, ...prev]))
     setPlatformOpenProjects((prev) => {
       const next = new Set(prev)
@@ -3339,6 +4139,7 @@ export default function VibeCodingPage({
     activatePublishProject(name)
     setHomeDraft('')
     setPlatformHomeOpen(false)
+    setPlatformAssetCenterOpen(false)
     setPlatformResourceLibraryOpen(false)
     setPlatformSkillsOpen(false)
     setPlatformCreativeSquareOpen(false)
@@ -3346,6 +4147,11 @@ export default function VibeCodingPage({
     // Enter the chat flow with the right pane closed (Artifacts-style); it
     // opens once a previewable artifact appears — see sendChat / seedProductTabs.
     const sessionId = initProjectDefaults(name, true, kind, false)
+    if (needsGameTypeClarification) {
+      setOpenTabs([{ label: '预览', closable: false }])
+      setActivePreviewTab(0)
+      setPreviewCollapsed(false)
+    }
     // 没匹配到活动流程的附件不能静默消失 —— 至少把文件名带进对话。
     sendChat(
       attachment ? `【已上传文档：${attachment.name}】${request}` : request,
@@ -3354,39 +4160,9 @@ export default function VibeCodingPage({
         projectId: name,
         projectKind: kind,
         sessionId,
+        clarifyGameType: needsGameTypeClarification,
       },
     )
-    // 从 0 生成：AI 分身 用对话需求实时生成 config（Kimi → JSON），写入运行时
-    // 配置后右侧预览自动打开并显示生成的分身。失败则回退到静态默认（陶白白）。
-    if (kind === 'ai-avatar') {
-      updateWorkshopTaskStatus(
-        name,
-        WORKSHOP_TASK_IDS.avatarConfig,
-        'running',
-      )
-      generateAvatarConfig(trimmed, name)
-        .then((cfg) => {
-          setRuntimeConfig(name, cfg)
-          updateWorkshopTaskStatus(
-            name,
-            WORKSHOP_TASK_IDS.avatarConfig,
-            'completed',
-          )
-          if (projectTitleRef.current === name) {
-            setOpenTabs((prev) =>
-              prev.length > 0 ? prev : defaultTabsForKind(name),
-            )
-          }
-        })
-        .catch((err) => {
-          console.warn('[generateAvatarConfig]', err)
-          updateWorkshopTaskStatus(
-            name,
-            WORKSHOP_TASK_IDS.avatarConfig,
-            'waiting-confirmation',
-          )
-        })
-    }
   }
 
   /** Kick off the Garuda mock-generation flow. Opens the project, seeds
@@ -3406,9 +4182,11 @@ export default function VibeCodingPage({
     setProjectTitle('射击小游戏')
     projectTitleRef.current = '射击小游戏'
     activatePublishProject('射击小游戏')
+    rememberProjectLane('射击小游戏', 'game')
     setSessions([{ id: sid, name: sessionName }])
     setActiveSessionId(sid)
     setPlatformHomeOpen(false)
+    setPlatformAssetCenterOpen(false)
     setPlatformResourceLibraryOpen(false)
     setPlatformSkillsOpen(false)
     setPlatformCreativeSquareOpen(false)
@@ -3466,6 +4244,7 @@ export default function VibeCodingPage({
     setCreatedProjects((prev) =>
       prev.includes('射击小游戏') ? prev : ['射击小游戏', ...prev],
     )
+    rememberProjectLane('射击小游戏', 'game')
     setPlatformOpenProjects((prev) => {
       if (prev.has('射击小游戏')) return prev
       const next = new Set(prev)
@@ -3484,6 +4263,9 @@ export default function VibeCodingPage({
     sentMessages: sentMessages.map((message) => ({ ...message })),
     // Scripted replay typing is presentation state, not a user-authored draft.
     chatDraft: xiahuaTyping ? '' : chatDraft,
+    composerMentions: xiahuaTyping
+      ? []
+      : composerMentions.map((mention) => ({ ...mention })),
     chatCleared,
     needsFlowActive,
     needsThinkingVisible,
@@ -3543,7 +4325,7 @@ export default function VibeCodingPage({
 
   const applySessionSnapshot = (snap: SessionChatSnapshot) => {
     setSentMessages(snap.sentMessages.map((message) => ({ ...message })))
-    setComposerText(snap.chatDraft)
+    setComposerText(snap.chatDraft, snap.composerMentions ?? [])
     setChatCleared(snap.chatCleared)
     setNeedsFlowActive(snap.needsFlowActive)
     setNeedsThinkingVisible(snap.needsThinkingVisible)
@@ -3610,6 +4392,21 @@ export default function VibeCodingPage({
     projectKind: ProjectKind = kindOf(name),
   ) => {
     const k = projectKind
+    if (name === TOWER_DEFENSE_PROJECT_NAME)
+      return [{ label: TOWER_PREVIEW_TAB_LABEL, closable: false }]
+    if (isAssetOnlyProject(name))
+      return [
+        { label: ASSET_LIBRARY_LABEL, closable: false },
+        { label: PROJECT_DOCUMENT_LABEL, closable: false },
+      ]
+    if (k === 'marketing-h5')
+      return [
+        { label: '预览', closable: false },
+        { label: FINISHED_PAGES_LABEL, closable: false },
+        { label: PROJECT_DOCUMENT_LABEL, closable: false },
+        { label: H5_GAMEPLAY_CONFIG_LABEL, closable: false },
+        { label: ASSET_LIBRARY_LABEL, closable: false },
+      ]
     if (k === 'web-game')
       return [
         { label: '预览', closable: false },
@@ -3644,9 +4441,22 @@ export default function VibeCodingPage({
     seedProposal = true,
   ) => {
     const sid = `s-${Date.now()}`
+    const assetConversation = getAssetOnlyProjectConversation(name)
     sessionChatsRef.current.set(name, new Map())
-    setSessions([{ id: sid, name: '新会话' }])
+    setSessions([
+      {
+        id: sid,
+        name: assetConversation?.sessionTitle ?? '新会话',
+        seededHistory: assetConversation ? 'asset-only' : undefined,
+      },
+    ])
     setActiveSessionId(sid)
+    // The composer is an uncontrolled contentEditable node. Reset both its
+    // DOM and mirrored state when entering a project for the first time so a
+    // staged asset/capability reference from the previous project cannot leak
+    // into this project's request.
+    setComposerText('')
+    setMentionAnchor(null)
     setChatCleared(true)
     setSentMessages([])
     setNeedsFlowActive(false)
@@ -3720,6 +4530,10 @@ export default function VibeCodingPage({
    *  initialises kind-specific defaults on first visit. */
   const openProject = (name: string) => {
     pauseXiahuaReplayForProjectChange(name)
+    // A secondary page may queue a reference immediately before a project
+    // switch. Cancel that hand-off before snapshot/restore so it can never
+    // land in the newly active project's composer.
+    setPendingMention(null)
     // 活动预览/搭建状态是这一族项目共用的：切回「已上线」那版时归位，免得它
     // 顶着复刻换过的皮，或者停在新建活动搭到一半的状态。
     if (
@@ -3757,7 +4571,9 @@ export default function VibeCodingPage({
       }
       setXiahuaScriptKind('build')
       setXiahuaPreset(XIAHUA_PRESET)
-      setXiahuaGameplay(XIAHUA_PRESET.gameplay)
+      setXiahuaGameplay((current) =>
+        rebaseGeneratedLotteryGameplay(current, XIAHUA_PRESET.gameplay),
+      )
       setXiahuaOverrides(createFinalXiahuaOverrides())
       setXiahuaBuildStep(-1)
       setXiahuaBuildPlaying(false)
@@ -3794,10 +4610,43 @@ export default function VibeCodingPage({
         setXiahuaBuildFocused(true)
       }
     }
-    const focusAcgPreview = name === ACG_NEW_YEAR_PROJECT
-    const focusPreview = (tabs: { label: string; closable: boolean }[]) => {
-      const previewIndex = tabs.findIndex((tab) => tab.label === '预览')
-      setActivePreviewTab(previewIndex >= 0 ? previewIndex : 0)
+    const focusMarketingPages =
+      kindOf(name) === 'marketing-h5' && !isAssetOnlyProject(name)
+    const focusTowerPage = name === TOWER_DEFENSE_PROJECT_NAME
+    const focusProjectEntry = (
+      tabs: { label: string; closable: boolean }[],
+      target: '预览' | typeof FINISHED_PAGES_LABEL,
+    ) => {
+      const compatibleTabs = target === FINISHED_PAGES_LABEL
+        ? [
+            ...defaultTabsForKind(
+              name,
+              focusTowerPage ? 'web-game' : 'marketing-h5',
+            ),
+            ...tabs.filter((tab) => ![
+              '预览',
+              FINISHED_PAGES_LABEL,
+              PROJECT_DOCUMENT_LABEL,
+              H5_GAMEPLAY_CONFIG_LABEL,
+              ASSET_LIBRARY_LABEL,
+              GAME_GAMEPLAY_CONFIG_LABEL,
+              GAME_ASSET_LIBRARY_LABEL,
+              GAME_UI_CONFIG_LABEL,
+              GAME_BALANCE_CONFIG_LABEL,
+            ].includes(tab.label)),
+          ]
+        : defaultTabsForKind(name, 'marketing-h5')
+      const existingIndex = compatibleTabs.findIndex((tab) => tab.label === target)
+      const nextTabs =
+        existingIndex >= 0
+          ? compatibleTabs
+          : [
+              { label: target, closable: false },
+              ...compatibleTabs,
+            ]
+      setOpenTabs(nextTabs)
+      const targetIndex = nextTabs.findIndex((tab) => tab.label === target)
+      setActivePreviewTab(targetIndex >= 0 ? targetIndex : 0)
       setPreviewCollapsed(false)
       setEditPanelOpen(false)
       setCanvasEditOpen(false)
@@ -3806,14 +4655,23 @@ export default function VibeCodingPage({
     if (
       name === projectTitle &&
       !platformHomeOpen &&
+      !platformAssetCenterOpen &&
       !platformResourceLibraryOpen &&
       !platformSkillsOpen &&
+      !platformInspirationOpen &&
       !platformCreativeSquareOpen &&
       !platformDataOpsOpen &&
       platformPlaceholderPage === null
     ) {
-      // 抖音 ACG 项目行是预览快捷入口；重复点击也要从任意产物页回到预览。
-      if (focusAcgPreview) focusPreview(openTabs)
+      // 项目名是稳定的成品入口；项目内其他工具页仍通过子节点进入。
+      if (focusMarketingPages)
+        focusProjectEntry(openTabs, '预览')
+      else if (focusTowerPage)
+        focusProjectEntry(openTabs, FINISHED_PAGES_LABEL)
+      else if (isAssetOnlyProject(name)) {
+        const index = openTabs.findIndex((tab) => tab.label === ASSET_LIBRARY_LABEL)
+        setActivePreviewTab(index >= 0 ? index : 0)
+      }
       return
     }
     if (projectTitle && !platformHomeOpen) {
@@ -3823,19 +4681,31 @@ export default function VibeCodingPage({
     projectTitleRef.current = name
     activatePublishProject(name)
     setPlatformHomeOpen(false)
+    setPlatformAssetCenterOpen(false)
     setPlatformResourceLibraryOpen(false)
     setPlatformSkillsOpen(false)
+    setPlatformInspirationOpen(false)
     setPlatformCreativeSquareOpen(false)
     setPlatformDataOpsOpen(false)
     setPlatformPlaceholderPage(null)
     const prior = projectChatsRef.current.get(name)
     if (prior) {
       applyProjectSnapshot(name, prior)
-      if (focusAcgPreview) focusPreview(prior.openTabs)
+      if (focusMarketingPages)
+        focusProjectEntry(prior.openTabs, '预览')
+      else if (focusTowerPage)
+        focusProjectEntry(prior.openTabs, FINISHED_PAGES_LABEL)
       return
     }
     initProjectDefaults(name)
-    if (focusAcgPreview) focusPreview(defaultTabsForKind(name))
+    if (focusMarketingPages)
+      focusProjectEntry(defaultTabsForKind(name), '预览')
+    else if (focusTowerPage)
+      focusProjectEntry(defaultTabsForKind(name), FINISHED_PAGES_LABEL)
+    else if (isAssetOnlyProject(name)) {
+      setOpenTabs(defaultTabsForKind(name))
+      setActivePreviewTab(0)
+    }
   }
 
   /* Avatar 变体开机即进入分身项目（跳过工坊 home），只执行一次。 */
@@ -3876,6 +4746,7 @@ export default function VibeCodingPage({
       projectId?: string
       projectKind?: ProjectKind
       sessionId?: string
+      clarifyGameType?: boolean
     },
   ) => {
     const text = (override ?? chatDraft).trim()
@@ -3885,14 +4756,133 @@ export default function VibeCodingPage({
     const targetProjectId = opts?.projectId ?? projectTitle
     const targetProjectKind = opts?.projectKind ?? kindOf(targetProjectId)
     const targetSessionId = opts?.sessionId ?? activeSessionId
+    const waitingForGameType =
+      sentMessages.at(-1)?.trigger === 'game-type-clarification'
+    if (waitingForGameType && /^【塔防】/u.test(text)) {
+      startTowerDefenseFlow(text)
+      return
+    }
+    if (waitingForGameType && /^【2D 射击】/u.test(text)) {
+      startGameFlow(text)
+      return
+    }
     const messageId = createMessageId()
+    const plannedState = [
+      ['idle', '待机'],
+      ['move', '移动'],
+      ['attack', '攻击'],
+      ['hit', '受击'],
+      ['death', '死亡'],
+      ['upgrade', '升级'],
+    ].find(([, label]) => text.includes(label))
+    const removesPlannedState = /去掉|删除|移除|取消/u.test(text)
+    if (
+      targetProjectId === TOWER_DEFENSE_PROJECT_NAME &&
+      towerDefenseFlow.stage === 'asset-production' &&
+      plannedState &&
+      removesPlannedState
+    ) {
+      const targetsAllUnits = /(?:所有|全部)(?:小兵|兵种|敌人)/u.test(text)
+      const targetAssets = towerDefenseFlow.assets.filter((asset) =>
+        targetsAllUnits
+          ? asset.category === 'enemy' && asset.id !== 'enemy-guanyu'
+          : text.includes(asset.name),
+      )
+      if (targetAssets.length > 0) {
+        const [stateId, stateLabel] = plannedState
+        const targetIds = new Set(targetAssets.map((asset) => asset.id))
+        const nextAssets = towerDefenseFlow.assets.map((asset) =>
+          targetIds.has(asset.id)
+            ? {
+                ...asset,
+                states: asset.states.filter((state) => state.id !== stateId),
+              }
+            : asset,
+        )
+        const updatedTargets = nextAssets.filter((asset) => targetIds.has(asset.id))
+        const updatedList = updatedTargets
+          .map(
+            (asset) =>
+              `- ${asset.name}：${asset.states.map((state) => state.name).join(' / ') || '无动态状态'}`,
+          )
+          .join('\n')
+        setTowerDefenseFlow((current) => ({
+          ...current,
+          assets: nextAssets,
+          tasks: reconcileTowerDefenseSpriteTasks(nextAssets, current.tasks),
+        }))
+        setChatCleared(false)
+        setSentMessages((current) => [
+          ...current,
+          { id: messageId, text, trigger: 'tower-panel-action' },
+        ])
+        setTowerPanelActionJobs((current) => ({
+          ...current,
+          [messageId]: {
+            reply: `已从 ${targetAssets.length} 项资产规划中移除“${stateLabel}”状态。\n更新后的生产 List：\n${updatedList}`,
+            status: 'completed',
+            stage: 'asset-production',
+          },
+        }))
+        setComposerText('')
+        requestAnimationFrame(() => {
+          const chatScroll = chatScrollRef.current
+          if (chatScroll) chatScroll.scrollTop = chatScroll.scrollHeight
+        })
+        return
+      }
+    }
     // Any chat the user sends after entering a project counts as engaging with
     // it → reveal the right preview pane (Artifacts-style). The initial
     // home-entry prompt is excluded so the pane stays closed until then.
     if (!opts?.fromHomeEntry)
       seedProductTabs(targetProjectId, targetProjectKind)
+    const towerAttachedAssetIds =
+      targetProjectId === TOWER_DEFENSE_PROJECT_NAME
+        ? [...towerComposerAssetIds]
+        : []
+    const towerAttachedFileNames =
+      targetProjectId === TOWER_DEFENSE_PROJECT_NAME
+        ? towerComposerLocalFiles.map((file) => file.name)
+        : []
+    const isTowerMapEditIntent =
+      targetProjectId === TOWER_DEFENSE_PROJECT_NAME &&
+      /(地图|关卡|塔位|建造位|塔点|布置塔|调整.{0,6}地图|编辑.{0,6}地图|地图.{0,6}调整)/i.test(
+        text,
+      )
     let trigger: MessageTrigger = 'none'
-    if (opts?.fromHomeEntry && targetProjectKind === 'ops-proposal') {
+    if (
+      towerVisualReferencePending &&
+      targetProjectId === TOWER_DEFENSE_PROJECT_NAME
+    ) {
+      trigger = 'tower-visual-reference'
+    } else if (opts?.clarifyGameType) {
+      trigger = 'game-type-clarification'
+    } else if (isTowerMapEditIntent) {
+      trigger = 'tower-map-edit'
+      setTowerMapEditJobs((current) => ({
+        ...current,
+        [messageId]: {
+          kind: 'intent',
+          status: 'preparing',
+          assetIds: towerAttachedAssetIds,
+          fileNames: towerAttachedFileNames,
+        },
+      }))
+      window.setTimeout(() => {
+        setTowerMapEditJobs((current) => ({
+          ...current,
+          [messageId]: current[messageId]
+            ? { ...current[messageId], status: 'ready' }
+            : {
+                kind: 'intent',
+                status: 'ready',
+                assetIds: towerAttachedAssetIds,
+                fileNames: towerAttachedFileNames,
+              },
+        }))
+      }, 700)
+    } else if (opts?.fromHomeEntry && targetProjectKind === 'ops-proposal') {
       trigger = 'proposal'
       setProposalStep('collecting')
       setOpenTabs([])
@@ -3983,14 +4973,58 @@ export default function VibeCodingPage({
       { id: messageId, text, trigger, canvasRef },
     ])
     setH5LabChatRef(null)
+    if (trigger === 'tower-visual-reference') {
+      window.setTimeout(startTowerVisualGeneration, 0)
+    }
     // Clear both the state AND the contentEditable DOM (innerText won't
     // auto-reset from setChatDraft since the div is uncontrolled).
     setComposerText('')
+    if (targetProjectId === TOWER_DEFENSE_PROJECT_NAME) {
+      setTowerComposerAssetIds([])
+      setTowerComposerLocalFiles([])
+    }
     // Scroll to bottom after React commits the new message.
     requestAnimationFrame(() => {
       const el = chatScrollRef.current
       if (el) el.scrollTop = el.scrollHeight
     })
+  }
+
+  const sendTowerAssetRegeneration = (assetId: string, versionLabel: string) => {
+    const asset = towerDefenseFlow.assets.find((item) => item.id === assetId)
+    const versionIndex = Math.max(
+      0,
+      (versionLabel.match(/方案\s*([A-Z])/u)?.[1]?.charCodeAt(0) ?? 65) - 65,
+    )
+    const source = asset?.visualVersions?.[versionIndex]
+    const text = `重新生成素材「${asset?.name ?? '游戏资产'} · ${versionLabel}」。素材分类：${asset?.category ?? '游戏素材'}；用途：${asset?.role ?? '游戏内视觉呈现'}；参考尺寸：${source ? `${source.width} × ${source.height}` : '沿用当前槽位'}。请保持当前项目的世界观、角色识别、色彩和轮廓规范不变，生成一个构图与细节表现不同的新方案，并将结果追加到该槽位的生成记录中。`
+    const messageId = createMessageId()
+    setChatCleared(false)
+    setSentMessages((current) => [
+      ...current,
+      { id: messageId, text, trigger: 'tower-asset-generation' },
+    ])
+    setTowerAssetChatJobs((current) => ({
+      ...current,
+      [messageId]: { assetId, versionIndex, versionLabel, status: 'generating' },
+    }))
+    setComposerText('')
+    updateWorkshopTaskStatus(projectTitle, `chat:${messageId}`, 'running')
+    requestAnimationFrame(() => {
+      const chatScroll = chatScrollRef.current
+      if (chatScroll) chatScroll.scrollTop = chatScroll.scrollHeight
+    })
+    window.setTimeout(() => {
+      setTowerAssetChatJobs((current) => ({
+        ...current,
+        [messageId]: { assetId, versionIndex, versionLabel, status: 'completed' },
+      }))
+      updateWorkshopTaskStatus(projectTitle, `chat:${messageId}`, 'completed')
+      requestAnimationFrame(() => {
+        const chatScroll = chatScrollRef.current
+        if (chatScroll) chatScroll.scrollTop = chatScroll.scrollHeight
+      })
+    }, 2200)
   }
 
   /* collapse toggles */
@@ -4074,6 +5108,42 @@ export default function VibeCodingPage({
   // The H5 layer currently selected in the preview (edit mode) — the 编辑
   // panel refreshes to match. null = no element selected → 整体活动配置.
   const [h5Selected, setH5Selected] = useState<H5Selection | null>(null)
+  const [qixiSelected, setQixiSelected] = useState<QixiPageSelection | null>(null)
+  const [qixiPageContent, setQixiPageContent] = useState<QixiPageContent>(
+    getInitialQixiPageContent,
+  )
+  const qixiStorageWarningShownRef = useRef(false)
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        QIXI_PAGE_CONTENT_STORAGE_KEY,
+        JSON.stringify(qixiPageContent),
+      )
+    } catch {
+      if (!qixiStorageWarningShownRef.current) {
+        qixiStorageWarningShownRef.current = true
+        toast.error('保存失败，页面修改仅保留在当前会话')
+      }
+    }
+  }, [qixiPageContent])
+  const [acgFromDocSelected, setAcgFromDocSelected] =
+    useState<AcgFromDocSelection | null>(null)
+  const [acgFromDocPageContent, setAcgFromDocPageContent] =
+    useState<AcgFromDocPageContent>(getInitialAcgFromDocPageContent)
+  const acgFromDocStorageWarningShownRef = useRef(false)
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        ACG_FROM_DOC_PAGE_CONTENT_STORAGE_KEY,
+        JSON.stringify(acgFromDocPageContent),
+      )
+    } catch {
+      if (!acgFromDocStorageWarningShownRef.current) {
+        acgFromDocStorageWarningShownRef.current = true
+        toast.error('保存失败，页面修改仅保留在当前会话')
+      }
+    }
+  }, [acgFromDocPageContent])
   // Summer Surf has its own activity sections and copy, so its right-side
   // editor keeps a separate selection/config model from the seeded H5 demo.
   const [summerSurfSelected, setSummerSurfSelected] =
@@ -4106,6 +5176,37 @@ export default function VibeCodingPage({
   const [xiahuaGameplay, setXiahuaGameplay] = useState<XiahuaGameplay>(
     () => readXiahuaEditStorage().gameplay,
   )
+  /** ACG uses an independent asset-driven compile replay. It must never share
+   * state or mutations with the legacy Xiahua 0→1 replay. */
+  const [acgReplayToken, setAcgReplayToken] = useState(0)
+  const [acgReplayPlaying, setAcgReplayPlaying] = useState(false)
+  const [acgFromDocReplayToken, setAcgFromDocReplayToken] = useState(0)
+  const [acgFromDocReplayPlaying, setAcgFromDocReplayPlaying] = useState(false)
+  const [qixiReplayToken, setQixiReplayToken] = useState(0)
+  const [qixiReplayPlaying, setQixiReplayPlaying] = useState(false)
+  const [qixiReplaySurface, setQixiReplaySurface] = useState<{
+    target: QixiReplayTarget
+    stepId: string
+    pathIds: string[]
+  }>({
+    target: 'current-result',
+    stepId: 'qixi-current-result',
+    pathIds: [],
+  })
+  const [acgReplaySurface, setAcgReplaySurface] = useState<{
+    target: AcgReplayTarget
+    stepId: string
+    pathIds: string[]
+  }>({ target: 'delivery-overview', stepId: 'acg-complete', pathIds: [] })
+  const [acgFromDocReplaySurface, setAcgFromDocReplaySurface] = useState<{
+    target: AcgFromDocReplayTarget
+    stepId: string
+    pathIds: string[]
+  }>({
+    target: 'current-result',
+    stepId: 'acg-doc-current-result',
+    pathIds: [],
+  })
   const persistXiahuaEdits = useCallback(() => {
     try {
       window.localStorage.setItem(
@@ -4314,7 +5415,7 @@ export default function VibeCodingPage({
     if (xiahuaBuildStep < 0 || !xiahuaArtifactPhase) return {}
     const hide: string[] = []
     const has = (p: BuildPhase[]) => p.includes(xiahuaArtifactPhase)
-    if (has(['none', 'doc'])) hide.push('项目文件')
+    if (has(['none', 'doc'])) hide.push('项目文件', ACTIVITY_ASSETS_LABEL)
     // 素材库要等清单对齐了才出现；玩法配置在框架上接玩法那步就有了
     if (has(['none', 'doc', 'wireframe', 'gameplay']))
       hide.push(ASSET_LIBRARY_LABEL)
@@ -4479,7 +5580,11 @@ export default function VibeCodingPage({
         ? [s.mutate]
         : []
     for (const m of mutations) {
-      if (m.type === 'gameplay') setXiahuaGameplay(m.patch)
+      if (m.type === 'gameplay') {
+        setXiahuaGameplay((current) =>
+          rebaseGeneratedLotteryGameplay(current, m.patch(current)),
+        )
+      }
       if (m.type === 'overrides') setXiahuaOverrides(m.patch)
       if (m.type === 'plan') setXiahuaPlan(m.patch)
       if (m.type === 'preset') setXiahuaPreset(m.patch)
@@ -4636,8 +5741,17 @@ export default function VibeCodingPage({
    * the sidebar's owning project is expanded + visible. AI 分身直接进入
    * 样板项目，因此首屏同步展开它的产物目录；工坊默认展开塔罗兴趣卡。 */
   const [platformOpenProjects, setPlatformOpenProjects] = useState<Set<string>>(
-    () =>
-      new Set(isAvatarStudio ? [AVATAR_PROJECT] : [WORKSHOP_DEFAULT_PROJECT]),
+    () => {
+      const initialProject =
+        typeof window !== 'undefined' &&
+        new URLSearchParams(window.location.search).get('project') ===
+          TOWER_DEFENSE_PROJECT_NAME
+          ? TOWER_DEFENSE_PROJECT_NAME
+          : isAvatarStudio
+            ? AVATAR_PROJECT
+            : WORKSHOP_DEFAULT_PROJECT
+      return new Set([initialProject])
+    },
   )
 
   const fileTree: FileNode[] = [
@@ -5070,10 +6184,128 @@ export default function VibeCodingPage({
     [TAROT_INTEREST_CARD_PROJECT]: fileTree,
     '陶白白 Sensei 分身': aiPersonaFileTree,
     粉丝互动机器人: aiPersonaFileTree,
-    // 抖音 ACG 游戏新春会 H5 — buildProductView('marketing-h5') will re-bucket
+    [ACG_REPLICA_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '一比一复刻说明.md', type: 'file' }],
+      },
+      {
+        name: 'src',
+        type: 'dir',
+        children: [
+          {
+            name: 'pages',
+            type: 'dir',
+            children: [{ name: 'main-hall.tsx', type: 'file' }],
+          },
+        ],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [{ name: 'strips', type: 'dir', children: [] }],
+      },
+    ],
+    [QIXI_BRIDGE_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '七夕搭鹊桥活动需求.md', type: 'file' }],
+      },
+      {
+        name: 'src',
+        type: 'dir',
+        children: [
+          {
+            name: 'pages',
+            type: 'dir',
+            children: [
+              { name: 'Home', type: 'dir', children: [] },
+              { name: 'FindMagpies', type: 'dir', children: [] },
+              { name: 'Lottery', type: 'dir', children: [] },
+              { name: 'ActivityDetails', type: 'dir', children: [] },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'config',
+        type: 'dir',
+        children: [{ name: 'gameplay.config.json', type: 'file' }],
+      },
+      { name: 'assets', type: 'dir', children: [] },
+    ],
+    [ACG_FROM_DOC_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [
+          { name: '需求原文.md', type: 'file' },
+          { name: '页面需求.md', type: 'file' },
+          { name: '确认结果.md', type: 'file' },
+        ],
+      },
+      {
+        name: 'src',
+        type: 'dir',
+        children: [
+          {
+            name: 'pages',
+            type: 'dir',
+            children: [
+              { name: 'MainVenue.tsx', type: 'file' },
+              { name: 'GameVenue.tsx', type: 'file' },
+              { name: 'AnimeVenue.tsx', type: 'file' },
+            ],
+          },
+          {
+            name: 'components',
+            type: 'dir',
+            children: [
+              { name: 'ChapterUnlockRoute.tsx', type: 'file' },
+              { name: 'ChapterHostCallout.tsx', type: 'file' },
+              { name: 'WorkDetailSheet.tsx', type: 'file' },
+              { name: 'HangLaVote.tsx', type: 'file' },
+              { name: 'DualRanking.tsx', type: 'file' },
+              { name: 'RandomWorkFeed.tsx', type: 'file' },
+              { name: 'WishWall.tsx', type: 'file' },
+              { name: 'BenefitTasks.tsx', type: 'file' },
+              { name: 'RulesSheet.tsx', type: 'file' },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'config',
+        type: 'dir',
+        children: [
+          { name: 'chapters.config.json', type: 'file' },
+          { name: 'gameplay.config.json', type: 'file' },
+        ],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: 'style-star-rail.webp', type: 'file' },
+          { name: 'style-manga-annual.webp', type: 'file' },
+          { name: 'style-candy-arcade.webp', type: 'file' },
+        ],
+      },
+    ],
+    // 2026 抖音 ACG 新春会 — buildProductView('marketing-h5') will re-bucket
     // this raw tree into 4 product leaves, so the concrete file list
     // here is mostly a placeholder so the row stops at "暂无文件".
-    '抖音 ACG 游戏新春会': [
+    '2026 抖音 ACG 新春会': [
+      {
+        name: 'deliverables',
+        type: 'dir',
+        children: documentedActivityLabels(ACG_NEW_YEAR_PROJECT).map((name) => ({
+          name,
+          type: 'file' as const,
+        })),
+      },
       {
         name: 'docs',
         type: 'dir',
@@ -5089,6 +6321,71 @@ export default function VibeCodingPage({
         name: 'config',
         type: 'dir',
         children: [{ name: 'h5.config.json', type: 'file' }],
+      },
+    ],
+    [SPRING_GALA_PROJECT]: [
+      {
+        name: 'deliverables',
+        type: 'dir',
+        children: documentedActivityLabels(SPRING_GALA_PROJECT).map((name) => ({ name, type: 'file' as const })),
+      },
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '2026抖音春晚活动方案.md', type: 'file' }],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: 'lynx-main.webp', type: 'file' },
+          { name: 'h5-lottery.webp', type: 'file' },
+          { name: 'blessing-card.webp', type: 'file' },
+          { name: 'open-screen.webp', type: 'file' },
+          { name: 'live-tab.webp', type: 'file' },
+          { name: 'admin-vertical.webp', type: 'file' },
+          { name: 'business-poster.webp', type: 'file' },
+        ],
+      },
+      {
+        name: 'gameplay',
+        type: 'dir',
+        children: [
+          { name: 'lottery.config.json', type: 'file' },
+          { name: 'blessing-card.config.json', type: 'file' },
+          { name: 'program-schedule.schema.json', type: 'file' },
+        ],
+      },
+    ],
+    [EVERNIGHT_PROJECT]: [
+      {
+        name: 'deliverables',
+        type: 'dir',
+        children: documentedActivityLabels(EVERNIGHT_PROJECT).map((name) => ({ name, type: 'file' as const })),
+      },
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '永夜星河抽卡活动方案.md', type: 'file' }],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: 'main-venue.webp', type: 'file' },
+          { name: 'card-collection.webp', type: 'file' },
+          { name: 'share-card.webp', type: 'file' },
+        ],
+      },
+      {
+        name: 'gameplay',
+        type: 'dir',
+        children: [
+          { name: 'task-rewards.config.json', type: 'file' },
+          { name: 'draw-wallet.schema.json', type: 'file' },
+          { name: 'card-pool.schema.json', type: 'file' },
+          { name: 'share-card.schema.json', type: 'file' },
+        ],
       },
     ],
     // Marketing King 里的夏日冲浪活动：这里的树与右侧 H5 预览共用同一套
@@ -5219,9 +6516,128 @@ export default function VibeCodingPage({
         ],
       },
     ],
+    [HOT_TOPIC_BANNER_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [
+          { name: '热点话题Banner标准.md', type: 'file' },
+          { name: '案例战报海报标准.md', type: 'file' },
+          { name: 'report-poster.skill.md', type: 'file' },
+          { name: '文案与字号门禁.md', type: 'file' },
+          { name: '发布校验清单.md', type: 'file' },
+        ],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: '行业热点Showcase-1170x330.png', type: 'file' },
+          { name: '灰色模板.png', type: 'file' },
+          { name: '黄色模板.png', type: 'file' },
+          { name: '蓝色模板.png', type: 'file' },
+          { name: '绿色模板.png', type: 'file' },
+          { name: '抖音生活服务Logo.png', type: 'file' },
+          { name: '方方先锋体.ttf', type: 'file' },
+          { name: 'banner.layers.json', type: 'file' },
+          { name: '成都世园酒店案例战报-1620x6900.png', type: 'file' },
+          { name: 'hotel-report__imageHtml.json', type: 'file' },
+        ],
+      },
+    ],
+    [XINZAI_IP_ASSET_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '心仔城市生活季素材任务.md', type: 'file' }],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: '01-color-standard.png', type: 'file' },
+          { name: '02-character-anatomy.png', type: 'file' },
+          { name: '03-3d-front.png', type: 'file' },
+          { name: '04-2d-front.png', type: 'file' },
+          { name: '05-height-ratio.png', type: 'file' },
+          { name: '06-emotion-expect.png', type: 'file' },
+          { name: '07-emotion-angry.png', type: 'file' },
+          { name: '08-action-greeting.jpg', type: 'file' },
+          { name: '09-action-hotpot.png', type: 'file' },
+          { name: '10-action-karaoke.png', type: 'file' },
+          { name: '11-action-skateboard.png', type: 'file' },
+          { name: '12-action-plane.png', type: 'file' },
+          { name: '13-action-spring.png', type: 'file' },
+        ],
+      },
+    ],
+    [JINGXIN_LIVESTREAM_ASSET_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '静心采耳馆直播间贴片任务.md', type: 'file' }],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: 'jingxin-preview.png', type: 'file' },
+          { name: 'jingxin-background.jpg', type: 'file' },
+          { name: 'jingxin-title.png', type: 'file' },
+          { name: 'jingxin-brand.png', type: 'file' },
+          { name: 'jingxin-top-gradient.png', type: 'file' },
+          { name: 'jingxin-bottom-gradient.png', type: 'file' },
+          { name: 'jingxin-benefits.png', type: 'file' },
+          { name: 'jingxin-side-offer.png', type: 'file' },
+        ],
+      },
+    ],
+    [LIFE_SERVICE_RESOURCE_POSITION_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '生活服务热点资源位周更.md', type: 'file' }],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: 'ice-camp.png', type: 'file' },
+          { name: 'duck-camp.png', type: 'file' },
+          { name: 'autumn-milk-tea.png', type: 'file' },
+          { name: 'zibo-photo.png', type: 'file' },
+          { name: 'heat-escape.png', type: 'file' },
+          { name: 'chaoshan-beef.png', type: 'file' },
+          { name: 'bread-brain.png', type: 'file' },
+          { name: 'industry-showcase.png', type: 'file' },
+        ],
+      },
+    ],
+    [MAGICX_HEADER_ASSET_PROJECT]: [
+      {
+        name: 'docs',
+        type: 'dir',
+        children: [{ name: '城市灵感活动头图提案.md', type: 'file' }],
+      },
+      {
+        name: 'assets',
+        type: 'dir',
+        children: [
+          { name: 'wunvzhou-romance-banner.png', type: 'file' },
+          { name: 'dou-says-jiangnan.png', type: 'file' },
+          { name: 'travel-guide-banner.png', type: 'file' },
+          { name: 'national-ice-contest.png', type: 'file' },
+        ],
+      },
+    ],
     // 这夏夯爆了 — 夏日集卡 H5。文件树对应真实产物：一个自包含的活动
     // 页组件 + 30 个素材切图 + 玩法/数据配置。
     [XIAHUA_PROJECT]: [
+      {
+        name: 'deliverables',
+        type: 'dir',
+        children: documentedActivityLabels(XIAHUA_PROJECT).map((name) => ({ name, type: 'file' as const })),
+      },
       {
         name: 'docs',
         type: 'dir',
@@ -5328,6 +6744,7 @@ export default function VibeCodingPage({
     ],
     '抖音 AI 工坊设计探索': webAppFileTree,
     射击小游戏: garudaFileTree,
+    [TOWER_DEFENSE_PROJECT_NAME]: createTowerDefenseFileTree(),
     '沪上火锅·五一种草提案': [
       { name: 'briefs', type: 'dir', children: [] },
       { name: 'configs', type: 'dir', children: [] },
@@ -5343,8 +6760,16 @@ export default function VibeCodingPage({
   const wantsProposalDeepLink =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('project') === 'proposal'
+  const wantsTowerDefenseDeepLink =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('project') ===
+      TOWER_DEFENSE_PROJECT_NAME
   const [openTabs, setOpenTabs] = useState(() =>
-    wantsProposalDeepLink ? [] : [{ label: '预览', closable: false }],
+    wantsProposalDeepLink
+      ? []
+      : wantsTowerDefenseDeepLink
+        ? [{ label: TOWER_PREVIEW_TAB_LABEL, closable: false }]
+        : [{ label: '预览', closable: false }],
   )
   const [activePreviewTab, setActivePreviewTab] = useState(0)
 
@@ -5362,6 +6787,7 @@ export default function VibeCodingPage({
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
   // Right-preview zoom (proportional scale of the rendered preview surface).
   const [previewZoom, setPreviewZoom] = useState(1)
+  const [towerReplayKey, setTowerReplayKey] = useState(0)
   // The scrollable canvas around the preview surface — re-centered on zoom so
   // scaling stays anchored to the viewport center (m-auto alone left-aligns
   // once the scaled surface overflows the canvas).
@@ -5417,6 +6843,11 @@ export default function VibeCodingPage({
   /** Right-side edit panel — opens a visualization editor alongside the
    *  active product preview. */
   const [editPanelOpen, setEditPanelOpen] = useState(false)
+  const [towerToolLayout, setTowerToolLayout] = useState<'split' | 'full'>(
+    'split',
+  )
+  const [towerAssetCanvasEditing, setTowerAssetCanvasEditing] = useState(false)
+  const towerLayoutLocked = towerToolLayout === 'split'
   const closeXiahuaEditor = useCallback(() => {
     persistXiahuaEdits()
     setEditPanelOpen(false)
@@ -5503,6 +6934,7 @@ export default function VibeCodingPage({
   /** Canvas editor — web-game images use the asset board; marketing H5 uses
    *  an immersive full-page canvas. Takes over the preview content when open. */
   const [canvasEditOpen, setCanvasEditOpen] = useState(false)
+  const pendingTowerCanvasEditRef = useRef(false)
   // AI 分身 preview scene — toggled from the toolbar dropdown (left of the
   // refresh icon): 'chat' = 私信/AI 聊天 surface; 'comment' = 评论区 surface.
   const [avatarScene, setAvatarScene] = useState<'chat' | 'comment'>('chat')
@@ -5601,7 +7033,7 @@ export default function VibeCodingPage({
               tree,
               getMiniProgramConfig(projectTitle),
             )
-          : buildProductView(tree, kind),
+          : buildProductView(tree, kind, projectTitle),
       categoryExtras,
       projectTitle,
     )
@@ -5704,20 +7136,844 @@ export default function VibeCodingPage({
     setActivePreviewTab(next.length - 1)
   }
 
-  /** 找到并切换产物 tab；素材库等 tab 可能还没出现，首次定位时顺手创建。 */
   const focusPreviewTab = useCallback(
     (label: string) => {
-      const existing = openTabs.findIndex((tab) => tab.label === label)
+      const hasDistinctPreviewAndPages =
+        openTabs.some((tab) => tab.label === TOWER_PREVIEW_TAB_LABEL) &&
+        openTabs.some((tab) => tab.label === FINISHED_PAGES_LABEL)
+      const existing = openTabs.findIndex((tab) =>
+        !hasDistinctPreviewAndPages && isTowerPreviewTabLabel(label)
+          ? isTowerPreviewTabLabel(tab.label)
+          : tab.label === label,
+      )
       if (existing >= 0) {
         setActivePreviewTab(existing)
         return
       }
-      const next = [...openTabs, { label, closable: label !== '预览' }]
+      const nextLabel =
+        !hasDistinctPreviewAndPages && isTowerPreviewTabLabel(label)
+          ? TOWER_PREVIEW_TAB_LABEL
+          : label
+      const next = [
+        ...openTabs,
+        {
+          label: nextLabel,
+          closable:
+            !isTowerPreviewTabLabel(nextLabel) &&
+            nextLabel !== GAME_GAMEPLAY_CONFIG_LABEL &&
+            nextLabel !== GAME_ASSET_LIBRARY_LABEL &&
+            nextLabel !== GAME_UI_CONFIG_LABEL &&
+            nextLabel !== GAME_BALANCE_CONFIG_LABEL,
+        },
+      ]
       setOpenTabs(next)
       setActivePreviewTab(next.length - 1)
     },
     [openTabs],
   )
+
+  const focusTowerDefenseToolTab = useCallback(
+    (label: string) => {
+      const existing = openTabs.findIndex((tab) => tab.label === label)
+      if (existing >= 0) {
+        if (!openTabs[existing].closable) {
+          setOpenTabs((tabs) =>
+            tabs.map((tab, index) =>
+              index === existing ? { ...tab, closable: true } : tab,
+            ),
+          )
+        }
+        setActivePreviewTab(existing)
+        return
+      }
+      const next = [...openTabs, { label, closable: true }]
+      setOpenTabs(next)
+      setActivePreviewTab(next.length - 1)
+    },
+    [openTabs],
+  )
+
+  const openTowerDefenseStage = useCallback(
+    (stage: TowerDefenseStage) => {
+      const editorLabel =
+        stage === 'ui-generation'
+          ? GAME_UI_CONFIG_LABEL
+          : stage === 'balance'
+            ? GAME_BALANCE_CONFIG_LABEL
+            : null
+      if (editorLabel) {
+        setTowerOpenedEditors((current) =>
+          current.includes(editorLabel) ? current : [...current, editorLabel],
+        )
+      }
+      setTowerDefenseFlow((current) => ({
+        ...current,
+        stage,
+        furthestStageReached: advanceTowerDefenseStage(
+          current.furthestStageReached,
+          stage,
+        ),
+        tasks:
+          stage === 'asset-production'
+            ? reconcileTowerDefenseSpriteTasks(
+                current.assets,
+                current.tasks,
+              )
+            : current.tasks,
+      }))
+      focusTowerDefenseToolTab(getTowerDefenseStageTabLabel(stage))
+      setCanvasEditOpen(false)
+      setEditPanelOpen(true)
+    },
+    [focusTowerDefenseToolTab],
+  )
+
+  const openTowerDefenseMapEditor = useCallback(() => {
+    setTowerOpenedEditors((current) =>
+      current.includes(TOWER_MAP_EDITOR_TOOL_LABEL)
+        ? current
+        : [...current, TOWER_MAP_EDITOR_TOOL_LABEL],
+    )
+    focusTowerDefenseToolTab(TOWER_MAP_EDITOR_TOOL_LABEL)
+    setCanvasEditOpen(false)
+    setEditPanelOpen(true)
+  }, [focusTowerDefenseToolTab])
+
+  const openTowerSpriteMakerTool = useCallback(() => {
+    setTowerOpenedEditors((current) =>
+      current.includes(TOWER_SPRITE_SHEET_TOOL_LABEL)
+        ? current
+        : [...current, TOWER_SPRITE_SHEET_TOOL_LABEL],
+    )
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      stage: 'asset-production',
+      furthestStageReached: advanceTowerDefenseStage(
+        current.furthestStageReached,
+        'asset-production',
+      ),
+      tasks: reconcileTowerDefenseSpriteTasks(current.assets, current.tasks),
+    }))
+    focusTowerDefenseToolTab(TOWER_SPRITE_SHEET_TOOL_LABEL)
+    setCanvasEditOpen(false)
+    setEditPanelOpen(true)
+  }, [focusTowerDefenseToolTab])
+
+  const openTowerAssetInSpriteMaker = useCallback(
+    (assetId: string, versionIndex: number, versionLabel: string) => {
+      const asset = towerDefenseFlow.assets.find((item) => item.id === assetId)
+      const version = asset?.visualVersions?.[versionIndex]
+      if (!asset || !version) return
+      const sourcePath = version.src.split(/[?#]/, 1)[0].toLowerCase()
+      const mimeType = sourcePath.endsWith('.gif')
+        ? 'image/gif'
+        : sourcePath.endsWith('.mp4')
+          ? 'video/mp4'
+          : sourcePath.endsWith('.mov')
+            ? 'video/quicktime'
+            : sourcePath.endsWith('.webm')
+              ? 'video/webm'
+              : sourcePath.endsWith('.jpg') || sourcePath.endsWith('.jpeg')
+                ? 'image/jpeg'
+                : sourcePath.endsWith('.webp')
+                  ? 'image/webp'
+                  : 'image/png'
+      const extension = sourcePath.match(/\.([a-z0-9]+)$/)?.[1] ?? (mimeType.startsWith('video/') ? 'mp4' : 'png')
+      const task = towerDefenseFlow.tasks.find((item) => item.assetId === assetId)
+      setTowerSelectedAssetId(assetId)
+      setTowerSelectedTaskId(task?.id ?? null)
+      setTowerSpriteLaunchSource({
+        requestId: Date.now(),
+        assetId,
+        url: version.src,
+        fileName: `${asset.name}-${versionLabel}.${extension}`,
+        mimeType,
+      })
+      setTowerDefenseFlow((current) => ({
+        ...current,
+        stage: 'asset-production',
+        furthestStageReached: advanceTowerDefenseStage(
+          current.furthestStageReached,
+          'asset-production',
+        ),
+        tasks: reconcileTowerDefenseSpriteTasks(current.assets, current.tasks),
+      }))
+      focusTowerDefenseToolTab(TOWER_SPRITE_SHEET_TOOL_LABEL)
+      setCanvasEditOpen(false)
+      setEditPanelOpen(true)
+    },
+    [focusTowerDefenseToolTab, towerDefenseFlow.assets, towerDefenseFlow.tasks],
+  )
+
+  const openTowerDefenseDeliverable = useCallback(
+    (stage: TowerDefenseStage) => {
+      focusPreviewTab(getTowerDefenseDeliverableMeta(stage).fileName)
+      setCanvasEditOpen(false)
+      setEditPanelOpen(false)
+    },
+    [focusPreviewTab],
+  )
+
+  const confirmTowerVisualQuestion = useCallback(() => {
+    const questions = ['world', 'style', 'mood'] as const
+    const key = questions[towerVisualQuestionStep]
+    const customValue = towerVisualCustomInput.trim()
+    const currentValue = customValue || towerVisualIntent[key]
+    if (!currentValue) return
+    const nextIntent = { ...towerVisualIntent, [key]: currentValue }
+    setTowerVisualIntent(nextIntent)
+    setTowerVisualCustomInput('')
+    if (towerVisualQuestionStep < questions.length - 1) {
+      setTowerVisualQuestionStep((current) => current + 1)
+      return
+    }
+    setTowerVisualIntentOpen(false)
+    setTowerVisualReferencePending(true)
+  }, [towerVisualCustomInput, towerVisualIntent, towerVisualQuestionStep])
+
+  const startTowerVisualGeneration = useCallback(() => {
+    setTowerVisualReferencePending(false)
+    openTowerDefenseStage('art-direction')
+    setTowerVisualGeneration('generating')
+    setTowerVisibleAssetCount(0)
+    const visualImageCount = towerDefenseFlow.assets.reduce(
+      (total, asset) => total + (asset.visualVersions?.length ?? 1),
+      0,
+    )
+    let visible = 0
+    const timer = window.setInterval(() => {
+      visible += 1
+      setTowerVisibleAssetCount(visible)
+      if (visible >= visualImageCount) {
+        window.clearInterval(timer)
+        setTowerVisualGeneration('ready')
+      }
+    }, 1400)
+  }, [openTowerDefenseStage, towerDefenseFlow.assets])
+
+  const beginTowerVisualIntent = useCallback(() => {
+    setTowerVisualQuestionStep(0)
+    setTowerVisualCustomInput('')
+    setTowerVisualGeneration('questions')
+    setTowerVisualIntentOpen(true)
+    requestAnimationFrame(focusComposerAtEnd)
+  }, [])
+
+  const confirmTowerVisualSelections = useCallback((selections: Array<{ assetId: string; versionIndex: number }>) => {
+    if (!selections.length) return
+    const messageId = createMessageId()
+    const names = selections.map(({ assetId }) => towerDefenseFlow.assets.find((asset) => asset.id === assetId)?.name).filter(Boolean)
+    const text = `确认采用这些视觉设定：${names.join('、')}，请将素材装配到游戏对应位置并刷新预览。`
+    setSentMessages((current) => [...current, { id: messageId, text, trigger: 'tower-asset-apply' }])
+    setTowerAssetApplyJobs((current) => ({ ...current, [messageId]: { assetIds: selections.map(({ assetId }) => assetId), status: 'generating' } }))
+    requestAnimationFrame(() => {
+      const chatScroll = chatScrollRef.current
+      if (chatScroll) chatScroll.scrollTop = chatScroll.scrollHeight
+    })
+    window.setTimeout(() => {
+      setTowerVisualAssetsApplied(true)
+      setTowerDefenseFlow((current) => ({
+        ...current,
+        assets: current.assets.map((asset) => {
+          const selected = selections.find(({ assetId }) => assetId === asset.id)
+          return selected ? { ...asset, baseVisualStatus: 'confirmed', selectedVisualVersion: selected.versionIndex } : asset
+        }),
+      }))
+      setTowerAssetApplyJobs((current) => ({ ...current, [messageId]: { assetIds: selections.map(({ assetId }) => assetId), status: 'completed' } }))
+    }, 1800)
+  }, [towerDefenseFlow.assets])
+
+  const addTowerVisualVersion = useCallback((
+    assetId: string,
+    version: NonNullable<TowerDefenseFlowState['assets'][number]['visualVersions']>[number],
+  ) => {
+    let versionIndex = -1
+    setTowerDefenseFlow((current) => {
+      const result = appendTowerDefenseVisualVersion(current.assets, assetId, version)
+      versionIndex = result.versionIndex
+      return result.versionIndex < 0 ? current : { ...current, assets: result.assets }
+    })
+    return versionIndex
+  }, [])
+
+  const previewTowerVisualSelection = useCallback((assetId: string, versionIndex: number | null) => {
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      assets: current.assets.map((asset) => asset.id === assetId
+        ? {
+            ...asset,
+            baseVisualStatus: versionIndex === null ? 'draft' : 'confirmed',
+            selectedVisualVersion: versionIndex === null ? asset.selectedVisualVersion : versionIndex,
+          }
+        : asset),
+    }))
+  }, [])
+
+  const commitTowerPanelAction = useCallback((input: string, reply: string, options?: { stage?: TowerDefenseStage; nextStage?: TowerDefenseStage; nextLabel?: string; onComplete?: () => void }) => {
+    const messageId = createMessageId()
+    const actionStage = options?.stage ?? towerDefenseFlow.stage
+    setChatCleared(false)
+    setSentMessages((current) => [...current, { id: messageId, text: input, trigger: 'tower-panel-action' }])
+    setTowerPanelActionJobs((current) => ({
+      ...current,
+      [messageId]: { reply, status: 'updating', stage: actionStage, nextStage: options?.nextStage, nextLabel: options?.nextLabel },
+    }))
+    requestAnimationFrame(() => {
+      const chatScroll = chatScrollRef.current
+      if (chatScroll) chatScroll.scrollTop = chatScroll.scrollHeight
+    })
+    window.setTimeout(() => {
+      options?.onComplete?.()
+      setTowerPanelActionJobs((current) => ({
+        ...current,
+        [messageId]: { reply, status: 'completed', stage: actionStage, nextStage: options?.nextStage, nextLabel: options?.nextLabel },
+      }))
+    }, 900)
+  }, [towerDefenseFlow.stage])
+
+  const confirmTowerGameplay = useCallback(() => {
+    const config = towerDefenseFlow.gameplay
+    const availableTowerCount = towerDefenseFlow.towerSlots.length
+    const buildableAtStart = Math.floor(config.startingCoins / config.towerCost)
+    const pressure = Math.round(
+      (config.waveSize * config.enemyHealth * config.enemySpeed) /
+        Math.max(1, config.towerDamage * 7),
+    )
+    const input = [
+      '确认当前游戏玩法配置：',
+      `项目：${TOWER_DEFENSE_PROJECT_NAME}`,
+      '玩法原型：经典路线塔防 · 9:21 几何占位 Demo',
+      `1. 每波敌人数：${config.waveSize} 个`,
+      `2. 波次间隔：${config.waveInterval} 秒`,
+      `3. 敌人移动速度：${config.enemySpeed.toFixed(1)}×`,
+      `4. 初始金币：${config.startingCoins}`,
+      `5. 基础塔造价：${config.towerCost}`,
+      `6. 基地生命：${config.baseHealth} 点`,
+      `7. 敌人基础生命：${config.enemyHealth}`,
+      `8. 防御塔基础伤害：${config.towerDamage}`,
+      `9. 可建造塔位：${availableTowerCount} 个`,
+      `10. 开局预计可建：${buildableAtStart} 座基础塔`,
+      `11. 当前压力指数：${pressure} / 10`,
+      '请按以上配置确认玩法，并同步到当前可试玩 Demo。',
+    ].join('\n')
+    const reply = [
+      '已按本次确认项更新玩法 Demo。',
+      `节奏：每波 ${config.waveSize} 个敌人，间隔 ${config.waveInterval} 秒，移动速度 ${config.enemySpeed.toFixed(1)}×。`,
+      `经济：初始金币 ${config.startingCoins}，基础塔造价 ${config.towerCost}，开局可建 ${buildableAtStart} 座。`,
+      `攻防：基地生命 ${config.baseHealth}，敌人基础生命 ${config.enemyHealth}，防御塔基础伤害 ${config.towerDamage}。`,
+      `场地：保留 ${availableTowerCount} 个塔位；当前压力指数为 ${pressure} / 10。`,
+      '结论：上述数值已经同步到 9:21 几何占位 Demo，可继续试玩验证，或进入下一步游戏视觉设定。',
+    ].join('\n')
+    commitTowerPanelAction(input, reply, {
+      nextStage: 'art-direction',
+      nextLabel: '游戏视觉设定',
+    })
+  }, [commitTowerPanelAction, towerDefenseFlow.gameplay, towerDefenseFlow.towerSlots.length])
+
+  const applyTowerDefenseMapEdits = useCallback(() => {
+    const messageId = createMessageId()
+    const input = `应用当前地图编辑结果：保留 ${towerDefenseFlow.towerSlots.length} 个建造塔位、${towerMapEditor.paths.length} 条路线和 ${towerMapEditor.areas.length} 个区域，并同步到游戏预览。`
+    setChatCleared(false)
+    setSentMessages((current) => [
+      ...current,
+      { id: messageId, text: input, trigger: 'tower-map-edit' },
+    ])
+    setTowerMapEditJobs((current) => ({
+      ...current,
+      [messageId]: {
+        kind: 'apply',
+        status: 'applying',
+        assetIds: [],
+        fileNames: [],
+      },
+    }))
+    requestAnimationFrame(() => {
+      const chatScroll = chatScrollRef.current
+      if (chatScroll) chatScroll.scrollTop = chatScroll.scrollHeight
+    })
+    window.setTimeout(() => {
+      setTowerMapEditJobs((current) => ({
+        ...current,
+        [messageId]: {
+          kind: 'apply',
+          status: 'completed',
+          assetIds: [],
+          fileNames: [],
+        },
+      }))
+    }, 900)
+  }, [towerDefenseFlow.towerSlots.length, towerMapEditor.areas.length, towerMapEditor.paths.length])
+
+  const planTowerAssetProduction = useCallback(() => {
+    const plannedAssets = towerDefenseFlow.assets.filter(
+      (asset) => asset.category !== 'map' && asset.enabled !== false,
+    )
+    const plannedStates = plannedAssets.reduce(
+      (total, asset) => total + asset.states.length,
+      0,
+    )
+    commitTowerPanelAction(
+      '请基于已确认的角色与建筑视觉，规划资产生产所需的状态、方向和动态帧。',
+      `已为 ${plannedAssets.length} 项已确认资产规划 ${plannedStates} 个状态；每个状态的方向和帧数可在应用前复核。`,
+      {
+        stage: 'asset-production',
+        nextStage: 'asset-production',
+        nextLabel: '应用资产生产规划',
+        onComplete: () => {
+          setTowerAssetProductionApplied(false)
+          openTowerDefenseStage('asset-production')
+        },
+      },
+    )
+  }, [commitTowerPanelAction, openTowerDefenseStage, towerDefenseFlow.assets])
+
+  const applyTowerAssetProductionPlan = useCallback(() => {
+    setTowerAssetProductionApplied(true)
+    openTowerDefenseStage('asset-production')
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      tasks: reconcileTowerDefenseSpriteTasks(current.assets, current.tasks).map((task) => {
+        const output = getTowerDefenseDemoSpriteOutput(task)
+        return output ? { ...task, status: 'completed' as const, progress: 100, output } : task
+      }),
+    }))
+  }, [openTowerDefenseStage])
+
+  const updateTowerAssetState = useCallback(
+    (
+      assetId: string,
+      stateId: string,
+      patch: {
+        name?: string
+        directions?: TowerDefenseDirection[]
+        framesPerDirection?: number
+        materialRef?: TowerDefenseMaterialRef
+        directionMaterialRefs?: Partial<Record<TowerDefenseDirection, TowerDefenseMaterialRef>>
+        enabled?: boolean
+        disabledDirections?: TowerDefenseDirection[]
+      },
+    ) => {
+      setTowerDefenseFlow((current) => {
+        const assets = current.assets.map((asset) =>
+          asset.id !== assetId
+            ? asset
+            : {
+                ...asset,
+                states: asset.states.map((state) =>
+                  state.id === stateId ? { ...state, ...patch } : state,
+                ),
+              },
+        )
+        return {
+          ...current,
+          assets,
+          tasks:
+            current.tasks.length > 0
+              ? reconcileTowerDefenseSpriteTasks(assets, current.tasks)
+              : current.tasks,
+        }
+      })
+    },
+    [],
+  )
+
+  const assignTowerAssetMaterial = useCallback((assetId: string, stateId: string, versionIndex: number) => {
+    const asset = towerDefenseFlow.assets.find((item) => item.id === assetId)
+    const state = asset?.states.find((item) => item.id === stateId)
+    if (!asset || !state) return
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      assets: current.assets.map((item) => item.id !== assetId
+        ? item
+        : {
+            ...item,
+            baseVisualStatus: 'confirmed' as const,
+            states: item.states.map((entry) => entry.id === stateId
+              ? { ...entry, materialRef: { kind: 'visual-version' as const, versionIndex } }
+              : entry),
+          }),
+    }))
+    const versionLabel = `方案 ${String.fromCharCode(65 + versionIndex)}`
+    commitTowerPanelAction(
+      `将「${asset.name} · ${versionLabel}」设为「${state.name}」状态的使用素材。`,
+      `已定位 ${asset.name} 的「${state.name}」素材槽位，并保持其他状态绑定不变；${versionLabel} 已替换为该状态的使用素材，游戏预览会在进入对应状态时读取新素材。`,
+    )
+  }, [commitTowerPanelAction, towerDefenseFlow.assets])
+
+  const assignTowerAssetDirectionMaterial = useCallback((assetId: string, stateId: string, direction: TowerDefenseDirection, versionIndex: number) => {
+    const asset = towerDefenseFlow.assets.find((item) => item.id === assetId)
+    const state = asset?.states.find((item) => item.id === stateId)
+    if (!asset || !state) return
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      assets: current.assets.map((item) => item.id !== assetId
+        ? item
+        : {
+            ...item,
+            baseVisualStatus: 'confirmed' as const,
+            states: item.states.map((entry) => entry.id !== stateId
+              ? entry
+              : {
+                  ...entry,
+                  directionMaterialRefs: {
+                    ...entry.directionMaterialRefs,
+                    [direction]: { kind: 'visual-version' as const, versionIndex },
+                  },
+                }),
+          }),
+    }))
+    const versionLabel = `方案 ${String.fromCharCode(65 + versionIndex)}`
+    commitTowerPanelAction(
+      `将「${asset.name} · ${versionLabel}」用于「${state.name} · ${getTowerDefenseDirectionLabel(direction)}」。`,
+      `已更新 ${asset.name} 的「${state.name}」方向素材；${getTowerDefenseDirectionLabel(direction)}使用 ${versionLabel}，其他方向继续使用原绑定或继承状态基准。`,
+    )
+  }, [commitTowerPanelAction, towerDefenseFlow.assets])
+
+  const updateTowerBaseMaterial = useCallback((assetId: string, versionIndex: number | null) => {
+    previewTowerVisualSelection(assetId, versionIndex)
+    if (towerDefenseFlow.stage !== 'asset-production' || versionIndex === null) return
+    const asset = towerDefenseFlow.assets.find((item) => item.id === assetId)
+    if (!asset) return
+    const versionLabel = `方案 ${String.fromCharCode(65 + versionIndex)}`
+    commitTowerPanelAction(
+      `将「${asset.name} · ${versionLabel}」设为当前槽位素材。`,
+      `已更新 ${asset.name} 的当前槽位素材，已有状态素材和生产任务保持不变；${versionLabel} 已同步刷新到游戏预览。`,
+    )
+  }, [commitTowerPanelAction, previewTowerVisualSelection, towerDefenseFlow.assets, towerDefenseFlow.stage])
+
+  const setTowerAssetEnabled = useCallback((assetId: string, enabled: boolean) => {
+    const asset = towerDefenseFlow.assets.find((item) => item.id === assetId)
+    if (!asset) return
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      assets: current.assets.map((item) => item.id === assetId ? { ...item, enabled } : item),
+    }))
+    commitTowerPanelAction(
+      `${enabled ? '重新启用' : '弃用'}「${asset.name}」素材槽位。`,
+      enabled
+        ? `已重新启用 ${asset.name}；原素材与全部生成记录保持不变，并重新参与游戏装配。`
+        : `已停用 ${asset.name}；槽位、当前素材与生成记录均已保留，可随时重新启用。`,
+    )
+  }, [commitTowerPanelAction, towerDefenseFlow.assets])
+
+  const addTowerAssetState = useCallback((assetId: string) => {
+    setTowerDefenseFlow((current) => {
+      const assets = current.assets.map((asset) => {
+        if (asset.id !== assetId) return asset
+        const sequence = asset.states.length + 1
+        return {
+          ...asset,
+          states: [
+            ...asset.states,
+            {
+              id: `custom-${Date.now().toString(36)}`,
+              name: `自定义状态 ${sequence}`,
+              directions:
+                asset.category === 'tower'
+                  ? (['none'] as TowerDefenseDirection[])
+                  : (['front'] as TowerDefenseDirection[]),
+              framesPerDirection: 8,
+              fps: 12,
+              loopMode: 'once' as const,
+              status: 'empty' as const,
+            },
+          ],
+        }
+      })
+      return {
+        ...current,
+        assets,
+        tasks:
+          current.tasks.length > 0
+            ? reconcileTowerDefenseSpriteTasks(assets, current.tasks)
+            : current.tasks,
+      }
+    })
+  }, [])
+
+  const deleteTowerAssetState = useCallback(
+    (assetId: string, stateId: string) => {
+      setTowerDefenseFlow((current) => {
+        const assets = current.assets.map((asset) =>
+          asset.id === assetId
+            ? {
+                ...asset,
+                states: asset.states.filter((state) => state.id !== stateId),
+              }
+            : asset,
+        )
+        return {
+          ...current,
+          assets,
+          tasks: reconcileTowerDefenseSpriteTasks(assets, current.tasks),
+        }
+      })
+    },
+    [],
+  )
+
+  const queueTowerAsset = useCallback((assetId: string) => {
+    const taskIds = towerDefenseFlow.tasks
+      .filter(
+        (task) =>
+          task.assetId === assetId &&
+          (task.status === 'queued' || task.status === 'failed'),
+      )
+      .map((task) => task.id)
+    const selected = new Set(taskIds)
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      tasks: current.tasks.map((task) =>
+        selected.has(task.id)
+          ? { ...task, status: 'generating', progress: 36, error: undefined }
+          : task,
+      ),
+    }))
+    setTowerSelectedAssetId(assetId)
+    setTowerSelectedTaskId(taskIds[0] ?? null)
+    if (taskIds.length === 0) return
+    window.setTimeout(() => {
+      setTowerDefenseFlow((current) => ({
+        ...current,
+        tasks: current.tasks.map((task) =>
+          selected.has(task.id) && task.status === 'generating'
+            ? {
+                ...task,
+                status: 'completed',
+                progress: 100,
+                output: getTowerDefenseDemoSpriteOutput(task),
+              }
+            : task,
+        ),
+      }))
+    }, 900)
+  }, [towerDefenseFlow.tasks])
+
+  const queueTowerSpriteCell = useCallback(
+    (
+      assetId: string,
+      stateId: string,
+      direction: TowerDefenseDirection,
+    ) => {
+      const taskId = getTowerDefenseSpriteTaskKey(
+        assetId,
+        stateId,
+        direction,
+      )
+      setTowerDefenseFlow((current) => ({
+        ...current,
+        tasks: reconcileTowerDefenseSpriteTasks(
+          current.assets,
+          current.tasks,
+        ).map((task) =>
+          task.id === taskId
+            ? { ...task, status: 'generating', progress: 36, error: undefined }
+            : task,
+        ),
+      }))
+      setTowerSelectedAssetId(assetId)
+      setTowerSelectedTaskId(taskId)
+      window.setTimeout(() => {
+        setTowerDefenseFlow((current) => ({
+          ...current,
+          tasks: current.tasks.map((task) =>
+            task.id === taskId && task.status === 'generating'
+              ? {
+                  ...task,
+                  status: 'completed',
+                  progress: 100,
+                  output: getTowerDefenseDemoSpriteOutput(task),
+                }
+              : task,
+          ),
+        }))
+      }, 900)
+    },
+    [],
+  )
+
+  const runTowerTaskBatch = useCallback((taskIds: string[]) => {
+    if (taskIds.length === 0) return
+    const selected = new Set(taskIds)
+    setTowerSelectedTaskId(taskIds[0])
+    taskIds.forEach((taskId, index) => {
+      window.setTimeout(() => {
+        setTowerDefenseFlow((current) => ({
+          ...current,
+          tasks: current.tasks.map((task) => task.id === taskId
+            ? { ...task, status: 'generating', progress: 36, error: undefined }
+            : task),
+        }))
+      }, index * 120)
+      window.setTimeout(() => {
+        setTowerDefenseFlow((current) => ({
+          ...current,
+          tasks: current.tasks.map((task) => {
+            if (!selected.has(task.id) || task.id !== taskId) return task
+            const output = getTowerDefenseDemoSpriteOutput(task)
+            return output
+              ? { ...task, status: 'completed', progress: 100, output }
+              : { ...task, status: 'review', progress: 92 }
+          }),
+        }))
+      }, 760 + index * 120)
+    })
+  }, [])
+
+  const updateTowerTaskStatus = useCallback(
+    (taskId: string, status: SpriteTask['status']) => {
+      setTowerDefenseFlow((current) => ({
+        ...current,
+        tasks: current.tasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                status,
+                progress:
+                  status === 'completed'
+                    ? 100
+                    : status === 'review'
+                      ? 92
+                      : status === 'generating'
+                        ? Math.max(task.progress, 36)
+                        : status === 'queued'
+                          ? 0
+                          : task.progress,
+              }
+            : task,
+        ),
+      }))
+    },
+    [],
+  )
+
+  const startTowerSpriteTask = useCallback(
+    (taskId: string) => {
+      updateTowerTaskStatus(taskId, 'generating')
+      window.setTimeout(() => {
+        setTowerDefenseFlow((current) => ({
+          ...current,
+          tasks: current.tasks.map((task) =>
+            task.id === taskId && task.status === 'generating'
+              ? (() => {
+                  const output = getTowerDefenseDemoSpriteOutput(task)
+                  return output
+                    ? { ...task, status: 'completed' as const, progress: 100, output }
+                    : { ...task, status: 'review' as const, progress: 92 }
+                })()
+              : task,
+          ),
+        }))
+      }, 900)
+    },
+    [updateTowerTaskStatus],
+  )
+
+  const updateTowerSpriteTask = useCallback(
+    (
+      taskId: string,
+      patch: Partial<Pick<SpriteTask, 'direction' | 'frameCount'>>,
+    ) => {
+      const selectedTask = towerDefenseFlow.tasks.find(
+        (task) => task.id === taskId,
+      )
+      if (!selectedTask) return
+      setTowerDefenseFlow((current) => {
+        const assets = current.assets.map((asset) =>
+          asset.id !== selectedTask.assetId
+            ? asset
+            : {
+                ...asset,
+                states: asset.states.map((state) => {
+                  if (state.id !== selectedTask.stateId) return state
+                  const directions = patch.direction
+                    ? Array.from(
+                        new Set(
+                          state.directions.map((direction) =>
+                            direction === selectedTask.direction
+                              ? patch.direction!
+                              : direction,
+                          ),
+                        ),
+                      )
+                    : state.directions
+                  return {
+                    ...state,
+                    directions,
+                    framesPerDirection:
+                      patch.frameCount ?? state.framesPerDirection,
+                  }
+                }),
+              },
+        )
+        return {
+          ...current,
+          assets,
+          tasks: reconcileTowerDefenseSpriteTasks(assets, current.tasks),
+        }
+      })
+      if (patch.direction) {
+        setTowerSelectedTaskId(
+          getTowerDefenseSpriteTaskKey(
+            selectedTask.assetId,
+            selectedTask.stateId,
+            patch.direction,
+          ),
+        )
+      }
+    },
+    [towerDefenseFlow.tasks],
+  )
+
+  const addTowerBuildSlot = useCallback(() => {
+    setTowerDefenseFlow((current) => {
+      const index = current.towerSlots.length + 1
+      return {
+        ...current,
+        towerSlots: [
+          ...current.towerSlots,
+          {
+            id: `slot-${Date.now().toString(36)}`,
+            label: String(index).padStart(2, '0'),
+            x: 50,
+            y: 50,
+            occupiedBy: null,
+            level: 1,
+          },
+        ],
+      }
+    })
+  }, [])
+
+  const moveTowerBuildSlot = useCallback(
+    (slotId: string, deltaX: number, deltaY: number) => {
+      setTowerDefenseFlow((current) => ({
+        ...current,
+        towerSlots: current.towerSlots.map((slot) =>
+          slot.id === slotId
+            ? {
+                ...slot,
+                x: Math.min(94, Math.max(6, slot.x + deltaX)),
+                y: Math.min(94, Math.max(6, slot.y + deltaY)),
+              }
+            : slot,
+        ),
+      }))
+    },
+    [],
+  )
+
+  const deleteTowerBuildSlot = useCallback((slotId: string) => {
+    setTowerDefenseFlow((current) => ({
+      ...current,
+      towerSlots: current.towerSlots
+        .filter((slot) => slot.id !== slotId)
+        .map((slot, index) => ({
+          ...slot,
+          label: String(index + 1).padStart(2, '0'),
+        })),
+    }))
+  }, [])
 
   /* 产物落在哪个 tab 就把哪个 tab 开出来切过去：方案→项目文档，页面框架/
      成品→预览，核心玩法→活动玩法配置，素材清单/素材→素材库。卡点点击会通过 pending ref 提前定位，
@@ -5739,7 +7995,7 @@ export default function VibeCodingPage({
           : xiahuaArtifactPhase === 'gameplay'
             ? H5_GAMEPLAY_CONFIG_LABEL
             : xiahuaArtifactPhase && xiahuaArtifactPhase !== 'none'
-              ? '预览'
+              ? FINISHED_PAGES_LABEL
               : null
     const pendingLabel = xiahuaPendingTabRef.current
     if (!phaseLabel) return
@@ -5757,6 +8013,38 @@ export default function VibeCodingPage({
   }, [xiahuaBuildOwner, xiahuaBuildStep, xiahuaArtifactPhase, focusPreviewTab])
 
   const openFileInTab = (filename: string, path?: string) => {
+    if (isTowerDefenseProject) {
+      if (isTowerPreviewTabLabel(filename)) {
+        focusPreviewTab(TOWER_PREVIEW_TAB_LABEL)
+        setCanvasEditOpen(false)
+        setEditPanelOpen(false)
+        return
+      }
+      if (filename === TOWER_MAP_EDITOR_TOOL_LABEL) {
+        openTowerDefenseMapEditor()
+        return
+      }
+      if (filename === TOWER_SPRITE_SHEET_TOOL_LABEL) {
+        openTowerSpriteMakerTool()
+        return
+      }
+      const toolStage: TowerDefenseStage | null =
+        filename === GAME_GAMEPLAY_CONFIG_LABEL
+          ? 'gameplay'
+          : filename === GAME_ASSET_LIBRARY_LABEL
+            ? towerDefenseFlow.tasks.length > 0
+              ? 'asset-production'
+              : 'art-direction'
+            : filename === GAME_UI_CONFIG_LABEL
+              ? 'ui-generation'
+              : filename === GAME_BALANCE_CONFIG_LABEL
+                ? 'balance'
+                : null
+      if (toolStage) {
+        openTowerDefenseStage(toolStage)
+        return
+      }
+    }
     // 项目文件 — the in-tab code editor (real source tree + code). Added from
     // the + menu for every project; routed before kind-specific handling.
     if (filename === '项目文件') {
@@ -5928,10 +8216,23 @@ export default function VibeCodingPage({
         filename === PROJECT_DOCUMENT_LABEL ||
         filename === '文档' ||
         filename === DATABASE_LABEL ||
+        filename === FINISHED_PAGES_LABEL ||
         filename === H5_GAMEPLAY_CONFIG_LABEL ||
         filename === ASSET_LIBRARY_LABEL)
     ) {
       openNamedTab(filename)
+      return
+    }
+    // 活动项目的具体 H5 / Lynx / 原生页是「页面」内的子对象，
+    // 不再在顶部创建额外单页 Tab。
+    if (
+      activeProjectKind === 'marketing-h5' &&
+      (documentedActivityLabels(projectTitle).includes(filename) ||
+        /^(H5|Lynx)\b/i.test(filename) ||
+        /^(?:原生|直播间)\s*·/.test(filename))
+    ) {
+      setPreviewRoute(filename)
+      focusPreviewTab(FINISHED_PAGES_LABEL)
       return
     }
     // Raw source trees can contain repeated basenames (for example several
@@ -5982,36 +8283,56 @@ export default function VibeCodingPage({
   // Read the deep-link query at mount so the first paint already shows
   // the resource library — avoids the home-then-flash-to-library
   // hiccup that an effect-based hydration would produce.
-  const [platformResourceLibraryOpen, setPlatformResourceLibraryOpen] =
-    useState(initialResourceLibraryFromQuery && !standaloneWorkshopLayout)
-  const [platformSkillsOpen, setPlatformSkillsOpen] = useState(false)
-  const [platformCreativeSquareOpen, setPlatformCreativeSquareOpen] =
-    useState(false)
-  const [platformDataOpsOpen, setPlatformDataOpsOpen] = useState(false)
-  /** 分身变体导航里的建设中页面（评测库）— 存 label。 */
-  const [platformPlaceholderPage, setPlatformPlaceholderPage] = useState<
-    string | null
-  >(null)
+  const [platformResourceLibraryInitialTab, setPlatformResourceLibraryInitialTab] =
+    useState<'toolbox' | 'knowledge'>(() => {
+      if (typeof window === 'undefined') return 'toolbox'
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('resourceTab') === 'knowledge') return 'knowledge'
+      if (params.get('page') !== 'assets') return 'toolbox'
+      const asset = ASSET_CATALOG.find((item) => item.id === params.get('asset'))
+      return asset && asset.category !== 'brand' && asset.category !== 'ip' ? 'knowledge' : 'toolbox'
+    })
+  /** 分身变体导航里的建设中页面（评测库）由 platformSurface 存 label。 */
   useEffect(() => {
     if (!standaloneWorkshopLayout) return
+    if (initialResourceLibraryFromQuery || initialAssetCenterFromQuery || initialPlatformPageFromQuery) return
     const frame = requestAnimationFrame(() => {
+      setPlatformAssetCenterOpen(false)
       setPlatformResourceLibraryOpen(false)
       setPlatformSkillsOpen(false)
+      setPlatformInspirationOpen(false)
       setPlatformCreativeSquareOpen(false)
       setPlatformDataOpsOpen(false)
       setPlatformPlaceholderPage(null)
       setPlatformHomeOpen(true)
     })
     return () => cancelAnimationFrame(frame)
-  }, [standaloneWorkshopLayout])
+  }, [
+    initialAssetCenterFromQuery,
+    initialPlatformPageFromQuery,
+    initialResourceLibraryFromQuery,
+    setPlatformAssetCenterOpen,
+    setPlatformCreativeSquareOpen,
+    setPlatformDataOpsOpen,
+    setPlatformHomeOpen,
+    setPlatformPlaceholderPage,
+    setPlatformResourceLibraryOpen,
+    setPlatformInspirationOpen,
+    setPlatformSkillsOpen,
+    standaloneWorkshopLayout,
+  ])
   /** Any non-workspace platform-level overlay is open. Used to hide the
    *  chat aside, header, and adjust body margins / padding. */
   const platformSecondaryPageOpen =
+    platformAssetCenterOpen ||
     platformResourceLibraryOpen ||
     platformSkillsOpen ||
+    platformInspirationOpen ||
     platformCreativeSquareOpen ||
     platformDataOpsOpen ||
     platformPlaceholderPage !== null
+  const [assetCenterReturnTarget, setAssetCenterReturnTarget] =
+    useState<AssetCenterReturnTarget | null>(null)
   /** When set, the workspace mounts and inserts an @-mention with this
    *  shape into the chat composer once it's available. Consumed by an
    *  effect so the DOM ref is ready before we manipulate it.
@@ -6019,9 +8340,12 @@ export default function VibeCodingPage({
   const [pendingMention, setPendingMention] = useState<{
     id: string
     name: string
+    kind: MentionKind
   } | null>(null)
   const openResourceLibraryPage = () => {
+    setPlatformResourceLibraryInitialTab('toolbox')
     setPlatformHomeOpen(false)
+    setPlatformAssetCenterOpen(false)
     setPlatformSkillsOpen(false)
     setPlatformCreativeSquareOpen(false)
     setPlatformDataOpsOpen(false)
@@ -6029,68 +8353,381 @@ export default function VibeCodingPage({
     setPlatformResourceLibraryOpen(true)
   }
 
-  /** Query-string deep link: `?page=resources` opens the library on
+  const openInspirationPage = () => {
+    setMentionAnchor(null)
+    setPlatformInspirationOpen(true)
+  }
+
+  const openKnowledgeLibraryPage = () => {
+    setPlatformResourceLibraryInitialTab('knowledge')
+    setPlatformHomeOpen(false)
+    setPlatformAssetCenterOpen(false)
+    setPlatformSkillsOpen(false)
+    setPlatformCreativeSquareOpen(false)
+    setPlatformDataOpsOpen(false)
+    setPlatformPlaceholderPage(null)
+    setPlatformResourceLibraryOpen(true)
+  }
+
+  const handleAcgReplayTarget = (
+    target: AcgReplayTarget,
+    stepId: string,
+    pathIds: string[],
+  ) => {
+    setAcgReplaySurface({ target, stepId, pathIds })
+    if (acgReplayToken === 0) return
+
+    const documentTab = { label: PROJECT_DOCUMENT_LABEL, closable: false }
+    const gameplayTab = { label: H5_GAMEPLAY_CONFIG_LABEL, closable: false }
+    const assetTab = { label: ASSET_LIBRARY_LABEL, closable: false }
+    const previewTab = { label: '预览', closable: false }
+    const finishedPagesTab = { label: FINISHED_PAGES_LABEL, closable: false }
+    const tabs = [
+      previewTab,
+      finishedPagesTab,
+      documentTab,
+      gameplayTab,
+      assetTab,
+    ]
+    const activeLabel =
+      target === 'delivery-overview'
+        ? FINISHED_PAGES_LABEL
+        : target === 'game-runtime'
+          ? FINISHED_PAGES_LABEL
+          : target === 'activity-blueprint'
+            ? H5_GAMEPLAY_CONFIG_LABEL
+            : PROJECT_DOCUMENT_LABEL
+
+    setOpenTabs(tabs)
+    setActivePreviewTab(tabs.findIndex((tab) => tab.label === activeLabel))
+  }
+
+  const handleQixiReplayTarget = (
+    target: QixiReplayTarget,
+    stepId: string,
+    pathIds: string[],
+  ) => {
+    setQixiReplaySurface({ target, stepId, pathIds })
+    if (qixiReplayToken === 0) return
+
+    const reached = (...ids: string[]) => ids.some((id) => pathIds.includes(id))
+    const hasPages = reached(
+      'qixi-wireframe-choice',
+      'qixi-gameplay-choice',
+      'qixi-gameplay-baseline-selected',
+      'qixi-gameplay-fast-selected',
+      'qixi-gameplay-calm-selected',
+      'qixi-gameplay-custom-selected',
+      'qixi-visual-choice',
+      'qixi-current-build',
+      'qixi-current-result',
+    )
+    const hasGameplay = reached(
+      'qixi-gameplay-baseline-selected',
+      'qixi-gameplay-fast-selected',
+      'qixi-gameplay-calm-selected',
+      'qixi-gameplay-custom-selected',
+      'qixi-gameplay-baseline-applied',
+      'qixi-gameplay-fast-applied',
+      'qixi-gameplay-calm-applied',
+      'qixi-gameplay-custom-applied',
+      'qixi-visual-choice',
+      'qixi-current-build',
+      'qixi-current-result',
+    )
+    const hasAssets = reached(
+      'qixi-visual-choice',
+      'qixi-visual-eastern-selected',
+      'qixi-visual-sweet-selected',
+      'qixi-visual-real-selected',
+      'qixi-visual-custom-selected',
+      'qixi-current-build',
+      'qixi-current-result',
+    )
+    const hasPreview = reached('qixi-current-build', 'qixi-current-result')
+    const tabs = [
+      ...(hasPreview ? [{ label: '预览', closable: false }] : []),
+      ...(hasPages ? [{ label: FINISHED_PAGES_LABEL, closable: false }] : []),
+      { label: PROJECT_DOCUMENT_LABEL, closable: false },
+      ...(hasGameplay
+        ? [{ label: H5_GAMEPLAY_CONFIG_LABEL, closable: false }]
+        : []),
+      ...(hasAssets ? [{ label: ASSET_LIBRARY_LABEL, closable: false }] : []),
+    ]
+    // Replay updates the artifact contents but keeps the user's current surface
+    // stable. New artifacts are opened explicitly from their cards instead of
+    // forcing the right pane to jump on every narration step. The visual-style
+    // confirmation needs its candidate images, and the final delivery should
+    // land on the actual H5 for acceptance. Those are the only auto-switches.
+    const currentLabel = openTabs[activePreviewTab]?.label
+    const nextLabel =
+      stepId === 'qixi-visual-choice'
+        ? ASSET_LIBRARY_LABEL
+        : stepId === 'qixi-current-result'
+          ? '预览'
+          : tabs.some((tab) => tab.label === currentLabel)
+            ? currentLabel
+            : PROJECT_DOCUMENT_LABEL
+    setOpenTabs(tabs)
+    setActivePreviewTab(
+      Math.max(
+        0,
+        tabs.findIndex((tab) => tab.label === nextLabel),
+      ),
+    )
+  }
+
+  const handleAcgFromDocReplayTarget = (
+    target: AcgFromDocReplayTarget,
+    stepId: string,
+    pathIds: string[],
+  ) => {
+    setAcgFromDocReplaySurface({ target, stepId, pathIds })
+    if (acgFromDocReplayToken === 0) return
+
+    const reached = (...ids: string[]) => ids.some((id) => pathIds.includes(id))
+    const hasPages = reached(
+      'acg-doc-wireframe-ready',
+      'acg-doc-gameplay-choice',
+      'acg-doc-visual-choice',
+      'acg-doc-generate',
+      'acg-doc-current-result',
+    )
+    const hasGameplay = pathIds.some(
+      (id) =>
+        id.includes('acg-doc-gameplay-') &&
+        (id.endsWith('-selected') || id.endsWith('-applied')),
+    ) || reached('acg-doc-visual-choice', 'acg-doc-generate', 'acg-doc-current-result')
+    const hasAssets = reached(
+      'acg-doc-visual-choice',
+      'acg-doc-visual-star-selected',
+      'acg-doc-visual-manga-selected',
+      'acg-doc-visual-candy-selected',
+      'acg-doc-generate',
+      'acg-doc-current-result',
+    )
+    const hasPreview = reached(
+      'acg-doc-generate',
+      'acg-doc-review-applied',
+      'acg-doc-current-result',
+    )
+    const tabs = [
+      ...(hasPreview ? [{ label: '预览', closable: false }] : []),
+      ...(hasPages ? [{ label: FINISHED_PAGES_LABEL, closable: false }] : []),
+      { label: PROJECT_DOCUMENT_LABEL, closable: false },
+      ...(hasGameplay
+        ? [{ label: H5_GAMEPLAY_CONFIG_LABEL, closable: false }]
+        : []),
+      ...(hasAssets ? [{ label: ASSET_LIBRARY_LABEL, closable: false }] : []),
+    ]
+    const currentLabel = openTabs[activePreviewTab]?.label
+    const nextLabel =
+      stepId === 'acg-doc-visual-choice'
+        ? ASSET_LIBRARY_LABEL
+        : stepId === 'acg-doc-current-result'
+          ? '预览'
+          : tabs.some((tab) => tab.label === currentLabel)
+            ? currentLabel
+            : PROJECT_DOCUMENT_LABEL
+    setOpenTabs(tabs)
+    setActivePreviewTab(
+      Math.max(
+        0,
+        tabs.findIndex((tab) => tab.label === nextLabel),
+      ),
+    )
+  }
+
+  const handleQixiReplayCard = (card: BuildCard) => {
+    if (card.id === 'qixi-page-matrix' || card.id === 'qixi-page-canvas') {
+      focusPreviewTab(FINISHED_PAGES_LABEL)
+      return
+    }
+    if (card.id === 'qixi-playable') {
+      focusPreviewTab('预览')
+      return
+    }
+    if (card.id === 'qixi-visual-direction') {
+      focusPreviewTab(ASSET_LIBRARY_LABEL)
+      return
+    }
+    focusPreviewTab(PROJECT_DOCUMENT_LABEL)
+  }
+
+  const handleAcgFromDocReplayCard = (card: BuildCard) => {
+    if (card.id === 'acg-doc-final-preview') {
+      focusPreviewTab('预览')
+      return
+    }
+    if (card.id === 'acg-doc-page-canvas') {
+      focusPreviewTab(FINISHED_PAGES_LABEL)
+      return
+    }
+    if (card.id === 'acg-doc-gameplay') {
+      const gameplayConfirmed = acgFromDocReplaySurface.pathIds.some(
+        (id) =>
+          id.includes('acg-doc-gameplay-') &&
+          (id.endsWith('-selected') || id.endsWith('-applied')),
+      )
+      if (gameplayConfirmed) focusPreviewTab(H5_GAMEPLAY_CONFIG_LABEL)
+      return
+    }
+    if (card.id === 'acg-doc-style-board') {
+      focusPreviewTab(ASSET_LIBRARY_LABEL)
+      return
+    }
+    focusPreviewTab(PROJECT_DOCUMENT_LABEL)
+  }
+
+  const handleAcgReplayCard = (card: BuildCard) => {
+    const asset = card.id ? ASSET_CATALOG.find((item) => item.id === card.id) : undefined
+    if (asset) {
+      const params = new URLSearchParams(window.location.search)
+      if (asset.category === 'brand' || asset.category === 'ip') {
+        params.set('page', 'skills')
+        params.set('skill', asset.id)
+        params.delete('resourceTab')
+        params.delete('knowledge')
+        window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
+        setPlatformSkillsOpen(true)
+      } else {
+        params.set('page', 'resources')
+        params.set('resourceTab', 'knowledge')
+        params.set('knowledge', `knowledge:${asset.id}`)
+        params.delete('skill')
+        window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
+        setPlatformResourceLibraryInitialTab('knowledge')
+        setPlatformResourceLibraryOpen(true)
+      }
+      return
+    }
+    if (card.id?.startsWith('deliverable:')) {
+      const deliverableId = card.id.slice('deliverable:'.length)
+      const deliverable = DOCUMENTED_ACTIVITY_CASES[
+        ACG_NEW_YEAR_PROJECT
+      ]?.deliverables.find((item) => item.id === deliverableId)
+      if (deliverable) openFileInTab(deliverable.label)
+      return
+    }
+    if (card.id === 'activity-spec') {
+      focusPreviewTab(PROJECT_DOCUMENT_LABEL)
+      return
+    }
+    if (card.id === 'activity-brief') {
+      focusPreviewTab(PROJECT_DOCUMENT_LABEL)
+      return
+    }
+    if (card.id === 'delivery-overview' || card.id === 'delivery-matrix') {
+      focusPreviewTab(FINISHED_PAGES_LABEL)
+    }
+  }
+
+  const returnFromAssetCenter = () => {
+    const target = assetCenterReturnTarget
+    setAssetCenterReturnTarget(null)
+    setPlatformAssetCenterOpen(false)
+    if (target?.projectName === projectTitle) {
+      focusPreviewTab(target.tabLabel)
+    }
+  }
+
+  const useAssetFromCenter = (item: {
+    id: string
+    name: string
+    version: string
+  }) => {
+    setPendingMention({
+      id: `${item.id}@${item.version}`,
+      name: `${item.name} · v${item.version}`,
+      kind: 'assets',
+    })
+    returnFromAssetCenter()
+  }
+
+  const useResourceFromLibrary = (item: {
+    id: string
+    name: string
+    kind: string
+  }) => {
+    setPendingMention({
+      id: `${item.kind}:${item.id}`,
+      name: item.name,
+      kind: 'resources',
+    })
+    setPlatformResourceLibraryOpen(false)
+  }
+
+  /** Query-string deep link opens the library or asset center on
    *  initial load (and via browser back/forward). Using the query
    *  string keeps the hash free for external tools (e.g. Figma's
    *  capture script uses `#figmacapture=...`) without interference. */
   useEffect(() => {
     const sync = () => {
       const params = new URLSearchParams(window.location.search)
-      const resourcesOpen =
-        params.get('page') === 'resources' && !standaloneWorkshopLayout
-      setPlatformResourceLibraryOpen(resourcesOpen)
-      if (resourcesOpen) {
-        setPlatformHomeOpen(false)
-        setPlatformSkillsOpen(false)
-        setPlatformCreativeSquareOpen(false)
-        setPlatformDataOpsOpen(false)
-        setPlatformPlaceholderPage(null)
+      const page = params.get('page')
+      let pageSurface: PlatformSurface | null =
+        page === 'resources' || page === 'skills' || page === 'inspiration' || page === 'projects' || page === 'data'
+          ? page
+          : null
+      if (page === 'assets') {
+        const asset = ASSET_CATALOG.find((item) => item.id === params.get('asset'))
+        if (asset?.category === 'brand' || asset?.category === 'ip') {
+          params.set('page', 'skills')
+          params.set('skill', asset.id)
+          pageSurface = 'skills'
+        } else {
+          params.set('page', 'resources')
+          params.set('resourceTab', 'knowledge')
+          if (asset) params.set('knowledge', `knowledge:${asset.id}`)
+          pageSurface = 'resources'
+        }
+        params.delete('asset')
+        params.delete('assetCategory')
+        window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
       }
+      if (pageSurface === 'resources') setPlatformResourceLibraryInitialTab(params.get('resourceTab') === 'knowledge' ? 'knowledge' : 'toolbox')
+      setPlatformSurface(pageSurface ?? (params.get('project') ? 'workspace' : 'home'))
+
+      const requestedProject = params.get('project')
+      if (
+        !pageSurface &&
+        requestedProject &&
+        Object.prototype.hasOwnProperty.call(PROJECT_KINDS, requestedProject) &&
+        requestedProject !== projectTitle
+      ) openProject(requestedProject)
     }
     sync()
     window.addEventListener('popstate', sync)
     return () => window.removeEventListener('popstate', sync)
-  }, [standaloneWorkshopLayout])
-
-  /** Mirror the library-open state back to the URL so the page is
-   *  shareable / refresh-safe. Uses replaceState to avoid spurious
-   *  history entries. */
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    if (platformResourceLibraryOpen) {
-      params.set('page', 'resources')
-    } else {
-      params.delete('page')
-    }
-    const qs = params.toString()
-    const next =
-      window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash
-    if (
-      next !==
-      window.location.pathname + window.location.search + window.location.hash
-    ) {
-      window.history.replaceState(null, '', next)
-    }
-  }, [platformResourceLibraryOpen])
+    // `sync` reads the active project when Back/Forward fires. Rebinding on
+    // every workspace state update would turn a browser event into navigation churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    standaloneWorkshopLayout,
+  ])
   const openPlatformSkillsPage = () => {
     setPlatformHomeOpen(false)
+    setPlatformAssetCenterOpen(false)
     setPlatformResourceLibraryOpen(false)
     setPlatformCreativeSquareOpen(false)
     setPlatformDataOpsOpen(false)
     setPlatformPlaceholderPage(null)
     setPlatformSkillsOpen(true)
   }
-  const openPlatformCreativeSquarePage = () => {
-    setPlatformHomeOpen(false)
-    setPlatformResourceLibraryOpen(false)
-    setPlatformSkillsOpen(false)
-    setPlatformDataOpsOpen(false)
-    setPlatformPlaceholderPage(null)
-    setPlatformCreativeSquareOpen(true)
+
+  const useInspiration = (item: InspirationItem, prompt: string) => {
+    setChatDraft(prompt)
+    setPendingMention({
+      id: `inspiration:${item.slug}:${item.title}`,
+      name: `灵感 · ${item.title}`,
+      kind: 'inspiration',
+    })
+    setPlatformInspirationOpen(false)
   }
   /** 分身变体：打开建设中的评测库占位页。 */
   const openPlatformPlaceholderPage = (label: string) => {
     setPlatformHomeOpen(false)
+    setPlatformAssetCenterOpen(false)
     setPlatformResourceLibraryOpen(false)
     setPlatformSkillsOpen(false)
     setPlatformCreativeSquareOpen(false)
@@ -7683,13 +10320,57 @@ export default function VibeCodingPage({
     ['h5', 'children-day', 'acg-new-year'].includes(
       new URLSearchParams(window.location.search).get('project') ?? '',
     )
+  const projectFromQuery =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('project')
+      : null
+  const knownProjectFromQuery =
+    projectFromQuery &&
+    Object.prototype.hasOwnProperty.call(PROJECT_KINDS, projectFromQuery)
+      ? projectFromQuery
+      : null
+  const contextProjectFromQuery =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('contextProject')
+      : null
+  const knownContextProject =
+    contextProjectFromQuery &&
+    Object.prototype.hasOwnProperty.call(PROJECT_KINDS, contextProjectFromQuery)
+      ? contextProjectFromQuery
+      : null
   const [projectTitle, setProjectTitle] = useState(
     wantsProposalProject
       ? '沪上火锅·五一种草提案'
-      : wantsAcgNewYearProject
-        ? '抖音 ACG 游戏新春会'
-        : WORKSHOP_DEFAULT_PROJECT,
+      : knownContextProject ?? knownProjectFromQuery ?? (wantsAcgNewYearProject
+        ? '2026 抖音 ACG 新春会'
+        : WORKSHOP_DEFAULT_PROJECT),
   )
+  // A refresh can land directly on `?project=<asset project>` without going
+  // through openProject/initProjectDefaults. Upgrade only that untouched
+  // first session into the project's seeded delivery history; user-created
+  // “新会话” sessions and restored project snapshots remain empty as intended.
+  useEffect(() => {
+    const assetConversation = getAssetOnlyProjectConversation(projectTitle)
+    if (!assetConversation || projectChatsRef.current.has(projectTitle)) return
+    setSessions((current) => {
+      const [onlySession] = current
+      if (
+        current.length !== 1 ||
+        onlySession.name !== '新会话' ||
+        onlySession.seededHistory
+      ) {
+        return current
+      }
+      return [
+        {
+          ...onlySession,
+          name: assetConversation.sessionTitle,
+          seededHistory: 'asset-only',
+        },
+      ]
+    })
+  }, [projectTitle])
+  const isTowerDefenseProject = projectTitle === TOWER_DEFENSE_PROJECT_NAME
   // Latest active project — read inside async generation callbacks to avoid
   // seeding the wrong project's preview if the user navigated away.
   const projectTitleRef = useRef(projectTitle)
@@ -7697,6 +10378,112 @@ export default function VibeCodingPage({
     projectTitleRef.current = projectTitle
     activatePublishProject(projectTitle)
   }, [activatePublishProject, projectTitle])
+
+  useEffect(() => {
+    const projectKind =
+      PROJECT_KINDS[projectTitle] ??
+      createdProjectKinds[projectTitle] ??
+      'mini-program'
+    if (projectKind !== 'marketing-h5') return
+    setOpenTabs(() => {
+      if (isAssetOnlyProject(projectTitle)) {
+        const defaultTabs = [
+          { label: ASSET_LIBRARY_LABEL, closable: false },
+          { label: PROJECT_DOCUMENT_LABEL, closable: false },
+        ]
+        return defaultTabs
+      }
+      const defaultTabs = [
+        { label: '预览', closable: false },
+        { label: FINISHED_PAGES_LABEL, closable: false },
+        { label: PROJECT_DOCUMENT_LABEL, closable: false },
+        { label: H5_GAMEPLAY_CONFIG_LABEL, closable: false },
+        { label: ASSET_LIBRARY_LABEL, closable: false },
+      ]
+      // 不保留旧版单页 / 交付件 Tab；页面选择已收口到「页面」内部。
+      return defaultTabs
+    })
+    setActivePreviewTab(0)
+  }, [createdProjectKinds, projectTitle])
+
+  // 塔防始终保留固定「预览」；工具 Tab 只表示右侧面板，可选中和关闭，
+  // 不会替换中间 Canvas。旧快照中的「页面」和固定工具 Tab 在这里迁移。
+  useEffect(() => {
+    if (!isTowerDefenseProject) return
+    const needsMigration =
+      openTabs[0]?.label !== TOWER_PREVIEW_TAB_LABEL ||
+      openTabs.some(
+        (tab, index) =>
+          tab.label === FINISHED_PAGES_LABEL ||
+          (isTowerDefenseWorkspaceLabel(tab.label) && !tab.closable) ||
+          (tab.label === TOWER_PREVIEW_TAB_LABEL && index > 0),
+      )
+    if (!needsMigration) return
+    const activeLabel = openTabs[activePreviewTab]?.label
+    const cleaned = openTabs.filter(
+      (tab) => !isTowerPreviewTabLabel(tab.label),
+    )
+    const nextTabs = [
+      { label: TOWER_PREVIEW_TAB_LABEL, closable: false },
+      ...cleaned.map((tab) =>
+        isTowerDefenseWorkspaceLabel(tab.label)
+          ? { ...tab, closable: true }
+          : tab,
+      ),
+    ]
+    setOpenTabs(nextTabs)
+    const nextActiveIndex = nextTabs.findIndex((tab) =>
+      isTowerPreviewTabLabel(activeLabel)
+        ? isTowerPreviewTabLabel(tab.label)
+        : tab.label === activeLabel,
+    )
+    setActivePreviewTab(nextActiveIndex >= 0 ? nextActiveIndex : 0)
+  }, [activePreviewTab, isTowerDefenseProject, openTabs])
+
+  /** Keep every platform surface and project refresh-safe. Asset detail owns
+   * its own `asset` parameter; this effect preserves it while the center is open. */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const pageBySurface: Partial<Record<PlatformSurface, string>> = {
+      assets: 'assets',
+      resources: 'resources',
+      skills: 'skills',
+      inspiration: 'inspiration',
+      projects: 'projects',
+      data: 'data',
+    }
+    const page = pageBySurface[platformSurface]
+
+    if (platformSurface === 'workspace') {
+      params.delete('page')
+      params.delete('asset')
+      params.delete('assetCategory')
+      params.delete('resourceTab')
+      params.delete('contextProject')
+      params.set('project', projectTitle)
+    } else if (page) {
+      params.set('page', page)
+      params.set('contextProject', projectTitle)
+      params.delete('project')
+      if (platformSurface !== 'assets') {
+        params.delete('asset')
+        params.delete('assetCategory')
+      }
+      if (platformSurface !== 'resources') params.delete('resourceTab')
+    } else if (platformSurface === 'home') {
+      params.delete('page')
+      params.delete('project')
+      params.delete('asset')
+      params.delete('assetCategory')
+      params.delete('resourceTab')
+      params.delete('contextProject')
+    }
+
+    const query = params.toString()
+    const next = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`
+    if (next !== current) window.history.replaceState(window.history.state, '', next)
+  }, [platformSurface, projectTitle])
 
   useEffect(() => {
     if (gameStep === 'idle') return
@@ -7825,14 +10612,39 @@ export default function VibeCodingPage({
 
   // The active AI 分身 tree is derived from live trigger state rather than
   // copied into projectTrees in an effect, so session restore stays atomic.
+  const acgReplayTree = useMemo(() => {
+    const tree = projectTrees[ACG_NEW_YEAR_PROJECT]
+    if (!tree || acgReplayToken === 0) return tree
+    const generatedLabels =
+      acgReplaySurface.target === 'delivery-overview'
+        ? documentedActivityLabels(ACG_NEW_YEAR_PROJECT)
+        : acgReplaySurface.target === 'game-runtime'
+          ? ['H5 · 游戏分会场长页']
+          : []
+    return tree.map<FileNode>((node) =>
+      node.type === 'dir' && node.name === 'deliverables'
+        ? {
+            ...node,
+            children: generatedLabels.map((name) => ({
+              name,
+              type: 'file' as const,
+            })),
+          }
+        : node,
+    )
+  }, [acgReplaySurface.target, acgReplayToken, projectTrees])
   const projectTreeFor = (name: string): FileNode[] | undefined =>
     name === projectTitle && kindOf(name) === 'ai-avatar'
       ? aiPersonaFileTree
-      : projectTrees[name]
-  const projectTreesForSidebar =
+      : name === ACG_NEW_YEAR_PROJECT && acgReplayToken > 0
+        ? acgReplayTree
+        : projectTrees[name]
+  const projectTreesForSidebar: Record<string, FileNode[]> =
     kindOf(projectTitle) === 'ai-avatar'
       ? { ...projectTrees, [projectTitle]: aiPersonaFileTree }
-      : projectTrees
+      : acgReplayToken > 0 && acgReplayTree
+        ? { ...projectTrees, [ACG_NEW_YEAR_PROJECT]: acgReplayTree }
+        : projectTrees
 
   /* Open a product leaf in the context of *its owning project*. The sidebar
    * lists every project's product view, so a click may target a project
@@ -7852,6 +10664,7 @@ export default function VibeCodingPage({
     const onThisProject =
       projectName === projectTitle &&
       !platformHomeOpen &&
+      !platformAssetCenterOpen &&
       !platformResourceLibraryOpen &&
       !platformSkillsOpen &&
       !platformCreativeSquareOpen &&
@@ -7872,6 +10685,7 @@ export default function VibeCodingPage({
   useEffect(() => {
     if (
       platformHomeOpen ||
+      platformAssetCenterOpen ||
       platformResourceLibraryOpen ||
       platformSkillsOpen ||
       platformCreativeSquareOpen ||
@@ -7885,7 +10699,10 @@ export default function VibeCodingPage({
       const pending = pendingProductOpenRef.current
       if (!pending) return
       pendingProductOpenRef.current = null
-      setEditPanelOpen(false)
+      setEditPanelOpen(
+        isTowerDefenseProject &&
+          isTowerDefenseWorkspaceLabel(pending.filename),
+      )
       setCanvasEditOpen(false)
       setAvatarPromptEditing(false)
       openFileInTab(pending.filename, pending.path)
@@ -7895,6 +10712,7 @@ export default function VibeCodingPage({
   }, [
     projectTitle,
     platformHomeOpen,
+    platformAssetCenterOpen,
     platformResourceLibraryOpen,
     platformSkillsOpen,
     platformCreativeSquareOpen,
@@ -7906,14 +10724,19 @@ export default function VibeCodingPage({
     const hasPendingProduct = pendingProductOpenRef.current !== null
     const frame = requestAnimationFrame(() => {
       // Project-bound panels close after the target snapshot is committed.
-      setEditPanelOpen(false)
+      setEditPanelOpen(isTowerDefenseProject)
       setCanvasEditOpen(false)
       setAvatarPromptEditing(false)
       // The pending-product effect owns the destination tab. Avoid briefly
       // focusing 预览 while that same click is still opening 素材库/配置页。
       if (hasPendingProduct) return
       setActivePreviewTab((current) => {
-        const index = openTabs.findIndex((tab) => tab.label === '预览')
+        const defaultLabel = isTowerDefenseProject
+          ? TOWER_PREVIEW_TAB_LABEL
+          : isAssetOnlyProject(projectTitle)
+          ? ASSET_LIBRARY_LABEL
+          : '预览'
+        const index = openTabs.findIndex((tab) => tab.label === defaultLabel)
         return index >= 0 ? index : current
       })
     })
@@ -7935,12 +10758,60 @@ export default function VibeCodingPage({
     ) {
       return
     }
+    // 玩法配置/素材库点「画布编辑」会先跳回预览。换 tab 的收起逻辑
+    // 不能把刚打开的多页编辑立刻关掉。
+    if (
+      isTowerDefenseProject &&
+      pendingTowerCanvasEditRef.current &&
+      isTowerPreviewTabLabel(labTab)
+    ) {
+      pendingTowerCanvasEditRef.current = false
+      return
+    }
     const frame = requestAnimationFrame(() => {
-      setEditPanelOpen(false)
+      if (isTowerDefenseProject && pendingTowerCanvasEditRef.current) {
+        pendingTowerCanvasEditRef.current = false
+        setEditPanelOpen(true)
+        setCanvasEditOpen(true)
+        return
+      }
+      if (isTowerDefenseProject) {
+        const label = openTabs[activePreviewTab]?.label
+        const requestedStage: TowerDefenseStage | null =
+          label === GAME_GAMEPLAY_CONFIG_LABEL
+            ? 'gameplay'
+            : label === GAME_ASSET_LIBRARY_LABEL
+              ? towerDefenseFlow.tasks.length > 0
+                ? 'asset-production'
+                : 'art-direction'
+              : label === GAME_UI_CONFIG_LABEL
+                ? 'ui-generation'
+                : label === GAME_BALANCE_CONFIG_LABEL
+                  ? 'balance'
+                  : label === TOWER_SPRITE_SHEET_TOOL_LABEL
+                    ? 'asset-production'
+                  : null
+        if (requestedStage) {
+          setTowerDefenseFlow((current) =>
+            current.stage === requestedStage
+              ? current
+              : { ...current, stage: requestedStage },
+          )
+          setEditPanelOpen(true)
+        } else if (label === TOWER_MAP_EDITOR_TOOL_LABEL) {
+          setEditPanelOpen(true)
+        } else {
+          setEditPanelOpen(false)
+        }
+      } else {
+        setEditPanelOpen(false)
+      }
       setCanvasEditOpen(false)
       setAvatarPromptEditing(false)
       setGameSelectedAsset(null)
       setH5Selected(null)
+      setQixiSelected(null)
+      setAcgFromDocSelected(null)
       setSummerSurfSelected(null)
       setH5LabSelected(null)
       setGameSelectedObject(null)
@@ -7957,6 +10828,7 @@ export default function VibeCodingPage({
     if (editPanelOpen) return
     const frame = requestAnimationFrame(() => {
       setH5Selected(null)
+      setAcgFromDocSelected(null)
       setSummerSurfSelected(null)
       setH5LabSelected(null)
       setGameSelectedObject(null)
@@ -7969,6 +10841,7 @@ export default function VibeCodingPage({
    * Unknown project names default to mini-program so arbitrary renames
    * don't accidentally flip the preview. */
   const activeProjectKind: ProjectKind = kindOf(projectTitle)
+  const projectLane = laneOf(projectTitle)
   /** 当前项目是不是 h5-reference-lab 的复刻 case —— 它们走自己的编辑台。 */
   const h5LabCase = getH5LabCase(projectTitle)
   /** 草稿里的帧（含补出来的界面），面板和计数共用。 */
@@ -8097,17 +10970,26 @@ export default function VibeCodingPage({
     !h5LabCase &&
     // 这夏夯爆了预览自包含玩法，不接 ACG 的画布编辑链路。
     !isXiahuaFamily(projectTitle) &&
-    openTabs[activePreviewTab]?.label === '预览'
+    projectTitle !== QIXI_BRIDGE_PROJECT &&
+    projectTitle !== ACG_FROM_DOC_PROJECT &&
+    projectTitle !== ACG_REPLICA_PROJECT &&
+    isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label)
   const gameCanvasModeOpen =
     canvasEditOpen &&
     activeProjectKind === 'web-game' &&
+    !isTowerDefenseProject &&
     openTabs[activePreviewTab]?.label === '预览'
+  const towerUiEditMode =
+    canvasEditOpen &&
+    isTowerDefenseProject &&
+    isTowerPreviewTabLabel(openTabs[activePreviewTab]?.label)
   const immersiveCanvasModeOpen = h5CanvasModeOpen || gameCanvasModeOpen
   // 这夏夯爆了编辑态：进入编辑后左侧项目导航自动收起，给属性面板让位。
   const xiahuaEditMode =
     editPanelOpen &&
     isXiahuaFamily(projectTitle) &&
-    openTabs[activePreviewTab]?.label === '预览'
+    (isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label) ||
+      openTabs[activePreviewTab]?.label === '预览')
   // 复刻 case 的画布编辑同理：项目导航自动收起，画布和属性面板才铺得开。
   const h5LabEditMode =
     editPanelOpen &&
@@ -8118,9 +11000,10 @@ export default function VibeCodingPage({
     sidebarFullyHidden ||
     immersiveCanvasModeOpen ||
     xiahuaEditMode ||
-    h5LabEditMode
+    h5LabEditMode ||
+    towerUiEditMode
   const effectiveSidebarWidth =
-    immersiveCanvasModeOpen || xiahuaEditMode || h5LabEditMode
+    immersiveCanvasModeOpen || xiahuaEditMode || h5LabEditMode || towerUiEditMode
       ? 0
       : baseEffectiveSidebarWidth
   /* 画布编辑里对话流可以整条收起 —— 画布要横向铺开多帧，宽度比对话金贵。 */
@@ -8258,8 +11141,80 @@ export default function VibeCodingPage({
    * in the top strip); everything else keeps the phone frame. Stub
    * projects (no tree) show the empty state. Shared by all three layout
    * variants below. */
-  const previewSurface = !activeProjectHasTree ? (
+  const selectedAcgFromDocBrandKit = acgFromDocReplaySurface.pathIds.some(
+    (id) => id.includes('acg-doc-visual-manga-'),
+  )
+    ? ACG_FROM_DOC_BRAND_KIT_CANDIDATES[1]
+    : acgFromDocReplaySurface.pathIds.some((id) =>
+          id.includes('acg-doc-visual-candy-'),
+        )
+      ? ACG_FROM_DOC_BRAND_KIT_CANDIDATES[2]
+      : ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0]
+
+  const towerMapAsset = towerDefenseFlow.assets.find(
+    (asset) => asset.category === 'map',
+  )
+  const towerMapImageUrl =
+    towerMapEditor.backgroundUrl ??
+    towerMapAsset?.visualVersions?.[
+      towerMapAsset.selectedVisualVersion ?? 0
+    ]?.src
+  const towerEnemyAsset = towerDefenseFlow.assets.find(
+    (asset) => asset.category === 'enemy',
+  )
+  const towerEnemyImageUrl =
+    towerEnemyAsset?.visualVersions?.[
+      towerEnemyAsset.selectedVisualVersion ?? 0
+    ]?.src
+  const towerMapEditorActive =
+    isTowerDefenseProject &&
+    openTabs[activePreviewTab]?.label === TOWER_MAP_EDITOR_TOOL_LABEL
+  const waitingForGameTypePreview =
+    activeProjectKind === 'web-game' &&
+    sentMessages.at(-1)?.trigger === 'game-type-clarification'
+
+  const previewSurface = waitingForGameTypePreview ? (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-8 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--fill-subtle)] text-[var(--color-ink)]/30">
+        <Gamepad2 size={22} strokeWidth={1.6} />
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="text-[14px] font-medium text-[var(--color-ink)]/70">等待选择游戏类型</p>
+        <p className="text-[12px] leading-[1.6] text-[var(--color-ink)]/45">在左侧选择类型并确认发送后，这里会开始生成游戏预览</p>
+      </div>
+    </div>
+  ) : !activeProjectHasTree ? (
     emptyProjectPreview
+  ) : towerMapEditorActive ? (
+    <TowerDefenseMapEditorCanvas
+      imageUrl={towerMapImageUrl}
+      enemyImageUrl={towerEnemyImageUrl}
+      slots={towerDefenseFlow.towerSlots}
+      editor={towerMapEditor}
+      onSlotsChange={(towerSlots) =>
+        setTowerDefenseFlow((current) => ({ ...current, towerSlots }))
+      }
+      onEditorChange={setTowerMapEditor}
+      className="min-h-0 w-full flex-1"
+    />
+  ) : isTowerDefenseProject && towerUiEditMode ? (
+    <TowerDefenseEditStage
+      editor={towerUiEditor}
+      ui={towerDefenseFlow.ui}
+      onExit={() => {
+        setCanvasEditOpen(false)
+        setEditPanelOpen(false)
+      }}
+    />
+  ) : isTowerDefenseProject ? (
+    <TowerDefensePageCanvas
+      key={towerReplayKey}
+      flow={towerDefenseFlow}
+      onFlowChange={setTowerDefenseFlow}
+      useVisualAssets={towerVisualAssetsApplied}
+      suspended={editPanelOpen && !towerLayoutLocked}
+      className="min-h-0 w-full flex-1"
+    />
   ) : activeProjectKind === 'web-game' ? (
     <div className="relative min-h-0 w-full flex-1 overflow-hidden bg-black">
       {gameStep === 'idle' || gameStep === 'done' ? (
@@ -8278,6 +11233,49 @@ export default function VibeCodingPage({
     <div className="@container relative min-h-0 w-full flex-1 overflow-hidden bg-white">
       <AgentHubPreview key={miniAppKey} />
     </div>
+  ) : projectTitle === ACG_FROM_DOC_PROJECT ? (
+    <PhoneMockup width={360} height={760} maxScale={1.4}>
+      <AcgFromDocH5
+        key={miniAppKey}
+        editing={
+          editPanelOpen &&
+          isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label)
+        }
+        selected={acgFromDocSelected}
+        onSelect={(selection) => {
+          setCanvasEditOpen(false)
+          setAcgFromDocSelected(selection)
+          if (selection) setEditPanelOpen(true)
+        }}
+        content={acgFromDocPageContent}
+        brandKitId={selectedAcgFromDocBrandKit.id}
+      />
+    </PhoneMockup>
+  ) : projectTitle === ACG_REPLICA_PROJECT ? (
+    // 设计稿 750×9776，机身 +6 内衬后内容区正好 375 宽（2 倍关系）。
+    <PhoneMockup width={381} height={818} maxScale={1.4}>
+      <AcgReplicaH5 key={miniAppKey} />
+    </PhoneMockup>
+  ) : projectTitle === QIXI_BRIDGE_PROJECT ? (
+    <PhoneMockup width={360} height={760} maxScale={1.4}>
+      <QixiBridgeWireframe
+        key={miniAppKey}
+        editing={isMarketingPageCollectionTab(
+          openTabs[activePreviewTab]?.label,
+        )}
+        selected={qixiSelected}
+        onSelect={(selection) => {
+          if (!selection) {
+            setQixiSelected(null)
+            return
+          }
+          setCanvasEditOpen(false)
+          setQixiSelected(selection)
+          setEditPanelOpen(true)
+        }}
+        content={qixiPageContent}
+      />
+    </PhoneMockup>
   ) : isXiahuaFamily(projectTitle) ? (
     // 产物都在自己的 tab 里（方案→项目文档、素材→素材库），预览位只放预览。
     // 其余阶段预览常驻，产物挂在右边那条栏里。
@@ -8421,7 +11419,13 @@ export default function VibeCodingPage({
         }
         editing={editPanelOpen}
         selected={h5Selected}
-        onSelect={setH5Selected}
+        onSelect={(selection) => {
+          setH5Selected(selection)
+          if (selection) {
+            setCanvasEditOpen(false)
+            setEditPanelOpen(true)
+          }
+        }}
       />
     </PhoneMockup>
   ) : projectTitle === TAROT_INTEREST_CARD_PROJECT ? (
@@ -8473,37 +11477,69 @@ export default function VibeCodingPage({
     </PhoneMockup>
   )
 
-  /* Mention-picker data — derived every render so it stays in sync with
-   * the active project's file tree + triggers. Skills stay static since
-   * they come from the platform catalog, not per-project state. */
-  const activeFileTree = projectTreeFor(projectTitle) ?? fileTree
-  const mentionSkills: MentionItem[] = CAPABILITY_OPTIONS.map((c) => ({
-    id: c.id,
-    name: c.title,
-    tag: c.kind === 'skill' ? 'Skill' : 'Knowledge',
+  /* @ 面板与技能库/资源库共用同一份真实目录数据，避免入口里再维护一套
+   * 看似完整、实际不可调用的 mock。Brand Kit / IP 和组件 / 玩法知识在
+   * 这里补充视觉与能力摘要，只改变呈现，不改变资源身份。 */
+  const mentionSkills: MentionItem[] = skillLibraryItems.map((item) => ({
+    id: item.id,
+    name: item.name,
+    tag: item.status,
+    summary: item.description,
+    category: item.category,
+    group: item.group,
+    variant:
+      item.category === 'Brand Kit'
+        ? 'brand-kit'
+        : item.category === 'IP 资产'
+          ? 'ip-kit'
+          : 'workflow',
+    preview:
+      item.sourceAsset?.thumbnail ??
+      item.sourceAsset?.preview ??
+      item.sourceAsset?.visualReferences?.[0]?.src,
+    accent: item.sourceAsset?.accent,
+    highlights: item.sourceAsset
+      ? [...item.sourceAsset.coverage, ...item.sourceAsset.tags].slice(0, 5)
+      : item.invocation
+        ? [`@${item.invocation}`, item.category, item.status]
+        : [item.category, item.status],
   }))
-  const mentionTools: MentionItem[] = [
-    { id: 'tool-search', name: '抖音搜索' },
-    { id: 'tool-image', name: '图片生成' },
-    { id: 'tool-publish', name: '发布助手' },
-    { id: 'tool-rag', name: 'RAG 检索' },
-  ]
-  const mentionFiles: MentionItem[] = flattenFileTreeForMention(activeFileTree)
-  /* Triggers tab lists preset CONDITIONS (the events the platform can
-   * hook on), not user-configured trigger instances. Picking one here
-   * is how the user scaffolds a new trigger via @ reference. */
-  const mentionTriggers: MentionItem[] = Object.values(TRIGGER_PRESETS).map(
-    (p) => ({
-      id: p.event.id,
-      name: p.event.label,
-      tag: p.event.scene,
-    }),
-  )
-  const mentionResources: MentionItem[] = RESOURCES.map((r) => ({
-    id: r.id,
-    name: r.name,
-    tag: r.secondaryCategory,
-  }))
+  const mentionTools: MentionItem[] = resourceLibraryItems
+    .filter((item) => item.tab === 'toolbox')
+    .map((item) => ({
+      id: item.id,
+      name: item.title,
+      tag: item.state,
+      summary: item.summary,
+      category: item.category,
+      group: item.group,
+      variant: 'tool',
+      highlights: [item.group, item.category, item.state ?? '可调用'],
+    }))
+  const mentionKnowledge: MentionItem[] = resourceLibraryItems
+    .filter((item) => item.tab === 'knowledge')
+    .map((item) => ({
+      id: item.id,
+      name: item.title,
+      tag: item.state,
+      summary: item.summary,
+      category: item.category,
+      group: item.group,
+      variant:
+        item.sourceAsset?.category === 'page-component'
+          ? 'component-library'
+          : item.sourceAsset?.category === 'gameplay'
+            ? 'gameplay-library'
+            : 'knowledge',
+      preview:
+        item.sourceAsset?.thumbnail ??
+        item.sourceAsset?.preview ??
+        item.sourceAsset?.visualReferences?.[0]?.src,
+      accent: item.sourceAsset?.accent,
+      highlights: item.sourceAsset
+        ? [...item.sourceAsset.coverage, ...item.sourceAsset.tags].slice(0, 5)
+        : [item.group, item.category, item.state ?? '有来源'],
+    }))
 
   /** Replace the most recent `@…` token at the caret with a non-editable
    *  pill node, then place the caret after an inserted trailing space.
@@ -8518,7 +11554,11 @@ export default function VibeCodingPage({
       // Fallback: append at end if no active selection.
       const pill = buildMentionPill(item, kind)
       editor.append(pill, document.createTextNode(' '))
-      setChatDraft(editor.innerText)
+      setChatDraft(editor.textContent ?? '')
+      setComposerMentions((current) => [
+        ...current,
+        { id: item.id, name: item.name, kind },
+      ])
       setMentionAnchor(null)
       return
     }
@@ -8548,7 +11588,11 @@ export default function VibeCodingPage({
     range.setEndAfter(space)
     sel.removeAllRanges()
     sel.addRange(range)
-    setChatDraft(editor.innerText)
+    setChatDraft(editor.textContent ?? '')
+    setComposerMentions((current) => [
+      ...current,
+      { id: item.id, name: item.name, kind },
+    ])
     setMentionAnchor(null)
   }
 
@@ -8588,6 +11632,9 @@ export default function VibeCodingPage({
     if (platformSecondaryPageOpen || platformHomeOpen) return
     const editor = chatInputRef.current
     if (!editor) return
+    if (!editor.childNodes.length && chatDraft) {
+      restoreComposerContent(editor, chatDraft, composerMentions)
+    }
     editor.focus()
     const last = editor.lastChild
     const tail = last?.textContent ?? ''
@@ -8596,7 +11643,7 @@ export default function VibeCodingPage({
     }
     const pill = buildMentionPill(
       { id: pendingMention.id, name: pendingMention.name },
-      'resources',
+      pendingMention.kind,
     )
     editor.append(pill, document.createTextNode(' '))
     const sel = window.getSelection()
@@ -8607,9 +11654,37 @@ export default function VibeCodingPage({
       sel.removeAllRanges()
       sel.addRange(range)
     }
-    setChatDraft(editor.innerText)
+    setChatDraft(editor.textContent ?? '')
+    setComposerMentions((current) => [
+      ...current,
+      { ...pendingMention },
+    ])
     setPendingMention(null)
-  }, [pendingMention, platformSecondaryPageOpen, platformHomeOpen])
+  }, [
+    chatDraft,
+    composerMentions,
+    pendingMention,
+    platformSecondaryPageOpen,
+    platformHomeOpen,
+  ])
+
+  // Secondary pages replace the workspace rather than merely covering it,
+  // so the contentEditable composer is recreated when the user returns.
+  // Rehydrate its visible text and structured registry mentions exactly once
+  // per mount; otherwise a draft silently disappears after browsing assets.
+  useEffect(() => {
+    if (platformSecondaryPageOpen || platformHomeOpen) return
+    const editor = chatInputRef.current
+    if (!editor || editor.childNodes.length || !chatDraft) return
+    restoreComposerContent(editor, chatDraft, composerMentions)
+  }, [
+    activeSessionId,
+    chatDraft,
+    composerMentions,
+    platformSecondaryPageOpen,
+    platformHomeOpen,
+    projectTitle,
+  ])
 
   const [editingProjectTitle, setEditingProjectTitle] = useState(false)
   /* Which session row (if any) is in inline-edit mode inside the dropdown. */
@@ -8645,7 +11720,10 @@ export default function VibeCodingPage({
    * key → a display label instead of mutating the key. */
   const [projectDisplayNames, setProjectDisplayNames] = useState<
     Record<string, string>
-  >({})
+  >({
+    [XIAHUA_PROJECT]: '这夏夯爆了',
+    [TOWER_DEFENSE_PROJECT_NAME]: '三国塔防',
+  })
   const displayProjectName = (name: string) =>
     projectDisplayNames[name]?.trim() || name
   const renameProject = (name: string, next: string) =>
@@ -8750,9 +11828,11 @@ export default function VibeCodingPage({
     { kind: 'info', text: '  Network: http://192.168.1.42:10086/' },
   ]
   const platformSidebarActiveNav = platformResourceLibraryOpen
-    ? '资源库'
+      ? '资源库'
     : platformSkillsOpen
       ? 'Skills'
+      : platformInspirationOpen
+        ? '灵感广场'
       : platformCreativeSquareOpen
         ? '项目库'
         : platformDataOpsOpen
@@ -8792,12 +11872,16 @@ export default function VibeCodingPage({
         setExpandedDirs(new Set())
         setPlatformOpenProjects(new Set())
       }}
+      onOpenInspiration={openInspirationPage}
       onOpenResourceLibrary={openResourceLibraryPage}
       onOpenSkills={openPlatformSkillsPage}
-      onOpenCreativeSquare={openPlatformCreativeSquarePage}
       activeNav={platformSidebarActiveNav}
       activeRoute={previewRoute}
-      activeFilePath={openTabs[activePreviewTab]?.label ?? null}
+      activeFilePath={
+        isTowerDefenseProject && editPanelOpen
+          ? getTowerDefenseStageTabLabel(towerDefenseFlow.stage)
+          : openTabs[activePreviewTab]?.label ?? null
+      }
       activeProjectName={platformHomeOpen ? '' : projectTitle}
       projectDisplayNames={projectDisplayNames}
       onRenameProject={renameProject}
@@ -8808,12 +11892,34 @@ export default function VibeCodingPage({
       categoryExtras={categoryExtras}
       hiddenCategories={xiahuaHiddenCategories}
       createdProjects={createdProjects}
+      towerAssetLibraryUi={towerAssetLibraryUi}
+      onTowerAssetLibraryUiChange={changeTowerAssetLibraryUi}
+      towerOpenedEditors={towerOpenedEditors}
     />
   )
+
+  const activeSession = sessions.find(
+    (session) => session.id === activeSessionId,
+  )
+  const showAssetProjectHistory =
+    activeSession?.seededHistory === 'asset-only' &&
+    Boolean(getAssetOnlyProjectConversation(projectTitle))
+
+  // Existing projects open at the latest completed turn. The earlier request
+  // and source-analysis steps stay immediately above it and remain scrollable.
+  useEffect(() => {
+    if (!showAssetProjectHistory) return
+    const raf = requestAnimationFrame(() => {
+      const scroller = chatScrollRef.current
+      if (scroller) scroller.scrollTop = scroller.scrollHeight
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [activeSessionId, projectTitle, showAssetProjectHistory])
 
   /* ─── Render ─── */
   return (
     <motion.div
+      data-platform-surface={platformSurface}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
@@ -8919,9 +12025,9 @@ export default function VibeCodingPage({
                     activeNav={platformSidebarActiveNav}
                     onExpand={() => setSidebarCollapsed(false)}
                     onNewProject={handleNewProject}
+                    onOpenInspiration={openInspirationPage}
                     onOpenResourceLibrary={openResourceLibraryPage}
                     onOpenSkills={openPlatformSkillsPage}
-                    onOpenCreativeSquare={openPlatformCreativeSquarePage}
                   />
                 </div>
               </>
@@ -9273,7 +12379,7 @@ export default function VibeCodingPage({
                     className="flex min-w-0 items-center gap-1 rounded text-[12px] leading-5 text-[var(--color-ink)]/70 transition-colors hover:text-[var(--color-ink)]"
                   >
                     <span className="truncate text-[var(--color-ink)]/55">
-                      {projectTitle}
+                      {displayProjectName(projectTitle)}
                     </span>
                     <span className="shrink-0 text-[var(--color-ink)]/30">
                       /
@@ -9396,6 +12502,121 @@ export default function VibeCodingPage({
                     <Play size={13} strokeWidth={1.8} />
                   </button>
                 )}
+                {projectTitle === ACG_FROM_DOC_PROJECT && (
+                  <button
+                    type="button"
+                    title={
+                      acgFromDocReplayPlaying
+                        ? '正在回放从需求到页面的生成过程'
+                        : '回放从需求到页面的生成过程'
+                    }
+                    aria-label="回放 ACG 新春会从需求到页面的生成过程"
+                    aria-pressed={acgFromDocReplayToken > 0}
+                    onClick={() => {
+                      setPreviewCollapsed(false)
+                      setAcgFromDocReplaySurface({
+                        target: 'source-understanding',
+                        stepId: 'acg-doc-request',
+                        pathIds: ['acg-doc-request'],
+                      })
+                      setOpenTabs([
+                        { label: PROJECT_DOCUMENT_LABEL, closable: false },
+                      ])
+                      setActivePreviewTab(0)
+                      setAcgFromDocReplayToken((token) => token + 1)
+                    }}
+                    className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                      acgFromDocReplayToken > 0
+                        ? 'bg-[var(--fill-hover)] text-[var(--color-ink)]/85'
+                        : 'text-[var(--color-ink)]/55 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
+                    }`}
+                  >
+                    <Play
+                      size={13}
+                      strokeWidth={1.8}
+                      className={acgFromDocReplayPlaying ? 'animate-pulse' : ''}
+                    />
+                  </button>
+                )}
+                {projectTitle === QIXI_BRIDGE_PROJECT && (
+                  <button
+                    type="button"
+                    title={
+                      qixiReplayPlaying
+                        ? '正在回放七夕活动生成过程'
+                        : '回放七夕活动生成过程'
+                    }
+                    aria-label="回放七夕活动生成过程"
+                    aria-pressed={qixiReplayToken > 0}
+                    onClick={() => {
+                      setPreviewCollapsed(false)
+                      setQixiReplaySurface({
+                        target: 'source-understanding',
+                        stepId: 'qixi-request',
+                        pathIds: ['qixi-request'],
+                      })
+                      const tabs = [
+                        { label: '预览', closable: false },
+                        { label: FINISHED_PAGES_LABEL, closable: false },
+                        { label: PROJECT_DOCUMENT_LABEL, closable: false },
+                        { label: H5_GAMEPLAY_CONFIG_LABEL, closable: false },
+                        { label: ASSET_LIBRARY_LABEL, closable: false },
+                      ]
+                      setOpenTabs(tabs)
+                      setActivePreviewTab(
+                        tabs.findIndex(
+                          (tab) => tab.label === PROJECT_DOCUMENT_LABEL,
+                        ),
+                      )
+                      setQixiReplayToken((token) => token + 1)
+                    }}
+                    className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                      qixiReplayToken > 0
+                        ? 'bg-[var(--fill-hover)] text-[var(--color-ink)]/85'
+                        : 'text-[var(--color-ink)]/55 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
+                    }`}
+                  >
+                    <Play
+                      size={13}
+                      strokeWidth={1.8}
+                      className={qixiReplayPlaying ? 'animate-pulse' : ''}
+                    />
+                  </button>
+                )}
+                {projectTitle === ACG_NEW_YEAR_PROJECT && (
+                  <button
+                    type="button"
+                    title={
+                      acgReplayPlaying
+                        ? '正在回放资产驱动生成过程'
+                        : '查看资产驱动生成回放'
+                    }
+                    aria-label="查看 ACG 资产驱动生成回放"
+                    aria-pressed={acgReplayToken > 0}
+                    onClick={() => {
+                      setPreviewCollapsed(false)
+                      setOpenTabs([
+                        {
+                          label: PROJECT_DOCUMENT_LABEL,
+                          closable: false,
+                        },
+                      ])
+                      setActivePreviewTab(0)
+                      setAcgReplayToken((token) => token + 1)
+                    }}
+                    className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                      acgReplayToken > 0
+                        ? 'bg-[var(--fill-hover)] text-[var(--color-ink)]/85'
+                        : 'text-[var(--color-ink)]/55 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
+                    }`}
+                  >
+                    <Play
+                      size={13}
+                      strokeWidth={1.8}
+                      className={acgReplayPlaying ? 'animate-pulse' : ''}
+                    />
+                  </button>
+                )}
                 {/* When the X panel is already expanded, its own header
                    carries the collapse button — no need to duplicate it
                    here. The chat-header button only surfaces when the
@@ -9483,7 +12704,7 @@ export default function VibeCodingPage({
             >
               {/* Scrollable messages */}
               <div
-                ref={chatScrollRef}
+                ref={bindChatScrollRef}
                 className={`thin-scroll flex-1 overflow-y-auto px-5 pt-8 pb-8 ${chatCleared ? '' : 'space-y-6'} ${fadeClassFromEdges(chatScrollEdges)}`}
               >
                 {(chatCleared ||
@@ -9493,11 +12714,56 @@ export default function VibeCodingPage({
                 proposalStep === 'idle' ? (
                   // 这夏夯爆了：空会话固定回放「生成过程」记录（模拟平台从策划
                   // 文档到可玩活动的对话链路）——它就是这个项目的历史。
+                  showAssetProjectHistory ||
+                  projectTitle === ACG_FROM_DOC_PROJECT ||
+                  projectTitle === QIXI_BRIDGE_PROJECT ||
+                  projectTitle === ACG_NEW_YEAR_PROJECT ||
                   isXiahuaFamily(projectTitle) ||
                   buildFlowHere ||
                   projectTitle === SUMMER_SURF_PROJECT ? (
                     <div className="space-y-6">
-                      {buildFlowHere ? (
+                      {showAssetProjectHistory ? (
+                        <AssetOnlyProjectConversation
+                          projectTitle={projectTitle}
+                          onOpen={focusPreviewTab}
+                        />
+                      ) : projectTitle === ACG_FROM_DOC_PROJECT ? (
+                        <AcgFromDocGenerationReplay
+                          key="acg-from-doc-generation-replay-v1"
+                          replayToken={acgFromDocReplayToken}
+                          onPlaybackChange={setAcgFromDocReplayPlaying}
+                          onTarget={handleAcgFromDocReplayTarget}
+                          onOpenCard={handleAcgFromDocReplayCard}
+                          onReplayStart={() => {
+                            setPreviewCollapsed(false)
+                            setOpenTabs([
+                              {
+                                label: PROJECT_DOCUMENT_LABEL,
+                                closable: false,
+                              },
+                            ])
+                            setActivePreviewTab(0)
+                            setAcgFromDocReplayToken((token) =>
+                              token === 0 ? token + 1 : token,
+                            )
+                          }}
+                        />
+                      ) : projectTitle === QIXI_BRIDGE_PROJECT ? (
+                        <QixiGenerationReplay
+                          key="qixi-generation-replay-v6"
+                          replayToken={qixiReplayToken}
+                          onPlaybackChange={setQixiReplayPlaying}
+                          onTarget={handleQixiReplayTarget}
+                          onOpenCard={handleQixiReplayCard}
+                        />
+                      ) : projectTitle === ACG_NEW_YEAR_PROJECT ? (
+                        <AcgGenerationReplay
+                          replayToken={acgReplayToken}
+                          onPlaybackChange={setAcgReplayPlaying}
+                          onTarget={handleAcgReplayTarget}
+                          onOpenCard={handleAcgReplayCard}
+                        />
+                      ) : buildFlowHere ? (
                         <XiahuaBuildFlow
                           step={xiahuaBuildStep}
                           path={xiahuaPath}
@@ -9581,6 +12847,42 @@ export default function VibeCodingPage({
                 ) : (
                   <>
                     {/* 这夏夯爆了：生成过程记录常驻在新消息上方，后续调整接着记。 */}
+                    {showAssetProjectHistory && (
+                      <AssetOnlyProjectConversation
+                        projectTitle={projectTitle}
+                        onOpen={focusPreviewTab}
+                      />
+                    )}
+                    {projectTitle === QIXI_BRIDGE_PROJECT && (
+                      <QixiGenerationReplay
+                        replayToken={qixiReplayToken}
+                        onPlaybackChange={setQixiReplayPlaying}
+                        onTarget={handleQixiReplayTarget}
+                        onOpenCard={handleQixiReplayCard}
+                      />
+                    )}
+                    {projectTitle === ACG_FROM_DOC_PROJECT && (
+                      <AcgFromDocGenerationReplay
+                        key="acg-from-doc-generation-replay-followup-v1"
+                        replayToken={acgFromDocReplayToken}
+                        onPlaybackChange={setAcgFromDocReplayPlaying}
+                        onTarget={handleAcgFromDocReplayTarget}
+                        onOpenCard={handleAcgFromDocReplayCard}
+                        onReplayStart={() => {
+                          setPreviewCollapsed(false)
+                          setOpenTabs([
+                            {
+                              label: PROJECT_DOCUMENT_LABEL,
+                              closable: false,
+                            },
+                          ])
+                          setActivePreviewTab(0)
+                          setAcgFromDocReplayToken((token) =>
+                            token === 0 ? token + 1 : token,
+                          )
+                        }}
+                      />
+                    )}
                     {projectTitle === XIAHUA_PROJECT && <XiahuaGenerationLog />}
                     {projectTitle === SUMMER_SURF_PROJECT && (
                       <SummerSurfConversationMock
@@ -9592,7 +12894,7 @@ export default function VibeCodingPage({
                  messages get a generic AI ack below; trigger-matched
                  messages let needsFlowActive / showChatPublish render
                  their specific response further down. ── */}
-                    {sentMessages.map((m, i) => (
+                    {sentMessages.filter((message) => message.trigger !== 'tower-asset-generation' && message.trigger !== 'tower-asset-apply' && message.trigger !== 'tower-panel-action' && message.trigger !== 'tower-map-edit').map((m, i) => (
                       <Fragment key={m.id}>
                         <motion.div
                           initial={{ opacity: 0, y: 8 }}
@@ -9603,7 +12905,7 @@ export default function VibeCodingPage({
                           }}
                           className="flex justify-end"
                         >
-                          <div className="max-w-[85%] rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">
+                          <div className="max-w-[85%] whitespace-pre-wrap rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">
                             {m.canvasRef && (
                               <span className="mb-1.5 flex items-center gap-1 rounded-md bg-[var(--color-ink)]/[0.06] px-1.5 py-1 text-[11.5px] text-[var(--color-ink)]/60">
                                 <LayoutGrid className="size-3 shrink-0" />
@@ -9615,6 +12917,115 @@ export default function VibeCodingPage({
                             {m.text}
                           </div>
                         </motion.div>
+                        {m.trigger === 'game-type-clarification' && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-4"
+                          >
+                            <div className="space-y-2 text-[13px] leading-6 text-[var(--color-ink)]/78">
+                              <p>我已经收到你的游戏构想。为了匹配正确的玩法框架，请先从下面三种游戏类型中选择一种开始：</p>
+                              <p className="text-[12px] text-[var(--color-ink)]/48">选择后会保留你刚才输入的需求，并进入对应的生成流程。</p>
+                            </div>
+                            <div>
+                              <p className="mb-2 text-[11px] font-medium text-[var(--color-ink)]/42">推荐继续</p>
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const original = m.text.replace(/^【[^】]+】/u, '').trim()
+                                    setComposerText(`【塔防】生成一款塔防建造游戏，玩法：英雄和建筑塔守擂，角色：己方英雄，敌方6种兵种，世界观风格为：三国主题风格${original ? `。补充需求：${original}` : ''}`)
+                                    focusComposerAtEnd()
+                                  }}
+                                  className="h-8 rounded-lg bg-[#161823] px-3 text-[11px] font-medium text-white hover:bg-black"
+                                >
+                                  塔防游戏 →
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const original = m.text.replace(/^【[^】]+】/u, '').trim()
+                                    setComposerText(`【割草】生成一款轻量割草游戏，玩法：英雄自动攻击并通过技能构筑抵御连续敌潮，角色：己方英雄与多种敌人，节奏：短局高反馈${original ? `。补充需求：${original}` : ''}`)
+                                    focusComposerAtEnd()
+                                  }}
+                                  className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]"
+                                >
+                                  割草游戏 →
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const original = m.text.replace(/^【[^】]+】/u, '').trim()
+                                    setComposerText(`【2D 射击】生成一款2D射击游戏，玩法：玩家控制角色移动、射击并躲避敌方攻击，角色：己方主角与多种敌人，表现：清晰弹道与即时命中反馈${original ? `。补充需求：${original}` : ''}`)
+                                    focusComposerAtEnd()
+                                  }}
+                                  className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]"
+                                >
+                                  2D 射击游戏 →
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                        {m.trigger === 'tower-asset-generation' && (() => {
+                          const job = towerAssetChatJobs[m.id]
+                          const asset = towerDefenseFlow.assets.find(
+                            (item) => item.id === job?.assetId,
+                          )
+                          if (job?.status === 'completed') {
+                            const preview = asset?.visualVersions?.[job.versionIndex]?.src
+                            return (
+                              <motion.button
+                                type="button"
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                onClick={() => {
+                                  if (!asset) return
+                                  setTowerSelectedAssetId(asset.id)
+                                  setTowerAssetPreviewRequest({
+                                    assetId: asset.id,
+                                    versionIndex: job.versionIndex,
+                                    versionLabel: job.versionLabel,
+                                    nonce: Date.now(),
+                                  })
+                                  openTowerDefenseStage(
+                                    towerDefenseFlow.stage === 'asset-production'
+                                      ? 'asset-production'
+                                      : 'art-direction',
+                                  )
+                                }}
+                                className="w-full overflow-hidden rounded-xl border border-black/[0.08] bg-white text-left shadow-sm transition hover:border-black/20 hover:shadow-md"
+                              >
+                                {preview ? (
+                                  <img
+                                    src={preview}
+                                    alt={`${asset?.name ?? '游戏资产'}新生成方案`}
+                                    className="block max-h-48 w-full bg-[#f5f5f6] object-cover"
+                                  />
+                                ) : (
+                                  <div className="aspect-[16/9] bg-gradient-to-br from-[#343942] to-[#121419]" />
+                                )}
+                                <span className="flex items-center justify-between gap-3 px-3 py-2.5">
+                                  <span>
+                                    <strong className="block text-[12px] font-semibold text-[var(--color-ink)]">{asset?.name ?? '游戏资产'} · 新方案</strong>
+                                    <span className="text-[10px] text-[var(--color-ink)]/45">图片生成完成</span>
+                                  </span>
+                                  <span className="shrink-0 text-[11px] font-medium text-[var(--color-ink)]/62">在资产库中查看 →</span>
+                                </span>
+                              </motion.button>
+                            )
+                          }
+                          return (
+                            <motion.div
+                              initial={{ opacity: 0, y: 6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="flex items-center gap-2 text-[13px] text-[var(--color-ink)]/72"
+                            >
+                              <span className="size-3.5 animate-spin rounded-full border-2 border-[var(--color-ink)]/15 border-t-[var(--color-ink)]/70" />
+                              正在生成图片，新方案已在右侧素材库中创建。
+                            </motion.div>
+                          )
+                        })()}
                         {m.trigger === 'none' &&
                           (() => {
                             const replyKey = `${projectTitle}::${activeSessionId}::${m.id}`
@@ -9698,6 +13109,355 @@ export default function VibeCodingPage({
                           })()}
                       </Fragment>
                     ))}
+
+                    {isTowerDefenseProject &&
+                      sentMessages.some(
+                        (message) => message.trigger === 'tower-defense',
+                      ) && (
+                        <TowerDefenseFlowChat
+                          stage="gameplay"
+                          flow={towerDefenseFlow}
+                          onOpenStage={openTowerDefenseStage}
+                          onOpenDeliverable={openTowerDefenseDeliverable}
+                        />
+                      )}
+
+                    {sentMessages
+                      .filter((message) => message.trigger === 'tower-panel-action' && towerPanelActionJobs[message.id]?.stage === 'gameplay')
+                      .map((message) => {
+                        const action = towerPanelActionJobs[message.id]
+                        return (
+                          <Fragment key={`tower-gameplay-action-${message.id}`}>
+                            <div className="flex justify-end">
+                              <div className="max-w-[85%] rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">{message.text}</div>
+                            </div>
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2 text-[12px] font-medium text-[var(--color-ink)]/55">
+                                {action?.status === 'completed' ? <span className="grid size-4 place-items-center rounded-full bg-emerald-500 text-[10px] text-white">✓</span> : <span className="size-3.5 animate-spin rounded-full border-2 border-[var(--color-ink)]/15 border-t-[var(--color-ink)]/70" />}
+                                {action?.status === 'completed' ? '已完成玩法参数校验' : '正在校验玩法参数并更新可试玩版本…'}
+                              </div>
+                              {action?.status === 'completed' && (
+                                <>
+                                  <p className="text-[13px] leading-6 text-[var(--color-ink)]/78">分析摘要：已核对每波敌人数、波次间隔、初始金币、建造成本和基地生命，当前参数能够形成“获取资源—选择塔型—抵御波次—结算反馈”的完整核心循环。</p>
+                                  <p className="whitespace-pre-wrap text-[13px] leading-6 text-[var(--color-ink)]"><strong>结论：</strong>{action.reply}</p>
+                                  <button type="button" onClick={() => openTowerDefenseDeliverable('gameplay')} className="flex w-full items-center gap-3 rounded-xl border border-black/[0.08] bg-white p-3 text-left hover:bg-[#fafafa]">
+                                    <span className="grid size-9 place-items-center rounded-lg bg-sky-50 text-sky-600">文</span>
+                                    <span className="min-w-0 flex-1"><strong className="block text-[12px]">塔防玩法方案.md</strong><span className="block truncate text-[10px] text-[var(--color-ink)]/42">核心循环、Fast 参数与试玩验证结论</span></span>
+                                    <span className="text-[var(--color-ink)]/35">›</span>
+                                  </button>
+                                  {action.nextStage && <button type="button" onClick={() => action.nextStage === 'art-direction' ? beginTowerVisualIntent() : action.nextStage === 'asset-production' ? applyTowerAssetProductionPlan() : openTowerDefenseStage(action.nextStage!)} className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]">下一步：{action.nextLabel ?? getTowerDefenseStageTabLabel(action.nextStage)} →</button>}
+                                </>
+                              )}
+                            </div>
+                          </Fragment>
+                        )
+                      })}
+
+                    {isTowerDefenseProject && towerVisualReferencePending && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-3"
+                      >
+                        <div className="space-y-1.5 text-[13px] leading-6 text-[var(--color-ink)]/78">
+                          <p>视觉方向已经确认。你还有图片、视频、GIF 或其他素材需要作为生成参考吗？</p>
+                          <p className="text-[12px] text-[var(--color-ink)]/46">可以通过输入框添加附件并补充说明；如果没有，我会直接规划右侧素材库并开始逐张生成。</p>
+                        </div>
+                        <div>
+                          <p className="mb-2 text-[11px] font-medium text-[var(--color-ink)]/42">推荐继续</p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setComposerText('补充视觉参考：')
+                                focusComposerAtEnd()
+                              }}
+                              className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]"
+                            >
+                              添加参考素材
+                            </button>
+                            <button
+                              type="button"
+                              onClick={startTowerVisualGeneration}
+                              className="h-8 rounded-lg bg-[#161823] px-3 text-[11px] font-medium text-white hover:bg-black"
+                            >
+                              没有，直接生成 →
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {isTowerDefenseProject && towerVisualGeneration !== 'questions' && (
+                      <div className="space-y-3">
+                        <>
+                            <div className="flex justify-end">
+                              <div className="max-w-[85%] rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">
+                                采用{towerVisualIntent.world}世界观、{towerVisualIntent.style}风格和{towerVisualIntent.mood}氛围，开始生成全套游戏视觉设定。
+                              </div>
+                            </div>
+                            {towerVisualGeneration === 'generating' ? (
+                              <div className="flex items-center gap-2 text-[13px] text-[var(--color-ink)]/72">
+                                <span className="size-3.5 animate-spin rounded-full border-2 border-[var(--color-ink)]/15 border-t-[var(--color-ink)]/70" />
+                                正在生成游戏视觉设定，右侧资产库已完成 {towerVisibleAssetCount} / {towerDefenseFlow.assets.reduce((total, asset) => total + (asset.visualVersions?.length ?? 1), 0)} 张图片…
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-[12px] font-medium text-[var(--color-ink)]/55"><span className="grid size-4 place-items-center rounded-full bg-emerald-500 text-[10px] text-white">✓</span>已完成视觉意图拆解与资产范围规划</div>
+                                <p className="text-[13px] leading-6 text-[var(--color-ink)]/78">分析摘要：已将“{towerVisualIntent.world} × {towerVisualIntent.style} × {towerVisualIntent.mood}”转译为统一的地图构图、角色轮廓、敌我阵营差异和建筑材质规则，并按真实目录拆分为 {towerDefenseFlow.assets.length} 项资产。</p>
+                                <p className="text-[13px] leading-6 text-[var(--color-ink)]"><strong>结论：</strong>视觉设定已生成，可在右侧逐项比较方案并标记本次需要采用的素材。</p>
+                                <button type="button" onClick={() => openTowerDefenseDeliverable('art-direction')} className="flex w-full items-center gap-3 rounded-xl border border-black/[0.08] bg-white p-3 text-left hover:bg-[#fafafa]">
+                                  <span className="grid size-9 place-items-center rounded-lg bg-emerald-50 text-emerald-600">文</span>
+                                  <span className="min-w-0 flex-1"><strong className="block text-[12px]">游戏美术设定.md</strong><span className="block truncate text-[10px] text-[var(--color-ink)]/42">世界观、视觉角色与全量资产范围</span></span><span className="text-[var(--color-ink)]/35">›</span>
+                                </button>
+                                <button type="button" onClick={() => openTowerDefenseStage('art-direction')} className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]">继续：选择并确认视觉设定 →</button>
+                              </div>
+                            )}
+                          </>
+                      </div>
+                    )}
+
+                    {!isTowerDefenseProject && sentMessages
+                      .filter((message) => message.trigger === 'tower-asset-generation')
+                      .map((message) => {
+                        const job = towerAssetChatJobs[message.id]
+                        const asset = towerDefenseFlow.assets.find(
+                          (item) => item.id === job?.assetId,
+                        )
+                        const preview = asset?.visualVersions?.[job?.versionIndex ?? 0]?.src
+                        return (
+                          <Fragment key={`asset-generation-${message.id}`}>
+                            <motion.div
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="flex justify-end"
+                            >
+                              <div className="max-w-[85%] rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">
+                                {message.text}
+                              </div>
+                            </motion.div>
+                            {job?.status === 'completed' ? (
+                              <motion.button
+                                type="button"
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                onClick={() => {
+                                  if (!asset) return
+                                  setTowerSelectedAssetId(asset.id)
+                                  setTowerAssetPreviewRequest({
+                                    assetId: asset.id,
+                                    versionIndex: job?.versionIndex ?? 0,
+                                    versionLabel: job?.versionLabel ?? '新方案',
+                                    nonce: Date.now(),
+                                  })
+                                  openTowerDefenseStage(
+                                    towerDefenseFlow.stage === 'asset-production'
+                                      ? 'asset-production'
+                                      : 'art-direction',
+                                  )
+                                }}
+                                className="w-full overflow-hidden rounded-xl border border-black/[0.08] bg-white text-left shadow-sm transition hover:border-black/20 hover:shadow-md"
+                              >
+                                {preview ? (
+                                  <img
+                                    src={preview}
+                                    alt={`${asset?.name ?? '游戏资产'}新生成方案`}
+                                    className="block max-h-48 w-full bg-[#f5f5f6] object-cover"
+                                  />
+                                ) : (
+                                  <div className="aspect-[16/9] bg-gradient-to-br from-[#343942] to-[#121419]" />
+                                )}
+                                <span className="flex items-center justify-between gap-3 px-3 py-2.5">
+                                  <span>
+                                    <strong className="block text-[12px] font-semibold text-[var(--color-ink)]">{asset?.name ?? '游戏资产'} · 新方案</strong>
+                                    <span className="text-[10px] text-[var(--color-ink)]/45">图片生成完成</span>
+                                  </span>
+                                  <span className="shrink-0 text-[11px] font-medium text-[var(--color-ink)]/62">在资产库中查看 →</span>
+                                </span>
+                              </motion.button>
+                            ) : (
+                              <motion.div
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-2 text-[13px] text-[var(--color-ink)]/72"
+                              >
+                                <span className="size-3.5 animate-spin rounded-full border-2 border-[var(--color-ink)]/15 border-t-[var(--color-ink)]/70" />
+                                正在生成图片，新方案已同步到右侧素材库。
+                              </motion.div>
+                            )}
+                          </Fragment>
+                        )
+                      })}
+
+                    {sentMessages
+                      .filter((message) => message.trigger === 'tower-asset-apply')
+                      .map((message) => {
+                        const job = towerAssetApplyJobs[message.id]
+                        const appliedAssets = towerDefenseFlow.assets.filter(
+                          (item) => job?.assetIds.includes(item.id),
+                        )
+                        const appliedNames = appliedAssets.map((item) => item.name).join('、')
+                        return (
+                          <Fragment key={`asset-apply-${message.id}`}>
+                            <motion.div
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="flex justify-end"
+                            >
+                              <div className="max-w-[85%] rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">
+                                {message.text}
+                              </div>
+                            </motion.div>
+                            {job?.status === 'completed' ? (
+                              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+                                <div className="flex items-center gap-2 text-[12px] font-medium text-[var(--color-ink)]/55"><span className="grid size-4 place-items-center rounded-full bg-emerald-500 text-[10px] text-white">✓</span>已完成基准视觉装配与预览校验</div>
+                                <p className="text-[13px] leading-6 text-[var(--color-ink)]/78">分析摘要：已检查所选地图、英雄与敌人素材的引用关系，并将各素材绑定到战场、英雄据点和敌人队列；未被确认的尝试稿仍保留在资产库，不进入当前游戏版本。</p>
+                                <p className="text-[13px] leading-6 text-[var(--color-ink)]"><strong>结论：</strong>已将「{appliedNames || '所选游戏资产'}」应用到游戏预览，对应位置已刷新。</p>
+                                <button type="button" onClick={() => openTowerDefenseDeliverable('art-direction')} className="flex w-full items-center gap-3 rounded-xl border border-black/[0.08] bg-white p-3 text-left hover:bg-[#fafafa]">
+                                  <span className="grid size-9 place-items-center rounded-lg bg-emerald-50 text-emerald-600">文</span>
+                                  <span className="min-w-0 flex-1"><strong className="block text-[12px]">游戏美术设定.md</strong><span className="block truncate text-[10px] text-[var(--color-ink)]/42">已确认视觉、引用关系与游戏预览绑定</span></span><span className="text-[var(--color-ink)]/35">›</span>
+                                </button>
+                                <div>
+                                  <p className="mb-1 text-[11px] font-medium text-[var(--color-ink)]/42">推荐继续 · 以下功能可任选</p>
+                                  <p className="mb-2 text-[10px] leading-4 text-[var(--color-ink)]/38">视觉设定之后不再限制编辑顺序，可以直接进入任一生产或编辑工具。</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    <button type="button" onClick={planTowerAssetProduction} className="h-8 rounded-lg bg-[#161823] px-3 text-[11px] font-medium text-white hover:bg-black">资产生产 →</button>
+                                    <button type="button" onClick={openTowerDefenseMapEditor} className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]">地图编辑 →</button>
+                                    <button type="button" onClick={openTowerSpriteMakerTool} className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]">序列帧工具 →</button>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ) : (
+                              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 text-[13px] text-[var(--color-ink)]/72">
+                                <span className="size-3.5 animate-spin rounded-full border-2 border-[var(--color-ink)]/15 border-t-[var(--color-ink)]/70" />
+                                正在将「{appliedNames || '所选游戏资产'}」放入游戏并刷新预览…
+                              </motion.div>
+                            )}
+                          </Fragment>
+                        )
+                      })}
+
+                    {sentMessages
+                      .filter((message) => message.trigger === 'tower-panel-action' && towerPanelActionJobs[message.id]?.stage !== 'gameplay')
+                      .map((message) => {
+                        const action = towerPanelActionJobs[message.id]
+                        return (
+                          <Fragment key={`tower-action-${message.id}`}>
+                            <div className="flex justify-end">
+                              <div className="max-w-[85%] rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">{message.text}</div>
+                            </div>
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2 text-[12px] font-medium text-[var(--color-ink)]/55">
+                                {action?.status === 'completed' ? <span className="grid size-4 place-items-center rounded-full bg-emerald-500 text-[10px] text-white">✓</span> : <span className="size-3.5 animate-spin rounded-full border-2 border-[var(--color-ink)]/15 border-t-[var(--color-ink)]/70" />}
+                                {action?.status === 'completed' ? `已完成${getTowerDefenseStageTabLabel(action.stage)}更新校验` : '正在同步右侧编辑结果并更新游戏…'}
+                              </div>
+                              {action?.status === 'completed' && (
+                                <>
+                                  <p className="text-[13px] leading-6 text-[var(--color-ink)]/78">分析摘要：已汇总本轮右侧编辑器的修改，并检查其与当前玩法、资产绑定、页面预览和后续阶段输入是否一致。</p>
+                                  <p className="whitespace-pre-wrap text-[13px] leading-6 text-[var(--color-ink)]"><strong>结论：</strong>{action.reply}</p>
+                                  {action.stage === 'asset-production' && (
+                                    <div className="overflow-hidden rounded-xl border border-black/[0.08] bg-white">
+                                      <div className="grid grid-cols-[1fr_1.2fr_.8fr] border-b border-black/[0.06] bg-[#f7f7f8] px-3 py-2 text-[10px] font-medium text-[var(--color-ink)]/48"><span>资产</span><span>状态规划</span><span>方向</span></div>
+                                      {towerDefenseFlow.assets.filter((asset) => asset.category !== 'map' && asset.baseVisualStatus === 'confirmed').map((asset) => (
+                                        <div key={asset.id} className="grid grid-cols-[1fr_1.2fr_.8fr] items-start gap-2 border-b border-black/[0.05] px-3 py-2.5 text-[10px] last:border-b-0">
+                                          <strong className="font-medium text-[var(--color-ink)]">{asset.name}</strong>
+                                          <span className="leading-4 text-[var(--color-ink)]/62">{asset.states.map((state) => state.name).join(' / ')}</span>
+                                          <span className="text-[var(--color-ink)]/48">{Math.max(...asset.states.map((state) => state.directions.length), 1)} 向 · {asset.states.reduce((total, state) => total + state.framesPerDirection * state.directions.length, 0)} 帧</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <button type="button" onClick={() => openTowerDefenseDeliverable(action.stage)} className="flex w-full items-center gap-3 rounded-xl border border-black/[0.08] bg-white p-3 text-left hover:bg-[#fafafa]">
+                                    <span className="grid size-9 place-items-center rounded-lg bg-sky-50 text-sky-600">文</span>
+                                    <span className="min-w-0 flex-1"><strong className="block truncate text-[12px]">{getTowerDefenseDeliverableMeta(action.stage).fileName}</strong><span className="block truncate text-[10px] text-[var(--color-ink)]/42">本阶段最新确认结果与可追溯配置</span></span><span className="text-[var(--color-ink)]/35">›</span>
+                                  </button>
+                                  {action.nextStage && <button type="button" onClick={() => openTowerDefenseStage(action.nextStage!)} className="h-8 rounded-lg border border-black/[0.1] bg-white px-3 text-[11px] font-medium text-[#161823] hover:bg-[#f6f6f7]">下一步：{action.nextLabel ?? getTowerDefenseStageTabLabel(action.nextStage)} →</button>}
+                                </>
+                              )}
+                            </div>
+                          </Fragment>
+                        )
+                      })}
+
+                    {sentMessages
+                      .filter((message) => message.trigger === 'tower-map-edit')
+                      .map((message) => {
+                        const job = towerMapEditJobs[message.id]
+                        const complete =
+                          job?.status === 'ready' ||
+                          job?.status === 'completed'
+                        const attachedAssets = towerDefenseFlow.assets.filter(
+                          (asset) => job?.assetIds.includes(asset.id),
+                        )
+                        return (
+                          <Fragment key={`tower-map-${message.id}`}>
+                            <div className="flex justify-end">
+                              <div className="max-w-[85%] rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">
+                                {message.text}
+                              </div>
+                            </div>
+                            {(attachedAssets.length > 0 ||
+                              (job?.fileNames.length ?? 0) > 0) && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {attachedAssets.map((asset) => (
+                                  <span key={asset.id} className="flex h-7 items-center gap-1.5 rounded-lg border border-black/[0.07] bg-white px-2 text-[10px] text-[var(--color-ink)]/62">
+                                    <ImageIcon size={11} />
+                                    {asset.name}
+                                  </span>
+                                ))}
+                                {job?.fileNames.map((name) => (
+                                  <span key={name} className="flex h-7 items-center gap-1.5 rounded-lg border border-black/[0.07] bg-white px-2 text-[10px] text-[var(--color-ink)]/62">
+                                    <FileText size={11} />
+                                    {name}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2 text-[12px] font-medium text-[var(--color-ink)]/55">
+                                {complete ? (
+                                  <span className="grid size-4 place-items-center rounded-full bg-emerald-500 text-[10px] text-white">✓</span>
+                                ) : (
+                                  <span className="size-3.5 animate-spin rounded-full border-2 border-[var(--color-ink)]/15 border-t-[var(--color-ink)]/70" />
+                                )}
+                                {job?.kind === 'apply'
+                                  ? complete
+                                    ? '已完成地图编辑结果校验'
+                                    : '正在同步地图对象并刷新游戏预览…'
+                                  : complete
+                                    ? '已完成地图编辑意图识别'
+                                    : '正在识别地图与塔位调整范围…'}
+                              </div>
+                              {complete && (
+                                <>
+                                  <p className="text-[13px] leading-6 text-[var(--color-ink)]/78">
+                                    分析摘要：已将本次需求收敛为可选地图编辑；{attachedAssets.length > 0 || (job?.fileNames.length ?? 0) > 0 ? '附件会作为地图布置参考，' : ''}中间画布与右侧工具共用点位、路线和区域数据，修改会即时互相同步。
+                                  </p>
+                                  <p className="text-[13px] leading-6 text-[var(--color-ink)]">
+                                    <strong>结论：</strong>{job?.kind === 'apply' ? `已保存 ${towerDefenseFlow.towerSlots.length} 个建造塔位、${towerMapEditor.paths.length} 条路线和 ${towerMapEditor.areas.length} 个区域；游戏页面将读取已应用的地图配置。` : '可以进入地图编辑器，在中间画布直接编辑点位、路线与区域，右侧面板负责选择工具和修改参数。'}
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={openTowerDefenseMapEditor}
+                                    className="flex w-full items-center gap-3 rounded-xl border border-black/[0.08] bg-white p-3 text-left hover:bg-[#fafafa]"
+                                  >
+                                    <span className="grid size-9 place-items-center rounded-lg bg-amber-50 text-amber-600">图</span>
+                                    <span className="min-w-0 flex-1">
+                                      <strong className="block text-[12px]">地图编辑器</strong>
+                                      <span className="block truncate text-[10px] text-[var(--color-ink)]/42">{towerDefenseFlow.towerSlots.length} 点位 · {towerMapEditor.paths.length} 路线 · {towerMapEditor.areas.length} 区域</span>
+                                    </span>
+                                    <span className="text-[var(--color-ink)]/35">›</span>
+                                  </button>
+                                  <div>
+                                    <p className="mb-2 text-[11px] font-medium text-[var(--color-ink)]/42">推荐继续</p>
+                                    <button type="button" onClick={openTowerDefenseMapEditor} className="h-8 rounded-lg bg-[#161823] px-3 text-[11px] font-medium text-white hover:bg-black">打开地图编辑 →</button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </Fragment>
+                        )
+                      })}
 
                     {/* ── Garuda 游戏生成流 ── Each step's bubble mounts when
                  gameStep reaches at-or-past that phase. Steps are
@@ -11479,6 +15239,78 @@ export default function VibeCodingPage({
                     )}
                   </div>
                 )}
+
+                {isTowerDefenseProject && sentMessages
+                  .filter((message) => message.trigger === 'tower-asset-generation')
+                  .map((message) => {
+                    const job = towerAssetChatJobs[message.id]
+                    const asset = towerDefenseFlow.assets.find(
+                      (item) => item.id === job?.assetId,
+                    )
+                    const preview = asset?.visualVersions?.[job?.versionIndex ?? 0]?.src
+                    return (
+                      <Fragment key={`latest-asset-generation-${message.id}`}>
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex justify-end"
+                        >
+                          <div className="max-w-[85%] rounded-[8px] rounded-br-none bg-[var(--bubble-me-bg)] px-3 py-2.5 text-[14px] leading-[20px] text-[var(--color-ink)]">
+                            {message.text}
+                          </div>
+                        </motion.div>
+                        {job?.status === 'completed' ? (
+                          <motion.button
+                            type="button"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            onClick={() => {
+                              if (!asset) return
+                              setTowerSelectedAssetId(asset.id)
+                              setTowerAssetPreviewRequest({
+                                assetId: asset.id,
+                                versionIndex: job.versionIndex,
+                                versionLabel: job.versionLabel,
+                                nonce: Date.now(),
+                              })
+                              openTowerDefenseStage(
+                                towerDefenseFlow.stage === 'asset-production'
+                                  ? 'asset-production'
+                                  : 'art-direction',
+                              )
+                            }}
+                            className="w-full overflow-hidden rounded-xl border border-black/[0.08] bg-white text-left shadow-sm transition hover:border-black/20 hover:shadow-md"
+                          >
+                            {preview ? (
+                              <img
+                                src={preview}
+                                alt={`${asset?.name ?? '游戏资产'}新生成方案`}
+                                className="block max-h-48 w-full bg-[#f5f5f6] object-cover"
+                              />
+                            ) : (
+                              <div className="aspect-[16/9] bg-[#eef0f2]" />
+                            )}
+                            <span className="flex items-center justify-between gap-3 px-3 py-2.5">
+                              <span>
+                                <strong className="block text-[12px] font-semibold text-[var(--color-ink)]">{asset?.name ?? '游戏资产'} · 新生成方案</strong>
+                                <span className="text-[10px] text-[var(--color-ink)]/45">已追加至该槽位的生成记录</span>
+                              </span>
+                              <span className="shrink-0 text-[11px] font-medium text-[var(--color-ink)]/62">查看生成记录 →</span>
+                            </span>
+                          </motion.button>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-center gap-2 text-[13px] text-[var(--color-ink)]/72"
+                          >
+                            <span className="size-3.5 animate-spin rounded-full border-2 border-[var(--color-ink)]/15 border-t-[var(--color-ink)]/70" />
+                            正在重新生成，右侧生成记录已新增任务…
+                          </motion.div>
+                        )}
+                      </Fragment>
+                    )
+                  })}
               </div>
 
               {/* ── Composer — matches Figma Prompt Input: white card with
@@ -11490,7 +15322,65 @@ export default function VibeCodingPage({
                 awaiting submission, the composer is swapped with a focus
                 hint bar so the user has only one input target. ── */}
               <div className="mx-5 flex-shrink-0">
-                {proposalFormPendingLabel ? (
+                {isTowerDefenseProject && towerVisualIntentOpen && towerVisualGeneration === 'questions' && (() => {
+                  const questions = [
+                    { key: 'world', title: '这次游戏发生在什么样的世界？', hint: '用于统一地图、阵营、角色和建筑的叙事语言。', options: ['三国史诗', '暗夜幻想', '轻松幻想'] },
+                    { key: 'style', title: '画面应该采用哪种视觉表现？', hint: '将直接影响角色比例、材质、轮廓和场景细节。', options: ['国风厚涂', '卡通渲染', '水墨剪影'] },
+                    { key: 'mood', title: '玩家进入战场时应感受到什么氛围？', hint: '用于确定色彩、光照、特效强度和战斗情绪。', options: ['热血宏大', '神秘压迫', '明快轻松'] },
+                  ] as const
+                  const question = questions[towerVisualQuestionStep]
+                  const selectedValue = towerVisualIntent[question.key]
+                  const canContinue = Boolean(towerVisualCustomInput.trim() || selectedValue)
+                  return (
+                    <div className="relative rounded-[24px] border border-black/[0.09] bg-white p-3.5 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-medium text-[var(--color-ink)]/42">视觉意图澄清 · {towerVisualQuestionStep + 1}/3</span>
+                        <div className="ml-auto flex gap-1">
+                          {questions.map((item, index) => <i key={item.key} className={`h-1 w-5 rounded-full ${index <= towerVisualQuestionStep ? 'bg-[#161823]' : 'bg-black/10'}`} />)}
+                        </div>
+                        {towerVisualQuestionStep > 0 && <button type="button" onClick={() => { setTowerVisualQuestionStep((current) => Math.max(0, current - 1)); setTowerVisualCustomInput('') }} className="h-6 rounded-md px-2 text-[9px] font-medium text-[var(--color-ink)]/48 hover:bg-black/[0.05]">返回</button>}
+                      </div>
+                      <h3 className="mt-2.5 text-[13px] font-semibold leading-5 text-[var(--color-ink)]">{question.title}</h3>
+                      <p className="mt-1 text-[10px] leading-4 text-[var(--color-ink)]/46">{question.hint}</p>
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {question.options.map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => {
+                              setTowerVisualIntent((current) => ({ ...current, [question.key]: option }))
+                              setTowerVisualCustomInput('')
+                              if (towerVisualQuestionStep < questions.length - 1) {
+                                setTowerVisualQuestionStep((current) => current + 1)
+                              }
+                            }}
+                            className={`h-7 rounded-lg border px-2.5 text-[10px] font-medium ${selectedValue === option && !towerVisualCustomInput ? 'border-[#161823] bg-[#161823] text-white' : 'border-black/[0.09] bg-white text-[#161823]/65 hover:bg-[#f6f6f7]'}`}
+                          >
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-black/[0.08] bg-[#f7f7f8] px-3 py-2">
+                        <input
+                          value={towerVisualCustomInput}
+                          onChange={(event) => setTowerVisualCustomInput(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' && canContinue) {
+                              event.preventDefault()
+                              if (towerVisualQuestionStep < questions.length - 1) confirmTowerVisualQuestion()
+                            }
+                          }}
+                          placeholder="或输入你自定义的答案"
+                          className="min-w-0 flex-1 bg-transparent text-[11px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/30"
+                        />
+                      </div>
+                      {towerVisualQuestionStep === questions.length - 1 && <div className="mt-3 flex justify-end">
+                        <button type="button" disabled={!canContinue} onClick={confirmTowerVisualQuestion} className="h-8 rounded-lg bg-[#161823] px-3 text-[10px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-30">确认并生成视觉设定</button>
+                      </div>}
+                    </div>
+                  )
+                })()}
+                {isTowerDefenseProject && towerVisualIntentOpen && towerVisualGeneration === 'questions' ? null : proposalFormPendingLabel ? (
                   <div className="flex items-center gap-2 rounded-full bg-[var(--fill-subtle)] px-4 py-2 ring-1 ring-[var(--divider-soft)]">
                     <FileText
                       size={12}
@@ -11507,11 +15397,18 @@ export default function VibeCodingPage({
                   </div>
                 ) : (
                   <div
-                    // 挂了画布引用就把卡片抬高一条 chip 的高度，输入区不被挤扁。
                     style={{
-                      height: h5LabChatRef
-                        ? CHAT_COMPOSER_HEIGHT + 42
-                        : CHAT_COMPOSER_HEIGHT,
+                      // The attachment rail consumes 28px plus one layout gap.
+                      // Preserve the normal text-editing height instead of
+                      // squeezing the contentEditable down to zero.
+                      height:
+                        CHAT_COMPOSER_HEIGHT +
+                        (isTowerDefenseProject &&
+                        (towerComposerAssetIds.length > 0 ||
+                          towerComposerLocalFiles.length > 0)
+                          ? 44
+                          : 0) +
+                        (h5LabChatRef ? 42 : 0),
                     }}
                     className="relative flex flex-col gap-4 overflow-hidden rounded-[24px] bg-[var(--color-surface-0)] p-3 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_10px_15px_-5px_rgba(0,0,0,0.05)]"
                   >
@@ -11544,6 +15441,34 @@ export default function VibeCodingPage({
                     )}
 
                     {/* Input area — 卡片定高 114px，内容超出后内部滚动。 */}
+                    {isTowerDefenseProject &&
+                      (towerComposerAssetIds.length > 0 ||
+                        towerComposerLocalFiles.length > 0) && (
+                      <div className="relative flex shrink-0 gap-1.5 overflow-x-auto px-2 pt-0.5" aria-label="已添加的游戏资产附件">
+                        {towerComposerAssetIds.map((assetId) => {
+                          const asset = towerDefenseFlow.assets.find((item) => item.id === assetId)
+                          if (!asset) return null
+                          return (
+                            <span key={assetId} className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--divider-soft)] bg-[var(--fill-subtle)] px-2 text-[10px] text-[var(--color-ink)]/70">
+                              <ImageIcon size={11} />
+                              {asset.name}
+                              <button type="button" aria-label={`移除附件：${asset.name}`} onClick={() => setTowerComposerAssetIds((current) => current.filter((id) => id !== assetId))} className="grid size-4 place-items-center rounded text-[var(--color-ink)]/35 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]">
+                                <X size={10} />
+                              </button>
+                            </span>
+                          )
+                        })}
+                        {towerComposerLocalFiles.map((file) => (
+                          <span key={file.id} className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--divider-soft)] bg-[var(--fill-subtle)] px-2 text-[10px] text-[var(--color-ink)]/70">
+                            <FileText size={11} />
+                            {file.name}
+                            <button type="button" aria-label={`移除附件：${file.name}`} onClick={() => setTowerComposerLocalFiles((current) => current.filter((item) => item.id !== file.id))} className="grid size-4 place-items-center rounded text-[var(--color-ink)]/35 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]">
+                              <X size={10} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <div className="relative min-h-0 flex-1 pl-2">
                       <div
                         ref={chatInputRef}
@@ -11557,8 +15482,24 @@ export default function VibeCodingPage({
                         data-placeholder="请输入，问我任何问题"
                         onInput={(e) => {
                           const el = e.currentTarget as HTMLDivElement
-                          const val = el.innerText
+                          const val = el.textContent ?? ''
                           setChatDraft(val)
+                          const activeMentionIds = new Set(
+                            Array.from(
+                              el.querySelectorAll<HTMLElement>(
+                                '[data-mention-id]',
+                              ),
+                            )
+                              .map((node) =>
+                                node.getAttribute('data-mention-id'),
+                              )
+                              .filter((id): id is string => Boolean(id)),
+                          )
+                          setComposerMentions((current) =>
+                            current.filter((mention) =>
+                              activeMentionIds.has(mention.id),
+                            ),
+                          )
                           // Detect "@" at the caret — check the character
                           // before the caret's position in the active text node.
                           const sel = window.getSelection()
@@ -11608,24 +15549,34 @@ export default function VibeCodingPage({
                     {/* Action row */}
                     <div className="relative flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <ComposerLocalFileButton className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]" />
+                        <ComposerLocalFileButton
+                          className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[var(--divider)] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+                          onFilesSelected={
+                            isTowerDefenseProject
+                              ? (files) =>
+                                  setTowerComposerLocalFiles((current) => [
+                                    ...current,
+                                    ...files.map((file, index) => ({
+                                      id: `local-${Date.now().toString(36)}-${index}`,
+                                      name: file.name,
+                                      type: file.type,
+                                    })),
+                                  ])
+                              : undefined
+                          }
+                        />
                         <button
                           type="button"
-                          onClick={openResourceLibraryPage}
+                          onClick={openMentionPicker}
+                          aria-expanded={Boolean(mentionAnchor)}
+                          aria-haspopup="dialog"
                           className="flex h-8 items-center gap-1 rounded-full border border-[var(--divider)] px-3 text-[13px] font-medium text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
                         >
                           <FolderCode size={14} strokeWidth={1.8} />
-                          扩展
+                          技能
                         </button>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          className="flex h-8 items-center gap-1 rounded-full px-3 text-[13px] font-medium text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-                        >
-                          Auto
-                          <ChevronDown size={14} strokeWidth={1.8} />
-                        </button>
                         <button
                           type="button"
                           aria-label="发送"
@@ -11663,12 +15614,15 @@ export default function VibeCodingPage({
             anchor={mentionAnchor}
             skills={mentionSkills}
             tools={mentionTools}
-            files={mentionFiles}
-            triggers={mentionTriggers}
-            resources={mentionResources}
+            knowledge={mentionKnowledge}
             onInsert={insertMention}
             onClose={() => setMentionAnchor(null)}
-            onOpenResourceLibrary={openResourceLibraryPage}
+            onBrowseAll={(tab) => {
+              setMentionAnchor(null)
+              if (tab === 'skills') openPlatformSkillsPage()
+              else if (tab === 'knowledge') openKnowledgeLibraryPage()
+              else openResourceLibraryPage()
+            }}
           />
           {/* Right-edge drag handle — only in platform layout for now. Sits
                straddling the chat/preview boundary with a 4px touch area. */}
@@ -12164,12 +16118,33 @@ export default function VibeCodingPage({
             setDraft={setHomeDraft}
             onSubmit={submitFromHome}
             onOpenResourceLibrary={openResourceLibraryPage}
+            onOpenProject={openProject}
           />
+        )}
+
+        {isPlatform && platformAssetCenterOpen && (
+          <div className="flex min-h-0 flex-1 overflow-hidden">
+            <AssetCenterPage
+              activeProjectName={displayProjectName(projectTitle)}
+              returnLabel={
+                assetCenterReturnTarget
+                  ? assetCenterReturnTarget.tabLabel
+                  : undefined
+              }
+              onReturn={
+                assetCenterReturnTarget ? returnFromAssetCenter : undefined
+              }
+              onUseAsset={useAssetFromCenter}
+            />
+          </div>
         )}
 
         {isPlatform && platformResourceLibraryOpen && (
           <div className="flex min-h-0 flex-1 overflow-hidden">
-            <ResourceLibraryPage />
+            <ResourceLibraryPage
+              initialTab={platformResourceLibraryInitialTab}
+              onUseResource={useResourceFromLibrary}
+            />
           </div>
         )}
 
@@ -12184,6 +16159,17 @@ export default function VibeCodingPage({
           </motion.div>
         )}
 
+        {isPlatform && platformInspirationOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="flex min-h-0 flex-1 overflow-hidden"
+          >
+            <InspirationGalleryPage onUse={useInspiration} />
+          </motion.div>
+        )}
+
         {isPlatform && platformCreativeSquareOpen && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -12191,7 +16177,9 @@ export default function VibeCodingPage({
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="flex min-h-0 flex-1 overflow-hidden"
           >
-            <ProjectLibraryPage />
+            <ProjectLibraryPage
+              onOpenProject={(project) => openProject(project.projectName ?? project.title)}
+            />
           </motion.div>
         )}
 
@@ -12219,7 +16207,7 @@ export default function VibeCodingPage({
             const published: DataOpsProject[] = [
               '陶白白 Sensei 分身',
               TAROT_INTEREST_CARD_PROJECT,
-              '抖音 ACG 游戏新春会',
+              '2026 抖音 ACG 新春会',
               '射击小游戏',
             ]
               .filter((n) =>
@@ -12261,7 +16249,7 @@ export default function VibeCodingPage({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              className="flex min-h-0 min-w-0 flex-1"
+              className="relative flex min-h-0 min-w-0 flex-1"
             >
               {/* ────── Right: Preview Panel. Platform lives inside a shared
              card (painted by the fixed card frame). The preview occupies
@@ -12277,17 +16265,20 @@ export default function VibeCodingPage({
               (编辑 / 重新加载) live as small overlays on the content
               below so this header stays consistent across tabs. ══════ */}
                 <div
-                  hidden={immersiveCanvasModeOpen}
+                  hidden={
+                    immersiveCanvasModeOpen
+                  }
                   className="flex h-10 shrink-0 items-center justify-between border-b border-[var(--divider-soft)] px-2"
                 >
                   <div className="tab-scroll flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto">
                     {openTabs.map((tab, i) => {
-                      const isActive =
-                        i === activePreviewTab ||
-                        (!tab.closable && productPinned)
+                      const isActive = i === activePreviewTab
                       const TabIcon = productLabelIcon(tab.label)
+                      const previewTabLock =
+                        isTowerDefenseProject && isTowerPreviewTabLabel(tab.label)
                       return (
                         <button
+                          type="button"
                           key={`${tab.label}-${i}`}
                           onClick={() => setActivePreviewTab(i)}
                           className={`group flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] whitespace-nowrap transition-colors ${
@@ -12296,22 +16287,55 @@ export default function VibeCodingPage({
                         : 'text-[var(--color-ink)]/50 hover:bg-[var(--color-ink)]/[0.04] hover:text-[var(--color-ink)]/80'
                     }`}
                         >
-                          {/* Leading slot: shows the tab icon by default; for
-                        closable tabs the close button overlays it on hover, so
-                        every tab keeps the same width and icon position. */}
+                          {/* Only 预览 owns the 4-lane lock. Other tabs just
+                        follow that state and keep their own icon. */}
                           <span className="relative flex h-[14px] w-[14px] shrink-0 items-center justify-center">
-                            <TabIcon
-                              size={13}
-                              strokeWidth={1.8}
-                              className={`opacity-70 ${tab.closable ? 'transition-opacity group-hover:opacity-0' : ''}`}
-                            />
+                            {previewTabLock ? (
+                              <span
+                                role="button"
+                                aria-pressed={towerLayoutLocked}
+                                aria-label={
+                                  towerLayoutLocked
+                                    ? '解锁预览，其他标签全屏并收起预览'
+                                    : '锁定预览，其他标签保持四栏分栏'
+                                }
+                                title={
+                                  towerLayoutLocked
+                                    ? '已锁定四栏 · 再点解锁'
+                                    : '未锁定 · 再点锁定四栏'
+                                }
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  setTowerToolLayout((layout) =>
+                                    layout === 'full' ? 'split' : 'full',
+                                  )
+                                }}
+                                className={`flex size-full cursor-pointer items-center justify-center rounded-sm ${
+                                  towerLayoutLocked
+                                    ? 'text-[var(--color-ink)]/80'
+                                    : 'text-[var(--color-ink)]/42'
+                                }`}
+                              >
+                                {towerLayoutLocked ? (
+                                  <Lock size={13} strokeWidth={1.8} />
+                                ) : (
+                                  <LockOpen size={13} strokeWidth={1.8} />
+                                )}
+                              </span>
+                            ) : (
+                              <TabIcon
+                                size={13}
+                                strokeWidth={1.8}
+                                className={`opacity-70 ${tab.closable ? 'transition-opacity group-hover:opacity-0' : ''}`}
+                              />
+                            )}
                             {tab.closable && (
                               <span
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   closeTab(i)
                                 }}
-                                className="absolute inset-0 flex items-center justify-center rounded text-[var(--color-ink)]/40 opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--color-ink)]/80"
+                                className="absolute inset-0 flex cursor-pointer items-center justify-center rounded text-[var(--color-ink)]/40 opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--color-ink)]/80"
                               >
                                 <X size={12} strokeWidth={2.2} />
                               </span>
@@ -12364,7 +16388,7 @@ export default function VibeCodingPage({
                                     tree,
                                     getMiniProgramConfig(projectTitle),
                                   )
-                                : buildProductView(tree, kind)
+                                : buildProductView(tree, kind, projectTitle)
                           // The + menu mirrors the active project's top-level objects
                           // (exactly the rows shown in the left project list) — one
                           // row each, no expansion of a category's children. Clicking
@@ -12375,12 +16399,50 @@ export default function VibeCodingPage({
                           for (const node of productTree) {
                             flat.push({ label: node.name })
                           }
+                          const towerAdvancedToolsUnlocked =
+                            towerVisualGeneration === 'ready' ||
+                            towerVisualAssetsApplied
+                          if (isTowerDefenseProject && !towerAdvancedToolsUnlocked) {
+                            const availableBeforeVisual = new Set([
+                              GAME_GAMEPLAY_CONFIG_LABEL,
+                              GAME_ASSET_LIBRARY_LABEL,
+                              '项目文件',
+                            ])
+                            for (let index = flat.length - 1; index >= 0; index -= 1) {
+                              if (!availableBeforeVisual.has(flat[index].label)) {
+                                flat.splice(index, 1)
+                              }
+                            }
+                          }
+                          if (
+                            isTowerDefenseProject &&
+                            towerAdvancedToolsUnlocked &&
+                            !flat.some(
+                              (item) =>
+                                item.label === TOWER_MAP_EDITOR_TOOL_LABEL,
+                            )
+                          ) {
+                            flat.push({ label: TOWER_MAP_EDITOR_TOOL_LABEL })
+                          }
+                          if (
+                            isTowerDefenseProject &&
+                            towerAdvancedToolsUnlocked &&
+                            !flat.some(
+                              (item) =>
+                                item.label === TOWER_SPRITE_SHEET_TOOL_LABEL,
+                            )
+                          ) {
+                            flat.push({ label: TOWER_SPRITE_SHEET_TOOL_LABEL })
+                          }
                           // Code never lives in the left product directory — every
                           // project exposes its real source tree via a 项目文件 editor
                           // tab added from here (left directory + code on the right).
                           // Some product trees already surface a 项目文件 node, so only
                           // append when absent to avoid a duplicate row.
-                          if (!flat.some((f) => f.label === '项目文件')) {
+                          if (
+                            !isAssetOnlyProject(projectTitle) &&
+                            !flat.some((f) => f.label === '项目文件')
+                          ) {
                             flat.push({ label: '项目文件' })
                           }
                           // Drop rows already present as an open tab — no point
@@ -12477,7 +16539,7 @@ export default function VibeCodingPage({
                 </div>
 
                 {/* ── Content area: tab content (left) + optional file tree (right) ── */}
-                <div className="flex min-h-0 flex-1 overflow-hidden">
+                <div className="relative flex min-h-0 flex-1 overflow-hidden">
                   <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
                     <ErrorBoundary
                       label="预览"
@@ -12488,10 +16550,17 @@ export default function VibeCodingPage({
                           const lbl = openTabs[activePreviewTab]?.label ?? ''
                           const isPageTab =
                             isPageCategory(lbl) && isMultiChildCategory(lbl)
+                          const isMarketingPageSurface =
+                            activeProjectKind === 'marketing-h5' &&
+                            isMarketingPageCollectionTab(lbl)
                           const isUnifiedEditablePreview =
-                            lbl === '预览' &&
-                            (activeProjectKind === 'marketing-h5' ||
-                              activeProjectKind === 'web-game') &&
+                            (isMarketingPageSurface ||
+                              (isTowerDefenseProject &&
+                                (isTowerPreviewTabLabel(lbl) ||
+                                  isTowerDefenseWorkspaceLabel(lbl))) ||
+                              (lbl === '预览' &&
+                                (activeProjectKind === 'marketing-h5' ||
+                                  activeProjectKind === 'web-game'))) &&
                             // 下钻素材库画布时，素材画布自带一条工具条（返回 /
                             // 删除 / 重置布局），这里让位，不叠两条。
                             !(h5LabCase && h5LabAssetCanvas !== null)
@@ -12609,7 +16678,7 @@ export default function VibeCodingPage({
                                   aria-label="选择活动页面"
                                   aria-haspopup="menu"
                                   aria-expanded={xiahuaPageMenuOpen}
-                                  title={`${XIAHUA_PROJECT} · ${xiahuaCurrentPage.label}`}
+                                  title={`${displayProjectName(projectTitle)} · ${xiahuaCurrentPage.label}`}
                                   onClick={() =>
                                     setXiahuaPageMenuOpen((open) => !open)
                                   }
@@ -12742,7 +16811,54 @@ export default function VibeCodingPage({
                                       />
                                     </span>
                                   </button>
-                                  {xiahuaArtifactView ? null : isXiahuaFamily(
+                                  {isTowerDefenseProject ? (
+                                    <>
+                                      {towerUiEditMode ? (
+                                        <button
+                                          type="button"
+                                          title="退出画布编辑"
+                                          onClick={() => {
+                                            setCanvasEditOpen(false)
+                                            setEditPanelOpen(false)
+                                          }}
+                                          className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23]/65 transition-colors hover:bg-[#f5f7fa] hover:text-[#1c1f23]"
+                                        >
+                                          <X className="size-3.5" />
+                                          <span>退出</span>
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          title="画布编辑"
+                                          onClick={() => {
+                                            if (
+                                              !isTowerPreviewTabLabel(
+                                                openTabs[activePreviewTab]?.label,
+                                              )
+                                            ) {
+                                              pendingTowerCanvasEditRef.current = true
+                                              focusPreviewTab(TOWER_PREVIEW_TAB_LABEL)
+                                            }
+                                            if (!canvasEditOpen) {
+                                              towerUiEditor.resetFrom(towerDefenseFlow.ui)
+                                            }
+                                            setEditPanelOpen(true)
+                                            setCanvasEditOpen(true)
+                                          }}
+                                          className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa]"
+                                        >
+                                          <span className="flex size-4 items-center justify-center">
+                                            <img
+                                              src="/icons/h5-editor/canvas.svg"
+                                              alt=""
+                                              className="h-3 w-[13.333px]"
+                                            />
+                                          </span>
+                                          <span>画布编辑</span>
+                                        </button>
+                                      )}
+                                    </>
+                                  ) : xiahuaArtifactView ? null : isXiahuaFamily(
                                       projectTitle,
                                     ) ? (
                                     // 编辑态按设计稿 25:39783：浅蓝底 #D4EBFF + 蓝字/蓝图标
@@ -12774,6 +16890,48 @@ export default function VibeCodingPage({
                                             maskPosition: 'center',
                                             WebkitMaskPosition: 'center',
                                           }}
+                                        />
+                                      </span>
+                                      <span>编辑</span>
+                                    </button>
+                                  ) : projectTitle === ACG_FROM_DOC_PROJECT ? (
+                                    <button
+                                      type="button"
+                                      aria-pressed={editPanelOpen}
+                                      title="编辑页面组件"
+                                      onClick={() => {
+                                        setCanvasEditOpen(false)
+                                        setAcgFromDocSelected(null)
+                                        setEditPanelOpen((open) => !open)
+                                      }}
+                                      className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa] aria-pressed:bg-[#d4ebff] aria-pressed:text-[#357ef8]"
+                                    >
+                                      <span className="flex size-4 items-center justify-center">
+                                        <img
+                                          src="/icons/h5-editor/quick-select.svg"
+                                          alt=""
+                                          className="size-[14.474px]"
+                                        />
+                                      </span>
+                                      <span>编辑</span>
+                                    </button>
+                                  ) : projectTitle === QIXI_BRIDGE_PROJECT ? (
+                                    <button
+                                      type="button"
+                                      aria-pressed={editPanelOpen}
+                                      title="编辑"
+                                      onClick={() => {
+                                        setCanvasEditOpen(false)
+                                        setQixiSelected(null)
+                                        setEditPanelOpen((open) => !open)
+                                      }}
+                                      className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold leading-4 text-[#1c1f23] transition-colors hover:bg-[#f5f7fa] aria-pressed:bg-[#d4ebff] aria-pressed:text-[#357ef8]"
+                                    >
+                                      <span className="flex size-4 items-center justify-center">
+                                        <img
+                                          src="/icons/h5-editor/quick-select.svg"
+                                          alt=""
+                                          className="size-[14.474px]"
                                         />
                                       </span>
                                       <span>编辑</span>
@@ -12861,8 +17019,7 @@ export default function VibeCodingPage({
                                         </span>
                                         <span>画布编辑</span>
                                       </button>
-                                    )
-                                  ) : projectTitle === SUMMER_SURF_PROJECT ? (
+                                    )                                  ) : projectTitle === SUMMER_SURF_PROJECT ? (
                                     <button
                                       type="button"
                                       aria-pressed={editPanelOpen}
@@ -13086,10 +17243,7 @@ export default function VibeCodingPage({
                                 onClick={() => setMiniAppKey((k) => k + 1)}
                               />
                               {!xiahuaArtifactView &&
-                                !(
-                                  activeProjectKind === 'marketing-h5' &&
-                                  lbl === '预览'
-                                ) && (
+                                !isMarketingPageSurface && (
                                   <ToolbarAction
                                     icon={Smartphone}
                                     label="真机预览"
@@ -13108,10 +17262,15 @@ export default function VibeCodingPage({
                               {lbl === ASSET_LIBRARY_LABEL && (
                                 <ToolbarAction icon={Upload} label="上传" />
                               )}
-                              {xiahuaArtifactView ? null : isXiahuaFamily(
+                              {xiahuaArtifactView ||
+                              projectTitle === QIXI_BRIDGE_PROJECT ||
+                              projectTitle ===
+                                ACG_REPLICA_PROJECT ? null : isXiahuaFamily(
                                   projectTitle,
-                                ) && lbl === '预览' ? null : projectTitle ===
-                                  SUMMER_SURF_PROJECT && lbl === '预览' ? (
+                                ) &&
+                                isMarketingPageSurface ? null : projectTitle ===
+                                  SUMMER_SURF_PROJECT &&
+                                isMarketingPageSurface ? (
                                 <ToolbarAction
                                   icon={Pencil}
                                   label="编辑"
@@ -13133,8 +17292,7 @@ export default function VibeCodingPage({
                                     else setEditPanelOpen(true)
                                   }}
                                 />
-                              ) : activeProjectKind === 'marketing-h5' &&
-                                lbl === '预览' ? (
+                              ) : activeProjectKind === 'marketing-h5' && lbl === '预览' ? null : isMarketingPageSurface ? (
                                 <div
                                   role="group"
                                   aria-label="编辑模式"
@@ -13203,14 +17361,26 @@ export default function VibeCodingPage({
                               <div
                                 ref={previewCanvasRef}
                                 data-h5-edit-canvas={
-                                  activeProjectKind === 'marketing-h5' ||
+                                  (activeProjectKind === 'marketing-h5' &&
+                                    isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label)) ||
                                   undefined
                                 }
+                                onPointerDownCapture={() => {
+                                  if (
+                                    activeProjectKind === 'marketing-h5' &&
+                                    isMarketingPageCollectionTab(openTabs[activePreviewTab]?.label) &&
+                                    !editPanelOpen
+                                  ) {
+                                    setCanvasEditOpen(false)
+                                    setEditPanelOpen(true)
+                                  }
+                                }}
                                 className={`relative flex min-h-0 flex-1 ${
-                    h5LabEditMode
+                    h5LabEditMode || towerUiEditMode
                       ? 'overflow-hidden'
                       : `overflow-auto ${
-                          activeProjectKind === 'web-app' || activeProjectKind === 'web-game'
+                          activeProjectKind === 'web-app' ||
+                          (activeProjectKind === 'web-game' && !isTowerDefenseProject)
                             ? ''
                             : 'pt-6 pb-12'
                         }`
@@ -13233,10 +17403,12 @@ export default function VibeCodingPage({
                                       }}
                                     />
                                   )}
-                                {/* Dot grid — theme-aware via --color-ink-10. Hidden for
-                       web-app + web-game: those previews are full-bleed. */}
+                                {/* Dot grid belongs to the canvas viewport, not the
+                       zoomed phone. Generic games remain full-bleed; tower defense
+                       uses the same fixed canvas base as marketing pages. */}
                                 {activeProjectKind !== 'web-app' &&
-                                  activeProjectKind !== 'web-game' && (
+                                  (activeProjectKind !== 'web-game' ||
+                                    isTowerDefenseProject) && (
                                     <div
                                       aria-hidden
                                       className="pointer-events-none absolute inset-0 z-[1]"
@@ -13247,8 +17419,8 @@ export default function VibeCodingPage({
                                       }}
                                     />
                                   )}
-                                {h5LabEditMode ? (
-                                  /* H5 Lab 自己就是工作区的主画布。编辑时直接挂在
+                                {h5LabEditMode || towerUiEditMode ? (
+                                  /* H5 Lab / 游戏 UI 自己就是工作区的主画布。编辑时直接挂在
                                      点阵工作区上，不再套预览模式的缩放/滚动容器。 */
                                   <div className="relative z-10 flex min-h-0 min-w-0 flex-1">
                                     {previewSurface}
@@ -13593,7 +17765,131 @@ export default function VibeCodingPage({
                         }
 
                         const renderTab = (label: string) => {
+                          const towerDeliverableStage =
+                            isTowerDefenseProject
+                              ? getTowerDefenseDeliverableStage(label)
+                              : null
+                          if (towerDeliverableStage) {
+                            return (
+                              <TowerDefenseDeliverableView
+                                stage={towerDeliverableStage}
+                                flow={towerDefenseFlow}
+                              />
+                            )
+                          }
                           if (label === DIFF_TAB_LABEL) return diffView
+                          if (projectTitle === ACG_FROM_DOC_PROJECT) {
+                            if (label === ASSET_LIBRARY_LABEL) {
+                              const productionAssetsReady =
+                                acgFromDocReplayToken === 0 ||
+                                acgFromDocReplaySurface.pathIds.some((id) =>
+                                  [
+                                    'acg-doc-assets-ready',
+                                    'acg-doc-generate',
+                                    'acg-doc-review-applied',
+                                    'acg-doc-current-result',
+                                  ].includes(id),
+                                )
+                              return (
+                                <GarudaAssetsView
+                                  key={`${projectTitle}:${productionAssetsReady ? 'full' : 'style'}`}
+                                  groups={
+                                    productionAssetsReady
+                                      ? ACG_FROM_DOC_ASSET_GROUPS
+                                      : ACG_FROM_DOC_ASSET_GROUPS.slice(0, 1)
+                                  }
+                                  showPageUsage
+                                />
+                              )
+                            }
+                            if (label === H5_GAMEPLAY_CONFIG_LABEL) {
+                              return <AcgFromDocGameplayWorkspace />
+                            }
+                            if (label === PROJECT_DOCUMENT_LABEL) {
+                              return (
+                                <AcgFromDocDocumentsWorkspace
+                                  target={acgFromDocReplaySurface.target}
+                                  stepId={acgFromDocReplaySurface.stepId}
+                                  pathIds={
+                                    acgFromDocReplayToken === 0
+                                      ? [
+                                          'acg-doc-scope-main-applied',
+                                          'acg-doc-wireframe-ready',
+                                          'acg-doc-gameplay-journey-applied',
+                                          'acg-doc-visual-star-applied',
+                                          'acg-doc-review-applied',
+                                        ]
+                                      : acgFromDocReplaySurface.pathIds
+                                  }
+                                />
+                              )
+                            }
+                          }
+                          if (projectTitle === QIXI_BRIDGE_PROJECT) {
+                            if (label === ASSET_LIBRARY_LABEL) {
+                              const directionLocked =
+                                qixiReplayToken === 0 ||
+                                qixiReplaySurface.pathIds.some((id) =>
+                                  [
+                                    'qixi-visual-eastern-applied',
+                                    'qixi-visual-sweet-applied',
+                                    'qixi-visual-real-applied',
+                                  ].includes(id),
+                                )
+                              const sampleReady =
+                                qixiReplayToken === 0 ||
+                                qixiReplaySurface.pathIds.some((id) =>
+                                  [
+                                    'qixi-sample-joint-generated',
+                                    'qixi-sample-joint-applied',
+                                    'qixi-current-build',
+                                    'qixi-current-result',
+                                  ].includes(id),
+                                )
+                              if (sampleReady) {
+                                return (
+                                  <GarudaAssetsView
+                                    key={projectTitle}
+                                    groups={QIXI_ASSET_GROUPS}
+                                    showPageUsage
+                                  />
+                                )
+                              }
+                              return (
+                                <QixiAssetPlaceholder
+                                  directionLocked={directionLocked}
+                                  sampleReady={false}
+                                />
+                              )
+                            }
+                            if (label === PROJECT_DOCUMENT_LABEL) {
+                              return (
+                                <QixiReplayWorkspace
+                                  target={qixiReplaySurface.target}
+                                  stepId={qixiReplaySurface.stepId}
+                                  pathIds={qixiReplaySurface.pathIds}
+                                />
+                              )
+                            }
+                          }
+                          if (
+                            projectTitle === ACG_NEW_YEAR_PROJECT &&
+                            acgReplayToken > 0 &&
+                            ((label === PROJECT_DOCUMENT_LABEL &&
+                              (acgReplaySurface.target === 'source-understanding' ||
+                                acgReplaySurface.target === 'activity-strategy' ||
+                                acgReplaySurface.target === 'asset-binding')) ||
+                              (label === H5_GAMEPLAY_CONFIG_LABEL &&
+                                acgReplaySurface.target === 'activity-blueprint'))
+                          ) {
+                            return (
+                              <AcgReplayWorkspace
+                                target={acgReplaySurface.target}
+                                stepId={acgReplaySurface.stepId}
+                                pathIds={acgReplaySurface.pathIds}
+                              />
+                            )
+                          }
                           if (
                             activeProjectKind === 'marketing-h5' &&
                             label === PAGE_CONFIG_LABEL
@@ -13649,17 +17945,34 @@ export default function VibeCodingPage({
                             })
                             const docValue =
                               activeProjectKind === 'marketing-h5'
-                                ? (proposalDocs['文档'] ??
-                                  (isXiahuaFamily(projectTitle)
-                                    ? XIAHUA_PLAN_MD
-                                    : (PROJECT_DOCS[projectTitle] ??
-                                      ACG_NEW_YEAR_PLAN_MD)))
+                                ? isXiahuaFamily(projectTitle)
+                                  ? (proposalDocs['文档'] ?? XIAHUA_PLAN_MD)
+                                  : (projectDocEdits[projectTitle] ??
+                                    PROJECT_DOCS[projectTitle] ??
+                                    ACG_NEW_YEAR_PLAN_MD)
                                 : (projectDocEdits[projectTitle] ??
                                   PROJECT_DOCS[projectTitle] ??
                                   buildDefaultProjectDoc(
                                     projectTitle,
                                     activeProjectKind,
                                   ))
+                            if (
+                              label === PROJECT_DOCUMENT_LABEL &&
+                              isAssetOnlyProject(projectTitle)
+                            ) {
+                              return (
+                                <MarketingDocEditor
+                                  title="项目文档 · Markdown"
+                                  value={docValue}
+                                  onChange={(next) =>
+                                    setProjectDocEdits((prev) => ({
+                                      ...prev,
+                                      [projectTitle]: next,
+                                    }))
+                                  }
+                                />
+                              )
+                            }
                             const basicInfo = miniProgramConfig ? (
                               <MiniProgramSettingsForm
                                 config={miniProgramConfig}
@@ -13684,7 +17997,10 @@ export default function VibeCodingPage({
                                 value={docValue}
                                 hideHeader
                                 onChange={(next) => {
-                                  if (activeProjectKind === 'marketing-h5') {
+                                  if (
+                                    activeProjectKind === 'marketing-h5' &&
+                                    isXiahuaFamily(projectTitle)
+                                  ) {
                                     setProposalDocs((prev) => ({
                                       ...prev,
                                       ['文档']: next,
@@ -13701,6 +18017,17 @@ export default function VibeCodingPage({
                             return (
                               <ProjectInfoView
                                 basicInfo={basicInfo}
+                                coreFlow={
+                                  projectTitle === ACG_NEW_YEAR_PROJECT ? (
+                                    <AcgCoreFlowView
+                                      onOpenGameplay={() =>
+                                        focusPreviewTab(
+                                          H5_GAMEPLAY_CONFIG_LABEL,
+                                        )
+                                      }
+                                    />
+                                  ) : undefined
+                                }
                                 documentContent={documentContent}
                               />
                             )
@@ -13945,6 +18272,37 @@ export default function VibeCodingPage({
                           }
                           // marketing-h5 product-view sections.
                           if (activeProjectKind === 'marketing-h5') {
+                            if (
+                              projectTitle === ACG_NEW_YEAR_PROJECT &&
+                              label === H5_GAMEPLAY_CONFIG_LABEL
+                            ) {
+                              return <AcgGameplayComponentsWorkspace />
+                            }
+                            const documentedActivityCase = DOCUMENTED_ACTIVITY_CASES[projectTitle]
+                            if (
+                              documentedActivityCase &&
+                              documentedActivityLabels(projectTitle).includes(label)
+                            ) {
+                              const documentedActiveLabel =
+                                label === FINISHED_PAGES_LABEL &&
+                                previewRoute &&
+                                documentedActivityLabels(projectTitle).includes(
+                                  previewRoute,
+                                )
+                                  ? previewRoute
+                                  : label
+                              return (
+                                <DocumentedActivityWorkspace
+                                  key={projectTitle}
+                                  activityCase={documentedActivityCase}
+                                  activeLabel={documentedActiveLabel}
+                                  materialGroups={assetGroupsForProject(
+                                    projectTitle,
+                                  )}
+                                  onOpen={(deliverableLabel) => openFileInTab(deliverableLabel)}
+                                />
+                              )
+                            }
                             // 这夏夯爆了「活动玩法配置」= 预览正在跑的那份玩法，可直接改。
                             if (
                               isXiahuaFamily(projectTitle) &&
@@ -13958,6 +18316,8 @@ export default function VibeCodingPage({
                                   onOpenAssetLibrary={() =>
                                     focusPreviewTab(ASSET_LIBRARY_LABEL)
                                   }
+                                  onOpenAssetCenter={openKnowledgeLibraryPage}
+                                  onOpenKnowledge={openKnowledgeLibraryPage}
                                 />
                               )
                             }
@@ -13982,24 +18342,34 @@ export default function VibeCodingPage({
                                 <MarketingDocEditor
                                   title="文档"
                                   value={
-                                    proposalDocs['文档'] ??
-                                    (isXiahuaFamily(projectTitle)
-                                      ? XIAHUA_PLAN_MD
-                                      : (PROJECT_DOCS[projectTitle] ??
-                                        ACG_NEW_YEAR_PLAN_MD))
+                                    isXiahuaFamily(projectTitle)
+                                      ? (proposalDocs['文档'] ?? XIAHUA_PLAN_MD)
+                                      : (projectDocEdits[projectTitle] ??
+                                        PROJECT_DOCS[projectTitle] ??
+                                        ACG_NEW_YEAR_PLAN_MD)
                                   }
-                                  onChange={(next) =>
-                                    setProposalDocs((prev) => ({
+                                  onChange={(next) => {
+                                    if (isXiahuaFamily(projectTitle)) {
+                                      setProposalDocs((prev) => ({
+                                        ...prev,
+                                        ['文档']: next,
+                                      }))
+                                      return
+                                    }
+                                    setProjectDocEdits((prev) => ({
                                       ...prev,
-                                      ['文档']: next,
+                                      [projectTitle]: next,
                                     }))
-                                  }
+                                  }}
                                 />
                               )
                             }
                             // 素材 — visual asset grid using the same layout as 游戏 素材
                             // (grouped sections, zoom modal).
-                            if (label === ASSET_LIBRARY_LABEL) {
+                            if (
+                              label === ASSET_LIBRARY_LABEL &&
+                              projectLane === 'marketing'
+                            ) {
                               // 回放中素材库要跟着过程走 —— 清单刚对完的时候一张都还没生成，
                               // 直接摆成品图等于把后面的结果提前给了
                               if (
@@ -14020,13 +18390,10 @@ export default function VibeCodingPage({
                               }
                               return (
                                 <GarudaAssetsView
-                                  groups={
-                                    projectTitle === SUMMER_SURF_PROJECT
-                                      ? SUMMER_SURF_ASSET_GROUPS
-                                      : isXiahuaFamily(projectTitle)
-                                        ? XIAHUA_ASSET_GROUPS
-                                        : ACG_NEW_YEAR_ASSET_GROUPS
-                                  }
+                                  key={projectTitle}
+                                  CanvasEditor={MarketingImageCanvasEditor}
+                                  QuickTools={MarketingImageQuickTools}
+                                  groups={assetGroupsForProject(projectTitle)}
                                 />
                               )
                             }
@@ -14131,7 +18498,10 @@ export default function VibeCodingPage({
                           activeProjectKind === 'marketing-h5' &&
                           !isXiahuaFamily(projectTitle) &&
                           projectTitle !== SUMMER_SURF_PROJECT &&
-                          activeLabel === '预览' &&
+                          projectTitle !== QIXI_BRIDGE_PROJECT &&
+                          projectTitle !== ACG_FROM_DOC_PROJECT &&
+                          projectTitle !== ACG_REPLICA_PROJECT &&
+                          isMarketingPageCollectionTab(activeLabel) &&
                           canvasEditOpen
                         ) {
                           return (
@@ -14155,6 +18525,7 @@ export default function VibeCodingPage({
                         }
                         if (
                           activeProjectKind === 'web-game' &&
+                          !isTowerDefenseProject &&
                           activeLabel === '预览' &&
                           canvasEditOpen
                         ) {
@@ -14235,12 +18606,13 @@ export default function VibeCodingPage({
                         // 复刻 case 的图片下钻：素材画布挂在「素材库」tab 下，
                         // 它自带一条工具条，上面的预览工具栏已经让位。
                         if (
+                          projectLane === 'marketing' &&
                           h5LabCase &&
                           h5LabAssetCanvas !== null &&
                           activeLabel === ASSET_LIBRARY_LABEL
                         ) {
                           return (
-                            <ImageCanvasEditor
+                            <MarketingImageCanvasEditor
                               groups={[
                                 {
                                   title: `${h5LabCase.project} · 页面用图`,
@@ -14257,6 +18629,12 @@ export default function VibeCodingPage({
                           )
                         }
                         if (activeProjectKind === 'web-game') {
+                          if (
+                            isTowerDefenseProject &&
+                            (isTowerPreviewTabLabel(activeLabel) ||
+                              isTowerDefenseWorkspaceLabel(activeLabel))
+                          )
+                            return productView
                           if (activeLabel === '预览') return productView
                           if (activeLabel === ASSET_LIBRARY_LABEL) {
                             // 画布编辑 (图片) takes over the whole preview area: every image
@@ -14345,6 +18723,7 @@ export default function VibeCodingPage({
                               <ProductToolbar
                                 tabs={renderCategoryTabs(activeLabel)}
                                 actions={
+                                  activeLabel === ACTIVITY_ASSETS_LABEL ? null :
                                   activeProjectKind === 'ai-avatar' &&
                                   (activeLabel === ABILITY_CONFIG_LABEL ||
                                     activeLabel === AVATAR_SKILL_LABEL ||
@@ -14374,7 +18753,10 @@ export default function VibeCodingPage({
                             </>
                           )
                         }
-                        return activeLabel === '预览'
+                        return activeLabel === '预览' ||
+                          (activeProjectKind === 'marketing-h5' &&
+                            activeLabel === FINISHED_PAGES_LABEL &&
+                            !DOCUMENTED_ACTIVITY_CASES[projectTitle])
                           ? productView
                           : activeLabel
                             ? renderTab(activeLabel)
@@ -14464,12 +18846,31 @@ export default function VibeCodingPage({
                     )}
 
                     {/* zoom control — only on the 预览 surface; scales the preview */}
-                    {openTabs[activePreviewTab]?.label === '预览' &&
+                    {(openTabs[activePreviewTab]?.label === '预览' ||
+                      (openTabs[activePreviewTab]?.label === FINISHED_PAGES_LABEL &&
+                        !DOCUMENTED_ACTIVITY_CASES[projectTitle]) ||
+                      (isTowerDefenseProject &&
+                        isTowerDefenseWorkspaceLabel(
+                          openTabs[activePreviewTab]?.label,
+                        ))) &&
                       !immersiveCanvasModeOpen &&
                       !xiahuaEditMode &&
                       !h5LabEditMode &&
+                      !towerUiEditMode &&
                       !xiahuaArtifactView && (
-                        <div className="absolute bottom-3 right-3 z-20 flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_8px_rgba(16,18,24,0.10)]">
+                        <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2">
+                          {isTowerDefenseProject && !towerMapEditorActive && (
+                            <button
+                              type="button"
+                              aria-label="Replay：重新开始游戏"
+                              title="Replay：重新开始游戏"
+                              onClick={() => setTowerReplayKey((key) => key + 1)}
+                              className="flex size-8 items-center justify-center rounded-full border border-[var(--divider-soft)] bg-white text-[var(--color-ink)]/60 shadow-[0_2px_8px_rgba(16,18,24,0.10)] transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+                            >
+                              <RefreshCw size={13} strokeWidth={1.8} />
+                            </button>
+                          )}
+                          <div className="flex items-center gap-0.5 rounded-full border border-[var(--divider-soft)] bg-white px-1 py-1 shadow-[0_2px_8px_rgba(16,18,24,0.10)]">
                           <button
                             type="button"
                             title="缩小"
@@ -14502,6 +18903,7 @@ export default function VibeCodingPage({
                           >
                             <Plus size={13} strokeWidth={1.8} />
                           </button>
+                          </div>
                         </div>
                       )}
                   </div>
@@ -14514,16 +18916,291 @@ export default function VibeCodingPage({
                     !immersiveCanvasModeOpen &&
                     !(h5LabCase && h5LabAssetCanvas !== null) &&
                     !(
+                      isTowerDefenseProject &&
+                      !towerUiEditMode &&
+                      !towerLayoutLocked &&
+                      isTowerPreviewTabLabel(openTabs[activePreviewTab]?.label)
+                    ) &&
+                    !(
                       activeProjectKind === 'web-game' &&
                       gameSelectedAsset?.kind === 'video'
                     ) && (
                       <aside
                         aria-label="编辑栏"
-                        data-edit-panel-layout="docked"
-                        className="relative shrink-0 border-l border-[var(--divider-soft)]"
-                        style={{ width: editPanelWidth }}
+                        data-edit-panel-layout={
+                          isTowerDefenseProject && !towerLayoutLocked && !towerUiEditMode
+                            ? 'overlay'
+                            : 'docked'
+                        }
+                        className={
+                          isTowerDefenseProject && !towerLayoutLocked && !towerUiEditMode
+                            ? 'absolute inset-0 z-50 min-h-0 bg-[var(--color-surface-0)]'
+                            : 'relative shrink-0 border-l border-[var(--divider-soft)]'
+                        }
+                        style={
+                          isTowerDefenseProject && !towerLayoutLocked && !towerUiEditMode
+                            ? undefined
+                            : {
+                                width: isTowerDefenseProject
+                                  ? Math.max(towerUiEditMode ? 340 : 400, editPanelWidth)
+                                  : editPanelWidth,
+                              }
+                        }
                       >
-                        {isXiahuaFamily(projectTitle) ? (
+                        {towerUiEditMode ? (
+                          <TowerDefenseEditPanel
+                            editor={towerUiEditor}
+                            ui={towerDefenseFlow.ui}
+                            onUiChange={(nextUi) =>
+                              setTowerDefenseFlow((current) => ({
+                                ...current,
+                                ui: nextUi,
+                              }))
+                            }
+                            onApply={() =>
+                              setTowerDefenseFlow((current) => ({
+                                ...current,
+                                ui: towerUiEditor.applyTo(current.ui),
+                              }))
+                            }
+                            onClose={() => {
+                              setCanvasEditOpen(false)
+                              setEditPanelOpen(false)
+                            }}
+                          />
+                        ) : isTowerDefenseProject ? (
+                          <div className="flex h-full min-h-0 flex-col bg-[var(--color-surface-0)]">
+                            {!(
+                              towerDefenseFlow.stage === 'art-direction' ||
+                              (towerDefenseFlow.stage === 'asset-production' &&
+                                openTabs[activePreviewTab]?.label !== TOWER_SPRITE_SHEET_TOOL_LABEL &&
+                                openTabs[activePreviewTab]?.label !== TOWER_MAP_EDITOR_TOOL_LABEL)
+                            ) && (
+                            <div className="flex h-11 shrink-0 items-center gap-2 border-b border-[var(--divider-soft)] px-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-[12px] font-semibold text-[var(--color-ink)]">
+                                  {openTabs[activePreviewTab]?.label === TOWER_SPRITE_SHEET_TOOL_LABEL ||
+                                  openTabs[activePreviewTab]?.label === TOWER_MAP_EDITOR_TOOL_LABEL
+                                    ? openTabs[activePreviewTab]?.label
+                                    : getTowerDefenseStageTabLabel(towerDefenseFlow.stage)}
+                                </div>
+                                <div className="text-[9px] text-[var(--color-ink)]/38">
+                                  右侧工具 · 页面预览保持同步
+                                </div>
+                              </div>
+                            </div>
+                            )}
+                            <div className="min-h-0 flex-1 overflow-hidden">
+                              {openTabs[activePreviewTab]?.label === TOWER_MAP_EDITOR_TOOL_LABEL ? (
+                                <TowerDefenseMapEditorPanel
+                                  slots={towerDefenseFlow.towerSlots}
+                                  editor={towerMapEditor}
+                                  onSlotsChange={(towerSlots) =>
+                                    setTowerDefenseFlow((current) => ({
+                                      ...current,
+                                      towerSlots,
+                                    }))
+                                  }
+                                  onEditorChange={setTowerMapEditor}
+                                  onApply={applyTowerDefenseMapEdits}
+                                />
+                              ) : towerDefenseFlow.stage === 'gameplay' ? (
+                                <TowerDefenseFastConfigPanel
+                                  config={towerDefenseFlow.gameplay}
+                                  onChange={(gameplay) =>
+                                    setTowerDefenseFlow((current) => ({
+                                      ...current,
+                                      gameplay,
+                                    }))
+                                  }
+                                  onConfirm={confirmTowerGameplay}
+                                />
+                              ) : towerDefenseFlow.stage ===
+                                  'art-direction' ||
+                                (towerDefenseFlow.stage ===
+                                  'asset-production' &&
+                                  openTabs[activePreviewTab]?.label !== TOWER_SPRITE_SHEET_TOOL_LABEL) ? (
+                                <TowerDefenseAssetLibrary
+                                  uiScheme={towerAssetLibraryUi}
+                                  mode={
+                                    towerDefenseFlow.stage ===
+                                    'art-direction'
+                                      ? 'art-direction'
+                                      : 'production'
+                                  }
+                                  assets={towerDefenseFlow.assets}
+                                  tasks={towerDefenseFlow.tasks}
+                                  towerSlots={towerDefenseFlow.towerSlots}
+                                  selectedAssetId={towerSelectedAssetId}
+                                  onSelectAsset={setTowerSelectedAssetId}
+                                  onAttachAsset={(assetId, versionLabel) => {
+                                    setTowerComposerAssetIds([assetId])
+                                    const asset = towerDefenseFlow.assets.find(
+                                      (item) => item.id === assetId,
+                                    )
+                                    setComposerText(
+                                      `请基于附件「${asset?.name ?? '游戏资产'} · ${versionLabel}」进行二次生成：`,
+                                    )
+                                    focusComposerAtEnd()
+                                  }}
+                                  onRegenerateAsset={sendTowerAssetRegeneration}
+                                  onCreateSprite={openTowerAssetInSpriteMaker}
+                                  onAddVisualVersion={addTowerVisualVersion}
+                                  onReferenceChange={updateTowerBaseMaterial}
+                                  onSetAssetEnabled={setTowerAssetEnabled}
+                                  canvasEditing={towerAssetCanvasEditing}
+                                  onCanvasEditingChange={setTowerAssetCanvasEditing}
+                                  previewRequest={towerAssetPreviewRequest}
+                                  visibleImageCount={
+                                    towerDefenseFlow.stage === 'art-direction'
+                                      ? towerVisibleAssetCount
+                                      : undefined
+                                  }
+                                  generationInProgress={
+                                    towerDefenseFlow.stage === 'art-direction' &&
+                                    towerVisualGeneration === 'generating'
+                                  }
+                                  productionApplied={towerAssetProductionApplied}
+                                  onConfirmSelections={confirmTowerVisualSelections}
+                                  onUpdateState={updateTowerAssetState}
+                                  onAssignMaterial={assignTowerAssetMaterial}
+                                  onAssignDirectionMaterial={assignTowerAssetDirectionMaterial}
+                                  onAddState={addTowerAssetState}
+                                  onDeleteState={deleteTowerAssetState}
+                                  onGenerateCell={(assetId, stateId, direction) =>
+                                    commitTowerPanelAction(
+                                      '生成当前状态的动态素材。',
+                                      '当前动态素材已开始生成，完成后会直接填入对应状态容器。',
+                                      { onComplete: () => queueTowerSpriteCell(assetId, stateId, direction) },
+                                    )
+                                  }
+                                  onGenerateAsset={(assetId) =>
+                                    commitTowerPanelAction(
+                                      '生成当前资产的全部动态状态。',
+                                      '当前资产的动态素材已开始逐项生成，并会直接回填资产库。',
+                                      { onComplete: () => queueTowerAsset(assetId) },
+                                    )
+                                  }
+                                  onBatchGenerate={(taskIds) =>
+                                    commitTowerPanelAction(
+                                      `批量生成 ${taskIds.length} 个待制作动态素材。`,
+                                      '批量生成已启动，动态图片会在对应容器中逐项加载完成。',
+                                      { onComplete: () => runTowerTaskBatch(taskIds) },
+                                    )
+                                  }
+                                  onAddTowerSlot={addTowerBuildSlot}
+                                  onMoveTowerSlot={moveTowerBuildSlot}
+                                  onDeleteTowerSlot={deleteTowerBuildSlot}
+                                  uiSlices={towerDefenseFlow.ui.slices ?? []}
+                                  uiNodes={towerUiEditor.nodes}
+                                  uiScreens={towerUiEditor.screens}
+                                  onDeleteUiSlice={(sliceId) =>
+                                    setTowerDefenseFlow((current) => ({
+                                      ...current,
+                                      ui: {
+                                        ...current.ui,
+                                        slices: (current.ui.slices ?? []).filter(
+                                          (item) => item.id !== sliceId,
+                                        ),
+                                      },
+                                    }))
+                                  }
+                                  onProceed={
+                                    towerDefenseFlow.stage === 'art-direction'
+                                      ? undefined
+                                      : !towerAssetProductionApplied
+                                        ? applyTowerAssetProductionPlan
+                                      : () =>
+                                          commitTowerPanelAction(
+                                            '确认当前资产制作结果，并更新到游戏版本。',
+                                            '资产制作结果已更新，当前可用素材已同步到游戏。',
+                                            { nextStage: 'ui-generation', nextLabel: '游戏 UI 生成' },
+                                          )
+                                  }
+                                />
+                              ) : openTabs[activePreviewTab]?.label ===
+                                TOWER_SPRITE_SHEET_TOOL_LABEL ? (
+                                <TowerDefenseSpriteToolPanel
+                                  key={towerSpriteLaunchSource?.requestId ?? 'sprite-maker-home'}
+                                  assets={towerDefenseFlow.assets}
+                                  tasks={towerDefenseFlow.tasks}
+                                  selectedTaskId={towerSelectedTaskId}
+                                  onSelectTask={setTowerSelectedTaskId}
+                                  onStartTask={(taskId) =>
+                                    commitTowerPanelAction(
+                                      '开始生成当前动态素材任务。',
+                                      '当前动态素材已开始生成，任务状态已更新。',
+                                      { onComplete: () => startTowerSpriteTask(taskId) },
+                                    )
+                                  }
+                                  onRetryTask={(taskId) =>
+                                    commitTowerPanelAction(
+                                      '重新生成当前失败的动态素材。',
+                                      '动态素材已重新进入生成队列。',
+                                      { onComplete: () => startTowerSpriteTask(taskId) },
+                                    )
+                                  }
+                                  onConfirmTask={(taskId) =>
+                                    commitTowerPanelAction(
+                                      '确认当前动态素材并入库。',
+                                      '动态素材已确认入库，并同步到当前游戏资产清单。',
+                                      { onComplete: () => updateTowerTaskStatus(taskId, 'completed') },
+                                    )
+                                  }
+                                  onUpdateTask={updateTowerSpriteTask}
+                                  onBatchStart={(taskIds) =>
+                                    commitTowerPanelAction(
+                                      `批量开始 ${taskIds.length} 个动态素材任务。`,
+                                      '批量动态素材任务已开始，可继续在 Sprite Maker II 中查看任务状态。',
+                                      { onComplete: () => runTowerTaskBatch(taskIds) },
+                                    )
+                                  }
+                                  launchSource={towerSpriteLaunchSource}
+                                />
+                              ) : towerDefenseFlow.stage ===
+                                'ui-generation' ? (
+                                <TowerDefenseUiEditorPanel
+                                  ui={towerDefenseFlow.ui}
+                                  onChange={(ui) =>
+                                    setTowerDefenseFlow((current) => ({
+                                      ...current,
+                                      ui,
+                                    }))
+                                  }
+                                  onConfirm={() =>
+                                    commitTowerPanelAction(
+                                      '确认当前游戏 UI 方案，并更新到游戏预览。',
+                                      '游戏 UI 已更新，HUD、操作控件和结算反馈已同步。',
+                                      { nextStage: 'balance', nextLabel: '平衡性编辑' },
+                                    )
+                                  }
+                                />
+                              ) : (
+                                <TowerDefenseBalanceEditorPanel
+                                  balance={towerDefenseFlow.balance}
+                                  onChange={(balance) =>
+                                    setTowerDefenseFlow((current) => ({
+                                      ...current,
+                                      balance,
+                                    }))
+                                  }
+                                  onConfirm={() =>
+                                    commitTowerPanelAction(
+                                      '保存当前平衡性调整，生成可发布的游戏版本。',
+                                      '平衡版本已保存，当前塔防游戏已完成，可以继续发布体验。',
+                                      {
+                                        onComplete: () => {
+                                          updateWorkshopTaskStatus(TOWER_DEFENSE_PROJECT_NAME, WORKSHOP_TASK_IDS.gameGeneration, 'completed')
+                                          toast.success('塔防游戏已完成，可发布体验')
+                                        },
+                                      },
+                                    )
+                                  }
+                                />
+                              )}
+                            </div>
+                          </div>
+                        ) : isXiahuaFamily(projectTitle) ? (
                           <XiahuaEditPanel
                             selection={xiahuaSelected}
                             overrides={xiahuaOverrides}
@@ -14545,6 +19222,28 @@ export default function VibeCodingPage({
                             onConfigChange={setSummerSurfConfig}
                             onClose={() => {
                               closeSummerSurfEditor()
+                            }}
+                          />
+                        ) : projectTitle === ACG_FROM_DOC_PROJECT ? (
+                          <AcgFromDocEditPanel
+                            value={acgFromDocPageContent}
+                            selection={acgFromDocSelected}
+                            onChange={setAcgFromDocPageContent}
+                            onSelect={setAcgFromDocSelected}
+                            onClose={() => {
+                              setAcgFromDocSelected(null)
+                              setEditPanelOpen(false)
+                            }}
+                          />
+                        ) : projectTitle === QIXI_BRIDGE_PROJECT ? (
+                          <QixiPageEditPanel
+                            value={qixiPageContent}
+                            selection={qixiSelected}
+                            onChange={setQixiPageContent}
+                            onSelect={setQixiSelected}
+                            onClose={() => {
+                              setQixiSelected(null)
+                              setEditPanelOpen(false)
                             }}
                           />
                         ) : h5LabCase ? (
@@ -14647,16 +19346,18 @@ export default function VibeCodingPage({
                             )
                           })()
                         )}
-                        <div
-                          role="separator"
-                          aria-label="调整编辑栏宽度"
-                          aria-orientation="vertical"
-                          onPointerDown={onEditPanelDragStart}
-                          onPointerMove={onEditPanelDragMove}
-                          onPointerUp={onEditPanelDragEnd}
-                          onPointerCancel={onEditPanelDragEnd}
-                          className="group absolute left-0 top-0 bottom-0 z-10 w-1 -translate-x-1/2 cursor-col-resize touch-none select-none"
-                        ></div>
+                        {(!isTowerDefenseProject || towerLayoutLocked) && (
+                          <div
+                            role="separator"
+                            aria-label="调整编辑栏宽度"
+                            aria-orientation="vertical"
+                            onPointerDown={onEditPanelDragStart}
+                            onPointerMove={onEditPanelDragMove}
+                            onPointerUp={onEditPanelDragEnd}
+                            onPointerCancel={onEditPanelDragEnd}
+                            className="group absolute left-0 top-0 bottom-0 z-10 w-1 -translate-x-1/2 cursor-col-resize touch-none select-none"
+                          ></div>
+                        )}
                       </aside>
                     )}
 

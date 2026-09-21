@@ -195,7 +195,7 @@ const EDIT_CONFIG: Partial<Record<ProjectKind, EditSection[]>> = {
           title: '关键文案',
           icon: FileText,
           controls: [
-            { type: 'text', key: 'title', label: '主标题', placeholder: '抖音 ACG 游戏新春会', default: '' },
+            { type: 'text', key: 'title', label: '主标题', placeholder: '2026 抖音 ACG 新春会', default: '' },
             { type: 'text', key: 'cta', label: '按钮文案', placeholder: '去主会场', default: '' },
           ],
         },

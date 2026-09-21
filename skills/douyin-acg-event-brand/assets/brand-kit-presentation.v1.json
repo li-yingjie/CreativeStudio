@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "1.0",
+  "id": "brand.douyin-acg-event-presentation",
+  "version": "1.0.0",
+  "title": "抖音 ACG Brand Kit · 新春会应用版",
+  "summary": "面向活动页面、会场与站内资源位的品牌身份、视觉基调和组件样式规范。",
+  "source": {
+    "type": "figma",
+    "fileKey": "PxXGus8deG2BZ3xQLUFl0u",
+    "rootNodeId": "1:369",
+    "url": "https://www.figma.com/design/PxXGus8deG2BZ3xQLUFl0u/Untitled?node-id=0-1&p=f&m=dev"
+  },
+  "identity": {
+    "platformLockup": {
+      "label": "平台联名 Logo",
+      "asset": "assets/previews/figma-platform-lockup-1-959.png",
+      "vectorAsset": "assets/previews/figma-platform-lockup-1-959.svg",
+      "nodeId": "1:959",
+      "specification": "287×45 PNG + SVG",
+      "rules": [
+        "保持“抖音游戏 × 抖音精选”的顺序、比例和同一基线。",
+        "只使用原始彩色或来源明确的反白版本，禁止生成模型重绘。",
+        "Logo 四周保留至少一个音符图标宽度的安全区。"
+      ]
+    },
+    "campaignTitle": {
+      "label": "活动标题字",
+      "asset": "assets/previews/figma-art-title-lockup-1-1414.png",
+      "nodeId": "1:1414",
+      "specification": "410×192 PNG",
+      "rules": [
+        "“新春会”承担第一视觉权重，“抖音 ACG”作为同组前缀。",
+        "保留米白填充、橙红多层描边和暖色投影，不降级为普通网页字。"
+      ]
+    }
+  },
+  "hero": {
+    "label": "主 KV",
+    "asset": "assets/previews/figma-hero-kv-1-371.png",
+    "nodeId": "1:371",
+    "specification": "750×439 PNG",
+    "rules": [
+      "主角群像围绕红色轨道形成由左向右的高燃动势。",
+      "天空保留明亮呼吸区，标题和 Logo 作为独立图层覆盖。",
+      "KV 不烘焙按钮、规则入口、倒计时或动态数据。"
+    ]
+  },
+  "typography": {
+    "families": [
+      { "role": "中文展示字", "families": ["FZLanTingHei-EB-GBK", "HYLiLiangHeiJ"], "use": "篇章标题、玩法标题和短促口号" },
+      { "role": "中文 UI 字", "families": ["PingFang SC"], "use": "正文、说明、按钮与状态" },
+      { "role": "数字字", "families": ["Douyin Number ABC"], "use": "票数、排行、日期与奖励数字" },
+      { "role": "装饰拉丁字", "families": ["Allison", "Jersey 20"], "use": "英文签名与小面积装饰，不能承载关键信息" }
+    ],
+    "scale": [
+      { "name": "艺术标题", "figmaPx": 64, "runtimePxAt375": 32, "weight": "定制图形", "use": "活动名与核心玩法名" },
+      { "name": "章节标题", "figmaPx": 42, "runtimePxAt375": 21, "weight": "Heavy", "use": "一级篇章" },
+      { "name": "模块标题", "figmaPx": 30, "runtimePxAt375": 15, "weight": "Extra Bold", "use": "卡片和玩法模块" },
+      { "name": "正文标题", "figmaPx": 24, "runtimePxAt375": 12, "weight": "Medium", "use": "说明与内容标题" },
+      { "name": "按钮 / 标签", "figmaPx": 20, "runtimePxAt375": 10, "weight": "Medium / Bold", "use": "短操作与状态标签" }
+    ]
+  },
+  "colors": [
+    { "name": "Identity Ink", "value": "#161823", "role": "平台 Logo、正文与强对比信息", "on": ["#FFFFFF", "#FFF2D6"] },
+    { "name": "Reverse White", "value": "#FFFFFF", "role": "深色 KV 上的反白身份与操作", "on": ["#601619", "#FE2C55", "#3887FF"] },
+    { "name": "Info Wine", "value": "#601619", "role": "暖色页面中的主标题和正文", "on": ["#FFF2D6", "#FFF9F0"] },
+    { "name": "Douyin Red", "value": "#FE2C55", "role": "主行动、状态高亮与品牌识别", "on": ["#FFFFFF", "#FFF2D6"] },
+    { "name": "Hot Red", "value": "#F93435", "role": "对抗红方、描边与强提示", "on": ["#FFFFFF", "#FFF2D6"] },
+    { "name": "Carnival Coral", "value": "#FF6262", "role": "标题投影、贴纸与暖侧层级", "on": ["#601619", "#FFFFFF"] },
+    { "name": "Soft Coral", "value": "#FF8286", "role": "弱强调面和状态背景", "on": ["#601619"] },
+    { "name": "Festival Cream", "value": "#FFF2D6", "role": "长页统一画布与暖色舞台", "on": ["#601619", "#161823"] },
+    { "name": "Clear Blue", "value": "#3887FF", "role": "对抗蓝方和冷色反馈", "on": ["#FFFFFF"] }
+  ],
+  "components": [
+    {
+      "name": "主行动按钮",
+      "sample": "高饱和实底 + 白色粗体 + 4px 压按底影",
+      "rules": ["同屏只保留一个最高权重主行动", "按钮文字与底色必须达到可读对比度", "禁用态降低饱和度但保持外层几何不变"]
+    },
+    {
+      "name": "红蓝对抗与榜单",
+      "asset": "assets/previews/figma-duel-ranking-1-391.png",
+      "nodeId": "1:391",
+      "sample": "红蓝分区、斜切边界、重复排行解剖和双动作",
+      "rules": ["状态不能只靠颜色表达", "排行卡保持固定媒体比例和稳定高度", "票数与按钮保持 DOM 可编辑"]
+    },
+    {
+      "name": "许愿卡",
+      "asset": "assets/previews/figma-wish-module-1-593.png",
+      "nodeId": "1:593",
+      "sample": "暖白纸张、珊瑚描边、错落纸条和独立编辑器",
+      "rules": ["卡片文本有最大行数", "点赞、作者和输入状态独立", "长文不烘焙进图片"]
+    },
+    {
+      "name": "奖励机 / 抽奖",
+      "asset": "assets/previews/figma-reward-machine-1-991.png",
+      "nodeId": "1:991",
+      "sample": "完整装置感、奖池可见、机会数与结果反馈同屏",
+      "rules": ["机会数和库存实时可读", "奖品图为独立透明素材", "抽奖前后外层高度不跳变"]
+    }
+  ],
+  "do": [
+    "先保证 Logo、标题字和主 KV 的层级，再增加玩法装饰。",
+    "暖奶油画布配酒红正文，主行动使用抖音红或明确的红蓝对抗色。",
+    "玩法模块使用不同视觉解剖，但共享字体、色彩与阴影语言。"
+  ],
+  "dont": [
+    "不要把 Logo、艺术字和主 KV 合成一张不可编辑整图。",
+    "不要在高密背景上使用相近明度的文字和按钮。",
+    "不要让全页复用同一种圆角白卡、阴影和标题模板。"
+  ]
+}

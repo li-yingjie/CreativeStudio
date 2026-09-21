@@ -19,11 +19,155 @@ export interface ExperienceProject {
   author?: string
   usage?: string
   favorites?: number
+  projectName?: string
+  activity?: {
+    status: '搭建中' | '交付中' | '已上线'
+    phase: string
+    period: string
+    deliverables: string
+    updatedAt: string
+    template: string
+    tags: readonly string[]
+    sources?: readonly {
+      label: string
+      url: string
+      type: 'Figma' | '文档' | '复盘'
+    }[]
+    investment?: string
+    benchmarkOrder?: number
+    priority?: string
+    evidence?: string
+  }
 }
 
 export const AUTHOR_AVATAR = `${COVERS}/author.webp`
 
 export const projects: ExperienceProject[] = [
+  {
+    id: 'team_acg_new_year_2026',
+    title: '2026 抖音 ACG 新春会',
+    description: '游戏与二次元双会场，覆盖 Lynx 主会场、内容榜单、站内资源位、节目单与结算战报。',
+    cover: '/assets/figma-deliverables/acg/discovery-banner-1372x512.png',
+    kind: 'assistant',
+    space: 'team',
+    author: '抖音 ACG 视觉设计',
+    favorites: 28,
+    projectName: '2026 抖音 ACG 新春会',
+    activity: {
+      status: '交付中',
+      phase: '资源位与战报完善',
+      period: '01.09 – 01.16',
+      deliverables: '18 项真实交付已归档',
+      updatedAt: '今天 15:42',
+      template: '新春会模板',
+      tags: ['节点大会场', '双会场', 'ACG'],
+      benchmarkOrder: 1,
+      priority: 'S 级端到端试点',
+      evidence: '需求 / 资产 / Figma / 交付全链路可追溯',
+      investment: '原流程单项目 21–24 人月',
+      sources: [
+        { label: '活动复盘', type: '复盘', url: 'https://bytedance.larkoffice.com/wiki/R6w8wU16CihKb7kJlKOcvll8n6c' },
+        { label: '设计提案', type: '文档', url: 'https://bytedance.larkoffice.com/wiki/H0wOwf7ToiULAakEOZUckbzSn4g' },
+        { label: '创意设计', type: 'Figma', url: 'https://www.figma.com/design/dATx52XsiA0xtpE2xpAeBC/2026-%E6%8A%96%E9%9F%B3ACG%E6%96%B0%E6%98%A5%E4%BC%9A-%E5%88%9B%E6%84%8F?node-id=1690-13237' },
+      ],
+    },
+  },
+  {
+    id: 'team_spring_gala_2026',
+    title: '2026 抖音春晚',
+    description: '节目盛典型全渠道活动，真实覆盖话题主入口、Lynx 主会场、H5 抽奖与祝福卡，以及开屏、直播 Tab 和线下屏。',
+    cover: '/assets/figma-deliverables/spring-gala/live-main-camera.png',
+    kind: 'assistant',
+    space: 'team',
+    author: '抖音节目活动设计',
+    favorites: 35,
+    projectName: '2026 抖音春晚',
+    activity: {
+      status: '交付中',
+      phase: '真实案例资产化',
+      period: '节目盛典 · 案例归档',
+      deliverables: '17 项真实交付已归档',
+      updatedAt: '今天 18:36',
+      template: '全渠道节目盛典',
+      tags: ['直播', '抽奖', '传播矩阵'],
+      benchmarkOrder: 3,
+      sources: [
+        { label: '设计提需', type: '文档', url: 'https://bytedance.larkoffice.com/docx/Si6rdTK8xoK5LUxdrAMc1W1pnRd' },
+        { label: '活动页需求', type: '文档', url: 'https://bytedance.larkoffice.com/wiki/TYjgwrRw4iBlVdkh0hCcyI7gnaf' },
+        { label: '春晚设计', type: 'Figma', url: 'https://www.figma.com/design/DLhjcvo02Wbwk2PrUAJTkR/2026%E6%98%A5%E6%99%9A-%E5%85%83%E5%AE%B5?node-id=572-114797' },
+      ],
+    },
+  },
+  {
+    id: 'team_evernight_cards',
+    title: '《永夜星河》独星河小卡',
+    description: '影视 IP 任务抽卡活动，以任务得次数、单抽/十连、7 卡图鉴与个性化分享卡形成完整参与回路。',
+    cover: '/assets/figma-deliverables/evernight/campaign-cover.png',
+    kind: 'assistant',
+    space: 'team',
+    author: '抖音节目活动设计',
+    favorites: 52,
+    projectName: '《永夜星河》独星河小卡',
+    activity: {
+      status: '交付中',
+      phase: '玩法与卡牌资产归档',
+      period: '影视宣发 · 案例归档',
+      deliverables: '16 项真实交付已归档',
+      updatedAt: '今天 18:12',
+      template: '影视 IP · 任务抽卡',
+      tags: ['抽卡', '图鉴', '分享回流'],
+      benchmarkOrder: 4,
+      sources: [
+        { label: '活动方案', type: '文档', url: 'https://bytedance.larkoffice.com/docx/VT0edgxzKoyaFXxlaMKcBC8Kn4g' },
+        { label: '抽卡设计', type: 'Figma', url: 'https://www.figma.com/design/QyUyHxPLBxH8QvICM9ex5j/%E3%80%8A%E6%B0%B8%E5%A4%9C%E6%98%9F%E6%B2%B3%E3%80%8B%E6%8A%BD%E5%8D%A1?node-id=40-27228' },
+      ],
+    },
+  },
+  {
+    id: 'team_xiahua_live',
+    title: '这夏夯爆了',
+    description: '做任务抽美食卡，集齐 2 / 4 / 7 种兑换三档夜食券，已覆盖抖音与极速版入口。',
+    cover: '/assets/figma-deliverables/xiahua/food-venue-full.png',
+    kind: 'assistant',
+    space: 'team',
+    author: '生活服务活动中台',
+    favorites: 41,
+    projectName: '夯爆了 已上线',
+    activity: {
+      status: '已上线',
+      phase: '第二阶段运行中',
+      period: '06.30 – 08.31',
+      deliverables: '14 项真实交付已归档',
+      updatedAt: '昨天 19:08',
+      template: '任务抽卡 · 集卡兑奖',
+      tags: ['集卡', '券奖励', '多阶段'],
+      benchmarkOrder: 2,
+      investment: '60 人/日 × 3 个活动阶段',
+      sources: [
+        { label: 'UGC 活动设计', type: 'Figma', url: 'https://www.figma.com/design/kMedatdeXqtzmq0KOeG0qk/UGC%E6%B4%BB%E5%8A%A8-2026H1?node-id=718-22861' },
+      ],
+    },
+  },
+  {
+    id: 'team_summer_surf',
+    title: '夏日冲浪 · 顺风顺水',
+    description: '基于暑期活动模板生成的玩水主题活动，组合任务、装备收集与金豆副玩法。',
+    cover: '/assets/marketing-king/theme-assets/summer/hero-scene-v2.png',
+    kind: 'assistant',
+    space: 'team',
+    author: '生活服务创意中台',
+    favorites: 12,
+    projectName: '夏日冲浪 · 顺风顺水',
+    activity: {
+      status: '搭建中',
+      phase: '玩法与素材联调',
+      period: '07.15 – 08.31',
+      deliverables: '4 / 6 待确认',
+      updatedAt: '今天 11:26',
+      template: '暑期收集活动',
+      tags: ['玩水', '装备收集', '金豆'],
+    },
+  },
   {
     id: 'featured_sanguo',
     title: 'SANGUORUSH',
@@ -377,4 +521,3 @@ export const projects: ExperienceProject[] = [
     favorites: 30,
   },
 ];
-

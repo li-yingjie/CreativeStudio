@@ -1,14 +1,17 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { toast } from 'sonner'
+import { RotateCcw, Save } from '@/shared/icons'
 import {
   DATA_CONFIG_LABEL,
   DATABASE_LABEL,
   GAME_GAMEPLAY_CONFIG_LABEL,
   GAMEPLAY_CONFIG_LABEL,
-  H5_GAMEPLAY_CONFIG_LABEL,
   INTEREST_CARD_CONFIG_LABEL,
   PROJECT_MEMORY_LABEL,
   type ProjectKind,
 } from './ProjectProductView'
+import { QIXI_BRIDGE_PROJECT } from './QixiBridgeData'
+import { ACG_REPLICA_PROJECT } from './AcgReplicaData'
 
 /**
  * 每个项目「产物对象」的真实化 mock 内容。
@@ -23,6 +26,7 @@ type InfoContent = {
   type: 'info'
   summary?: string
   tags?: string[]
+  visuals?: { src: string; label: string; detail: string }[]
   groups: { title: string; rows: [string, string][] }[]
 }
 type DbColumn = { name: string; type: string; desc: string }
@@ -246,48 +250,91 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
     },
   },
 
-  /* ── 抖音 ACG 游戏新春会（marketing-h5）── */
-  '抖音 ACG 游戏新春会': {
+  /* ── ACG 新春会 · 一比一复刻（切片装配 + 交互热区）── */
+  [ACG_REPLICA_PROJECT]: {
+    [GAMEPLAY_CONFIG_LABEL]: {
+      type: 'cards',
+      columns: 2,
+      note: '页面画面来自设计稿原始分辨率切片；下列交互全部为切片之上的前端热区，本地状态，不接后端。',
+      items: [
+        { icon: '🗳️', title: '抓马投票', desc: '抓马榜 TOP3 与赛场 5 张作品卡均可投票：好活加马 +3 马力、放你一马 -1 马力，点击有浮标反馈。', meta: '8 张卡 × 2 键' },
+        { icon: '⭐', title: '任务关注', desc: '做任务领抽奖机会共 6 项，点击去关注切换为已关注态并提示获得抽奖机会。', meta: '6 项任务' },
+        { icon: '🎰', title: '点击抽奖', desc: '扭蛋机主按钮触发抽奖演示反馈；查看奖池信息与我的奖品为独立热区。', meta: '演示态' },
+        { icon: '🌠', title: '许愿互动', desc: '许愿卡去点赞、我也要许愿、预约春晚直播均有反馈；倒计时数字为切片内容。', meta: '4 类操作' },
+        { icon: '🧭', title: '导航与入口', desc: '返回 / 分享 / 规则、档期轴切换、双会场入口、榜单入口与页脚搜索都可点击。', meta: '10+ 热区' },
+        { icon: '📐', title: '坐标系', desc: '全部热区按设计稿 750 宽像素定义，渲染时折半到 375 显示宽度，与切片逐像素对齐。', meta: '750 → 375' },
+      ],
+    },
+  },
+
+  /* ── 七夕搭鹊桥 · 找喜鹊（交互框架阶段）── */
+  [QIXI_BRIDGE_PROJECT]: {
+    [GAMEPLAY_CONFIG_LABEL]: {
+      type: 'cards',
+      columns: 2,
+      note: '当前配置只服务于前端灰模验证：主链路可完整点击，数据均为本地状态，不接后端接口。',
+      items: [
+        { icon: '🌉', title: '七关搭桥进度', desc: '7 个关卡复用同一套找喜鹊模板，目标数依次为 5 / 6 / 6 / 7 / 7 / 8 / 8。', meta: '7 关' },
+        { icon: '⏱️', title: '限时找喜鹊', desc: '每关默认 90 秒，点击场景内喜鹊累计进度；误点提供反馈，倒计时结束进入失败态。', meta: '90 秒 / 关' },
+        { icon: '🎟️', title: '阶段奖励', desc: '完成第 3、7 关分别解锁消费券；每次通关同步增加 1 次抽奖机会。', meta: '2 个券节点' },
+        { icon: '✅', title: '签到得机会', desc: '每日签到增加 2 次闯关机会；重复签到显示已完成反馈。', meta: '+2 次' },
+        { icon: '🤝', title: '好友助力', desc: '发起邀请并模拟好友回流，单个好友增加 2 次机会，每日最多 10 人。', meta: '2 次 / 人' },
+        { icon: '🎁', title: '通关抽奖', desc: '消耗通关获得的抽奖次数，展示中奖与未中奖结果，并同步我的奖品。', meta: '本地状态' },
+        { icon: '🧾', title: '活动明细', desc: '闯关、签到、助力和抽奖行为进入统一记录，首页进度与余额同步。', meta: '状态联动' },
+        { icon: '🛡️', title: '边际状态', desc: '提供加载中、网络异常、活动结束、风控兜底和主动退出二次确认。', meta: '5 类状态' },
+      ],
+    },
+  },
+
+  /* ── 2026 抖音 ACG 新春会（marketing-h5）── */
+  '2026 抖音 ACG 新春会': {
     基础信息: {
       type: 'info',
-      summary: '聚合热门游戏与高燃创作的抖音 ACG 新春活动 H5，主打视频会场、内容榜单与助力互动。',
-      tags: ['游戏营销', 'ACG', '新春会'],
+      summary: '以游戏/二次元双会场组织内容榜单与助力互动，并覆盖 H5 分会场、站内资源位、节目单和结算战报。',
+      tags: ['节点大会场', '双会场', 'ACG', '多端交付'],
+      visuals: [
+        { src: '/assets/acg-new-year/exact-hero-base.png', label: '游戏会场主视觉', detail: 'Lynx 主会场 Hero · Figma 已锁定' },
+        { src: '/assets/acg-new-year/materials/01-activity-hero.png', label: '横向资源位', detail: '游戏新春会 · 1600×1035' },
+        { src: '/assets/acg-new-year/exact-game-switcher.png', label: '双会场切换组件', detail: '游戏 / 二次元状态组件' },
+        { src: '/assets/acg-new-year/exact-lower-top.png', label: '榜单与助力模块', detail: '开年高燃 · 内容组件' },
+      ],
       groups: [
         {
           title: '活动信息',
           rows: [
-            ['活动名称', '抖音 ACG 游戏新春会'],
-            ['活动类型', '游戏内容营销 H5'],
-            ['关联品牌', '抖音游戏'],
-            ['状态', '待发布'],
+            ['活动名称', '2026 抖音 ACG 新春会'],
+            ['活动模板', '新春会模板 v1.1.0'],
+            ['主 Brand Kit', '抖音 ACG 新春会应用版 v1.1.0'],
+            ['Style Bible', '新春热力 · ACG v1.0.0'],
+            ['状态', '交付完善中'],
           ],
         },
         {
           title: '投放',
           rows: [
             ['投放端', '抖音'],
-            ['场景', '非直播 / 直播'],
-            ['活动时间', '2026-02-01 ~ 2026-02-24'],
+            ['交付端', 'H5 / 站内资源位 / 图片'],
+            ['活动时间', '2026-01-09 ~ 2026-02-28 · Banner 证据'],
           ],
         },
         {
-          title: '数据目标',
+          title: '交付范围',
           rows: [
-            ['目标 UV', '300 万'],
-            ['目标互动率', '22%'],
-            ['视频播放量', '1,000 万'],
+            ['页面', '2 个 H5 内容路由'],
+            ['状态', '分会场 5 个展示状态'],
+            ['传播物料', '资源位 / 节目单 / 宣发图 / 战报'],
           ],
         },
       ],
     },
     [GAMEPLAY_CONFIG_LABEL]: {
       type: 'cards',
-      note: '新春会主会场的内容分发与互动玩法。',
+      note: '这里只配置挂载在活动主流程上的玩法组件实例。入口、分流、参与、回流与结算顺序，请在「项目文档 · 活动主流程」查看。',
       items: [
-        { icon: '🎮', title: '游戏会场', desc: '按地下城与勇士、蛋仔派对、王者荣耀等游戏切换专题内容。', meta: '多游戏' },
-        { icon: '▶️', title: '主会场视频', desc: '承载新春特别节目与游戏厂商高燃内容，支持播放和静音控制。', meta: '视频' },
-        { icon: '🔥', title: '开年高燃', desc: '以马力值聚合热门作品，展示创作者、封面和实时互动热度。', meta: '内容榜单' },
-        { icon: '🐴', title: '加马互动', desc: '用户可选择「放你一马」或「好活加马」为喜欢的作品助力。', meta: '轻互动' },
+        { icon: '🔥', title: '内容榜单', desc: '游戏与二次元内容池分别计算热门/新锐榜单，并提供空态、延迟和封禁降级。', meta: '必填槽位' },
+        { icon: '🐴', title: '双动作助力', desc: '用户通过「放你一马 / 好活加马」为作品助力，行为与榜单口径实时关联。', meta: '已启用' },
+        { icon: '🃏', title: '集卡', desc: '提供大卡、小卡、任务卡与玩法主页视觉；卡池、任务和奖励仍由玩法包配置。', meta: '可选槽位' },
+        { icon: '🎮', title: '跃马攀峰', desc: '轻量场景玩法，以 166×166 入口小卡和多状态主页接入主会场。', meta: '可选槽位' },
       ],
     },
     [DATA_CONFIG_LABEL]: {
@@ -317,6 +364,96 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
             { name: 'created_at', type: 'datetime', desc: '操作时间' },
           ],
         },
+      ],
+    },
+  },
+
+  /* ── 2026 抖音春晚（marketing-h5）── */
+  '2026 抖音春晚': {
+    基础信息: {
+      type: 'info',
+      summary: '节目盛典型全渠道活动，以 Lynx 主会场为核心，同时组织原生话题入口、H5 抽奖与祝福卡、开屏、直播 Tab 和线下屏延展。',
+      tags: ['节目盛典', '直播', '抽奖', '全渠道交付'],
+      visuals: [
+        { src: '/assets/spring-gala/lynx-main.webp', label: 'Lynx 春晚主会场', detail: '750 × 4696 · 直播、节目单、抽奖与投稿' },
+        { src: '/assets/spring-gala/h5-lottery.webp', label: 'H5 抽奖', detail: '奖品池、次数与结果承接' },
+        { src: '/assets/spring-gala/blessing-card.webp', label: '祝福分享卡', detail: '祝福结果、分享与继续抽奖' },
+        { src: '/assets/spring-gala/business-poster.webp', label: '商业中心横版海报', detail: '横版大屏独立构图' },
+      ],
+      groups: [
+        {
+          title: '活动信息',
+          rows: [
+            ['活动名称', '2026 抖音春晚'],
+            ['活动母型', '全渠道节目盛典'],
+            ['核心 Surface', 'Lynx 春晚主会场'],
+            ['来源状态', '真实案例已关联 · 项目资产化中'],
+          ],
+        },
+        {
+          title: '交付矩阵',
+          rows: [
+            ['站内页面', '原生话题页 / Lynx / H5 抽奖 / H5 祝福卡'],
+            ['站内资源位', '开屏 / 直播间 Tab'],
+            ['线下与内宣', '行政电子竖屏 / 商业中心横版海报'],
+            ['Figma 延展', '会议室广告 / 海报 / 易拉宝 / 艺术装置屏'],
+          ],
+        },
+      ],
+    },
+    [GAMEPLAY_CONFIG_LABEL]: {
+      type: 'cards',
+      note: '分别维护直播状态、奖池与次数、祝福卡和节目单参数。',
+      items: [
+        { icon: '📺', title: '直播承接', desc: '主会场首屏展示直播状态、直播画面与节目单入口；未开播、直播中和结束态分别配置。', meta: '主流程节点' },
+        { icon: '🎁', title: '任务抽奖', desc: '展示奖品池、剩余次数与中奖播报，抽取结果进入统一履约记录。', meta: 'H5 组件' },
+        { icon: '🧧', title: '祝福结果卡', desc: '依据抽奖结果生成祝福视觉，提供分享与继续抽奖动作。', meta: '结果组件' },
+        { icon: '🗓️', title: '节目单', desc: '节目名称、时间与直播状态由内容表驱动，主会场和资源位读取同一来源。', meta: '内容组件' },
+      ],
+    },
+  },
+
+  /* ── 《永夜星河》独星河小卡（marketing-h5）── */
+  '《永夜星河》独星河小卡': {
+    基础信息: {
+      type: 'info',
+      summary: '影视 IP 宣发型任务抽卡活动，使用站内行为任务换取抽卡次数，以 7 张独占卡图鉴和个性化分享卡形成传播回流。',
+      tags: ['影视宣发', '任务抽卡', '卡牌图鉴', '分享回流'],
+      visuals: [
+        { src: '/assets/evernight/main-venue.webp', label: '抽卡主会场', detail: '750 × 3652 · Figma 主组件' },
+        { src: '/assets/evernight/card-collection.webp', label: '7 卡图鉴', detail: '已收集、锁定与重复持有状态' },
+        { src: '/assets/evernight/share-card.webp', label: '个性化分享卡', detail: '卡面、To 文案、保存与分享' },
+      ],
+      groups: [
+        {
+          title: '活动信息',
+          rows: [
+            ['活动名称', '《永夜星河》独星河小卡'],
+            ['活动母型', '影视 IP · 任务抽卡'],
+            ['卡池规模', '7 张抖音独占卡'],
+            ['设计规模', '181 个 Figma 画框'],
+          ],
+        },
+        {
+          title: '页面与状态',
+          rows: [
+            ['主页面', 'Lynx 抽卡主会场 · 750 × 3652'],
+            ['抽取动作', '单次抽卡 / 十次连抽'],
+            ['图鉴状态', '已获得 / 未解锁 / 重复持有'],
+            ['分享结果', '卡面选择 / To 文案 / 保存 / 去分享'],
+          ],
+        },
+      ],
+    },
+    [GAMEPLAY_CONFIG_LABEL]: {
+      type: 'cards',
+      note: '任务、次数账本、抽卡策略、卡池与分享结果是五个可独立演进的对象；页面只编排它们，不保存另一份重复配置。',
+      items: [
+        { icon: '✅', title: '任务得次数', desc: '签到、想看、关注、观看、点赞、角色投票与相关页面浏览统一发放抽卡次数。', meta: '多任务源' },
+        { icon: '🎟️', title: '次数账本', desc: '所有获得与消耗写入同一流水，单抽扣 1 次，十连扣 10 次，并处理并发与幂等。', meta: '统一口径' },
+        { icon: '🎴', title: '独占卡池', desc: '7 张卡分别配置权重、保底参与、重复补偿和上下架状态；演员卡面是项目 IP 实例。', meta: '7 张' },
+        { icon: '📚', title: '图鉴收集', desc: '展示收集进度、重复持有数量和锁定槽位，并为分享卡提供已获得卡面。', meta: '3 类状态' },
+        { icon: '💌', title: '个性化分享', desc: '选择已获得卡面、填写最多 6 个字的 To 文案，生成保存与站内分享结果。', meta: '回流节点' },
       ],
     },
   },
@@ -561,7 +698,6 @@ const CONTENT: Record<string, Record<string, ObjectContent>> = {
 
 const OBJECT_LABEL_ALIASES: Record<string, string> = {
   [DATABASE_LABEL]: DATA_CONFIG_LABEL,
-  [H5_GAMEPLAY_CONFIG_LABEL]: GAMEPLAY_CONFIG_LABEL,
   [GAME_GAMEPLAY_CONFIG_LABEL]: GAMEPLAY_CONFIG_LABEL,
   [INTEREST_CARD_CONFIG_LABEL]: DATA_CONFIG_LABEL,
 }
@@ -577,6 +713,29 @@ function Shell({ children }: { children: ReactNode }) {
 function InfoView({ c }: { c: InfoContent }) {
   return (
     <Shell>
+      {c.visuals?.length ? (
+        <section className="mb-6">
+          <div className="mb-3 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-[15px] font-semibold text-[var(--color-ink)]">项目视觉与交付快照</h2>
+              <p className="mt-1 text-[10px] text-[var(--color-ink)]/38">真实 Figma 交付切片 · 按项目对象归档</p>
+            </div>
+            <span className="shrink-0 rounded-md bg-emerald-50 px-2 py-1 text-[9px] font-medium text-emerald-700">{c.visuals.length} 项已关联</span>
+          </div>
+          <div className="grid h-[286px] grid-cols-[1.55fr_0.95fr] grid-rows-3 gap-2 overflow-hidden rounded-2xl border border-[var(--divider-soft)] bg-[var(--fill-subtle)] p-2">
+            {c.visuals.slice(0, 4).map((visual, index) => (
+              <figure key={visual.src} className={`${index === 0 ? 'row-span-3' : ''} group relative min-h-0 overflow-hidden rounded-xl bg-white`}>
+                <img src={visual.src} alt={visual.label} className="size-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.015]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/68 via-transparent to-black/5" />
+                <figcaption className="absolute inset-x-0 bottom-0 px-3 pb-2.5 pt-5 text-white">
+                  <p className={`${index === 0 ? 'text-[12px]' : 'text-[9px]'} font-medium`}>{visual.label}</p>
+                  <p className={`${index === 0 ? 'mt-1 text-[9px]' : 'mt-0.5 text-[7px]'} text-white/68`}>{visual.detail}</p>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+      ) : null}
       {c.tags && (
         <div className="mb-2 flex flex-wrap gap-1.5">
           {c.tags.map((t) => (
@@ -708,6 +867,165 @@ function CardsView({ c }: { c: CardsContent }) {
   )
 }
 
+type GameplayDraft = Record<
+  string,
+  { enabled: boolean; description: string; parameter: string }
+>
+
+function gameplayDefaults(c: CardsContent): GameplayDraft {
+  return Object.fromEntries(
+    c.items.map((item) => [
+      item.title,
+      {
+        enabled: true,
+        description: item.desc,
+        parameter: item.meta ?? '',
+      },
+    ]),
+  )
+}
+
+function GameplayCardsEditor({
+  c,
+  projectTitle,
+}: {
+  c: CardsContent
+  projectTitle: string
+}) {
+  const storageKey = `creative-studio:gameplay-config:${projectTitle}`
+  const [initial] = useState<GameplayDraft>(() => {
+    const defaults = gameplayDefaults(c)
+    if (typeof window === 'undefined') return defaults
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(storageKey) ?? 'null') as
+        | GameplayDraft
+        | null
+      if (!saved) return defaults
+      const valid = c.items.every((item) => {
+        const entry = saved[item.title]
+        return (
+          entry &&
+          typeof entry.enabled === 'boolean' &&
+          typeof entry.description === 'string' &&
+          typeof entry.parameter === 'string'
+        )
+      })
+      return valid ? saved : defaults
+    } catch {
+      return defaults
+    }
+  })
+  const [saved, setSaved] = useState<GameplayDraft>(initial)
+  const [draft, setDraft] = useState<GameplayDraft>(initial)
+  const dirty = JSON.stringify(draft) !== JSON.stringify(saved)
+  const enabledCount = c.items.filter((item) => draft[item.title]?.enabled).length
+
+  const update = (
+    title: string,
+    patch: Partial<GameplayDraft[string]>,
+  ) => {
+    setDraft((current) => ({
+      ...current,
+      [title]: { ...current[title], ...patch },
+    }))
+  }
+
+  const save = () => {
+    if (!enabledCount) {
+      toast.error('至少保留一个启用的玩法实例')
+      return
+    }
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(draft))
+      setSaved(draft)
+      toast.success('玩法配置已保存', {
+        description: `${enabledCount} 个实例已启用。`,
+      })
+    } catch {
+      toast.error('浏览器存储不可用，修改仍保留在当前会话')
+    }
+  }
+
+  return (
+    <div className="thin-scroll flex min-h-0 flex-1 flex-col overflow-y-auto bg-[var(--color-surface-0)]">
+      <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-3 border-b border-[var(--divider-soft)] bg-white/95 px-5 backdrop-blur">
+        <div className="min-w-0 flex-1">
+          <p className="text-[12px] font-semibold text-[var(--color-ink)]">玩法实例</p>
+          <p className="mt-0.5 text-[8px] text-[var(--color-ink)]/38">{enabledCount} / {c.items.length} 已启用{dirty ? ' · 有未保存修改' : ' · 已保存'}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setDraft(gameplayDefaults(c))}
+          className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[8px] text-[var(--color-ink)]/52 hover:bg-[var(--fill-subtle)]"
+        >
+          <RotateCcw className="size-3" />恢复默认
+        </button>
+        <button
+          type="button"
+          onClick={save}
+          disabled={!dirty}
+          className="flex h-7 items-center gap-1.5 rounded-lg bg-[var(--color-ink)] px-3 text-[8px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-35"
+        >
+          <Save className="size-3" />保存玩法配置
+        </button>
+      </header>
+      <div className="mx-auto flex w-full max-w-[900px] flex-col px-8 py-7">
+        {c.note ? <p className="mb-4 text-[12px] leading-[1.65] text-[var(--color-ink)]/52">{c.note}</p> : null}
+        <div className="grid grid-cols-2 gap-3">
+          {c.items.map((item) => {
+            const entry = draft[item.title]
+            return (
+              <section
+                key={item.title}
+                className={`rounded-xl border p-3.5 transition-colors ${entry.enabled ? 'border-[var(--divider-soft)] bg-white' : 'border-transparent bg-[var(--fill-subtle)] opacity-65'}`}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--fill-subtle)] text-[18px]">{item.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium text-[var(--color-ink)]">{item.title}</p>
+                    <p className="mt-0.5 text-[8px] text-[var(--color-ink)]/36">项目级玩法实例</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={entry.enabled}
+                    aria-label={`${entry.enabled ? '停用' : '启用'}${item.title}`}
+                    onClick={() => update(item.title, { enabled: !entry.enabled })}
+                    className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${entry.enabled ? 'bg-[#3370FF]' : 'bg-black/15'}`}
+                  >
+                    <span className={`absolute top-0.5 size-4 rounded-full bg-white shadow-sm transition-transform ${entry.enabled ? 'left-[18px]' : 'left-0.5'}`} />
+                  </button>
+                </div>
+                <label className="mt-3 block">
+                  <span className="text-[8px] font-medium text-[var(--color-ink)]/45">规则说明</span>
+                  <textarea
+                    value={entry.description}
+                    disabled={!entry.enabled}
+                    onChange={(event) => update(item.title, { description: event.target.value })}
+                    rows={3}
+                    className="mt-1.5 w-full resize-none rounded-lg border border-black/[0.08] bg-white px-2.5 py-2 text-[9px] leading-[14px] text-[var(--color-ink)] outline-none focus:border-[#3370FF]/45 focus:ring-2 focus:ring-[#3370FF]/10 disabled:bg-transparent"
+                  />
+                </label>
+                <label className="mt-2.5 block">
+                  <span className="text-[8px] font-medium text-[var(--color-ink)]/45">实例参数</span>
+                  <input
+                    value={entry.parameter}
+                    disabled={!entry.enabled}
+                    onChange={(event) => update(item.title, { parameter: event.target.value })}
+                    placeholder="例如：直播中 / 每日 3 次 / 7 张卡"
+                    className="mt-1.5 h-8 w-full rounded-lg border border-black/[0.08] bg-white px-2.5 text-[9px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink)]/22 focus:border-[#3370FF]/45 focus:ring-2 focus:ring-[#3370FF]/10 disabled:bg-transparent"
+                  />
+                </label>
+              </section>
+            )
+          })}
+        </div>
+        <p className="mt-4 rounded-lg bg-[var(--fill-subtle)] px-3 py-2.5 text-[8px] leading-[14px] text-[var(--color-ink)]/38">这里维护项目级玩法参数；页面内是否展示某个模块，继续由对应页面编辑器控制。</p>
+      </div>
+    </div>
+  )
+}
+
 /** Render a project's object content, or null when there's no tailored mock
  *  (caller then falls back to the doc / code views). `kind` is accepted for
  *  future per-kind defaults but content is currently keyed by project. */
@@ -728,7 +1046,11 @@ export function ProjectObjectView({
     case 'database':
       return <DatabaseView c={c} />
     case 'cards':
-      return <CardsView c={c} />
+      return normalizedLabel === GAMEPLAY_CONFIG_LABEL ? (
+        <GameplayCardsEditor key={projectTitle} c={c} projectTitle={projectTitle} />
+      ) : (
+        <CardsView c={c} />
+      )
     default:
       return null
   }

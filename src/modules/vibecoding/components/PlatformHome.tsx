@@ -268,6 +268,10 @@ interface StandaloneSubscene {
   toolbarParams?: readonly StandaloneToolbarParam[]
 }
 
+const CLASSIC_TOWER_DEFENSE_COMMAND = '生成经典路线塔防'
+const CLASSIC_TOWER_DEFENSE_PROMPT =
+  '生成一款塔防建造游戏，玩法：英雄和建筑塔守擂，角色：己方英雄，敌方6种兵种，世界观风格为：三国主题风格'
+
 interface H5InstructionSlots {
   theme: string
   audience: string
@@ -2514,6 +2518,7 @@ export default function PlatformHome({
   onSubmit: (
     text: string,
     attachment?: { name: string; size: number; type: string },
+    scene?: 'marketing' | 'game',
   ) => void
   onOpenResourceLibrary: () => void
 }) {
@@ -2599,6 +2604,15 @@ export default function PlatformHome({
   }
 
   const pickSubsceneCommand = (command: string) => {
+    if (
+      selectedSubscene?.key === 'tower-defense' &&
+      command === CLASSIC_TOWER_DEFENSE_COMMAND
+    ) {
+      setActiveSlotInstruction(null)
+      setDraft(CLASSIC_TOWER_DEFENSE_PROMPT)
+      return
+    }
+
     if (selectedSubscene?.key === 'h5' && command === H5_SLOT_COMMAND) {
       const slots = { ...DEFAULT_H5_INSTRUCTION_SLOTS }
       setH5InstructionSlots(slots)
@@ -2795,9 +2809,18 @@ export default function PlatformHome({
       const selectedSkillScope = selectedHomeSkill
         ? `｜技能：${selectedHomeSkill.title}`
         : ''
-      return onSubmit(`【${scope}${selectedSkillScope}】${request}`, attachment)
+      return onSubmit(
+        `【${scope}${selectedSkillScope}】${request}`,
+        attachment,
+        activeScene === 'game' ? 'game' : 'marketing',
+      )
     }
-    if (!tool) return onSubmit(request, attachment)
+    if (!tool)
+      return onSubmit(
+        request,
+        attachment,
+        activeScene === 'game' ? 'game' : 'marketing',
+      )
     const picked = tool.params.map((p) => params[`${tool.key}.${p.label}`])
     // 选了活动模板 = 引用它复刻：把 token 带进 prompt，工坊按模板拆替换清单
     const usesTemplate =
@@ -2805,7 +2828,11 @@ export default function PlatformHome({
     const ps = picked.filter((v) => v !== '选择模板').join(' / ')
     const body = usesTemplate ? `${XIAHUA_TEMPLATE_TOKEN} ${request}` : request
     const scope = ps ? `【${tool.label}｜${ps}】` : `【${tool.label}】`
-    onSubmit(`${scope}${body}`, attachment)
+    onSubmit(
+      `${scope}${body}`,
+      attachment,
+      activeScene === 'game' ? 'game' : 'marketing',
+    )
   }
 
   return (
@@ -2950,21 +2977,21 @@ export default function PlatformHome({
                 {standaloneWorkshopLayout ? '创意工坊' : 'AI工坊'}
               </span>
             </div>
-            {standaloneWorkshopLayout && (
-              <StandaloneSceneSwitcher
-                activeScene={activeScene}
-                reduceMotion={reduceMotion}
-                onChange={(scene) => {
-                  setActiveScene(scene)
-                  setSelectedSubscene(null)
-                  setActiveSlotInstruction(null)
-                  setTool(null)
-                }}
-              />
-            )}
+            <StandaloneSceneSwitcher
+              activeScene={activeScene}
+              reduceMotion={reduceMotion}
+              onChange={(scene) => {
+                setActiveScene(scene)
+                setSelectedSubscene(null)
+                setActiveSlotInstruction(null)
+                setTool(null)
+              }}
+            />
             {!standaloneWorkshopLayout && (
               <p className="flex items-center gap-1 text-[16px] tracking-[0.32px] text-[#1C1F23]/60">
-                把好想法变成好玩法 <span aria-hidden>💡</span>
+                {activeScene === 'game'
+                  ? '用现在的游戏能力搭可玩项目'
+                  : '用活动营销能力搭 H5 与玩法页'}
               </p>
             )}
           </div>
@@ -3362,14 +3389,36 @@ export default function PlatformHome({
               没有灵感？试试点击以下需求
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              {SUGGESTIONS.map((s) => (
+              {(activeScene === 'game'
+                ? STANDALONE_SCENE_SUGGESTIONS.game.map((subscene) => ({
+                    key: subscene.key,
+                    label: subscene.label,
+                    prompt: subscene.prompt,
+                    scene: 'game' as const,
+                  }))
+                : SUGGESTIONS.map((label) => ({
+                    key: label,
+                    label,
+                    prompt: label,
+                    scene: 'marketing' as const,
+                  }))
+              ).map((chip) => (
                 <button
-                  key={s}
+                  key={chip.key}
                   type="button"
-                  onClick={() => onSubmit(s)}
+                  onClick={() => {
+                    if (chip.scene === 'game') {
+                      setDraft(chip.prompt)
+                      requestAnimationFrame(() =>
+                        composerTextareaRef.current?.focus(),
+                      )
+                      return
+                    }
+                    onSubmit(chip.prompt, undefined, chip.scene)
+                  }}
                   className="flex h-[42px] items-center gap-2 rounded-[12px] bg-[#F5F7FA] px-4 text-[14px] leading-5 text-[#090C14] transition-colors hover:bg-[#ECEFF5]"
                 >
-                  {s}
+                  {chip.label}
                   <ArrowUpRight size={12} strokeWidth={2} className="shrink-0 opacity-60" />
                 </button>
               ))}

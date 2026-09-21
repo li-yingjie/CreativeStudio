@@ -14,7 +14,9 @@
 import type { LucideIcon } from '@/shared/icons'
 /* 产物树图标统一走 MasterIcon（与左侧栏菜单同一套字形）。 */
 import { Analytics01LinearIcon } from 'master-icon/react/Analytics01LinearIcon'
+import { AppWindowLinearIcon } from 'master-icon/react/AppWindowLinearIcon'
 import { BotLinearIcon } from 'master-icon/react/BotLinearIcon'
+import { BrowserLinearIcon } from 'master-icon/react/BrowserLinearIcon'
 import { BulbLinearIcon } from 'master-icon/react/BulbLinearIcon'
 import { Database01LinearIcon } from 'master-icon/react/Database01LinearIcon'
 import { EyeOpenLinearIcon } from 'master-icon/react/EyeOpenLinearIcon'
@@ -66,10 +68,36 @@ export const GAMEPLAY_CONFIG_LABEL = '玩法配置'
 export const TRIGGER_CONFIG_LABEL = '触发器配置'
 export const ASSET_LIBRARY_LABEL = '素材库'
 export const DATABASE_LABEL = '数据库'
-export const H5_GAMEPLAY_CONFIG_LABEL = '活动玩法配置'
+export const ACTIVITY_ASSETS_LABEL = '交付物'
+export const FINISHED_PAGES_LABEL = '页面'
+export const H5_GAMEPLAY_CONFIG_LABEL = '玩法配置'
 export const GAME_GAMEPLAY_CONFIG_LABEL = '游戏玩法配置'
+export const GAME_ASSET_LIBRARY_LABEL = '素材库'
+export const GAME_UI_CONFIG_LABEL = '游戏 UI'
+export const GAME_BALANCE_CONFIG_LABEL = '平衡性编辑'
+const TOWER_DEFENSE_PROJECT_NAME = '暮光防线'
 export const INTEREST_CARD_CONFIG_LABEL = '兴趣卡配置'
 export const PROJECT_MEMORY_LABEL = '项目记忆'
+/** 纯设计资产项目没有可运行页面：项目树与顶部 Tab 只展示任务文档和素材库。 */
+export const XINZAI_IP_ASSET_PROJECT = '心仔城市生活季 · IP 素材包'
+export const JINGXIN_LIVESTREAM_ASSET_PROJECT = '静心采耳馆 · 直播间贴片'
+export const LIFE_SERVICE_RESOURCE_POSITION_PROJECT = '生活服务热点 · 资源位周更'
+export const MAGICX_HEADER_ASSET_PROJECT = '城市灵感 · 活动头图提案'
+
+export const ASSET_ONLY_PROJECTS = [
+  '生服热点 Banner',
+  XINZAI_IP_ASSET_PROJECT,
+  JINGXIN_LIVESTREAM_ASSET_PROJECT,
+  LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
+  MAGICX_HEADER_ASSET_PROJECT,
+] as const
+
+export function isAssetOnlyProject(projectName?: string): boolean {
+  return Boolean(
+    projectName &&
+      (ASSET_ONLY_PROJECTS as readonly string[]).includes(projectName),
+  )
+}
 /** AI 分身用自己的一套模块名，与左侧栏入口一字不差（技能库 / 触发器）。 */
 export const AVATAR_SKILL_LABEL = '技能库'
 export const AVATAR_TRIGGER_LABEL = '触发器'
@@ -122,8 +150,10 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   [PAGE_CONFIG_LABEL]: LayoutGrid1LinearIcon,
   // The primary 预览 tab — content varies by kind, one shared icon.
   预览: EyeOpenLinearIcon,
+  [FINISHED_PAGES_LABEL]: AppWindowLinearIcon,
   素材: Image01LinearIcon,
   [ASSET_LIBRARY_LABEL]: Image01LinearIcon,
+  [ACTIVITY_ASSETS_LABEL]: LayoutGrid1LinearIcon,
   代码: FileCodeLinearIcon,
   // 「项目文件」是四级分类里唯一的「文件夹」，不给分类图标 —— 交给
   // FileTreeView 兜底成文件夹图标（展开/收起两态），与内部目录一致。
@@ -131,9 +161,10 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   [INTEREST_CARD_CONFIG_LABEL]: Database01LinearIcon,
   [DATA_CONFIG_LABEL]: Database01LinearIcon,
   玩法: GameController01LinearIcon,
-  [GAMEPLAY_CONFIG_LABEL]: GameController01LinearIcon,
   [H5_GAMEPLAY_CONFIG_LABEL]: Settings01LinearIcon,
   [GAME_GAMEPLAY_CONFIG_LABEL]: Settings01LinearIcon,
+  [GAME_UI_CONFIG_LABEL]: LayoutGrid1LinearIcon,
+  [GAME_BALANCE_CONFIG_LABEL]: Analytics01LinearIcon,
   能力技能: MagicWand01LinearIcon,
   人设: UserSettings01LinearIcon,
   [PERSONA_CONFIG_LABEL]: UserSettings01LinearIcon,
@@ -157,10 +188,26 @@ export const PRODUCT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   // page leaves (children of 界面) are iconed by path in the consumer.
 }
 
+/** 项目交付目录里的叶子不是“文件名”，而是不同运行 Surface / 物料类型。
+ *  统一在这里解析，保证侧栏、顶部 Tab 和下拉目录使用同一套类型图标。 */
+export function getDeliverableIcon(label: string): LucideIcon | undefined {
+  const normalized = label.trim()
+  if (normalized === FINISHED_PAGES_LABEL) return AppWindowLinearIcon
+  if (normalized === '交付总览') return LayoutGrid1LinearIcon
+  if (/^Lynx\b/i.test(normalized) || /^(原生|直播间)\s*·/.test(normalized))
+    return AppWindowLinearIcon
+  if (/^H5\b/i.test(normalized)) return BrowserLinearIcon
+  if (/文档|方案|复盘/.test(normalized)) return FileTextLinearIcon
+  if (/资源位|玩法视觉|节目单|活动战报|开屏|线下屏|商业中心|海报|Banner|长图|横卡|图片|画布/i.test(normalized))
+    return Image01LinearIcon
+  return undefined
+}
+
 /** 关键节点的彩色图标底板。数据库 / 小程序配置 / 记忆跟随统一导航
  *  579-57535；其余业务节点继续使用各自的 Semi light-1 tint。 */
 export const PRODUCT_CATEGORY_BADGES: Record<string, { bg: string; fg: string }> = {
   预览: { bg: '#e0ecff', fg: '#3370ff' },
+  [FINISHED_PAGES_LABEL]: { bg: '#e0ecff', fg: '#3370ff' },
   [PAGE_CONFIG_LABEL]: { bg: '#e0ecff', fg: '#3370ff' },
   界面: { bg: '#e0ecff', fg: '#3370ff' },
   [BASIC_INFO_LABEL]: { bg: '#d9f4f4', fg: '#0e9c9c' },
@@ -181,12 +228,14 @@ export const PRODUCT_CATEGORY_BADGES: Record<string, { bg: string; fg: string }>
   项目文档: { bg: '#e3e6f7', fg: '#4b55bd' },
   素材: { bg: '#fde6f7', fg: '#d939b8' },
   [ASSET_LIBRARY_LABEL]: { bg: '#fde6f7', fg: '#d939b8' },
+  [ACTIVITY_ASSETS_LABEL]: { bg: '#e0ecff', fg: '#3370ff' },
   代码: { bg: '#d1d6f0', fg: '#4b55bd' },
   // 「项目文件」走文件夹图标，不加彩色底板（见 PRODUCT_CATEGORY_ICONS）
   玩法: { bg: '#fde2e2', fg: '#e5484d' },
-  [GAMEPLAY_CONFIG_LABEL]: { bg: '#fde2e2', fg: '#e5484d' },
   [H5_GAMEPLAY_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
   [GAME_GAMEPLAY_CONFIG_LABEL]: { bg: '#dcf5e8', fg: '#18a058' },
+  [GAME_UI_CONFIG_LABEL]: { bg: '#e0ecff', fg: '#3370ff' },
+  [GAME_BALANCE_CONFIG_LABEL]: { bg: '#fdf3ce', fg: '#c29104' },
   智能体: { bg: '#d9f4f4', fg: '#0e9c9c' },
   小程序设置: { bg: '#d0f0d1', fg: '#3eb346' },
   小程序配置: { bg: '#d0f0d1', fg: '#3eb346' },
@@ -255,7 +304,17 @@ function webAppView(tree: FileNode[]): FileNode[] {
 
 /** 游戏 (web-game): 项目文档（含基础信息）/ 素材库 /
  *  游戏玩法配置 / 数据库 / 项目文件. */
-function gameView(tree: FileNode[]): FileNode[] {
+function gameView(tree: FileNode[], projectName?: string): FileNode[] {
+  if (projectName === TOWER_DEFENSE_PROJECT_NAME) {
+    return [
+      { name: FINISHED_PAGES_LABEL, type: 'file' },
+      { name: GAME_GAMEPLAY_CONFIG_LABEL, type: 'file' },
+      { name: GAME_ASSET_LIBRARY_LABEL, type: 'file' },
+      { name: GAME_UI_CONFIG_LABEL, type: 'file' },
+      { name: GAME_BALANCE_CONFIG_LABEL, type: 'file' },
+      { name: '项目文件', type: 'dir', children: tree },
+    ]
+  }
   return [
     { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
     { name: ASSET_LIBRARY_LABEL, type: 'file' },
@@ -298,6 +357,7 @@ function opsProposalView(tree: FileNode[]): FileNode[] {
 export function buildProductView(
   tree: FileNode[],
   kind: ProjectKind,
+  projectName?: string,
 ): FileNode[] {
   switch (kind) {
     case 'mini-program':
@@ -305,17 +365,26 @@ export function buildProductView(
     case 'web-app':
       return webAppView(tree)
     case 'web-game':
-      return gameView(tree)
-    case 'marketing-h5':
-      // H5 活动页: 项目文档（含基础信息）/ 活动玩法配置 /
-      // 素材库 / 数据库 / 项目文件。
+      return gameView(tree, projectName)
+    case 'marketing-h5': {
+      // 项目名进入最终预览；「页面」是页面产物的管理与编辑入口。
+      // 图片、资源位和传播物料继续统一在素材库管理。
+      void tree
+      if (isAssetOnlyProject(projectName)) {
+        return [
+          { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
+          { name: ASSET_LIBRARY_LABEL, type: 'file' },
+        ]
+      }
       return [
+        { name: FINISHED_PAGES_LABEL, type: 'file' },
         { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
         { name: H5_GAMEPLAY_CONFIG_LABEL, type: 'file' },
         { name: ASSET_LIBRARY_LABEL, type: 'file' },
         { name: DATABASE_LABEL, type: 'file' },
         { name: '项目文件', type: 'dir', children: tree },
       ]
+    }
     case 'ai-avatar':
       return aiAvatarView(tree)
     case 'ops-proposal':

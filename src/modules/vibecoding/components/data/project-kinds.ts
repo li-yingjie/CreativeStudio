@@ -1,4 +1,13 @@
-import type { ProjectKind } from '../ProjectProductView'
+import {
+  JINGXIN_LIVESTREAM_ASSET_PROJECT,
+  LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
+  MAGICX_HEADER_ASSET_PROJECT,
+  XINZAI_IP_ASSET_PROJECT,
+  type ProjectKind,
+} from '../ProjectProductView'
+import { QIXI_BRIDGE_PROJECT } from '../QixiBridgeData'
+import { ACG_FROM_DOC_PROJECT } from '../AcgFromDocData'
+import { ACG_REPLICA_PROJECT } from '../AcgReplicaData'
 import { H5_LAB_PROJECT_NAMES } from '../h5-lab/h5-lab-cases'
 
 export type OutputShape = 'app' | 'artifact' | 'code'
@@ -12,9 +21,20 @@ export const PROJECT_KINDS: Record<string, ProjectKind> = {
   '沪上火锅·五一种草提案': 'ops-proposal',
   '抖音 AI 工坊设计探索': 'web-app',
   '射击小游戏': 'web-game',
-  '抖音 ACG 游戏新春会': 'marketing-h5',
+  '暮光防线': 'web-game',
+  [QIXI_BRIDGE_PROJECT]: 'marketing-h5',
+  [ACG_FROM_DOC_PROJECT]: 'marketing-h5',
+  [ACG_REPLICA_PROJECT]: 'marketing-h5',
+  '2026 抖音 ACG 新春会': 'marketing-h5',
+  '2026 抖音春晚': 'marketing-h5',
+  '《永夜星河》独星河小卡': 'marketing-h5',
   '夯爆了 已上线': 'marketing-h5',
   '夏日冲浪 · 顺风顺水': 'marketing-h5',
+  '生服热点 Banner': 'marketing-h5',
+  [XINZAI_IP_ASSET_PROJECT]: 'marketing-h5',
+  [JINGXIN_LIVESTREAM_ASSET_PROJECT]: 'marketing-h5',
+  [LIFE_SERVICE_RESOURCE_POSITION_PROJECT]: 'marketing-h5',
+  [MAGICX_HEADER_ASSET_PROJECT]: 'marketing-h5',
   // h5-reference-lab 的 benchmark 复刻 case —— 都是营销 H5 长页。
   ...Object.fromEntries(
     H5_LAB_PROJECT_NAMES.map((name) => [name, 'marketing-h5' as const]),

@@ -4,6 +4,7 @@ import type { ProjectKind } from './ProjectProductView'
 export function classifyProjectKind(prompt: string): ProjectKind {
   const normalized = prompt.toLowerCase()
   if (/(分身|avatar|persona|chat[-\s]?bot)/i.test(normalized)) return 'ai-avatar'
+  if (/(塔防|割草|tower\s*defen[cs]e|survivor)/i.test(normalized)) return 'web-game'
   if (/(网页\s*游戏|web[-\s]?(game|gaming)|html5\s*游戏|h5\s*游戏|浏览器\s*游戏)/i.test(normalized)) {
     return 'web-game'
   }

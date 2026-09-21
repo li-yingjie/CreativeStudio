@@ -1,0 +1,130 @@
+{
+  "$schema": "creative-studio/resource-position-kit@1",
+  "id": "brand.douyin-life-service-resource-spec",
+  "version": "1.0.0",
+  "status": "needs_theme_token_completion",
+  "source": {
+    "fileName": "【基建】生活服务常见资源位设计规范",
+    "fileKey": "Uj4movjk325cfo1BMorhLe",
+    "rootNode": "85:2772",
+    "verifiedAt": "2026-08-11"
+  },
+  "surfaces": [
+    {
+      "id": "topic-cover",
+      "name": "话题头像 / 话题封面",
+      "family": "topic-page",
+      "logicalSize": { "width": 240, "height": 240, "unit": "px" },
+      "evidence": "verified"
+    },
+    {
+      "id": "topic-background",
+      "name": "话题页背景",
+      "family": "topic-page",
+      "logicalSize": { "width": 375, "height": 210, "unit": "px" },
+      "export": { "scale": 3, "width": 1125, "height": 630, "format": "PNG" },
+      "safeArea": {
+        "topHardOcclusion": { "x": 0, "y": 0, "width": 375, "height": 20 },
+        "gradientOcclusion": { "x": 0, "y": 0, "width": 375, "height": 190, "bottomOffset": 20 },
+        "criticalContentForbiddenIn": ["topHardOcclusion"]
+      },
+      "defaultLogoPolicy": "forbidden_unless_exception_recorded",
+      "evidence": "verified"
+    },
+    {
+      "id": "topic-banner",
+      "name": "话题页 Banner",
+      "family": "topic-page",
+      "logicalSize": { "width": 343, "height": 65, "unit": "px" },
+      "export": { "scale": 3, "width": 1029, "height": 195, "format": "PNG" },
+      "evidence": "verified"
+    },
+    {
+      "id": "creator-activity-card",
+      "name": "创作者活动中心卡片",
+      "family": "creator-activity-center",
+      "logicalSize": { "width": 183, "height": 244, "unit": "px" },
+      "export": { "scale": 3, "width": 549, "height": 732, "format": "PNG" },
+      "variants": ["A/B", "S/SS"],
+      "evidence": "verified"
+    },
+    {
+      "id": "creator-web-banner",
+      "name": "创作者活动专区 Banner · 网页端",
+      "family": "creator-activity-center",
+      "logicalSize": { "width": 916, "height": 74, "unit": "px" },
+      "export": { "scale": 4, "width": 3664, "height": 296, "format": "PNG" },
+      "evidence": "derived_from_source_asset_and_export_scale"
+    }
+  ],
+  "contentRules": {
+    "minimumTextImageGap": { "value": 12, "unit": "px", "severity": "error" },
+    "illustrationMustSupportHeadline": true,
+    "highContrastTextRequired": true,
+    "avoidOverSaturatedHighContrastBackground": true,
+    "backgroundMustHarmonizeWithHostPage": true
+  },
+  "themeTokens": {
+    "text": [
+      "Text/TextPrimary",
+      "Text/TextQuaternary",
+      "Text/ConstTextInverse3_Light",
+      "Text/ConstTextInverse4_Light"
+    ],
+    "background": ["BG/BGPrimary", "BG/BGPanelGray"],
+    "line": ["Line/LineReverse2_Light"],
+    "resolutionPolicy": "must_resolve_in_target_runtime_before_publish"
+  },
+  "typography": {
+    "status": "component_values_pending",
+    "forbiddenFallbacks": [
+      "spec-board-heading-50px",
+      "spec-board-body-18px",
+      "invented-global-font-size"
+    ]
+  },
+  "excludedBoardSizes": [
+    { "width": 1952, "height": 1193 },
+    { "width": 1657, "height": 1193 },
+    { "width": 1067, "height": 1162 },
+    { "width": 1571, "height": 1162 },
+    { "width": 1698, "height": 1162 }
+  ],
+  "validation": [
+    {
+      "code": "CANVAS_SIZE_MISMATCH",
+      "level": "error",
+      "assert": "canvas.width == surface.logicalSize.width && canvas.height == surface.logicalSize.height"
+    },
+    {
+      "code": "EXPORT_SCALE_MISMATCH",
+      "level": "error",
+      "assert": "export.width == logical.width * export.scale && export.height == logical.height * export.scale"
+    },
+    {
+      "code": "TOP_OCCLUSION_COLLISION",
+      "level": "error",
+      "assert": "criticalContent.intersection(topicBackground.safeArea.topHardOcclusion).area == 0"
+    },
+    {
+      "code": "TEXT_IMAGE_GAP_TOO_SMALL",
+      "level": "error",
+      "assert": "distance(text.bounds, illustration.bounds) >= 12"
+    },
+    {
+      "code": "TOPIC_BACKGROUND_LOGO",
+      "level": "warning",
+      "assert": "!logo.present || exception.recorded"
+    },
+    {
+      "code": "UNRESOLVED_THEME_TOKEN",
+      "level": "error",
+      "assert": "all(themeTokens.used, token => runtimeTheme.resolve(token) != null)"
+    },
+    {
+      "code": "SPEC_BOARD_SIZE_LEAK",
+      "level": "error",
+      "assert": "!excludedBoardSizes.includes(canvas.size)"
+    }
+  ]
+}

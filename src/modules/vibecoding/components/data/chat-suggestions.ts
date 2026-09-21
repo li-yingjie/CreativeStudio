@@ -1,4 +1,13 @@
-import type { ProjectKind } from '../ProjectProductView'
+import {
+  JINGXIN_LIVESTREAM_ASSET_PROJECT,
+  LIFE_SERVICE_RESOURCE_POSITION_PROJECT,
+  MAGICX_HEADER_ASSET_PROJECT,
+  XINZAI_IP_ASSET_PROJECT,
+  type ProjectKind,
+} from '../ProjectProductView'
+import { QIXI_BRIDGE_PROJECT } from '../QixiBridgeData'
+import { ACG_FROM_DOC_PROJECT } from '../AcgFromDocData'
+import { ACG_REPLICA_PROJECT } from '../AcgReplicaData'
 
 /** Rotating reply bank for plain (non-trigger) chat messages. Picked by
  *  index so repeated sends still feel varied without needing a real
@@ -67,6 +76,27 @@ export const CHAT_SUGGESTIONS_BY_KIND: Record<ProjectKind, string[]> = {
 
 /** Per-project overrides — finer-grained chips for specific projects. */
 export const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
+  [ACG_REPLICA_PROJECT]: [
+    '对照设计稿检查还原度',
+    '把任务区文案换成正式版',
+    '体验投票和关注反馈',
+    '用 AI 生成版素材替换切片',
+    '查看切片与坐标清单',
+  ],
+  [ACG_FROM_DOC_PROJECT]: [
+    '回放从需求到页面的生成过程',
+    '调整六篇章的顺序和文案',
+    '体验夯 / 拉投票反馈',
+    '编辑晚会许愿模块',
+    '查看三张风格候选图',
+  ],
+  [QIXI_BRIDGE_PROJECT]: [
+    '调整首页的信息层级',
+    '修改找喜鹊的关卡反馈',
+    '核对奖励与机会规则',
+    '预览异常和活动结束状态',
+    '进入视觉方向确认',
+  ],
   '夯爆了 已上线': [
     '补齐卤味和螺蛳粉的彩色卡面',
     '换一版深夜食堂主视觉',
@@ -82,6 +112,54 @@ export const CHAT_SUGGESTIONS_BY_PROJECT: Record<string, string[]> = {
     '加一个每日签到',
   ],
   '射击小游戏': CHAT_SUGGESTIONS_BY_KIND['web-game'],
-  '抖音 ACG 游戏新春会': CHAT_SUGGESTIONS_BY_KIND['marketing-h5'],
+  '2026 抖音 ACG 新春会': [
+    '查看 ActivitySpec 与待确认项',
+    '打开游戏分会场运行态',
+    '检查 10 个资源位适配',
+    '查看资产版本与来源节点',
+    '运行发布前完整校验',
+  ],
+  '2026 抖音春晚': [
+    '打开春晚主会场长页',
+    '查看直播间包装矩阵',
+    '检查横竖方三种节目封面',
+    '定位活动 Banner 的 Figma 节点',
+    '查看全部 17 项交付',
+  ],
+  '《永夜星河》独星河小卡': [
+    '打开抽卡主会场运行态',
+    '查看卡片图鉴与空态',
+    '检查搜索 Banner 双尺寸',
+    '查看不同稀有度卡框',
+    '定位全部 16 项交付',
+  ],
+  [XINZAI_IP_ASSET_PROJECT]: [
+    '检查心仔标准形象与比例',
+    '筛选适合餐饮场景的动作',
+    '核对线下物料品牌标识',
+    '为城市生活季补一组动作',
+    '导出供应商验收清单',
+  ],
+  [JINGXIN_LIVESTREAM_ASSET_PROJECT]: [
+    '预览七层贴片组合效果',
+    '检查透明 PNG 的边缘',
+    '调整套餐权益的可读性',
+    '锁定门店品牌贴片',
+    '按 1374×2437 导出',
+  ],
+  [LIFE_SERVICE_RESOURCE_POSITION_PROJECT]: [
+    '检查 8 张资源位文案',
+    '按语义色路由分组',
+    '验证 1170×330 尺寸',
+    '检查 Logo 与固定装饰',
+    '导出本周正式成图',
+  ],
+  [MAGICX_HEADER_ASSET_PROJECT]: [
+    '比较四种头图构图方向',
+    '筛选适合城市夜游的案例',
+    '标记人物与 IP 授权风险',
+    '整理头图评审说明',
+    '基于选中方向生成新版本',
+  ],
   '沪上火锅·五一种草提案': CHAT_SUGGESTIONS_BY_KIND['ops-proposal'],
 }

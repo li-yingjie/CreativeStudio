@@ -215,6 +215,14 @@ export const DEFAULT_XIAHUA_PARTICIPATION_POLICY: XiahuaParticipationPolicy = {
 }
 
 export interface XiahuaGameplay {
+  /** P0 兼容期的 ActivitySpec 元数据；运行时忽略，Compiler 与编辑器共同维护。 */
+  meta?: {
+    revision: number
+    source: string
+    generatedAt: string
+    generationBasisIds: string[]
+    operatorOwnedPaths: string[]
+  }
   /** 可组合的一级玩法模块与各模块独立参数。旧配置省略时使用默认模块集。 */
   modules?: XiahuaGameplayModules
   prizes?: XiahuaPrizeDef[]
@@ -246,6 +254,19 @@ export interface XiahuaGameplay {
 
 /** 0→1 回放的输入基线：保留策划初稿，后续脚本会逐步调成上线版本。 */
 export const XIAHUA_BUILD_BASELINE_GAMEPLAY: XiahuaGameplay = {
+  meta: {
+    revision: 12,
+    source: '活动策划文档 rev.12',
+    generatedAt: '2026-08-05T10:30:00+08:00',
+    generationBasisIds: [
+      'gameplay.lottery',
+      'brand.douyin-life-service',
+      'style.night-food-3d',
+      'font.douyin-sans',
+      'knowledge.life-service-ugc-campaign',
+    ],
+    operatorOwnedPaths: [],
+  },
   modules: DEFAULT_XIAHUA_GAMEPLAY_MODULES,
   prizes: [
     {
@@ -537,6 +558,17 @@ export function normalizeXiahuaGameplay(
 
   return {
     ...normalizedBase,
+    meta: {
+      revision: gameplay.meta?.revision ?? 12,
+      source: gameplay.meta?.source ?? '活动策划文档 rev.12',
+      generatedAt:
+        gameplay.meta?.generatedAt ?? '2026-08-05T10:30:00+08:00',
+      generationBasisIds:
+        gameplay.meta?.generationBasisIds ??
+        XIAHUA_BUILD_BASELINE_GAMEPLAY.meta?.generationBasisIds ??
+        [],
+      operatorOwnedPaths: gameplay.meta?.operatorOwnedPaths ?? [],
+    },
     modules: {
       ...DEFAULT_XIAHUA_GAMEPLAY_MODULES,
       ...savedModules,

@@ -71,7 +71,7 @@ export function getPublishObjectVisual(
     return {
       type: 'image',
       src: '/assets/acg-new-year/hero.jpg',
-      alt: '抖音 ACG 游戏新春会主视觉',
+      alt: '2026 抖音 ACG 新春会主视觉',
       rounded: 'lg',
     }
   }

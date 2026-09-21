@@ -1,6 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nanoid } from 'nanoid'
-import { toast } from 'sonner'
 import {
   ArrowLeft,
   Trash2,
@@ -15,16 +14,6 @@ import {
   MoreHorizontal,
   Download,
   Upload,
-  Crop,
-  FileInfo,
-  MessageSquarePlus,
-  RefreshCw,
-  Sparkles,
-  Plus,
-  Minus,
-  ImagePlus,
-  Smartphone,
-  Video,
 } from '@/shared/icons'
 import type { AssetGroup } from './GarudaAssetsView'
 
@@ -55,8 +44,6 @@ const PAD_X = 24
 const PAD_Y = 60
 const LABEL_H = 22
 const ROW_GAP = 34
-const MIN_ZOOM = 0.6
-const MAX_ZOOM = 2.4
 
 function buildLayout(
   groups: AssetGroup[],
@@ -84,18 +71,11 @@ function buildLayout(
 export default function ImageCanvasEditor({
   groups,
   onClose,
-  focusSrc,
-  onSync,
 }: {
   groups: AssetGroup[]
   onClose: () => void
-  /** 从页面图片下钻时，进入画布后直接选中并居中这张素材。 */
-  focusSrc?: string
-  /** 把画布里的当前版本写回发起下钻的页面图片槽位。 */
-  onSync?: (src: string) => void
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
-  const uploadRef = useRef<HTMLInputElement>(null)
   const aspectsRef = useRef<Record<string, number>>({})
   const zRef = useRef(0)
 
@@ -104,16 +84,9 @@ export default function ImageCanvasEditor({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const [viewportW, setViewportW] = useState(0)
-  const [zoom, setZoom] = useState(focusSrc ? 1.7 : 1)
-  const zoomRef = useRef(zoom)
-  const focusedSrcRef = useRef<string | null>(null)
   // Scroll offset of the canvas — the floating toolbar is positioned in
   // viewport space, so it must re-anchor when the canvas scrolls.
   const [scroll, setScroll] = useState({ left: 0, top: 0 })
-
-  useLayoutEffect(() => {
-    zoomRef.current = zoom
-  }, [zoom])
 
   useLayoutEffect(() => {
     const element = wrapRef.current
@@ -161,72 +134,11 @@ export default function ImageCanvasEditor({
     }
   }, [groups])
 
-  /* 页面图片下钻不是打开素材总览，而是带着明确目标来编辑。素材尺寸
-     测量完后直接选中目标，并在放大后的画布里把它锚定到视口中心。 */
-  useLayoutEffect(() => {
-    if (!ready || !focusSrc) return
-    if (focusedSrcRef.current === focusSrc) return
-    const target = items.find((item) => item.src === focusSrc)
-    const viewport = wrapRef.current
-    if (!target || !viewport) return
-    focusedSrcRef.current = focusSrc
-    setSelectedId(target.id)
-    const frame = requestAnimationFrame(() => {
-      const insetX = Math.max(
-        0,
-        viewport.clientWidth / (2 * zoom) - (target.x + target.w / 2),
-      )
-      viewport.scrollTo({
-        left: Math.max(
-          0,
-          (target.x + target.w / 2 + insetX) * zoom - viewport.clientWidth / 2,
-        ),
-        top: Math.max(0, (target.y + target.h / 2) * zoom - viewport.clientHeight / 2),
-      })
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [focusSrc, items, ready, zoom])
-
-  // Mac 触控板捏合会以 ctrl+wheel 上报。按手势点缩放并回写 scroll，
-  // 让素材留在指尖下；普通双指滚动继续交给原生画布平移。
-  useEffect(() => {
-    const viewport = wrapRef.current
-    if (!viewport) return
-    const onWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey && !event.metaKey) return
-      event.preventDefault()
-      const currentZoom = zoomRef.current
-      const nextZoom = Math.min(
-        MAX_ZOOM,
-        Math.max(MIN_ZOOM, currentZoom * Math.exp(-event.deltaY / 240)),
-      )
-      if (Math.abs(nextZoom - currentZoom) < 0.001) return
-      const rect = viewport.getBoundingClientRect()
-      const localX = event.clientX - rect.left
-      const localY = event.clientY - rect.top
-      const anchorX = (viewport.scrollLeft + localX) / currentZoom
-      const anchorY = (viewport.scrollTop + localY) / currentZoom
-      zoomRef.current = nextZoom
-      setZoom(nextZoom)
-      requestAnimationFrame(() => {
-        viewport.scrollTo({
-          left: Math.max(0, anchorX * nextZoom - localX),
-          top: Math.max(0, anchorY * nextZoom - localY),
-        })
-      })
-    }
-    viewport.addEventListener('wheel', onWheel, { passive: false })
-    return () => viewport.removeEventListener('wheel', onWheel)
-  }, [ready])
-
   const ptToContent = (clientX: number, clientY: number) => {
     const el = wrapRef.current
     if (!el) return { x: clientX, y: clientY }
     const r = el.getBoundingClientRect()
-    return {
-      x: (clientX - r.left + el.scrollLeft) / zoom - contentOffsetX,
-      y: (clientY - r.top + el.scrollTop) / zoom,
-    }
+    return { x: clientX - r.left + el.scrollLeft, y: clientY - r.top + el.scrollTop }
   }
 
   const bringFront = (id: string) =>
@@ -304,41 +216,6 @@ export default function ImageCanvasEditor({
   }
 
   const selectedItem = selectedId ? items.find((it) => it.id === selectedId) ?? null : null
-  const focusItem = focusSrc ? items.find((item) => item.src === focusSrc) ?? null : null
-  const contentOffsetX =
-    focusItem && viewportW
-      ? Math.max(0, viewportW / (2 * zoom) - (focusItem.x + focusItem.w / 2))
-      : 0
-  const canvasSize = useMemo(() => {
-    const right = Math.max(viewportW / zoom, ...items.map((item) => item.x + item.w), 0)
-    const bottom = Math.max(520, ...items.map((item) => item.y + item.h), 0)
-    return { width: right + PAD_X * 2, height: bottom + PAD_Y }
-  }, [items, viewportW, zoom])
-
-  const uploadSelected = () => uploadRef.current?.click()
-  const replaceSelected = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file || !selectedId) return
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error('图片超过 4MB，请先压缩')
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => {
-      const src = String(reader.result)
-      setItems((prev) => prev.map((item) => (item.id === selectedId ? { ...item, src } : item)))
-      toast('已更新画布中的图片')
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const syncSelected = () => {
-    if (!selectedItem || !onSync) return
-    onSync(selectedItem.src)
-    toast('图片已同步回页面')
-    onClose()
-  }
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--color-surface-0)]">
@@ -380,53 +257,22 @@ export default function ImageCanvasEditor({
 
       {/* Canvas area (relative so the selection toolbar can float over the
           selected image and track it while dragging / scrolling) */}
-      <div className="relative isolate min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1">
         {selectedItem && (
           <SelectionToolbar
-            centerX={(selectedItem.x + selectedItem.w / 2 + contentOffsetX) * zoom - scroll.left}
-            imgTop={selectedItem.y * zoom - scroll.top}
-            imgBottom={(selectedItem.y + selectedItem.h) * zoom - scroll.top}
+            centerX={selectedItem.x + selectedItem.w / 2 - scroll.left}
+            imgTop={selectedItem.y - scroll.top}
+            imgBottom={selectedItem.y + selectedItem.h - scroll.top}
             viewportW={viewportW}
-            onUpload={uploadSelected}
-            onSync={onSync ? syncSelected : undefined}
           />
         )}
-        <CanvasDock />
-        <input
-          ref={uploadRef}
-          type="file"
-          accept="image/*"
-          onChange={replaceSelected}
-          className="hidden"
-        />
-        <div className="pointer-events-none absolute bottom-4 right-4 z-[95] flex items-center rounded-xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] p-1 shadow-[0_10px_28px_-12px_rgba(16,18,24,0.28)]">
-          <button
-            type="button"
-            title="缩小画布"
-            onClick={() => setZoom((value) => Math.max(MIN_ZOOM, Number((value - 0.1).toFixed(1))))}
-            className="pointer-events-auto flex size-7 items-center justify-center rounded-lg text-[var(--color-ink)]/65 hover:bg-[var(--fill-hover)]"
-          >
-            <Minus size={14} strokeWidth={1.8} />
-          </button>
-          <span className="w-12 text-center font-mono text-[10.5px] text-[var(--color-ink)]/65">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            type="button"
-            title="放大画布"
-            onClick={() => setZoom((value) => Math.min(MAX_ZOOM, Number((value + 0.1).toFixed(1))))}
-            className="pointer-events-auto flex size-7 items-center justify-center rounded-lg text-[var(--color-ink)]/65 hover:bg-[var(--fill-hover)]"
-          >
-            <Plus size={14} strokeWidth={1.8} />
-          </button>
-        </div>
         <div
           ref={wrapRef}
           onPointerDown={() => setSelectedId(null)}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onScroll={(e) => setScroll({ left: e.currentTarget.scrollLeft, top: e.currentTarget.scrollTop })}
-          className="absolute inset-0 z-0 overflow-auto"
+          className="absolute inset-0 overflow-auto"
           style={{
             backgroundColor: 'var(--color-surface-0)',
             backgroundImage:
@@ -439,177 +285,54 @@ export default function ImageCanvasEditor({
               正在载入素材…
             </div>
           )}
-          <div
-            style={{
-              width: (canvasSize.width + contentOffsetX) * zoom,
-              height: canvasSize.height * zoom,
-            }}
-          >
-            <div
-              className="absolute top-0"
-              style={{
-                left: contentOffsetX,
-                width: canvasSize.width,
-                height: canvasSize.height,
-                transform: `scale(${zoom})`,
-                transformOrigin: 'top left',
-              }}
+          {/* group labels */}
+          {labels.map((l) => (
+            <span
+              key={`${l.title}-${l.y}`}
+              className="pointer-events-none absolute font-mono text-[11px] font-medium text-[var(--color-ink)]/45"
+              style={{ left: l.x, top: l.y }}
             >
-              {/* group labels */}
-              {labels.map((l) => (
-                <span
-                  key={`${l.title}-${l.y}`}
-                  className="pointer-events-none absolute font-mono text-[11px] font-medium text-[var(--color-ink)]/45"
-                  style={{ left: l.x, top: l.y }}
-                >
-                  {l.title}
-                </span>
-              ))}
-              {/* images */}
-              {items.map((it) => {
-                const active = it.id === selectedId
-                return (
-                  <div
-                    key={it.id}
-                    onPointerDown={startGesture('move', it.id)}
-                    className={`group absolute touch-none select-none rounded-[3px] ${
-                      active ? 'ring-2 ring-[#3478ff]' : 'ring-1 ring-transparent hover:ring-[#3478ff]/40'
-                    }`}
-                    style={{ left: it.x, top: it.y, width: it.w, height: it.h, zIndex: it.z, cursor: 'grab' }}
-                  >
-                    <img
-                      src={it.src}
-                      alt={it.label}
-                      draggable={false}
-                      className="pointer-events-none h-full w-full object-contain"
-                    />
-                    {active && (
-                      <>
-                        <span className="pointer-events-none absolute -top-5 left-0 max-w-full truncate rounded bg-[var(--color-ink)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-ink-contrast)]">
-                          {it.label}
-                        </span>
-                        <span
-                          onPointerDown={startGesture('resize', it.id)}
-                          title="拖拽缩放"
-                          className="absolute -bottom-1 -right-1 flex h-4 w-4 cursor-nwse-resize items-center justify-center rounded-sm bg-[#3478ff] text-white"
-                        >
-                          <Maximize2 size={9} strokeWidth={2.4} />
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+              {l.title}
+            </span>
+          ))}
+          {/* images */}
+          {items.map((it) => {
+            const active = it.id === selectedId
+            return (
+              <div
+                key={it.id}
+                onPointerDown={startGesture('move', it.id)}
+                className={`group absolute touch-none select-none rounded-[3px] ${
+                  active ? 'ring-2 ring-[#3478ff]' : 'ring-1 ring-transparent hover:ring-[#3478ff]/40'
+                }`}
+                style={{ left: it.x, top: it.y, width: it.w, height: it.h, zIndex: it.z, cursor: 'grab' }}
+              >
+                <img
+                  src={it.src}
+                  alt={it.label}
+                  draggable={false}
+                  className="pointer-events-none h-full w-full object-contain"
+                />
+                {active && (
+                  <>
+                    <span className="pointer-events-none absolute -top-5 left-0 max-w-full truncate rounded bg-[var(--color-ink)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-ink-contrast)]">
+                      {it.label}
+                    </span>
+                    <span
+                      onPointerDown={startGesture('resize', it.id)}
+                      title="拖拽缩放"
+                      className="absolute -bottom-1 -right-1 flex h-4 w-4 cursor-nwse-resize items-center justify-center rounded-sm bg-[#3478ff] text-white"
+                    >
+                      <Maximize2 size={9} strokeWidth={2.4} />
+                    </span>
+                  </>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
-  )
-}
-
-/* ─── Canvas-level dock — fixed to the viewport, not the scrolling content ─── */
-
-function CanvasDock() {
-  const [activeTool, setActiveTool] = useState<string | null>(null)
-  const [addOpen, setAddOpen] = useState(false)
-  const uploadTypes = [
-    { icon: <ImagePlus size={16} strokeWidth={1.7} />, label: '上传图片' },
-    { icon: <Video size={16} strokeWidth={1.7} />, label: '上传视频' },
-    { icon: <Box size={16} strokeWidth={1.7} />, label: '上传 3D 模型' },
-  ]
-  const activate = (label: string) => {
-    setActiveTool(label)
-    setAddOpen(false)
-    toast(`${label}（演示）`)
-  }
-
-  return (
-    <div
-      className="pointer-events-none absolute inset-x-0 bottom-4 z-[90] flex justify-center px-4"
-      aria-label="画布工具"
-    >
-      <div
-        className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] p-1.5 shadow-[0_14px_36px_-12px_rgba(16,18,24,0.28)]"
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        <div
-          className="relative"
-          onBlur={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget)) setAddOpen(false)
-          }}
-        >
-          <CanvasDockButton
-            icon={<Plus size={19} strokeWidth={1.7} />}
-            label="素材上传"
-            active={addOpen}
-            expanded={addOpen}
-            onClick={() => setAddOpen((open) => !open)}
-          />
-          {addOpen && (
-            <div className="absolute bottom-full left-1/2 z-[110] mb-2 w-[190px] -translate-x-1/2 overflow-hidden rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] py-1.5 shadow-[0_16px_36px_-10px_rgba(16,18,24,0.28)]">
-              {uploadTypes.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => activate(item.label)}
-                  className="flex h-9 w-full items-center gap-2.5 px-3.5 text-left text-[12.5px] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-                >
-                  <span className="flex size-4 items-center justify-center text-[var(--color-ink)]/55">
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <CanvasDockButton
-          icon={<LayoutGrid size={17} strokeWidth={1.7} />}
-          label="我的素材"
-          active={activeTool === '我的素材'}
-          onClick={() => activate('我的素材')}
-        />
-        <CanvasDockButton
-          icon={<Sparkles size={17} strokeWidth={1.7} />}
-          label="灵感"
-          active={activeTool === '灵感'}
-          onClick={() => activate('灵感')}
-        />
-      </div>
-    </div>
-  )
-}
-
-function CanvasDockButton({
-  icon,
-  label,
-  active,
-  expanded,
-  onClick,
-}: {
-  icon: React.ReactNode
-  label: string
-  active: boolean
-  expanded?: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      aria-pressed={active}
-      aria-expanded={expanded}
-      onClick={onClick}
-      className={`flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors ${
-        active
-          ? 'bg-[var(--fill-medium)] text-[var(--color-ink)]'
-          : 'text-[var(--color-ink)]/65 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
-      }`}
-    >
-      {icon}
-    </button>
   )
 }
 
@@ -620,15 +343,11 @@ function SelectionToolbar({
   imgTop,
   imgBottom,
   viewportW,
-  onUpload,
-  onSync,
 }: {
   centerX: number
   imgTop: number
   imgBottom: number
   viewportW: number
-  onUpload?: () => void
-  onSync?: () => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [w, setW] = useState(0)
@@ -658,9 +377,9 @@ function SelectionToolbar({
       // Keep clicks inside the bar from clearing the selection.
       onPointerDown={(e) => e.stopPropagation()}
       style={{ left, top, transform: above ? 'translate(-50%, -100%)' : 'translate(-50%, 0)' }}
-      className="absolute z-[100] flex w-max max-w-none items-center gap-1 overflow-visible rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]"
+      className="absolute z-20 flex max-w-[calc(100%-24px)] items-center gap-1 overflow-visible rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]"
     >
-      <ImageQuickTools onUpload={onUpload} onSync={onSync} />
+      <ImageQuickTools />
     </div>
   )
 }
@@ -670,34 +389,25 @@ function SelectionToolbar({
 export function ImageQuickTools({
   onCanvasEdit,
   onUpload,
-  onSync,
+  canvasLabel = '画布编辑',
 }: {
   onCanvasEdit?: () => void
   onUpload?: () => void
-  onSync?: () => void
+  canvasLabel?: string
 }) {
   const [moreOpen, setMoreOpen] = useState(false)
-  const runDemoAction = (label: string) => {
-    setMoreOpen(false)
-    toast(`${label}（演示）`)
-  }
   const moreTools = [
+    { icon: <Eraser size={15} strokeWidth={1.7} />, label: '橡皮工具' },
     { icon: <Layers size={15} strokeWidth={1.7} />, label: '编辑元素' },
-    { icon: <Sparkles size={15} strokeWidth={1.7} />, label: '动态视频生成' },
-    { icon: <RefreshCw size={15} strokeWidth={1.7} />, label: '重新生成' },
-    { icon: <Maximize2 size={15} strokeWidth={1.7} />, label: '扩展画面' },
-    { icon: <Crop size={15} strokeWidth={1.7} />, label: '裁剪' },
-    { icon: <Move size={15} strokeWidth={1.7} />, label: '调整视图' },
-    { icon: <Box size={15} strokeWidth={1.7} />, label: '矢量化' },
-    { icon: <MessageSquarePlus size={15} strokeWidth={1.7} />, label: '添加到对话' },
-    { icon: <FileInfo size={15} strokeWidth={1.7} />, label: '素材详情' },
+    { icon: <Type size={15} strokeWidth={1.7} />, label: '编辑文字' },
+    { icon: <Box size={15} strokeWidth={1.7} />, label: '多角度' },
+    { icon: <Move size={15} strokeWidth={1.7} />, label: '移动对象' },
   ]
 
   return (
     <>
-      {onCanvasEdit && (
+      {onCanvasEdit ? (
         <>
-          {/* 与素材页外部入口共用同一枚画布 icon。 */}
           <button
             type="button"
             onClick={onCanvasEdit}
@@ -706,38 +416,19 @@ export function ImageQuickTools({
             <span className="flex h-5 w-5 items-center justify-center text-[var(--color-ink)]/65">
               <LayoutGrid size={13} strokeWidth={1.8} />
             </span>
-            画布编辑
+            {canvasLabel}
           </button>
           <Divider />
         </>
-      )}
+      ) : null}
 
-      {onUpload && <ToolBtn icon={<Upload size={15} strokeWidth={1.7} />} label="上传" onClick={onUpload} />}
-      <ToolBtn icon={<Scissors size={15} strokeWidth={1.7} />} label="去背景" onClick={() => runDemoAction('去背景')} />
-      <ToolBtn icon={<Type size={15} strokeWidth={1.7} />} label="编辑文字" onClick={() => runDemoAction('编辑文字')} />
-      <ToolBtn icon={<Layers size={15} strokeWidth={1.7} />} label="局部编辑" onClick={() => runDemoAction('局部编辑')} />
-      <ToolBtn icon={<HdBadge />} label="高清放大" onClick={() => runDemoAction('高清放大')} />
-      <ToolBtn icon={<Eraser size={15} strokeWidth={1.7} />} label="擦除" onClick={() => runDemoAction('擦除')} />
-
-      {onSync && (
-        <ToolBtn
-          icon={<Smartphone size={15} strokeWidth={1.7} />}
-          label="同步回页面"
-          onClick={onSync}
-        />
-      )}
-
-      <Divider />
-
-      <button
-        type="button"
-        title="下载"
-        aria-label="下载"
-        onClick={() => runDemoAction('下载')}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-      >
-        <Download size={16} strokeWidth={1.7} />
-      </button>
+      <ToolBtn
+        icon={<Upload size={15} strokeWidth={1.7} />}
+        label="上传"
+        onClick={onUpload}
+      />
+      <ToolBtn icon={<HdBadge />} label="放大" />
+      <ToolBtn icon={<Scissors size={15} strokeWidth={1.7} />} label="去背景" />
 
       <div
         className="relative shrink-0"
@@ -751,22 +442,18 @@ export function ImageQuickTools({
           aria-label="更多图片工具"
           aria-expanded={moreOpen}
           onClick={() => setMoreOpen((open) => !open)}
-          className={`relative flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
-            moreOpen
-              ? 'bg-[var(--fill-medium)] text-[var(--color-ink)] hover:bg-[var(--fill-strong)]'
-              : 'text-[var(--color-ink)]/70 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]'
-          }`}
+          className="relative flex h-8 w-8 items-center justify-center rounded-xl text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
         >
           <MoreHorizontal size={16} strokeWidth={1.8} />
         </button>
         {moreOpen && (
-          <div className="absolute right-0 top-full z-[110] mt-2 min-w-[184px] overflow-hidden rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] py-1.5 shadow-[0_16px_36px_-10px_rgba(16,18,24,0.28)]">
+          <div className="absolute right-0 top-full z-50 mt-1 min-w-[132px] overflow-hidden rounded-xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] py-1 shadow-[0_12px_28px_-8px_rgba(16,18,24,0.24)]">
             {moreTools.map((tool) => (
               <button
                 key={tool.label}
                 type="button"
-                onClick={() => runDemoAction(tool.label)}
-                className="flex h-9 w-full items-center gap-2.5 px-3.5 text-left text-[12.5px] text-[var(--color-ink)]/80 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+                onClick={() => setMoreOpen(false)}
+                className="flex h-8 w-full items-center gap-2 px-3 text-left text-[12px] text-[var(--color-ink)]/75 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
               >
                 <span className="flex size-4 items-center justify-center text-[var(--color-ink)]/55">
                   {tool.icon}
@@ -777,6 +464,16 @@ export function ImageQuickTools({
           </div>
         )}
       </div>
+
+      <Divider />
+
+      <button
+        type="button"
+        title="导出"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+      >
+        <Download size={16} strokeWidth={1.7} />
+      </button>
     </>
   )
 }
