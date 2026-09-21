@@ -338,6 +338,369 @@ function SelectField({
   )
 }
 
+/* ── 自动布局：照 Figma 的 Auto layout 面板做 ──
+   不用「主轴分布 / 交叉轴对齐」这种术语，改成 Figma 那套可视化控件：流向图标、
+   3×3 对齐格（点一格同时定下主轴和交叉轴）、带「自动」的间距、W/H 里直接选
+   固定 / 适应 / 填充、内边距默认收成水平 / 垂直两格。 */
+
+type FlowValue = 'normal' | 'vertical' | 'horizontal'
+type AxisValue = 'flex-start' | 'center' | 'flex-end'
+type SizingValue = 'fixed' | 'hug' | 'fill'
+
+function FlowIcon({ kind }: { kind: FlowValue | 'wrap' }) {
+  const stroke = 'currentColor'
+  if (kind === 'normal') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect x="2" y="2.5" width="4.5" height="4.5" rx="1.2" stroke={stroke} strokeWidth="1.3" />
+        <rect x="9.5" y="5.5" width="4.5" height="4.5" rx="1.2" stroke={stroke} strokeWidth="1.3" />
+        <rect x="3.5" y="9.5" width="4.5" height="4.5" rx="1.2" stroke={stroke} strokeWidth="1.3" />
+      </svg>
+    )
+  }
+  if (kind === 'vertical') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect x="2" y="2" width="6" height="4.5" rx="1.2" stroke={stroke} strokeWidth="1.3" />
+        <rect x="2" y="9.5" width="6" height="4.5" rx="1.2" stroke={stroke} strokeWidth="1.3" />
+        <path d="M12 3v9.5m0 0-2-2m2 2 2-2" stroke={stroke} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (kind === 'horizontal') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect x="2" y="2" width="4.5" height="6" rx="1.2" stroke={stroke} strokeWidth="1.3" />
+        <rect x="9.5" y="2" width="4.5" height="6" rx="1.2" stroke={stroke} strokeWidth="1.3" />
+        <path d="M3 12h9.5m0 0-2-2m2 2-2 2" stroke={stroke} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3 4.5h7.5a2.75 2.75 0 0 1 0 5.5H5m0 0 2-2m-2 2 2 2" stroke={stroke} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+/** Figma 的对齐格：3×3，点一格同时定主轴与交叉轴。横向流时列是主轴、行是交叉轴，
+ *  纵向流反过来。间距为「自动」（两端分布）时主轴由间距决定，只剩交叉轴可选，
+ *  这时整条主轴线一起亮。 */
+function AlignmentGrid({
+  flow,
+  justify,
+  align,
+  onChange,
+}: {
+  flow: 'vertical' | 'horizontal'
+  justify: AxisValue | 'space-between' | undefined
+  align: AxisValue | 'stretch' | undefined
+  onChange: (next: { justifyContent?: AxisValue; alignItems: AxisValue }) => void
+}) {
+  const axes: AxisValue[] = ['flex-start', 'center', 'flex-end']
+  const spread = justify === 'space-between'
+  const horizontal = flow === 'horizontal'
+  return (
+    <div
+      role="grid"
+      aria-label="对齐"
+      className="grid h-[76px] w-[76px] shrink-0 grid-cols-3 grid-rows-3 rounded-lg bg-[var(--color-ink)]/[0.04] p-1"
+    >
+      {axes.map((rowAxis) =>
+        axes.map((colAxis) => {
+          // 横向：列=主轴(justify)，行=交叉轴(align)；纵向相反
+          const cellJustify = horizontal ? colAxis : rowAxis
+          const cellAlign = horizontal ? rowAxis : colAxis
+          const active = spread
+            ? align === cellAlign
+            : justify === cellJustify && align === cellAlign
+          return (
+            <button
+              key={`${rowAxis}-${colAxis}`}
+              type="button"
+              role="gridcell"
+              aria-pressed={active}
+              title={spread ? '间距为自动时只调整交叉轴' : undefined}
+              onClick={() =>
+                onChange(
+                  spread
+                    ? { alignItems: cellAlign }
+                    : { justifyContent: cellJustify, alignItems: cellAlign },
+                )
+              }
+              className="group/cell grid place-items-center rounded-[5px] transition-colors hover:bg-[var(--color-ink)]/[0.06]"
+            >
+              {active ? (
+                <AlignBars horizontal={horizontal} align={cellAlign} />
+              ) : (
+                <>
+                  <span className="size-[3px] rounded-full bg-[var(--color-ink)]/28 group-hover/cell:hidden" />
+                  <span className="hidden opacity-40 group-hover/cell:block">
+                    <AlignBars horizontal={horizontal} align={cellAlign} />
+                  </span>
+                </>
+              )}
+            </button>
+          )
+        }),
+      )}
+    </div>
+  )
+}
+
+/** 选中格里那三根条 —— 和 Figma 一样，条的朝向跟流向垂直、贴向交叉轴的对齐边。 */
+function AlignBars({ horizontal, align }: { horizontal: boolean; align: AxisValue }) {
+  const edge =
+    align === 'flex-start' ? 'start' : align === 'center' ? 'center' : 'end'
+  const lengths = [9, 13, 6]
+  return (
+    <span
+      className={`flex gap-[2px] text-[#2f6bff] ${
+        horizontal ? 'h-[13px] flex-row' : 'w-[13px] flex-col'
+      } ${edge === 'start' ? 'items-start' : edge === 'center' ? 'items-center' : 'items-end'}`}
+    >
+      {lengths.map((len, index) => (
+        <span
+          key={index}
+          className="rounded-full bg-current"
+          style={horizontal ? { width: 2, height: len } : { height: 2, width: len }}
+        />
+      ))}
+    </span>
+  )
+}
+
+const SIZING_LABEL: Record<SizingValue, string> = {
+  fixed: '固定',
+  hug: '适应',
+  fill: '填充',
+}
+
+/** W / H 与尺寸策略合在一格里，照 Figma「W 648 Hug」。输数字即切回固定。 */
+function SizeField({
+  axis,
+  value,
+  measured,
+  sizing,
+  sizingOverridden,
+  onValue,
+  onSizing,
+}: {
+  axis: 'W' | 'H'
+  value: number | undefined
+  measured: number | undefined
+  sizing: SizingValue
+  sizingOverridden: boolean
+  onValue: (next: number | undefined) => void
+  onSizing: (next: SizingValue) => void
+}) {
+  const overridden = value !== undefined || sizingOverridden
+  return (
+    <label
+      className={`flex h-9 min-w-0 flex-1 items-center gap-1 rounded-lg border pl-2 transition-colors ${
+        overridden
+          ? 'border-[#2f6bff]/25 bg-[#2f6bff]/[0.045] focus-within:border-[#2f6bff]/60'
+          : 'border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] focus-within:border-[#2f6bff]/60'
+      }`}
+    >
+      <span className="shrink-0 text-[11px] text-[var(--color-ink)]/38">{axis}</span>
+      <input
+        type="number"
+        value={value ?? measured ?? ''}
+        onChange={(event) =>
+          onValue(event.target.value === '' ? undefined : Number(event.target.value))
+        }
+        className={`h-full min-w-0 flex-1 bg-transparent text-[13px] font-medium tabular-nums outline-none ${
+          sizing === 'fixed'
+            ? value !== undefined
+              ? 'text-[#245eea]'
+              : 'text-[var(--color-ink)]'
+            : 'text-[var(--color-ink)]/40'
+        }`}
+      />
+      <select
+        aria-label={axis === 'W' ? '宽度尺寸策略' : '高度尺寸策略'}
+        value={sizing}
+        onChange={(event) => onSizing(event.target.value as SizingValue)}
+        className={`h-full shrink-0 cursor-pointer rounded-r-lg bg-transparent pr-1.5 text-[12px] font-medium outline-none ${
+          sizingOverridden ? 'text-[#245eea]' : 'text-[var(--color-ink)]/70'
+        }`}
+      >
+        {(['fixed', 'hug', 'fill'] as const).map((option) => (
+          <option key={option} value={option}>
+            {SIZING_LABEL[option]}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+/** 间距：数字 +「自动」。自动就是 Figma 的 Auto spacing —— 子项两端分布。 */
+function GapField({
+  gap,
+  measuredGap,
+  auto,
+  onGap,
+  onAuto,
+}: {
+  gap: number | undefined
+  measuredGap: number | undefined
+  auto: boolean
+  onGap: (next: number | undefined) => void
+  onAuto: (next: boolean) => void
+}) {
+  return (
+    <div
+      className={`flex h-9 min-w-0 items-center rounded-lg border pl-2 transition-colors ${
+        auto || gap !== undefined
+          ? 'border-[#2f6bff]/25 bg-[#2f6bff]/[0.045]'
+          : 'border-[var(--color-ink)]/10 bg-[var(--color-surface-0)]'
+      }`}
+    >
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" className="shrink-0 text-[var(--color-ink)]/40">
+        <path d="M3 2.5c-1 1.2-1 7.8 0 9M11 2.5c1 1.2 1 7.8 0 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        <circle cx="7" cy="7" r="1" fill="currentColor" />
+      </svg>
+      {auto ? (
+        <button
+          type="button"
+          onClick={() => onAuto(false)}
+          title="改回固定间距"
+          className="h-full min-w-0 flex-1 px-1.5 text-left text-[13px] font-medium text-[#245eea]"
+        >
+          自动
+        </button>
+      ) : (
+        <input
+          type="number"
+          aria-label="间距"
+          value={gap ?? measuredGap ?? ''}
+          onChange={(event) =>
+            onGap(event.target.value === '' ? undefined : Number(event.target.value))
+          }
+          className={`h-full min-w-0 flex-1 bg-transparent px-1.5 text-[13px] font-medium tabular-nums outline-none ${
+            gap !== undefined ? 'text-[#245eea]' : 'text-[var(--color-ink)]'
+          }`}
+        />
+      )}
+      <select
+        aria-label="间距模式"
+        value={auto ? 'auto' : 'fixed'}
+        onChange={(event) => onAuto(event.target.value === 'auto')}
+        className="h-full w-6 shrink-0 cursor-pointer appearance-none rounded-r-lg border-l border-[var(--color-ink)]/8 bg-transparent text-center text-[11px] text-[var(--color-ink)]/50 outline-none"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2.5 4 5 6.5 7.5 4' stroke='%23000' stroke-opacity='.45' stroke-width='1.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
+          color: 'transparent',
+        }}
+      >
+        <option value="fixed">固定间距</option>
+        <option value="auto">自动（两端分布）</option>
+      </select>
+    </div>
+  )
+}
+
+/** 内边距：默认收成「水平 / 垂直」两格，展开后是上右下左四格。四边不对称时
+ *  自动展开，免得收起态显示一个误导的值。 */
+function PaddingFields({
+  top,
+  right,
+  bottom,
+  left,
+  measured,
+  onChange,
+}: {
+  top: number | undefined
+  right: number | undefined
+  bottom: number | undefined
+  left: number | undefined
+  measured: { top?: number; right?: number; bottom?: number; left?: number }
+  onChange: (patch: {
+    paddingTop?: number
+    paddingRight?: number
+    paddingBottom?: number
+    paddingLeft?: number
+  }) => void
+}) {
+  const t = top ?? measured.top
+  const r = right ?? measured.right
+  const b = bottom ?? measured.bottom
+  const l = left ?? measured.left
+  const asymmetric = t !== b || l !== r
+  const [expandedPick, setExpandedPick] = useState(false)
+  const expanded = expandedPick || asymmetric
+  const hIcon = (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <rect x="1.5" y="2" width="11" height="10" rx="2" stroke="currentColor" strokeWidth="1.1" />
+      <path d="M4 5v4M10 5v4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  )
+  const vIcon = (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <rect x="1.5" y="2" width="11" height="10" rx="2" stroke="currentColor" strokeWidth="1.1" />
+      <path d="M5 4.5h4M5 9.5h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  )
+  return (
+    <div className="flex items-start gap-1.5">
+      {expanded ? (
+        <div className="grid min-w-0 flex-1 grid-cols-2 gap-1.5">
+          <NumField value={top} placeholder={measured.top} prefix="上" onChange={(next) => onChange({ paddingTop: next })} />
+          <NumField value={right} placeholder={measured.right} prefix="右" onChange={(next) => onChange({ paddingRight: next })} />
+          <NumField value={bottom} placeholder={measured.bottom} prefix="下" onChange={(next) => onChange({ paddingBottom: next })} />
+          <NumField value={left} placeholder={measured.left} prefix="左" onChange={(next) => onChange({ paddingLeft: next })} />
+        </div>
+      ) : (
+        <div className="flex min-w-0 flex-1 gap-1.5">
+          <label className={`flex h-9 min-w-0 flex-1 items-center gap-1.5 rounded-lg border px-2 ${left !== undefined ? 'border-[#2f6bff]/25 bg-[#2f6bff]/[0.045]' : 'border-[var(--color-ink)]/10 bg-[var(--color-surface-0)]'}`}>
+            <span className="shrink-0 text-[var(--color-ink)]/40" title="水平内边距">{hIcon}</span>
+            <input
+              type="number"
+              aria-label="水平内边距"
+              value={l ?? ''}
+              onChange={(event) => {
+                const next = event.target.value === '' ? undefined : Number(event.target.value)
+                onChange({ paddingLeft: next, paddingRight: next })
+              }}
+              className={`h-full min-w-0 flex-1 bg-transparent text-[13px] font-medium tabular-nums outline-none ${left !== undefined ? 'text-[#245eea]' : 'text-[var(--color-ink)]'}`}
+            />
+          </label>
+          <label className={`flex h-9 min-w-0 flex-1 items-center gap-1.5 rounded-lg border px-2 ${top !== undefined ? 'border-[#2f6bff]/25 bg-[#2f6bff]/[0.045]' : 'border-[var(--color-ink)]/10 bg-[var(--color-surface-0)]'}`}>
+            <span className="shrink-0 text-[var(--color-ink)]/40" title="垂直内边距">{vIcon}</span>
+            <input
+              type="number"
+              aria-label="垂直内边距"
+              value={t ?? ''}
+              onChange={(event) => {
+                const next = event.target.value === '' ? undefined : Number(event.target.value)
+                onChange({ paddingTop: next, paddingBottom: next })
+              }}
+              className={`h-full min-w-0 flex-1 bg-transparent text-[13px] font-medium tabular-nums outline-none ${top !== undefined ? 'text-[#245eea]' : 'text-[var(--color-ink)]'}`}
+            />
+          </label>
+        </div>
+      )}
+      <button
+        type="button"
+        aria-pressed={expanded}
+        disabled={asymmetric}
+        title={asymmetric ? '四边不对称时保持展开' : expanded ? '收起为水平 / 垂直' : '分别设置四边'}
+        onClick={() => setExpandedPick((value) => !value)}
+        className="grid size-9 shrink-0 place-items-center rounded-lg text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] disabled:cursor-default disabled:opacity-40 aria-pressed:bg-[var(--color-ink)]/[0.06] aria-pressed:text-[var(--color-ink)]/80"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <rect x="1.5" y="1.5" width="11" height="11" rx="2.5" stroke="currentColor" strokeWidth="1.1" />
+          <rect x="4.5" y="4.5" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.1" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
 /* ── 图层行 ── */
 
 const KIND_ICON: Record<H5LabSelection['kind'], typeof TypeIcon> = {
@@ -676,6 +1039,31 @@ export default function H5LabEditPanel({
   const autoLayoutEnabled =
     canAutoLayout && layoutOverride !== undefined && layoutOverride !== 'normal'
   const effectiveLayoutMode = autoLayoutEnabled ? layoutOverride : 'normal'
+  const currentFlow: 'normal' | 'vertical' | 'horizontal' = !autoLayoutEnabled
+    ? 'normal'
+    : effectiveLayoutMode === 'vertical'
+      ? 'vertical'
+      : 'horizontal'
+  const wrapOn = effectiveLayoutMode === 'wrap'
+  /* 从「自由」切进纵向 / 横向时，把它现在的对齐和间距播种进覆盖 —— 页面本来就是
+     flex 的元素这一下外观不会跳。已开启时只换方向，换行状态跟着保留。 */
+  const setFlow = (next: 'normal' | 'vertical' | 'horizontal') => {
+    if (next === 'normal') {
+      patchStyle({ layoutMode: 'normal' })
+      return
+    }
+    if (!autoLayoutEnabled) {
+      patchStyle({
+        layoutMode: next,
+        justifyContent: style.justifyContent ?? m?.justifyContent,
+        alignItems:
+          style.alignItems ?? (m?.alignItems === 'stretch' ? 'flex-start' : m?.alignItems),
+        gap: style.gap ?? m?.gap,
+      })
+      return
+    }
+    patchStyle({ layoutMode: next === 'horizontal' && wrapOn ? 'wrap' : next })
+  }
   const activeStateLabel =
     labCase.states.find((item) => item.id === selection?.stateId)?.label ??
     labCase.states[0]?.label ??
@@ -1471,168 +1859,141 @@ export default function H5LabEditPanel({
                 <Group title="自动布局" icon={LayoutTemplate}>
                   {canAutoLayout ? (
                     <>
-                      <ToggleRow
-                        label="启用自动布局"
-                        checked={autoLayoutEnabled}
-                        onChange={(checked) =>
-                          patchStyle(
-                            checked
-                              ? {
-                                  // 播种成它现在的样子，开启这一下不改变外观
-                                  layoutMode:
-                                    m?.layoutMode && m.layoutMode !== 'normal'
-                                      ? m.layoutMode
-                                      : 'vertical',
-                                  justifyContent:
-                                    style.justifyContent ?? m?.justifyContent,
-                                  alignItems: style.alignItems ?? m?.alignItems,
-                                }
-                              : { layoutMode: 'normal' },
-                          )
-                        }
-                      />
-                      <div className={autoLayoutEnabled ? '' : 'pointer-events-none opacity-35'}>
-                        <Row label="流向">
-                          <div className="grid grid-cols-3 gap-1.5">
+                      {/* 流向：第一个「自由」就是不开自动布局，和 Figma UI3 一致，
+                          不再单独放一个开关。换行只对横向有意义。 */}
+                      <Row label="流向">
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex flex-1 rounded-lg bg-[var(--color-ink)]/[0.045] p-0.5">
                             {(
                               [
-                                ['vertical', '纵向', '↓'],
-                                ['horizontal', '横向', '→'],
-                                ['wrap', '自动换行', '↪'],
+                                ['normal', '自由（不启用自动布局）'],
+                                ['vertical', '纵向'],
+                                ['horizontal', '横向'],
                               ] as const
-                            ).map(([value, label, glyph]) => (
+                            ).map(([value, label]) => (
                               <button
                                 key={value}
                                 type="button"
+                                title={label}
                                 aria-label={label}
-                                aria-pressed={effectiveLayoutMode === value}
-                                onClick={() => patchStyle({ layoutMode: value })}
-                                className="flex h-9 items-center justify-center gap-1 rounded-lg border border-[var(--color-ink)]/10 text-[11px] text-[var(--color-ink)]/58 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:border-[#2f6bff]/25 aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
+                                aria-pressed={currentFlow === value}
+                                onClick={() => setFlow(value)}
+                                className="grid h-8 flex-1 place-items-center rounded-md text-[var(--color-ink)]/48 transition-colors hover:text-[var(--color-ink)]/80 aria-pressed:bg-[var(--color-surface-0)] aria-pressed:text-[var(--color-ink)] aria-pressed:shadow-[0_1px_2px_rgba(16,18,24,0.10)]"
                               >
-                                <span className="text-[14px] leading-none">{glyph}</span>
-                                {label}
+                                <FlowIcon kind={value} />
                               </button>
                             ))}
                           </div>
-                        </Row>
-                        <Row label="尺寸策略">
-                          <div className="flex gap-1.5">
-                            <SelectField
-                              value={style.widthSizing ?? m?.widthSizing ?? 'fixed'}
-                              hasOverride={style.widthSizing !== undefined}
-                              ariaLabel="宽度尺寸策略"
-                              onChange={(next) =>
-                                patchStyle({ widthSizing: next as 'fixed' | 'fill' | 'hug' })
-                              }
-                            >
-                              <option value="fixed">宽 · 固定</option>
-                              <option value="fill">宽 · 填充</option>
-                              <option value="hug">宽 · 适应内容</option>
-                            </SelectField>
-                            <SelectField
-                              value={style.heightSizing ?? m?.heightSizing ?? 'fixed'}
-                              hasOverride={style.heightSizing !== undefined}
-                              ariaLabel="高度尺寸策略"
-                              onChange={(next) =>
-                                patchStyle({ heightSizing: next as 'fixed' | 'fill' | 'hug' })
-                              }
-                            >
-                              <option value="fixed">高 · 固定</option>
-                              <option value="fill">高 · 填充</option>
-                              <option value="hug">高 · 适应内容</option>
-                            </SelectField>
-                          </div>
-                        </Row>
-                        <Row label="主轴分布">
-                          <div className="grid grid-cols-4 gap-1">
-                            {(
-                              [
-                                ['flex-start', '起点'],
-                                ['center', '居中'],
-                                ['flex-end', '终点'],
-                                ['space-between', '两端'],
-                              ] as const
-                            ).map(([value, label]) => (
-                              <button
-                                key={value}
-                                type="button"
-                                aria-pressed={autoLayoutEnabled && style.justifyContent === value}
-                                onClick={() => patchStyle({ justifyContent: value })}
-                                className="h-8 rounded-md border border-[var(--color-ink)]/10 text-[10.5px] text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:border-[#2f6bff]/25 aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
-                              >
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                        </Row>
-                        <Row label="交叉轴对齐">
-                          <div className="grid grid-cols-4 gap-1">
-                            {(
-                              [
-                                ['flex-start', '起点'],
-                                ['center', '居中'],
-                                ['flex-end', '终点'],
-                                ['stretch', '拉伸'],
-                              ] as const
-                            ).map(([value, label]) => (
-                              <button
-                                key={value}
-                                type="button"
-                                aria-pressed={autoLayoutEnabled && style.alignItems === value}
-                                onClick={() => patchStyle({ alignItems: value })}
-                                className="h-8 rounded-md border border-[var(--color-ink)]/10 text-[10.5px] text-[var(--color-ink)]/55 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:border-[#2f6bff]/25 aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
-                              >
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                        </Row>
-                        <Row label="子项间距">
-                          <NumField
-                            value={style.gap}
-                            placeholder={m?.gap}
-                            unit="px"
-                            onChange={(next) => patchStyle({ gap: next })}
+                          <button
+                            type="button"
+                            title={currentFlow === 'horizontal' ? '自动换行' : '仅横向流可换行'}
+                            aria-label="自动换行"
+                            aria-pressed={wrapOn}
+                            disabled={currentFlow !== 'horizontal'}
+                            onClick={() =>
+                              patchStyle({ layoutMode: wrapOn ? 'horizontal' : 'wrap' })
+                            }
+                            className="grid size-9 shrink-0 place-items-center rounded-lg text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] disabled:cursor-not-allowed disabled:opacity-30 aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
+                          >
+                            <FlowIcon kind="wrap" />
+                          </button>
+                        </div>
+                      </Row>
+
+                      <Row label="尺寸">
+                        <div className="flex gap-1.5">
+                          <SizeField
+                            axis="W"
+                            value={style.width}
+                            measured={m?.width}
+                            sizing={style.widthSizing ?? m?.widthSizing ?? 'fixed'}
+                            sizingOverridden={style.widthSizing !== undefined}
+                            onValue={(next) =>
+                              patchStyle(
+                                next === undefined
+                                  ? { width: undefined }
+                                  : { width: next, widthSizing: 'fixed' },
+                              )
+                            }
+                            onSizing={(next) => patchStyle({ widthSizing: next })}
                           />
-                        </Row>
-                        <Row label="内边距">
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <NumField
-                              value={style.paddingTop}
-                              placeholder={m?.paddingTop}
-                              prefix="上"
-                              unit="px"
-                              onChange={(next) => patchStyle({ paddingTop: next })}
-                            />
-                            <NumField
-                              value={style.paddingRight}
-                              placeholder={m?.paddingRight}
-                              prefix="右"
-                              unit="px"
-                              onChange={(next) => patchStyle({ paddingRight: next })}
-                            />
-                            <NumField
-                              value={style.paddingBottom}
-                              placeholder={m?.paddingBottom}
-                              prefix="下"
-                              unit="px"
-                              onChange={(next) => patchStyle({ paddingBottom: next })}
-                            />
-                            <NumField
-                              value={style.paddingLeft}
-                              placeholder={m?.paddingLeft}
-                              prefix="左"
-                              unit="px"
-                              onChange={(next) => patchStyle({ paddingLeft: next })}
-                            />
+                          <SizeField
+                            axis="H"
+                            value={style.height}
+                            measured={m?.height}
+                            sizing={style.heightSizing ?? m?.heightSizing ?? 'fixed'}
+                            sizingOverridden={style.heightSizing !== undefined}
+                            onValue={(next) =>
+                              patchStyle(
+                                next === undefined
+                                  ? { height: undefined }
+                                  : { height: next, heightSizing: 'fixed' },
+                              )
+                            }
+                            onSizing={(next) => patchStyle({ heightSizing: next })}
+                          />
+                        </div>
+                      </Row>
+
+                      {autoLayoutEnabled && (
+                        <>
+                          <div className="mb-3 flex gap-3">
+                            <div>
+                              <div className="mb-1.5 text-[12px] font-medium text-[var(--color-ink)]/58">
+                                对齐
+                              </div>
+                              <AlignmentGrid
+                                flow={currentFlow === 'vertical' ? 'vertical' : 'horizontal'}
+                                justify={style.justifyContent}
+                                align={style.alignItems}
+                                onChange={(next) => patchStyle(next)}
+                              />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="mb-1.5 text-[12px] font-medium text-[var(--color-ink)]/58">
+                                间距
+                              </div>
+                              <GapField
+                                gap={style.gap}
+                                measuredGap={m?.gap}
+                                auto={style.justifyContent === 'space-between'}
+                                onGap={(next) => patchStyle({ gap: next })}
+                                onAuto={(next) =>
+                                  patchStyle({
+                                    justifyContent: next ? 'space-between' : 'flex-start',
+                                  })
+                                }
+                              />
+                            </div>
                           </div>
-                        </Row>
-                        <ToggleRow
-                          label="裁切超出内容"
+
+                          <Row label="内边距">
+                            <PaddingFields
+                              top={style.paddingTop}
+                              right={style.paddingRight}
+                              bottom={style.paddingBottom}
+                              left={style.paddingLeft}
+                              measured={{
+                                top: m?.paddingTop,
+                                right: m?.paddingRight,
+                                bottom: m?.paddingBottom,
+                                left: m?.paddingLeft,
+                              }}
+                              onChange={(patch) => patchStyle(patch)}
+                            />
+                          </Row>
+                        </>
+                      )}
+
+                      <label className="flex h-9 cursor-pointer items-center gap-2 text-[12px] font-medium text-[var(--color-ink)]/72">
+                        <input
+                          type="checkbox"
                           checked={style.clipContent ?? m?.clipContent ?? false}
-                          onChange={(checked) => patchStyle({ clipContent: checked })}
+                          onChange={(event) => patchStyle({ clipContent: event.target.checked })}
+                          className="size-4 cursor-pointer rounded accent-[#2f6bff]"
                         />
-                      </div>
+                        裁切超出内容
+                      </label>
                     </>
                   ) : (
                     <div className="rounded-lg border border-dashed border-[var(--color-ink)]/12 bg-[var(--color-ink)]/[0.025] p-3">
@@ -1684,6 +2045,7 @@ export default function H5LabEditPanel({
                       onChange={(next) => patchStyle({ rotate: next })}
                     />
                   </Row>
+                  {!canAutoLayout && (
                   <Row label="尺寸">
                     <div className="flex gap-1.5">
                       <NumField
@@ -1702,6 +2064,7 @@ export default function H5LabEditPanel({
                       />
                     </div>
                   </Row>
+                  )}
                   <Row label="内边距">
                     <div className="flex gap-1.5">
                       <NumField
