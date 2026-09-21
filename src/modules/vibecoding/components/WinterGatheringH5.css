@@ -5,8 +5,9 @@
 .wgh-shell button { font-family: inherit; cursor: pointer; }
 .wgh-page { position: relative; width: min(100%, 430px); margin: 0 auto; overflow: hidden; color: var(--deep); background: #fffefa; font-size: 12px; }
 .wgh-page::before { position: absolute; inset: 0; content: ""; pointer-events: none; opacity: .15; background-image: repeating-linear-gradient(0deg, rgba(69,151,188,.15) 0 1px, transparent 1px 4px); }
-.wgh-nav { position: absolute; z-index: 8; top: 0; right: 0; left: 0; display: grid; height: 46px; grid-template-columns: 40px 1fr 40px; align-items: center; padding: 5px 10px 0; color: #fff; }
-.wgh-nav button { display: grid; width: 32px; height: 32px; place-items: center; padding: 0; color: #fff; border: 0; background: transparent; }
+.wgh-nav { position: absolute; z-index: 8; top: 0; right: 0; left: 0; display: grid; height: 54px; grid-template-columns: 40px 1fr 40px; align-items: center; padding: 10px 12px 0; color: #fff; }
+.wgh-nav button { display: grid; width: 34px; height: 34px; place-items: center; padding: 0; color: #fff; border: 0; border-radius: 50%; background: rgba(31, 34, 40, .3); box-shadow: 0 1px 4px rgba(0, 0, 0, .08); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: background-color .16s ease; }
+.wgh-nav button:hover { background: rgba(31, 34, 40, .45); }
 .wgh-nav button:last-child { justify-self: end; }
 .wgh-nav strong { font-family: "STKaiti", "Kaiti SC", serif; font-size: 15px; text-align: center; letter-spacing: .12em; text-shadow: 0 1px rgba(0,75,170,.3); }
 .wgh-hero { position: relative; height: 558px; overflow: hidden; background: #08a5ee; }

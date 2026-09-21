@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Share2 } from '@/shared/icons'
+import { ChevronLeft, Share2 } from '@/shared/icons'
 import {
   H5LayoutEditorChrome,
   H5LayoutSelectionOverlay,
@@ -105,9 +105,9 @@ function WinterGatheringH5({
     <div className={`wgh-shell${embedded ? ' is-embedded' : ''}${editor.enabled ? ' is-editing' : ''}`}>
       <main ref={editor.pageRef} className="wgh-page" onPointerDownCapture={editor.onCanvasPointerDownCapture}>
         <nav className="wgh-nav" aria-label="页面导航">
-          <button type="button" aria-label="返回"><ArrowLeft size={18} /></button>
+          <button type="button" aria-label="返回"><ChevronLeft size={20} strokeWidth={2.5} /></button>
           <span aria-hidden="true" />
-          <button type="button" aria-label="分享" onClick={sharePage}><Share2 size={18} /></button>
+          <button type="button" aria-label="分享" onClick={sharePage}><Share2 size={18} strokeWidth={2.3} /></button>
         </nav>
 
         <header className="wgh-hero">

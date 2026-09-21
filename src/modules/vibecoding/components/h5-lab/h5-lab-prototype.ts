@@ -1,4 +1,9 @@
-import { h5LabLabelOf, h5LabPathOf } from './h5-lab-overrides'
+import {
+  h5LabLabelOf,
+  h5LabPathOf,
+  type H5LabGroup,
+} from './h5-lab-overrides'
+import type { H5LabDesign } from './h5-lab-cases'
 
 /* ─── 原型交互层 ───
  *
@@ -18,6 +23,7 @@ export interface H5LabHotspot {
 }
 
 const HOTSPOT_SELECTOR = 'button, a[href], [role="button"], input[type="submit"]'
+const PLATFORM_CONTROL_LABEL = /^(返回|分享)$/
 
 /** 盘出一帧里的可交互热点。 */
 export function findH5LabHotspots(root: HTMLElement): H5LabHotspot[] {
@@ -28,8 +34,11 @@ export function findH5LabHotspots(root: HTMLElement): H5LabHotspot[] {
     if (el.offsetParent === null && el.getClientRects().length === 0) continue
     const path = h5LabPathOf(root, el)
     if (!path || seen.has(path)) continue
+    // 返回 / 分享属于端内能力，不进入业务热点补屏流程。
+    const label = h5LabLabelOf(el)
+    if (PLATFORM_CONTROL_LABEL.test(label)) continue
     seen.add(path)
-    out.push({ path, label: h5LabLabelOf(el), tag: el.tagName.toLowerCase() })
+    out.push({ path, label, tag: el.tagName.toLowerCase() })
   }
   return out
 }
@@ -96,13 +105,77 @@ export interface H5LabLink {
   transition: H5LabTransition
 }
 
+export interface H5LabPageSettings {
+  shareButton: boolean
+  backButton: boolean
+  swipeBack: boolean
+  shareTitle: string
+  shareDescription: string
+  /** 空字符串表示始终跟随当前头图。 */
+  shareImage: string
+  /** 整页设计系统相对 case 原稿的改动；空对象就是原稿。 */
+  design: Partial<H5LabDesign>
+  /** 当前风格名（预设 / 随机），只做面板展示。 */
+  designName: string
+}
+
+export const DEFAULT_H5_LAB_PAGE_SETTINGS: H5LabPageSettings = {
+  shareButton: true,
+  backButton: true,
+  swipeBack: true,
+  shareTitle: '',
+  shareDescription: '',
+  shareImage: '',
+  design: {},
+  designName: '',
+}
+
 export interface H5LabPrototype {
   screens: H5LabScreen[]
   /** `${stateId}||${path}` → 连接。 */
   links: Record<string, H5LabLink>
+  /** case id → 端内导航与分享配置。 */
+  settings: Record<string, Partial<H5LabPageSettings>>
+  /** 设计师在画布里创建的 Figma 式编组。 */
+  groups: H5LabGroup[]
 }
 
-export const emptyH5LabPrototype = (): H5LabPrototype => ({ screens: [], links: {} })
+export const emptyH5LabPrototype = (): H5LabPrototype => ({
+  screens: [],
+  links: {},
+  settings: {},
+  groups: [],
+})
+
+export function h5LabPageSettings(
+  prototype: H5LabPrototype,
+  caseId: string,
+): H5LabPageSettings {
+  return {
+    ...DEFAULT_H5_LAB_PAGE_SETTINGS,
+    ...(prototype.settings[caseId] ?? {}),
+  }
+}
+
+/** 把端内返回 / 分享的显隐同步到 benchmark 页面自带的按钮。 */
+export function applyH5LabPageSettings(
+  root: HTMLElement,
+  settings: H5LabPageSettings,
+) {
+  for (const el of Array.from(root.querySelectorAll(HOTSPOT_SELECTOR))) {
+    if (!(el instanceof HTMLElement)) continue
+    const label = h5LabLabelOf(el)
+    const visible =
+      label === '返回'
+        ? settings.backButton
+        : label === '分享'
+          ? settings.shareButton
+          : null
+    if (visible === null) continue
+    el.toggleAttribute('hidden', !visible)
+    el.setAttribute('data-h5-platform-control', label)
+  }
+}
 
 export function linkKey(stateId: string, path: string) {
   return `${stateId}||${path}`
@@ -171,6 +244,17 @@ export function h5LabPrototypeDiffCount(
   for (const key of new Set([...a.keys(), ...b.keys()])) {
     if (JSON.stringify(a.get(key)) !== JSON.stringify(b.get(key))) count += 1
   }
+  if (
+    JSON.stringify(h5LabPageSettings(draft, caseId)) !==
+    JSON.stringify(h5LabPageSettings(committed, caseId))
+  ) {
+    count += 1
+  }
+  const ownGroups = (p: H5LabPrototype) =>
+    (p.groups ?? []).filter((group) => group.caseId === caseId)
+  if (JSON.stringify(ownGroups(draft)) !== JSON.stringify(ownGroups(committed))) {
+    count += 1
+  }
   return count
 }
 
@@ -186,6 +270,9 @@ export function loadH5LabPrototype(): H5LabPrototype {
     return {
       screens: Array.isArray(parsed.screens) ? parsed.screens : [],
       links: parsed.links && typeof parsed.links === 'object' ? parsed.links : {},
+      settings:
+        parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : {},
+      groups: Array.isArray(parsed.groups) ? parsed.groups : [],
     }
   } catch {
     return emptyH5LabPrototype()

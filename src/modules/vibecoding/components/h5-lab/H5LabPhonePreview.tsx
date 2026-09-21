@@ -1,17 +1,32 @@
 import {
   Suspense,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { ArrowLeft } from '@/shared/icons'
 import type { H5LabCase } from './h5-lab-cases'
 import { buildH5LabFrames } from './H5LabFrames'
-import { applyH5LabBoard, h5LabCss, h5LabPathOf, type H5LabOverrides } from './h5-lab-overrides'
-import { linkKey, type H5LabLink, type H5LabPrototype } from './h5-lab-prototype'
+import {
+  applyH5LabBoard,
+  applyH5LabGroups,
+  h5LabCss,
+  h5LabPathOf,
+  type H5LabOverrides,
+} from './h5-lab-overrides'
+import {
+  applyH5LabPageSettings,
+  h5LabPageSettings,
+  linkKey,
+  type H5LabLink,
+  type H5LabPrototype,
+} from './h5-lab-prototype'
 import { useHostTitle } from './useHostTitle'
+import { h5LabDesignCss, h5LabMergeDesign, markH5LabDesign } from './h5-lab-design'
 
 /* 非编辑态的 case 预览 —— 真机框里的一块可滚长页，页面自身的交互照常可用。
    补过交互的热点会按连接关系跳到目标帧，多屏就咬合成可点触原型；顶上的
@@ -39,20 +54,48 @@ export default function H5LabPhonePreview({
   const [backStack, setBackStack] = useState<string[]>([])
   const [transition, setTransition] = useState<string>('')
   const frameRef = useRef<HTMLDivElement>(null)
+  const swipeRef = useRef<{ x: number; y: number } | null>(null)
+  const pageSettings = useMemo(
+    () => h5LabPageSettings(prototype, labCase.id),
+    [labCase.id, prototype],
+  )
+  const design = useMemo(
+    () => h5LabMergeDesign(labCase.design, pageSettings.design),
+    [labCase.design, pageSettings.design],
+  )
   const frames = useMemo(
-    () => buildH5LabFrames(labCase, prototype.screens),
-    [labCase, prototype.screens],
+    () => buildH5LabFrames(labCase, prototype.screens, design),
+    [design, labCase, prototype.screens],
   )
   const frame = frames.find((item) => item.id === frameId) ?? frames[0]
-  const css = useMemo(() => h5LabCss(overrides), [overrides])
+  const css = useMemo(
+    () => `${h5LabDesignCss(labCase.design, design)}\n${h5LabCss(overrides)}`,
+    [design, labCase.design, overrides],
+  )
 
   useHostTitle()
 
   useLayoutEffect(() => {
     const root = frameRef.current
     if (!root || !frame) return
+    applyH5LabGroups(
+      root,
+      (prototype.groups ?? []).filter((group) => group.stateId === frame.id),
+    )
     applyH5LabBoard(root, overrides[frame.id] ?? {})
-  }, [frame, overrides, previewKey])
+    applyH5LabPageSettings(root, pageSettings)
+  }, [frame, overrides, pageSettings, previewKey, prototype.groups])
+
+  /* 页面是 lazy 组件，挂上来晚于 layout effect；新节点进来时补打设计系统角色。 */
+  useEffect(() => {
+    const root = frameRef.current
+    if (!root || !frame || frame.generated) return
+    const mark = () => markH5LabDesign(root, labCase.design)
+    mark()
+    const observer = new MutationObserver(mark)
+    observer.observe(root, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [frame, labCase.design, previewKey])
 
   /* 点到补过交互的热点就跳帧 —— 这是把静态多屏拼成可点触原型的那一下。 */
   const onClickCapture = (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -91,6 +134,20 @@ export default function H5LabPhonePreview({
     setTransition('fade')
   }
 
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!pageSettings.swipeBack || backStack.length === 0) return
+    swipeRef.current = { x: event.clientX, y: event.clientY }
+  }
+
+  const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = swipeRef.current
+    swipeRef.current = null
+    if (!start || !pageSettings.swipeBack || backStack.length === 0) return
+    const dx = event.clientX - start.x
+    const dy = Math.abs(event.clientY - start.y)
+    if (dx > 64 && dx > dy * 1.4) goBack()
+  }
+
   if (!frame) return null
 
   return (
@@ -98,7 +155,7 @@ export default function H5LabPhonePreview({
       <style>{`[data-h5-frame]{contain:layout paint;}\n${css}`}</style>
       {/* 帧切换已经在外层工具栏的选择器上，机身里不再重复一排 chip；
           只有跳帧之后留一颗返回，原型点进去还能退出来。 */}
-      {backStack.length > 0 && (
+      {pageSettings.backButton && backStack.length > 0 && (
         <button
           type="button"
           onClick={goBack}
@@ -112,6 +169,11 @@ export default function H5LabPhonePreview({
         ref={frameRef}
         data-h5-frame={frame.id}
         onClickCapture={onClickCapture}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => {
+          swipeRef.current = null
+        }}
         className={`thin-scroll min-h-0 flex-1 overflow-y-auto ${
           transition === 'slide'
             ? 'animate-[h5lab-slide_.22s_ease-out]'

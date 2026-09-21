@@ -1,6 +1,7 @@
 import {
   h5LabKindOf,
   h5LabLabelOf,
+  h5LabGroupPath,
   h5LabPathOf,
   type H5LabSelection,
 } from './h5-lab-overrides'
@@ -46,7 +47,10 @@ export function buildH5LabLayers(root: HTMLElement, maxDepth = 8): H5LabLayer[] 
     Array.from(el.children).flatMap((child): H5LabLayer[] => {
       if (!(child instanceof HTMLElement) && !(child instanceof SVGElement)) return []
       if (!visible(child)) return []
-      const path = h5LabPathOf(root, child as HTMLElement)
+      const groupId = child.getAttribute('data-h5-group')
+      const path = groupId
+        ? h5LabGroupPath(groupId)
+        : h5LabPathOf(root, child as HTMLElement)
       if (!path) return []
       const tag = child.tagName.toLowerCase()
       return [
@@ -66,6 +70,7 @@ export function buildH5LabLayers(root: HTMLElement, maxDepth = 8): H5LabLayer[] 
 
 /** 选中路径上的每一级 —— 面包屑和 Full structure 的自动展开都用它。 */
 export function h5LabAncestors(path: string): string[] {
+  if (path.startsWith('@group:')) return [path]
   const parts = path.split('>')
   return parts.map((_, index) => parts.slice(0, index + 1).join('>'))
 }

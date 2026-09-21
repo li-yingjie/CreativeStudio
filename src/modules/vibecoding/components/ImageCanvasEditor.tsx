@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { nanoid } from 'nanoid'
 import { toast } from 'sonner'
 import {
@@ -21,7 +21,9 @@ import {
   RefreshCw,
   Sparkles,
   Plus,
+  Minus,
   ImagePlus,
+  Smartphone,
   Video,
 } from '@/shared/icons'
 import type { AssetGroup } from './GarudaAssetsView'
@@ -53,6 +55,8 @@ const PAD_X = 24
 const PAD_Y = 60
 const LABEL_H = 22
 const ROW_GAP = 34
+const MIN_ZOOM = 0.6
+const MAX_ZOOM = 2.4
 
 function buildLayout(
   groups: AssetGroup[],
@@ -80,11 +84,18 @@ function buildLayout(
 export default function ImageCanvasEditor({
   groups,
   onClose,
+  focusSrc,
+  onSync,
 }: {
   groups: AssetGroup[]
   onClose: () => void
+  /** 从页面图片下钻时，进入画布后直接选中并居中这张素材。 */
+  focusSrc?: string
+  /** 把画布里的当前版本写回发起下钻的页面图片槽位。 */
+  onSync?: (src: string) => void
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
+  const uploadRef = useRef<HTMLInputElement>(null)
   const aspectsRef = useRef<Record<string, number>>({})
   const zRef = useRef(0)
 
@@ -93,9 +104,16 @@ export default function ImageCanvasEditor({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const [viewportW, setViewportW] = useState(0)
+  const [zoom, setZoom] = useState(focusSrc ? 1.7 : 1)
+  const zoomRef = useRef(zoom)
+  const focusedSrcRef = useRef<string | null>(null)
   // Scroll offset of the canvas — the floating toolbar is positioned in
   // viewport space, so it must re-anchor when the canvas scrolls.
   const [scroll, setScroll] = useState({ left: 0, top: 0 })
+
+  useLayoutEffect(() => {
+    zoomRef.current = zoom
+  }, [zoom])
 
   useLayoutEffect(() => {
     const element = wrapRef.current
@@ -143,11 +161,72 @@ export default function ImageCanvasEditor({
     }
   }, [groups])
 
+  /* 页面图片下钻不是打开素材总览，而是带着明确目标来编辑。素材尺寸
+     测量完后直接选中目标，并在放大后的画布里把它锚定到视口中心。 */
+  useLayoutEffect(() => {
+    if (!ready || !focusSrc) return
+    if (focusedSrcRef.current === focusSrc) return
+    const target = items.find((item) => item.src === focusSrc)
+    const viewport = wrapRef.current
+    if (!target || !viewport) return
+    focusedSrcRef.current = focusSrc
+    setSelectedId(target.id)
+    const frame = requestAnimationFrame(() => {
+      const insetX = Math.max(
+        0,
+        viewport.clientWidth / (2 * zoom) - (target.x + target.w / 2),
+      )
+      viewport.scrollTo({
+        left: Math.max(
+          0,
+          (target.x + target.w / 2 + insetX) * zoom - viewport.clientWidth / 2,
+        ),
+        top: Math.max(0, (target.y + target.h / 2) * zoom - viewport.clientHeight / 2),
+      })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [focusSrc, items, ready, zoom])
+
+  // Mac 触控板捏合会以 ctrl+wheel 上报。按手势点缩放并回写 scroll，
+  // 让素材留在指尖下；普通双指滚动继续交给原生画布平移。
+  useEffect(() => {
+    const viewport = wrapRef.current
+    if (!viewport) return
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return
+      event.preventDefault()
+      const currentZoom = zoomRef.current
+      const nextZoom = Math.min(
+        MAX_ZOOM,
+        Math.max(MIN_ZOOM, currentZoom * Math.exp(-event.deltaY / 240)),
+      )
+      if (Math.abs(nextZoom - currentZoom) < 0.001) return
+      const rect = viewport.getBoundingClientRect()
+      const localX = event.clientX - rect.left
+      const localY = event.clientY - rect.top
+      const anchorX = (viewport.scrollLeft + localX) / currentZoom
+      const anchorY = (viewport.scrollTop + localY) / currentZoom
+      zoomRef.current = nextZoom
+      setZoom(nextZoom)
+      requestAnimationFrame(() => {
+        viewport.scrollTo({
+          left: Math.max(0, anchorX * nextZoom - localX),
+          top: Math.max(0, anchorY * nextZoom - localY),
+        })
+      })
+    }
+    viewport.addEventListener('wheel', onWheel, { passive: false })
+    return () => viewport.removeEventListener('wheel', onWheel)
+  }, [ready])
+
   const ptToContent = (clientX: number, clientY: number) => {
     const el = wrapRef.current
     if (!el) return { x: clientX, y: clientY }
     const r = el.getBoundingClientRect()
-    return { x: clientX - r.left + el.scrollLeft, y: clientY - r.top + el.scrollTop }
+    return {
+      x: (clientX - r.left + el.scrollLeft) / zoom - contentOffsetX,
+      y: (clientY - r.top + el.scrollTop) / zoom,
+    }
   }
 
   const bringFront = (id: string) =>
@@ -225,6 +304,41 @@ export default function ImageCanvasEditor({
   }
 
   const selectedItem = selectedId ? items.find((it) => it.id === selectedId) ?? null : null
+  const focusItem = focusSrc ? items.find((item) => item.src === focusSrc) ?? null : null
+  const contentOffsetX =
+    focusItem && viewportW
+      ? Math.max(0, viewportW / (2 * zoom) - (focusItem.x + focusItem.w / 2))
+      : 0
+  const canvasSize = useMemo(() => {
+    const right = Math.max(viewportW / zoom, ...items.map((item) => item.x + item.w), 0)
+    const bottom = Math.max(520, ...items.map((item) => item.y + item.h), 0)
+    return { width: right + PAD_X * 2, height: bottom + PAD_Y }
+  }, [items, viewportW, zoom])
+
+  const uploadSelected = () => uploadRef.current?.click()
+  const replaceSelected = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !selectedId) return
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error('图片超过 4MB，请先压缩')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const src = String(reader.result)
+      setItems((prev) => prev.map((item) => (item.id === selectedId ? { ...item, src } : item)))
+      toast('已更新画布中的图片')
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const syncSelected = () => {
+    if (!selectedItem || !onSync) return
+    onSync(selectedItem.src)
+    toast('图片已同步回页面')
+    onClose()
+  }
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--color-surface-0)]">
@@ -269,13 +383,43 @@ export default function ImageCanvasEditor({
       <div className="relative isolate min-h-0 flex-1">
         {selectedItem && (
           <SelectionToolbar
-            centerX={selectedItem.x + selectedItem.w / 2 - scroll.left}
-            imgTop={selectedItem.y - scroll.top}
-            imgBottom={selectedItem.y + selectedItem.h - scroll.top}
+            centerX={(selectedItem.x + selectedItem.w / 2 + contentOffsetX) * zoom - scroll.left}
+            imgTop={selectedItem.y * zoom - scroll.top}
+            imgBottom={(selectedItem.y + selectedItem.h) * zoom - scroll.top}
             viewportW={viewportW}
+            onUpload={uploadSelected}
+            onSync={onSync ? syncSelected : undefined}
           />
         )}
         <CanvasDock />
+        <input
+          ref={uploadRef}
+          type="file"
+          accept="image/*"
+          onChange={replaceSelected}
+          className="hidden"
+        />
+        <div className="pointer-events-none absolute bottom-4 right-4 z-[95] flex items-center rounded-xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] p-1 shadow-[0_10px_28px_-12px_rgba(16,18,24,0.28)]">
+          <button
+            type="button"
+            title="缩小画布"
+            onClick={() => setZoom((value) => Math.max(MIN_ZOOM, Number((value - 0.1).toFixed(1))))}
+            className="pointer-events-auto flex size-7 items-center justify-center rounded-lg text-[var(--color-ink)]/65 hover:bg-[var(--fill-hover)]"
+          >
+            <Minus size={14} strokeWidth={1.8} />
+          </button>
+          <span className="w-12 text-center font-mono text-[10.5px] text-[var(--color-ink)]/65">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            title="放大画布"
+            onClick={() => setZoom((value) => Math.min(MAX_ZOOM, Number((value + 0.1).toFixed(1))))}
+            className="pointer-events-auto flex size-7 items-center justify-center rounded-lg text-[var(--color-ink)]/65 hover:bg-[var(--fill-hover)]"
+          >
+            <Plus size={14} strokeWidth={1.8} />
+          </button>
+        </div>
         <div
           ref={wrapRef}
           onPointerDown={() => setSelectedId(null)}
@@ -295,51 +439,69 @@ export default function ImageCanvasEditor({
               正在载入素材…
             </div>
           )}
-          {/* group labels */}
-          {labels.map((l) => (
-            <span
-              key={`${l.title}-${l.y}`}
-              className="pointer-events-none absolute font-mono text-[11px] font-medium text-[var(--color-ink)]/45"
-              style={{ left: l.x, top: l.y }}
+          <div
+            style={{
+              width: (canvasSize.width + contentOffsetX) * zoom,
+              height: canvasSize.height * zoom,
+            }}
+          >
+            <div
+              className="absolute top-0"
+              style={{
+                left: contentOffsetX,
+                width: canvasSize.width,
+                height: canvasSize.height,
+                transform: `scale(${zoom})`,
+                transformOrigin: 'top left',
+              }}
             >
-              {l.title}
-            </span>
-          ))}
-          {/* images */}
-          {items.map((it) => {
-            const active = it.id === selectedId
-            return (
-              <div
-                key={it.id}
-                onPointerDown={startGesture('move', it.id)}
-                className={`group absolute touch-none select-none rounded-[3px] ${
-                  active ? 'ring-2 ring-[#3478ff]' : 'ring-1 ring-transparent hover:ring-[#3478ff]/40'
-                }`}
-                style={{ left: it.x, top: it.y, width: it.w, height: it.h, zIndex: it.z, cursor: 'grab' }}
-              >
-                <img
-                  src={it.src}
-                  alt={it.label}
-                  draggable={false}
-                  className="pointer-events-none h-full w-full object-contain"
-                />
-                {active && (
-                  <>
-                    <span className="pointer-events-none absolute -top-5 left-0 max-w-full truncate rounded bg-[var(--color-ink)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-ink-contrast)]">
-                      {it.label}
-                    </span>
-                    <span
-                      onPointerDown={startGesture('resize', it.id)}
-                      title="拖拽缩放"
-                      className="absolute -bottom-1 -right-1 flex h-4 w-4 cursor-nwse-resize items-center justify-center rounded-sm bg-[#3478ff] text-white"
-                    >
-                      <Maximize2 size={9} strokeWidth={2.4} />
-                    </span>
-                  </>
-                )}
-              </div>
-            )
-          })}
+              {/* group labels */}
+              {labels.map((l) => (
+                <span
+                  key={`${l.title}-${l.y}`}
+                  className="pointer-events-none absolute font-mono text-[11px] font-medium text-[var(--color-ink)]/45"
+                  style={{ left: l.x, top: l.y }}
+                >
+                  {l.title}
+                </span>
+              ))}
+              {/* images */}
+              {items.map((it) => {
+                const active = it.id === selectedId
+                return (
+                  <div
+                    key={it.id}
+                    onPointerDown={startGesture('move', it.id)}
+                    className={`group absolute touch-none select-none rounded-[3px] ${
+                      active ? 'ring-2 ring-[#3478ff]' : 'ring-1 ring-transparent hover:ring-[#3478ff]/40'
+                    }`}
+                    style={{ left: it.x, top: it.y, width: it.w, height: it.h, zIndex: it.z, cursor: 'grab' }}
+                  >
+                    <img
+                      src={it.src}
+                      alt={it.label}
+                      draggable={false}
+                      className="pointer-events-none h-full w-full object-contain"
+                    />
+                    {active && (
+                      <>
+                        <span className="pointer-events-none absolute -top-5 left-0 max-w-full truncate rounded bg-[var(--color-ink)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-ink-contrast)]">
+                          {it.label}
+                        </span>
+                        <span
+                          onPointerDown={startGesture('resize', it.id)}
+                          title="拖拽缩放"
+                          className="absolute -bottom-1 -right-1 flex h-4 w-4 cursor-nwse-resize items-center justify-center rounded-sm bg-[#3478ff] text-white"
+                        >
+                          <Maximize2 size={9} strokeWidth={2.4} />
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -458,11 +620,15 @@ function SelectionToolbar({
   imgTop,
   imgBottom,
   viewportW,
+  onUpload,
+  onSync,
 }: {
   centerX: number
   imgTop: number
   imgBottom: number
   viewportW: number
+  onUpload?: () => void
+  onSync?: () => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [w, setW] = useState(0)
@@ -494,7 +660,7 @@ function SelectionToolbar({
       style={{ left, top, transform: above ? 'translate(-50%, -100%)' : 'translate(-50%, 0)' }}
       className="absolute z-[100] flex w-max max-w-none items-center gap-1 overflow-visible rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]"
     >
-      <ImageQuickTools />
+      <ImageQuickTools onUpload={onUpload} onSync={onSync} />
     </div>
   )
 }
@@ -504,9 +670,11 @@ function SelectionToolbar({
 export function ImageQuickTools({
   onCanvasEdit,
   onUpload,
+  onSync,
 }: {
   onCanvasEdit?: () => void
   onUpload?: () => void
+  onSync?: () => void
 }) {
   const [moreOpen, setMoreOpen] = useState(false)
   const runDemoAction = (label: string) => {
@@ -550,6 +718,14 @@ export function ImageQuickTools({
       <ToolBtn icon={<Layers size={15} strokeWidth={1.7} />} label="局部编辑" onClick={() => runDemoAction('局部编辑')} />
       <ToolBtn icon={<HdBadge />} label="高清放大" onClick={() => runDemoAction('高清放大')} />
       <ToolBtn icon={<Eraser size={15} strokeWidth={1.7} />} label="擦除" onClick={() => runDemoAction('擦除')} />
+
+      {onSync && (
+        <ToolBtn
+          icon={<Smartphone size={15} strokeWidth={1.7} />}
+          label="同步回页面"
+          onClick={onSync}
+        />
+      )}
 
       <Divider />
 

@@ -12,8 +12,28 @@ export interface H5LabHistoryOptions {
   group?: string
 }
 
+export interface H5LabHistoryVersion {
+  id: string
+  label: string
+  createdAt: number
+  snapshot: H5LabHistorySnapshot
+}
+
 const HISTORY_LIMIT = 80
 const GROUP_IDLE_MS = 750
+const HISTORY_BOOT_TIME = Date.now()
+
+function historyLabel(group?: string) {
+  if (!group) return '画布编辑'
+  if (group.startsWith('content|')) return '编辑内容'
+  if (group.startsWith('style|')) return '调整样式'
+  if (group.startsWith('link|')) return '配置页面交互'
+  if (group.startsWith('group|')) return '创建元素编组'
+  if (group.startsWith('ungroup|')) return '取消元素编组'
+  if (group.startsWith('slot-')) return '同步状态帧'
+  if (/move|drag|resize|layout|position/.test(group)) return '调整位置与布局'
+  return '自动保存'
+}
 
 /** H5 画布草稿历史。覆盖和原型必须放在同一张快照里，否则补屏 +
  * 连线或跨帧覆盖会被拆成不可预期的半步撤销。 */
@@ -21,9 +41,16 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
   const [current, setCurrent] = useState(initial)
   const [undoStack, setUndoStack] = useState<H5LabHistorySnapshot[]>([])
   const [redoStack, setRedoStack] = useState<H5LabHistorySnapshot[]>([])
+  const [versions, setVersions] = useState<H5LabHistoryVersion[]>([])
+  const [currentMeta, setCurrentMeta] = useState({
+    label: '当前版本',
+    createdAt: HISTORY_BOOT_TIME,
+  })
   const currentRef = useRef(current)
   const undoRef = useRef(undoStack)
   const redoRef = useRef(redoStack)
+  const versionsRef = useRef(versions)
+  const versionSequenceRef = useRef(0)
   const groupRef = useRef<{ key: string; touchedAt: number } | null>(null)
 
   const syncUndo = useCallback((next: H5LabHistorySnapshot[]) => {
@@ -37,6 +64,10 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
   const syncCurrent = useCallback((next: H5LabHistorySnapshot) => {
     currentRef.current = next
     setCurrent(next)
+  }, [])
+  const syncVersions = useCallback((next: H5LabHistoryVersion[]) => {
+    versionsRef.current = next
+    setVersions(next)
   }, [])
 
   const commit = useCallback(
@@ -57,8 +88,26 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
       groupRef.current = group ? { key: group, touchedAt: now } : null
       syncRedo([])
       syncCurrent(next)
+      const createdAt = Date.now()
+      const label = historyLabel(group)
+      if (coalesced && versionsRef.current.length > 0) {
+        const previous = versionsRef.current.at(-1)!
+        syncVersions([
+          ...versionsRef.current.slice(0, -1),
+          { ...previous, label, createdAt, snapshot: next },
+        ])
+      } else {
+        const version: H5LabHistoryVersion = {
+          id: `canvas-${createdAt.toString(36)}-${(versionSequenceRef.current++).toString(36)}`,
+          label,
+          createdAt,
+          snapshot: next,
+        }
+        syncVersions([...versionsRef.current, version].slice(-HISTORY_LIMIT))
+      }
+      setCurrentMeta({ label, createdAt })
     },
-    [syncCurrent, syncRedo, syncUndo],
+    [syncCurrent, syncRedo, syncUndo, syncVersions],
   )
 
   const setOverrides = useCallback(
@@ -82,6 +131,7 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
     syncRedo([before, ...redoRef.current].slice(0, HISTORY_LIMIT))
     groupRef.current = null
     syncCurrent(target)
+    setCurrentMeta({ label: '撤销修改', createdAt: Date.now() })
   }, [syncCurrent, syncRedo, syncUndo])
 
   const redo = useCallback(() => {
@@ -92,6 +142,7 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
     syncUndo([...undoRef.current, before].slice(-HISTORY_LIMIT))
     groupRef.current = null
     syncCurrent(target)
+    setCurrentMeta({ label: '重做修改', createdAt: Date.now() })
   }, [syncCurrent, syncRedo, syncUndo])
 
   const clear = useCallback(() => {
@@ -104,8 +155,24 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
     (next: H5LabHistorySnapshot) => {
       clear()
       syncCurrent(next)
+      syncVersions([])
+      setCurrentMeta({ label: '当前版本', createdAt: Date.now() })
     },
-    [clear, syncCurrent],
+    [clear, syncCurrent, syncVersions],
+  )
+
+  const restoreVersion = useCallback(
+    (id: string) => {
+      const version = versionsRef.current.find((item) => item.id === id)
+      if (!version) return
+      const before = currentRef.current
+      syncUndo([...undoRef.current, before].slice(-HISTORY_LIMIT))
+      syncRedo([])
+      groupRef.current = null
+      syncCurrent(version.snapshot)
+      setCurrentMeta({ label: `恢复：${version.label}`, createdAt: Date.now() })
+    },
+    [syncCurrent, syncRedo, syncUndo],
   )
 
   return {
@@ -117,6 +184,9 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
     redo,
     clear,
     replace,
+    restoreVersion,
+    versions,
+    currentVersion: currentMeta,
     canUndo: undoStack.length > 0,
     canRedo: redoStack.length > 0,
   }
