@@ -69,8 +69,9 @@ export default function H5LabPhonePreview({
   )
   const frame = frames.find((item) => item.id === frameId) ?? frames[0]
   const css = useMemo(
-    () => `${h5LabDesignCss(labCase.design, design)}\n${h5LabCss(overrides)}`,
-    [design, labCase.design, overrides],
+    () =>
+      `${h5LabDesignCss(labCase.design, design, pageSettings.designTintImages)}\n${h5LabCss(overrides)}`,
+    [design, labCase.design, overrides, pageSettings.designTintImages],
   )
 
   useHostTitle()

@@ -14,15 +14,23 @@ import {
   Palette,
   Plus,
   RotateCcw,
-  Ruler,
   Lock,
+  Ruler,
+  Wand2,
   Sparkles,
   Trash2,
   Type as TypeIcon,
   Upload,
   X,
 } from '@/shared/icons'
-import type { H5LabCase } from './h5-lab-cases'
+import type { H5LabCase, H5LabDesign } from './h5-lab-cases'
+import {
+  H5_LAB_COLOR_TOKENS,
+  H5_LAB_DESIGN_PRESETS,
+  H5_LAB_FONTS,
+  h5LabMergeDesign,
+  randomH5LabDesign,
+} from './h5-lab-design'
 import {
   h5LabAncestors,
   h5LabElementView,
@@ -114,14 +122,16 @@ function Group({
   title,
   icon: Icon,
   children,
+  defaultOpen = true,
 }: {
   title: string
   icon: typeof Eye
   children: ReactNode
+  defaultOpen?: boolean
 }) {
   return (
     <section className="border-t border-[var(--divider-soft)] first:border-t-0">
-      <details open className="group/panel-section">
+      <details open={defaultOpen} className="group/panel-section">
         <summary className="flex h-11 cursor-pointer list-none items-center gap-2 px-4 text-[13px] font-semibold text-[var(--color-ink)]/82 transition-colors hover:bg-[var(--fill-hover)] [&::-webkit-details-marker]:hidden">
           <Icon size={13} strokeWidth={1.8} className="text-[var(--color-ink)]/48" />
           <span>{title}</span>
@@ -884,6 +894,324 @@ function FullStructure({
   return <div className="-mx-1">{render(layers, 0)}</div>
 }
 
+/* ── 整页设计系统 ──
+   没选中元素时设计档展示的内容：当前页面的配色 / 字体 / 圆角 token，外加一排
+   风格预设和随机生成，点一下整页（含补出来的屏）立即换装，不满意撤销或还原。 */
+
+// 一句话描述风格时的关键词 → 预设；认不出来就随机一套。
+const STYLE_KEYWORDS: [RegExp, string][] = [
+  [/粉|樱|少女|可爱|甜|情人/, 'sakura'],
+  [/绿|森|自然|露营|户外|春/, 'forest'],
+  [/赛博|霓虹|夜|科技|游戏|潮|暗/, 'neon'],
+  [/红|春节|新年|年货|喜庆|国潮|金/, 'festive'],
+  [/黑白|极简|高级|克制|品牌|发布/, 'mono'],
+  [/橙|橘|夏|汽水|活力|清爽/, 'citrus'],
+]
+
+function DesignSystemSection({
+  base,
+  design,
+  designName,
+  tintImages,
+  onTintImages,
+  onChange,
+}: {
+  base: H5LabDesign
+  design: H5LabDesign
+  designName: string
+  tintImages: boolean
+  onTintImages: (next: boolean) => void
+  /** `step` 为 true 时单独占一步撤销（换整套风格），否则按 token 合并。 */
+  onChange: (patch: Partial<H5LabDesign>, name: string, step?: boolean) => void
+}) {
+  const [prompt, setPrompt] = useState('')
+  const changed = (Object.keys(base) as (keyof H5LabDesign)[]).some(
+    (key) => design[key] !== base[key],
+  )
+  const setToken = (key: keyof H5LabDesign, value: string | number) =>
+    onChange({ [key]: value }, '自定义')
+  const applyPreset = (id: string) => {
+    const preset = H5_LAB_DESIGN_PRESETS.find((item) => item.id === id)
+    if (!preset) return
+    onChange(preset.design, preset.name, true)
+    toast(`已换成「${preset.name}」风格`)
+  }
+  const shuffle = () => {
+    onChange(randomH5LabDesign(base), '随机风格', true)
+    toast('已随机生成一套风格，不满意再点一次')
+  }
+  const generateFromPrompt = () => {
+    const text = prompt.trim()
+    if (!text) return
+    const hit = STYLE_KEYWORDS.find(([pattern]) => pattern.test(text))
+    const preset = hit && H5_LAB_DESIGN_PRESETS.find((item) => item.id === hit[1])
+    onChange(preset ? preset.design : randomH5LabDesign(base), text.slice(0, 12), true)
+    toast(`已按「${text}」生成新风格`)
+    setPrompt('')
+  }
+
+  return (
+    <>
+      <section className="px-4 py-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Palette size={13} strokeWidth={1.8} className="text-[var(--color-ink)]/45" />
+          <span className="text-[13px] font-semibold text-[var(--color-ink)]/82">设计系统</span>
+          <span
+            className={`ml-auto truncate rounded-full px-2 py-0.5 text-[10.5px] ${
+              changed
+                ? 'bg-[#2f6bff]/10 text-[#2f6bff]'
+                : 'bg-[var(--color-ink)]/[0.05] text-[var(--color-ink)]/45'
+            }`}
+          >
+            {changed ? designName || '自定义' : '原稿'}
+          </span>
+        </div>
+
+        {/* 风格小样：底色 + 卡片 + 主按钮，一眼看出这套 token 长什么样。 */}
+        <div
+          className="mb-4 overflow-hidden rounded-xl border border-[var(--color-ink)]/8 p-3"
+          style={{ background: design.pageBg }}
+        >
+          <div
+            className="p-3"
+            style={{
+              background: design.paper,
+              border: `1px solid ${design.border}`,
+              borderRadius: Math.min(design.radiusLg, 20),
+            }}
+          >
+            <div
+              className="text-[15px] font-bold leading-tight"
+              style={{ color: design.paperInk, fontFamily: design.displayFont }}
+            >
+              {'标题 Aa'}
+            </div>
+            <div
+              className="mt-1 text-[11px]"
+              style={{ color: design.paperMuted, fontFamily: design.bodyFont }}
+            >
+              {'正文辅助说明文字'}
+            </div>
+            <div className="mt-2.5 flex items-center justify-between">
+              <span className="text-[11px]" style={{ color: design.pageMuted }}>
+                {'时间 | 12.20'}
+              </span>
+              <span
+                className="px-3 py-1 text-[11px] font-semibold"
+                style={{
+                  background: design.accent,
+                  color: design.accentInk,
+                  borderRadius: Math.min(design.radius, 14),
+                }}
+              >
+                {'主按钮'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {H5_LAB_COLOR_TOKENS.map((group) => (
+            <div key={group.group}>
+              <div className="mb-1.5 text-[11px] font-medium text-[var(--color-ink)]/45">
+                {group.group}
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {group.items.map((item) => {
+                  const value = design[item.key]
+                  const modified = value !== base[item.key]
+                  const hex = /^#[0-9a-f]{6}$/i.test(value) ? value : '#ffffff'
+                  return (
+                    <label
+                      key={item.key}
+                      title={`${group.group}${item.label}：${value}`}
+                      className={`relative flex h-9 cursor-pointer items-center gap-2 rounded-lg border px-2 transition-colors hover:border-[var(--color-ink)]/20 ${
+                        modified
+                          ? 'border-[#2f6bff]/25 bg-[#2f6bff]/[0.045]'
+                          : 'border-[var(--color-ink)]/10 bg-[var(--color-surface-0)]'
+                      }`}
+                    >
+                      <span
+                        className="size-[18px] shrink-0 rounded-[4px] border border-[var(--color-ink)]/15"
+                        style={{ background: value }}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[11px] leading-tight text-[var(--color-ink)]/72">
+                          {item.label}
+                        </span>
+                        <span
+                          className={`block truncate font-mono text-[9.5px] leading-tight ${
+                            modified ? 'text-[#245eea]' : 'text-[var(--color-ink)]/38'
+                          }`}
+                        >
+                          {value}
+                        </span>
+                      </span>
+                      <input
+                        type="color"
+                        value={hex}
+                        onChange={(event) => setToken(item.key, event.target.value)}
+                        className="absolute inset-0 cursor-pointer opacity-0"
+                        aria-label={`${group.group}${item.label}`}
+                      />
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* 复刻页大半是图，只换 token 的话整页观感变化很小。 */}
+          <div className="-my-1">
+            <ToggleRow label="图片跟随主色调" checked={tintImages} onChange={onTintImages} />
+          </div>
+
+          <div>
+            <div className="mb-1.5 text-[11px] font-medium text-[var(--color-ink)]/45">字体</div>
+            <div className="space-y-1.5">
+              {(
+                [
+                  ['displayFont', '标题'],
+                  ['bodyFont', '正文'],
+                ] as const
+              ).map(([key, label]) => {
+                const known = H5_LAB_FONTS.some((font) => font.value === design[key])
+                return (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="w-8 shrink-0 text-[11px] text-[var(--color-ink)]/55">
+                      {label}
+                    </span>
+                    <SelectField
+                      ariaLabel={`${label}字体`}
+                      value={design[key]}
+                      hasOverride={design[key] !== base[key]}
+                      onChange={(next) => setToken(key, next)}
+                    >
+                      {!known && <option value={design[key]}>原稿字体</option>}
+                      {H5_LAB_FONTS.map((font) => (
+                        <option key={font.value} value={font.value}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </SelectField>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-1.5 text-[11px] font-medium text-[var(--color-ink)]/45">圆角</div>
+            <div className="flex gap-1.5">
+              <NumField
+                prefix="小"
+                unit="px"
+                value={design.radius !== base.radius ? design.radius : undefined}
+                placeholder={base.radius}
+                onChange={(next) => setToken('radius', next ?? base.radius)}
+              />
+              <NumField
+                prefix="大"
+                unit="px"
+                value={design.radiusLg !== base.radiusLg ? design.radiusLg : undefined}
+                placeholder={base.radiusLg}
+                onChange={(next) => setToken('radiusLg', next ?? base.radiusLg)}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-[var(--divider-soft)] px-4 py-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Sparkles size={13} strokeWidth={1.8} className="text-[var(--color-ink)]/45" />
+          <span className="text-[13px] font-semibold text-[var(--color-ink)]/82">试试新风格</span>
+          {changed && (
+            <button
+              type="button"
+              onClick={() => {
+                onChange(base, '', true)
+                toast('已还原到原稿设计系统')
+              }}
+              className="ml-auto flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+            >
+              <RotateCcw size={10} strokeWidth={1.8} />
+              还原原稿
+            </button>
+          )}
+        </div>
+
+        <form
+          className="mb-2.5 flex h-9 items-center gap-1 rounded-lg border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] pl-2.5 pr-1 focus-within:border-[#2f6bff]/60"
+          onSubmit={(event) => {
+            event.preventDefault()
+            generateFromPrompt()
+          }}
+        >
+          <input
+            value={prompt}
+            onChange={(event) => setPrompt(event.target.value)}
+            placeholder="一句话描述风格，如：新春喜庆"
+            className="h-full min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-[var(--color-ink)]/32"
+          />
+          <button
+            type="submit"
+            disabled={!prompt.trim()}
+            className="flex h-7 shrink-0 items-center rounded-md bg-[#17171a] px-2.5 text-[11px] font-medium text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            生成
+          </button>
+        </form>
+
+        <div className="grid grid-cols-2 gap-1.5">
+          {H5_LAB_DESIGN_PRESETS.map((preset) => {
+            const active = changed && designName === preset.name
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                title={preset.hint}
+                aria-pressed={active}
+                onClick={() => applyPreset(preset.id)}
+                className="group/preset overflow-hidden rounded-lg border border-[var(--color-ink)]/10 text-left transition-colors hover:border-[var(--color-ink)]/25 aria-pressed:border-[#2f6bff] aria-pressed:ring-1 aria-pressed:ring-[#2f6bff]/30"
+              >
+                <div className="flex h-7" style={{ background: preset.design.pageBg }}>
+                  {[preset.design.paper, preset.design.border, preset.design.pageInk, preset.design.accent].map(
+                    (color, index) => (
+                      <span
+                        key={index}
+                        className="flex-1"
+                        style={{ background: index === 0 ? 'transparent' : color }}
+                      />
+                    ),
+                  )}
+                </div>
+                <div className="px-2 py-1.5">
+                  <div className="text-[11.5px] font-medium text-[var(--color-ink)]/82">
+                    {preset.name}
+                  </div>
+                  <div className="truncate text-[10px] text-[var(--color-ink)]/40">
+                    {preset.hint}
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={shuffle}
+          className="mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[var(--color-ink)]/18 text-[12px] text-[var(--color-ink)]/65 transition-colors hover:border-[#2f6bff]/50 hover:bg-[#2f6bff]/[0.04] hover:text-[#2f6bff]"
+        >
+          <Wand2 size={12} strokeWidth={1.8} />
+          随机生成一套
+        </button>
+      </section>
+    </>
+  )
+}
+
 type H5LabLinkDraft = { targetId: string; transition: H5LabTransition }
 type PanelMode = 'interaction' | 'design'
 
@@ -987,6 +1315,31 @@ export default function H5LabEditPanel({
     onPrototype(
       { ...prototype, settings },
       { group: `page-settings|${labCase.id}|${Object.keys(patch).sort().join(',')}` },
+    )
+  }
+
+  const pageDesign = h5LabMergeDesign(labCase.design, pageSettings.design)
+  const patchPageDesign = (patch: Partial<H5LabDesign>, name: string, step = false) => {
+    // 只存和原稿不同的 token，还原原稿就是空对象。
+    const merged = { ...pageDesign, ...patch }
+    const design = Object.fromEntries(
+      Object.entries(merged).filter(
+        ([key, value]) => labCase.design[key as keyof H5LabDesign] !== value,
+      ),
+    ) as Partial<H5LabDesign>
+    onPrototype(
+      {
+        ...prototype,
+        settings: {
+          ...prototype.settings,
+          [labCase.id]: {
+            ...(prototype.settings[labCase.id] ?? {}),
+            design,
+            designName: Object.keys(design).length ? name : '',
+          },
+        },
+      },
+      step ? undefined : { group: `page-design|${labCase.id}` },
     )
   }
 
@@ -1527,6 +1880,7 @@ export default function H5LabEditPanel({
         ) : (
           <>
             {/* ── 图层管理 ── */}
+            {selection && (
             <section className="border-b border-[var(--divider-soft)] px-4 py-4">
               <div className="mb-3 flex items-center gap-2">
                 <Layers size={13} strokeWidth={1.8} className="text-[var(--color-ink)]/45" />
@@ -1599,6 +1953,7 @@ export default function H5LabEditPanel({
                 />
               )}
             </section>
+            )}
 
             {/* ── Position：图层之下的第一节，照 Figma ── */}
             {selection && m && (
@@ -2269,36 +2624,21 @@ export default function H5LabEditPanel({
               </>
             ) : (
               <>
-                <Group title="Case 信息" icon={ImageIcon}>
-                  <p className="mb-2 text-[11.5px] leading-[1.65] text-[var(--color-ink)]/60">
-                    {labCase.summary}
-                  </p>
-                  <dl className="space-y-1.5 text-[11px]">
-                    <div className="flex gap-2">
-                      <dt className="w-14 shrink-0 text-[var(--color-ink)]/40">benchmark</dt>
-                      <dd className="min-w-0 text-[var(--color-ink)]/70">{labCase.origin}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="w-14 shrink-0 text-[var(--color-ink)]/40">设计基准</dt>
-                      <dd className="text-[var(--color-ink)]/70">{labCase.width}px</dd>
-                    </div>
-                    {labCase.route && (
-                      <div className="flex gap-2">
-                        <dt className="w-14 shrink-0 text-[var(--color-ink)]/40">独立路由</dt>
-                        <dd className="min-w-0 truncate font-mono text-[10.5px] text-[var(--color-ink)]/70">
-                          {labCase.route}
-                        </dd>
-                      </div>
-                    )}
-                  </dl>
-                </Group>
-                <Group title="怎么改" icon={Ruler}>
-                  <ul className="space-y-1 text-[11px] leading-[1.7] text-[var(--color-ink)]/55">
-                    <li>· 点状态帧上的元素，或直接点上面的图层</li>
-                    <li>· 双击文字就地改文案，回车提交</li>
-                    <li>· 拖选中框移动位置，拖四角改尺寸</li>
-                    <li>· 改完点顶栏「应用」，回预览里试点触</li>
-                  </ul>
+                {/* 没选中元素：设计档是整页设计系统，图层结构收在最下面。 */}
+                <DesignSystemSection
+                  base={labCase.design}
+                  design={pageDesign}
+                  designName={pageSettings.designName}
+                  tintImages={pageSettings.designTintImages}
+                  onTintImages={(next) => patchPageSettings({ designTintImages: next })}
+                  onChange={patchPageDesign}
+                />
+                <Group title="整页结构" icon={Layers} defaultOpen={false}>
+                  <FullStructure
+                    layers={layers}
+                    selectedPath={null}
+                    onSelectPath={onSelectPath}
+                  />
                 </Group>
               </>
             )}

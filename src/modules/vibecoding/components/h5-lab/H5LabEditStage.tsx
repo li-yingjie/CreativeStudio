@@ -30,6 +30,7 @@ import {
   type H5LabScreen,
 } from './h5-lab-prototype'
 import { buildH5LabLayers, type H5LabLayer } from './h5-lab-layers'
+import { h5LabDesignCss, h5LabMergeDesign, markH5LabDesign } from './h5-lab-design'
 import {
   applyH5LabBoard,
   applyH5LabGroups,
@@ -184,7 +185,18 @@ export default function H5LabEditStage({
   const remeasure = useCallback(() => setMeasureTick((n) => n + 1), [])
 
   const css = useMemo(() => h5LabCss(overrides), [overrides])
-  const frames = useMemo(() => buildH5LabFrames(labCase, screens), [labCase, screens])
+  const design = useMemo(
+    () => h5LabMergeDesign(labCase.design, pageSettings.design),
+    [labCase.design, pageSettings.design],
+  )
+  const designCss = useMemo(
+    () => h5LabDesignCss(labCase.design, design, pageSettings.designTintImages),
+    [design, labCase.design, pageSettings.designTintImages],
+  )
+  const frames = useMemo(
+    () => buildH5LabFrames(labCase, screens, design),
+    [design, labCase, screens],
+  )
   const sharedStateIds = useMemo(
     () => labCase.states.map((item) => item.id),
     [labCase.states],
@@ -221,13 +233,15 @@ export default function H5LabEditStage({
         )
         applyH5LabBoard(root, overrides[frame.id] ?? {})
         applyH5LabPageSettings(root, pageSettings)
+        // 生成屏本来就吃 design 变量，不用再按原稿认领角色。
+        if (!frame.generated) markH5LabDesign(root, labCase.design)
       }
     }
     // 自己写的这批 mutation 也会进 observer，下一帧再放行。
     requestAnimationFrame(() => {
       applyingRef.current = false
     })
-  }, [frames, groups, overrides, pageSettings])
+  }, [frames, groups, labCase.design, overrides, pageSettings])
 
   useLayoutEffect(() => {
     applyOverrides()
@@ -975,6 +989,7 @@ export default function H5LabEditStage({
           overflow:visible !important;
           overscroll-behavior:auto !important;
         }
+        ${designCss}
         ${css}
       `}</style>
 

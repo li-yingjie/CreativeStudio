@@ -117,6 +117,8 @@ export interface H5LabPageSettings {
   design: Partial<H5LabDesign>
   /** 当前风格名（预设 / 随机），只做面板展示。 */
   designName: string
+  /** 换主色时图片是否跟着转色相。 */
+  designTintImages: boolean
 }
 
 export const DEFAULT_H5_LAB_PAGE_SETTINGS: H5LabPageSettings = {
@@ -128,6 +130,7 @@ export const DEFAULT_H5_LAB_PAGE_SETTINGS: H5LabPageSettings = {
   shareImage: '',
   design: {},
   designName: '',
+  designTintImages: true,
 }
 
 export interface H5LabPrototype {

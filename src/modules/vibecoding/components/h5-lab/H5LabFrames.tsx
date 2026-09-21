@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import type { H5LabCase } from './h5-lab-cases'
+import type { H5LabCase, H5LabDesign } from './h5-lab-cases'
 import H5LabGeneratedScreen from './H5LabGeneratedScreen'
 import type { H5LabScreen } from './h5-lab-prototype'
 
@@ -18,6 +18,8 @@ export interface H5LabFrame {
 export function buildH5LabFrames(
   labCase: H5LabCase,
   screens: H5LabScreen[],
+  /** 面板里换过风格时传合并后的设计系统，生成屏跟着换。 */
+  design: H5LabDesign = labCase.design,
 ): H5LabFrame[] {
   const stateFrames: H5LabFrame[] = labCase.states.map((state) => ({
     id: state.id,
@@ -43,7 +45,7 @@ export function buildH5LabFrames(
         <H5LabGeneratedScreen
           key={`${screen.id}-${previewKey}`}
           screen={screen}
-          design={labCase.design}
+          design={design}
         />
       ),
     }))
