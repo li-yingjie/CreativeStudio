@@ -256,6 +256,13 @@ function ColorRow({
   )
 }
 
+/** Figma 的扁平小节（Fill / Stroke / Effects）：没有折叠头，标题行就是内容。 */
+function FigmaSection({ children }: { children: ReactNode }) {
+  return (
+    <section className="border-t border-[var(--divider-soft)] px-4 py-3">{children}</section>
+  )
+}
+
 function AddRow({ label, onAdd }: { label: string; onAdd: () => void }) {
   return (
     <div className="mb-3 flex h-8 items-center justify-between last:mb-0">
@@ -1525,7 +1532,81 @@ export default function H5LabEditPanel({
           )
         ) : (
           <>
-            {/* ── Position：照 Figma 放在属性面板最上面 ── */}
+            {/* ── 图层管理 ── */}
+            <section className="border-b border-[var(--divider-soft)] px-4 py-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Layers size={13} strokeWidth={1.8} className="text-[var(--color-ink)]/45" />
+                <span className="text-[13px] font-semibold text-[var(--color-ink)]/82">图层</span>
+                <span className="ml-auto truncate text-[10.5px] text-[var(--color-ink)]/35">
+                  {activeStateLabel}
+                </span>
+              </div>
+              <div className="mb-3 flex rounded-lg bg-[var(--color-ink)]/[0.05] p-0.5">
+                {(
+                  [
+                    ['element', '当前层级'],
+                    ['full', '整页结构'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={layerTab === id}
+                    onClick={() => setLayerTab(id)}
+                    className="h-8 flex-1 rounded-[7px] text-[12px] text-[var(--color-ink)]/55 transition-colors aria-pressed:bg-[var(--color-surface-0)] aria-pressed:font-medium aria-pressed:text-[var(--color-ink)] aria-pressed:shadow-[0_1px_2px_rgba(16,18,24,0.08)]"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {layerTab === 'element' ? (
+                <>
+                  {breadcrumb.length > 1 && (
+                    <div className="mb-1.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[10.5px] text-[var(--color-ink)]/40">
+                      {breadcrumb.slice(0, -1).map((path, index) => (
+                        <span key={path} className="flex items-center gap-1">
+                          {index > 0 && <span className="opacity-50">/</span>}
+                          <button
+                            type="button"
+                            onClick={() => onSelectPath(path)}
+                            className="max-w-[92px] truncate transition-colors hover:text-[#2f6bff]"
+                          >
+                            {path.split('>').at(-1)?.split('.').at(-1) ?? path}
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="mb-1 text-[10.5px] text-[var(--color-ink)]/35">
+                    {elementView.title}
+                  </p>
+                  {elementView.items.length === 0 ? (
+                    <p className="py-2 text-[11px] text-[var(--color-ink)]/35">这一层没有子元素</p>
+                  ) : (
+                    <div className="-mx-1">
+                      {elementView.items.map((layer) => (
+                        <LayerRow
+                          key={layer.path}
+                          layer={layer}
+                          depth={0}
+                          active={layer.path === selection?.path}
+                          onSelect={() => onSelectPath(layer.path)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <FullStructure
+                  layers={layers}
+                  selectedPath={selection?.path ?? null}
+                  onSelectPath={onSelectPath}
+                />
+              )}
+            </section>
+
+            {/* ── Position：图层之下的第一节，照 Figma ── */}
             {selection && m && (
               <Group title="位置" icon={Move}>
                 <Row label="对齐">
@@ -1629,413 +1710,9 @@ export default function H5LabEditPanel({
               </Group>
             )}
 
-            {/* ── 图层管理 ── */}
-            <section className="border-b border-[var(--divider-soft)] px-4 py-4">
-              <div className="mb-3 flex items-center gap-2">
-                <Layers size={13} strokeWidth={1.8} className="text-[var(--color-ink)]/45" />
-                <span className="text-[13px] font-semibold text-[var(--color-ink)]/82">图层</span>
-                <span className="ml-auto truncate text-[10.5px] text-[var(--color-ink)]/35">
-                  {activeStateLabel}
-                </span>
-              </div>
-              <div className="mb-3 flex rounded-lg bg-[var(--color-ink)]/[0.05] p-0.5">
-                {(
-                  [
-                    ['element', '当前层级'],
-                    ['full', '整页结构'],
-                  ] as const
-                ).map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    aria-pressed={layerTab === id}
-                    onClick={() => setLayerTab(id)}
-                    className="h-8 flex-1 rounded-[7px] text-[12px] text-[var(--color-ink)]/55 transition-colors aria-pressed:bg-[var(--color-surface-0)] aria-pressed:font-medium aria-pressed:text-[var(--color-ink)] aria-pressed:shadow-[0_1px_2px_rgba(16,18,24,0.08)]"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {layerTab === 'element' ? (
-                <>
-                  {breadcrumb.length > 1 && (
-                    <div className="mb-1.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[10.5px] text-[var(--color-ink)]/40">
-                      {breadcrumb.slice(0, -1).map((path, index) => (
-                        <span key={path} className="flex items-center gap-1">
-                          {index > 0 && <span className="opacity-50">/</span>}
-                          <button
-                            type="button"
-                            onClick={() => onSelectPath(path)}
-                            className="max-w-[92px] truncate transition-colors hover:text-[#2f6bff]"
-                          >
-                            {path.split('>').at(-1)?.split('.').at(-1) ?? path}
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <p className="mb-1 text-[10.5px] text-[var(--color-ink)]/35">
-                    {elementView.title}
-                  </p>
-                  {elementView.items.length === 0 ? (
-                    <p className="py-2 text-[11px] text-[var(--color-ink)]/35">这一层没有子元素</p>
-                  ) : (
-                    <div className="-mx-1">
-                      {elementView.items.map((layer) => (
-                        <LayerRow
-                          key={layer.path}
-                          layer={layer}
-                          depth={0}
-                          active={layer.path === selection?.path}
-                          onSelect={() => onSelectPath(layer.path)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <FullStructure
-                  layers={layers}
-                  selectedPath={selection?.path ?? null}
-                  onSelectPath={onSelectPath}
-                />
-              )}
-            </section>
-
             {selection ? (
               <>
-                {isText && (
-                  <Group title="内容" icon={TypeIcon}>
-                    <textarea
-                      value={node?.text ?? m?.text ?? ''}
-                      rows={3}
-                      onChange={(event) =>
-                        patchNode({ text: event.target.value, html: undefined })
-                      }
-                      className="w-full resize-y rounded-md border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] px-2 py-1.5 text-[11.5px] leading-[1.6] text-[var(--color-ink)] outline-none focus:border-[#2f6bff]/60"
-                    />
-                  </Group>
-                )}
-
-                {isImage && (
-                  <Group title="图片" icon={ImageIcon}>
-                    {/* 缩略图整张放下：盒子定高、图片撑满盒子再 object-contain
-                        留白，别用 max-* 让浏览器自己算（会被裁掉）。 */}
-                    <div className="mb-2 flex h-24 items-center justify-center overflow-hidden rounded-md border border-[var(--color-ink)]/10 bg-[var(--color-surface-2)] p-1">
-                      {(node?.src ?? m?.src) ? (
-                        <img
-                          src={node?.src ?? m?.src}
-                          alt=""
-                          className="h-full w-full object-contain"
-                        />
-                      ) : (
-                        <span className="text-[11px] text-[var(--color-ink)]/35">暂无图片</span>
-                      )}
-                    </div>
-                    <input
-                      type="text"
-                      value={node?.src ?? m?.src ?? ''}
-                      placeholder="图片地址"
-                      onChange={(event) => patchNode({ src: event.target.value })}
-                      className="mb-2 h-7 w-full rounded-md border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] px-2 text-[11.5px] text-[var(--color-ink)] outline-none focus:border-[#2f6bff]/60"
-                    />
-                    <input
-                      ref={fileRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={pickImage}
-                      className="hidden"
-                    />
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => fileRef.current?.click()}
-                        className="flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md border border-[var(--color-ink)]/10 text-[11.5px] text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-                      >
-                        <Upload size={11} strokeWidth={1.8} />
-                        上传替换
-                      </button>
-                      {/* 页面上只能换图；要真的改画面，从这里下钻到素材库画布。 */}
-                      <button
-                        type="button"
-                        onClick={() => onOpenAssetCanvas(node?.src ?? m?.src)}
-                        className="flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md border border-[#2f6bff]/25 bg-[#2f6bff]/[0.06] text-[11.5px] text-[#2f6bff] transition-colors hover:bg-[#2f6bff]/[0.12]"
-                      >
-                        <ExternalLink size={11} strokeWidth={1.8} />
-                        素材库画布编辑
-                      </button>
-                    </div>
-                  </Group>
-                )}
-
-                <Group title="背景与外观" icon={Eye}>
-                  {style.background !== undefined ? (
-                    <Row
-                      label="背景"
-                      action={
-                        <button
-                          type="button"
-                          onClick={() => patchStyle({ background: undefined })}
-                          className="flex size-5 items-center justify-center rounded text-[var(--color-ink)]/35 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
-                        >
-                          <X size={11} strokeWidth={2} />
-                        </button>
-                      }
-                    >
-                      <ColorRow
-                        value={style.background}
-                        fallback={m?.background ?? '#ffffff'}
-                        onChange={(next) => patchStyle({ background: next })}
-                      />
-                    </Row>
-                  ) : (
-                    <AddRow
-                      label="背景"
-                      onAdd={() => patchStyle({ background: m?.background || '#ffffff' })}
-                    />
-                  )}
-                  <Row label="不透明度">
-                    <NumField
-                      value={style.opacity}
-                      placeholder={100}
-                      unit="%"
-                      onChange={(next) => patchStyle({ opacity: next })}
-                    />
-                  </Row>
-                  <Row label="圆角">
-                    <NumField
-                      value={style.radius}
-                      placeholder={m?.radius}
-                      unit="px"
-                      onChange={(next) => patchStyle({ radius: next })}
-                    />
-                  </Row>
-                  <Row label="颜色" disabled={selection.kind === 'image'}>
-                    <ColorRow
-                      value={style.color}
-                      fallback={m?.color ?? '#000000'}
-                      disabled={selection.kind === 'image'}
-                      onChange={(next) => patchStyle({ color: next })}
-                      onClear={() => patchStyle({ color: undefined })}
-                    />
-                  </Row>
-
-                  {style.border ? (
-                    <Row
-                      label="描边"
-                      action={
-                        <button
-                          type="button"
-                          onClick={() => patchStyle({ border: undefined })}
-                          className="flex size-5 items-center justify-center rounded text-[var(--color-ink)]/35 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
-                        >
-                          <X size={11} strokeWidth={2} />
-                        </button>
-                      }
-                    >
-                      <div className="mb-1.5 flex gap-1.5">
-                        <NumField
-                          value={style.border.width}
-                          unit="px"
-                          onChange={(next) =>
-                            patchStyle({ border: { ...style.border!, width: next ?? 0 } })
-                          }
-                        />
-                        <select
-                          value={style.border.style}
-                          onChange={(event) =>
-                            patchStyle({
-                              border: {
-                                ...style.border!,
-                                style: event.target.value as 'solid' | 'dashed' | 'dotted',
-                              },
-                            })
-                          }
-                          className="h-7 flex-1 cursor-pointer rounded-md border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] px-1 text-[11.5px] text-[var(--color-ink)] outline-none"
-                        >
-                          <option value="solid">实线</option>
-                          <option value="dashed">虚线</option>
-                          <option value="dotted">点线</option>
-                        </select>
-                      </div>
-                      <ColorRow
-                        value={style.border.color}
-                        fallback="#000000"
-                        onChange={(next) => patchStyle({ border: { ...style.border!, color: next } })}
-                      />
-                    </Row>
-                  ) : (
-                    <AddRow
-                      label="描边"
-                      onAdd={() =>
-                        patchStyle({ border: { width: 1, style: 'solid', color: '#1a1a1a' } })
-                      }
-                    />
-                  )}
-
-                  {style.shadow ? (
-                    <Row
-                      label="阴影"
-                      action={
-                        <button
-                          type="button"
-                          onClick={() => patchStyle({ shadow: undefined })}
-                          className="flex size-5 items-center justify-center rounded text-[var(--color-ink)]/35 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
-                        >
-                          <X size={11} strokeWidth={2} />
-                        </button>
-                      }
-                    >
-                      <div className="mb-1.5 flex gap-1.5">
-                        <NumField
-                          value={style.shadow.x}
-                          prefix="X"
-                          onChange={(next) => patchStyle({ shadow: { ...style.shadow!, x: next ?? 0 } })}
-                        />
-                        <NumField
-                          value={style.shadow.y}
-                          prefix="Y"
-                          onChange={(next) => patchStyle({ shadow: { ...style.shadow!, y: next ?? 0 } })}
-                        />
-                      </div>
-                      <div className="mb-1.5 flex gap-1.5">
-                        <NumField
-                          value={style.shadow.blur}
-                          prefix="模糊"
-                          onChange={(next) =>
-                            patchStyle({ shadow: { ...style.shadow!, blur: next ?? 0 } })
-                          }
-                        />
-                        <NumField
-                          value={style.shadow.spread}
-                          prefix="扩展"
-                          onChange={(next) =>
-                            patchStyle({ shadow: { ...style.shadow!, spread: next ?? 0 } })
-                          }
-                        />
-                      </div>
-                      <ColorRow
-                        value={style.shadow.color}
-                        fallback="rgba(0,0,0,.2)"
-                        onChange={(next) => patchStyle({ shadow: { ...style.shadow!, color: next } })}
-                      />
-                    </Row>
-                  ) : (
-                    <AddRow
-                      label="阴影"
-                      onAdd={() =>
-                        patchStyle({
-                          shadow: { x: 0, y: 4, blur: 16, spread: 0, color: 'rgba(0,0,0,.18)' },
-                        })
-                      }
-                    />
-                  )}
-                </Group>
-
-                {isText && (
-                  <Group title="文字" icon={TypeIcon}>
-                    <Row label="字体">
-                      {(() => {
-                        const resolved = style.fontFamily ?? m?.fontFamily ?? 'PingFang SC'
-                        const current = resolved.split(',')[0]?.trim().replace(/^['"]|['"]$/g, '')
-                        const families = [
-                          'PingFang SC',
-                          'Noto Sans SC',
-                          'Helvetica Neue',
-                          'Arial',
-                          'Georgia',
-                          'Courier New',
-                        ]
-                        return (
-                          <SelectField
-                            value={current}
-                            hasOverride={style.fontFamily !== undefined}
-                            ariaLabel="字体"
-                            onChange={(next) => patchStyle({ fontFamily: next })}
-                          >
-                            {!families.includes(current) && <option value={current}>{current}</option>}
-                            {families.map((family) => (
-                              <option key={family} value={family}>{family}</option>
-                            ))}
-                          </SelectField>
-                        )
-                      })()}
-                    </Row>
-                    <div className="mb-2.5 flex gap-1.5">
-                      <SelectField
-                        value={style.fontWeight ?? m?.fontWeight ?? 400}
-                        hasOverride={style.fontWeight !== undefined}
-                        ariaLabel="字重"
-                        onChange={(next) => patchStyle({ fontWeight: Number(next) })}
-                      >
-                        <option value={300}>细体 · 300</option>
-                        <option value={400}>常规 · 400</option>
-                        <option value={500}>中等 · 500</option>
-                        <option value={600}>半粗 · 600</option>
-                        <option value={700}>粗体 · 700</option>
-                        <option value={900}>特粗 · 900</option>
-                      </SelectField>
-                      <NumField
-                        value={style.fontSize}
-                        placeholder={m?.fontSize}
-                        prefix="字号"
-                        unit="px"
-                        onChange={(next) => patchStyle({ fontSize: next })}
-                      />
-                    </div>
-                    <div className="mb-2.5 flex gap-1.5">
-                      <NumField
-                        value={style.lineHeight}
-                        placeholder={m?.lineHeight}
-                        prefix="行高"
-                        unit="px"
-                        onChange={(next) => patchStyle({ lineHeight: next })}
-                      />
-                      <NumField
-                        value={style.letterSpacing}
-                        placeholder={m?.letterSpacing}
-                        prefix="字距"
-                        unit="px"
-                        onChange={(next) => patchStyle({ letterSpacing: next })}
-                      />
-                    </div>
-                    <div className="mb-2.5 flex gap-1.5">
-                      {([
-                        ['B', (style.fontWeight ?? m?.fontWeight ?? 400) >= 600, () => patchStyle({ fontWeight: (style.fontWeight ?? m?.fontWeight ?? 400) >= 600 ? 400 : 700 })],
-                        ['I', (style.fontStyle ?? m?.fontStyle) === 'italic', () => patchStyle({ fontStyle: (style.fontStyle ?? m?.fontStyle) === 'italic' ? 'normal' : 'italic' })],
-                        ['U', (style.textDecoration ?? m?.textDecoration) === 'underline', () => patchStyle({ textDecoration: (style.textDecoration ?? m?.textDecoration) === 'underline' ? 'none' : 'underline' })],
-                      ] as const).map(([label, active, action]) => (
-                        <button
-                          key={label}
-                          type="button"
-                          aria-label={label === 'B' ? '粗体' : label === 'I' ? '斜体' : '下划线'}
-                          aria-pressed={active}
-                          onClick={action}
-                          className={`flex h-8 flex-1 items-center justify-center rounded-lg border border-[var(--color-ink)]/10 text-[12px] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:border-[#2f6bff]/25 aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff] ${label === 'I' ? 'italic' : label === 'U' ? 'underline' : 'font-bold'}`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                    <Row label="对齐">
-                    <div className="flex overflow-hidden rounded-md border border-[var(--color-ink)]/10">
-                      {(['left', 'center', 'right'] as const).map((align) => (
-                        <button
-                          key={align}
-                          type="button"
-                          aria-pressed={(style.textAlign ?? m?.textAlign) === align}
-                          onClick={() => patchStyle({ textAlign: align })}
-                          className="h-7 flex-1 border-r border-[var(--color-ink)]/8 text-[11px] text-[var(--color-ink)]/55 transition-colors last:border-r-0 hover:bg-[var(--fill-hover)] aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
-                        >
-                          {align === 'left' ? '左对齐' : align === 'center' ? '居中' : '右对齐'}
-                        </button>
-                      ))}
-                    </div>
-                    </Row>
-                  </Group>
-                )}
-
+                {/* 顺序照 Figma：自动布局 → 尺寸 → 外观 → 文字 → 填充 → 描边 → 效果 */}
                 <Group title="自动布局" icon={LayoutTemplate}>
                   {canAutoLayout ? (
                     <>
@@ -2256,6 +1933,345 @@ export default function H5LabEditPanel({
                     />
                   </Row>
                 </Group>
+
+                <Group title="外观" icon={Eye}>
+                  <div className="grid grid-cols-2 gap-1.5 [&>*]:mb-0">
+                  <Row label="不透明度">
+                    <NumField
+                      value={style.opacity}
+                      placeholder={100}
+                      unit="%"
+                      onChange={(next) => patchStyle({ opacity: next })}
+                    />
+                  </Row>
+                  <Row label="圆角">
+                    <NumField
+                      value={style.radius}
+                      placeholder={m?.radius}
+                      unit="px"
+                      onChange={(next) => patchStyle({ radius: next })}
+                    />
+                  </Row>
+                  </div>
+                </Group>
+
+                {isText && (
+                  <Group title="内容" icon={TypeIcon}>
+                    <textarea
+                      value={node?.text ?? m?.text ?? ''}
+                      rows={3}
+                      onChange={(event) =>
+                        patchNode({ text: event.target.value, html: undefined })
+                      }
+                      className="w-full resize-y rounded-md border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] px-2 py-1.5 text-[11.5px] leading-[1.6] text-[var(--color-ink)] outline-none focus:border-[#2f6bff]/60"
+                    />
+                  </Group>
+                )}
+
+                {isText && (
+                  <Group title="文字" icon={TypeIcon}>
+                    <Row label="字体">
+                      {(() => {
+                        const resolved = style.fontFamily ?? m?.fontFamily ?? 'PingFang SC'
+                        const current = resolved.split(',')[0]?.trim().replace(/^['"]|['"]$/g, '')
+                        const families = [
+                          'PingFang SC',
+                          'Noto Sans SC',
+                          'Helvetica Neue',
+                          'Arial',
+                          'Georgia',
+                          'Courier New',
+                        ]
+                        return (
+                          <SelectField
+                            value={current}
+                            hasOverride={style.fontFamily !== undefined}
+                            ariaLabel="字体"
+                            onChange={(next) => patchStyle({ fontFamily: next })}
+                          >
+                            {!families.includes(current) && <option value={current}>{current}</option>}
+                            {families.map((family) => (
+                              <option key={family} value={family}>{family}</option>
+                            ))}
+                          </SelectField>
+                        )
+                      })()}
+                    </Row>
+                    <div className="mb-2.5 flex gap-1.5">
+                      <SelectField
+                        value={style.fontWeight ?? m?.fontWeight ?? 400}
+                        hasOverride={style.fontWeight !== undefined}
+                        ariaLabel="字重"
+                        onChange={(next) => patchStyle({ fontWeight: Number(next) })}
+                      >
+                        <option value={300}>细体 · 300</option>
+                        <option value={400}>常规 · 400</option>
+                        <option value={500}>中等 · 500</option>
+                        <option value={600}>半粗 · 600</option>
+                        <option value={700}>粗体 · 700</option>
+                        <option value={900}>特粗 · 900</option>
+                      </SelectField>
+                      <NumField
+                        value={style.fontSize}
+                        placeholder={m?.fontSize}
+                        prefix="字号"
+                        unit="px"
+                        onChange={(next) => patchStyle({ fontSize: next })}
+                      />
+                    </div>
+                    <div className="mb-2.5 flex gap-1.5">
+                      <NumField
+                        value={style.lineHeight}
+                        placeholder={m?.lineHeight}
+                        prefix="行高"
+                        unit="px"
+                        onChange={(next) => patchStyle({ lineHeight: next })}
+                      />
+                      <NumField
+                        value={style.letterSpacing}
+                        placeholder={m?.letterSpacing}
+                        prefix="字距"
+                        unit="px"
+                        onChange={(next) => patchStyle({ letterSpacing: next })}
+                      />
+                    </div>
+                    <div className="mb-2.5 flex gap-1.5">
+                      {([
+                        ['B', (style.fontWeight ?? m?.fontWeight ?? 400) >= 600, () => patchStyle({ fontWeight: (style.fontWeight ?? m?.fontWeight ?? 400) >= 600 ? 400 : 700 })],
+                        ['I', (style.fontStyle ?? m?.fontStyle) === 'italic', () => patchStyle({ fontStyle: (style.fontStyle ?? m?.fontStyle) === 'italic' ? 'normal' : 'italic' })],
+                        ['U', (style.textDecoration ?? m?.textDecoration) === 'underline', () => patchStyle({ textDecoration: (style.textDecoration ?? m?.textDecoration) === 'underline' ? 'none' : 'underline' })],
+                      ] as const).map(([label, active, action]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          aria-label={label === 'B' ? '粗体' : label === 'I' ? '斜体' : '下划线'}
+                          aria-pressed={active}
+                          onClick={action}
+                          className={`flex h-8 flex-1 items-center justify-center rounded-lg border border-[var(--color-ink)]/10 text-[12px] text-[var(--color-ink)]/60 transition-colors hover:bg-[var(--fill-hover)] aria-pressed:border-[#2f6bff]/25 aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff] ${label === 'I' ? 'italic' : label === 'U' ? 'underline' : 'font-bold'}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <Row label="对齐">
+                    <div className="flex overflow-hidden rounded-md border border-[var(--color-ink)]/10">
+                      {(['left', 'center', 'right'] as const).map((align) => (
+                        <button
+                          key={align}
+                          type="button"
+                          aria-pressed={(style.textAlign ?? m?.textAlign) === align}
+                          onClick={() => patchStyle({ textAlign: align })}
+                          className="h-7 flex-1 border-r border-[var(--color-ink)]/8 text-[11px] text-[var(--color-ink)]/55 transition-colors last:border-r-0 hover:bg-[var(--fill-hover)] aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
+                        >
+                          {align === 'left' ? '左对齐' : align === 'center' ? '居中' : '右对齐'}
+                        </button>
+                      ))}
+                    </div>
+                    </Row>
+                  </Group>
+                )}
+
+                {isImage && (
+                  <Group title="图片" icon={ImageIcon}>
+                    {/* 缩略图整张放下：盒子定高、图片撑满盒子再 object-contain
+                        留白，别用 max-* 让浏览器自己算（会被裁掉）。 */}
+                    <div className="mb-2 flex h-24 items-center justify-center overflow-hidden rounded-md border border-[var(--color-ink)]/10 bg-[var(--color-surface-2)] p-1">
+                      {(node?.src ?? m?.src) ? (
+                        <img
+                          src={node?.src ?? m?.src}
+                          alt=""
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-[11px] text-[var(--color-ink)]/35">暂无图片</span>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={node?.src ?? m?.src ?? ''}
+                      placeholder="图片地址"
+                      onChange={(event) => patchNode({ src: event.target.value })}
+                      className="mb-2 h-7 w-full rounded-md border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] px-2 text-[11.5px] text-[var(--color-ink)] outline-none focus:border-[#2f6bff]/60"
+                    />
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={pickImage}
+                      className="hidden"
+                    />
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => fileRef.current?.click()}
+                        className="flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md border border-[var(--color-ink)]/10 text-[11.5px] text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+                      >
+                        <Upload size={11} strokeWidth={1.8} />
+                        上传替换
+                      </button>
+                      {/* 页面上只能换图；要真的改画面，从这里下钻到素材库画布。 */}
+                      <button
+                        type="button"
+                        onClick={() => onOpenAssetCanvas(node?.src ?? m?.src)}
+                        className="flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md border border-[#2f6bff]/25 bg-[#2f6bff]/[0.06] text-[11.5px] text-[#2f6bff] transition-colors hover:bg-[#2f6bff]/[0.12]"
+                      >
+                        <ExternalLink size={11} strokeWidth={1.8} />
+                        素材库画布编辑
+                      </button>
+                    </div>
+                  </Group>
+                )}
+
+                {/* 填充 / 描边 / 效果照 Figma 做成扁平小节：标题行本身就是「添加 +」 */}
+                <FigmaSection>
+                  {style.background !== undefined ? (
+                    <Row
+                      label="填充"
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => patchStyle({ background: undefined })}
+                          className="flex size-5 items-center justify-center rounded text-[var(--color-ink)]/35 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
+                        >
+                          <X size={11} strokeWidth={2} />
+                        </button>
+                      }
+                    >
+                      <ColorRow
+                        value={style.background}
+                        fallback={m?.background ?? '#ffffff'}
+                        onChange={(next) => patchStyle({ background: next })}
+                      />
+                    </Row>
+                  ) : (
+                    <AddRow
+                      label="填充"
+                      onAdd={() => patchStyle({ background: m?.background || '#ffffff' })}
+                    />
+                  )}
+                  <Row label="颜色" disabled={selection.kind === 'image'}>
+                    <ColorRow
+                      value={style.color}
+                      fallback={m?.color ?? '#000000'}
+                      disabled={selection.kind === 'image'}
+                      onChange={(next) => patchStyle({ color: next })}
+                      onClear={() => patchStyle({ color: undefined })}
+                    />
+                  </Row>
+                </FigmaSection>
+                <FigmaSection>
+                  {style.border ? (
+                    <Row
+                      label="描边"
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => patchStyle({ border: undefined })}
+                          className="flex size-5 items-center justify-center rounded text-[var(--color-ink)]/35 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
+                        >
+                          <X size={11} strokeWidth={2} />
+                        </button>
+                      }
+                    >
+                      <div className="mb-1.5 flex gap-1.5">
+                        <NumField
+                          value={style.border.width}
+                          unit="px"
+                          onChange={(next) =>
+                            patchStyle({ border: { ...style.border!, width: next ?? 0 } })
+                          }
+                        />
+                        <select
+                          value={style.border.style}
+                          onChange={(event) =>
+                            patchStyle({
+                              border: {
+                                ...style.border!,
+                                style: event.target.value as 'solid' | 'dashed' | 'dotted',
+                              },
+                            })
+                          }
+                          className="h-7 flex-1 cursor-pointer rounded-md border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] px-1 text-[11.5px] text-[var(--color-ink)] outline-none"
+                        >
+                          <option value="solid">实线</option>
+                          <option value="dashed">虚线</option>
+                          <option value="dotted">点线</option>
+                        </select>
+                      </div>
+                      <ColorRow
+                        value={style.border.color}
+                        fallback="#000000"
+                        onChange={(next) => patchStyle({ border: { ...style.border!, color: next } })}
+                      />
+                    </Row>
+                  ) : (
+                    <AddRow
+                      label="描边"
+                      onAdd={() =>
+                        patchStyle({ border: { width: 1, style: 'solid', color: '#1a1a1a' } })
+                      }
+                    />
+                  )}
+                </FigmaSection>
+                <FigmaSection>
+                  {style.shadow ? (
+                    <Row
+                      label="阴影"
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => patchStyle({ shadow: undefined })}
+                          className="flex size-5 items-center justify-center rounded text-[var(--color-ink)]/35 hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/70"
+                        >
+                          <X size={11} strokeWidth={2} />
+                        </button>
+                      }
+                    >
+                      <div className="mb-1.5 flex gap-1.5">
+                        <NumField
+                          value={style.shadow.x}
+                          prefix="X"
+                          onChange={(next) => patchStyle({ shadow: { ...style.shadow!, x: next ?? 0 } })}
+                        />
+                        <NumField
+                          value={style.shadow.y}
+                          prefix="Y"
+                          onChange={(next) => patchStyle({ shadow: { ...style.shadow!, y: next ?? 0 } })}
+                        />
+                      </div>
+                      <div className="mb-1.5 flex gap-1.5">
+                        <NumField
+                          value={style.shadow.blur}
+                          prefix="模糊"
+                          onChange={(next) =>
+                            patchStyle({ shadow: { ...style.shadow!, blur: next ?? 0 } })
+                          }
+                        />
+                        <NumField
+                          value={style.shadow.spread}
+                          prefix="扩展"
+                          onChange={(next) =>
+                            patchStyle({ shadow: { ...style.shadow!, spread: next ?? 0 } })
+                          }
+                        />
+                      </div>
+                      <ColorRow
+                        value={style.shadow.color}
+                        fallback="rgba(0,0,0,.2)"
+                        onChange={(next) => patchStyle({ shadow: { ...style.shadow!, color: next } })}
+                      />
+                    </Row>
+                  ) : (
+                    <AddRow
+                      label="阴影"
+                      onAdd={() =>
+                        patchStyle({
+                          shadow: { x: 0, y: 4, blur: 16, spread: 0, color: 'rgba(0,0,0,.18)' },
+                        })
+                      }
+                    />
+                  )}
+                </FigmaSection>
               </>
             ) : (
               <>
