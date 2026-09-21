@@ -2521,6 +2521,8 @@ export default function PlatformHome({
     scene?: 'marketing' | 'game',
   ) => void
   onOpenResourceLibrary: () => void
+  /** 调用方（VibeCodingPage）已经在传，首页里还没接上入口；先收下类型，行为不变。 */
+  onOpenProject?: (name: string) => void
 }) {
   const navVersion = useNavVersion((state) => state.version)
   const standaloneWorkshopLayout = usesStandaloneWorkshopLayout(navVersion)

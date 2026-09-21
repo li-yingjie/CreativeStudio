@@ -34,7 +34,7 @@ export function TowerDefenseArtifactFrame({
   const visible = nodesForScreen(nodes, screen)
   const pickArtifact = () => {
     if (onSelectArtifact) onSelectArtifact()
-    else onSelect(null)
+    else _onSelect(null)
   }
 
   return (

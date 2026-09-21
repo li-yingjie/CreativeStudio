@@ -59,6 +59,8 @@ type AssetQuickTools = ComponentType<{
 }>
 
 interface GarudaAssetsViewProps {
+  /** ACG 活动素材页已经在传「显示页面用途」，这里还没实现展示；先收下类型，行为不变。 */
+  showPageUsage?: boolean
   /** Group/items to render. Defaults to the Garuda game's GROUPS so
    *  existing call sites stay unchanged; pass a project-specific list
    *  (e.g. H5 活动素材) to reuse the same layout for other surfaces. */

@@ -130,6 +130,8 @@
 
 每次改动的记录,最新在最上面。格式:`- 改了什么(为什么)` — 末尾可带 commit 短哈希;未提交标注「(未提交)」。
 
+- 修远程分支自带的 4 个类型错误，让 merge-edit 能 build：TowerDefenseArtifactFrame 解构时改名成 `_onSelect` 却仍调用 `onSelect`（点画板空白会抛 ReferenceError）；PlatformHome 的 `onOpenProject`、GarudaAssetsView 的 `showPageUsage` 调用方已传、组件类型没接，先补成可选参数，行为不变（未提交）
+
 - 新建 merge-edit 分支合并 codex/tower-defense-vibe-coding-v1：先把工作区里在做的 h5-lab 编辑器改动提交成一条 WIP，再合并远程。ImageCanvasEditor 按远程的双线拆分处理——游戏线用远程精简版，营销线的 MarketingImageCanvasEditor 换成我们这边带「定位素材 / 同步回页面 / 上传替换 / 缩放」的完整版；WORKLOG 两边记录全保留（未提交）
 
 - 2026-09-17：画布组位置持久化：展开仍按横排多行把重叠组推开；收起不回拉；用户拖动后自由落位；只有整理画布按槽位顺序左对齐重排（未提交）。
