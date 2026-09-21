@@ -1035,22 +1035,16 @@ export default function H5LabEditPanel({
     [selection?.label],
   )
 
-  /* 交互 / 设计 是面板的第一层分类。默认按选区给合适的那一档：没有点击行为的
-     元素直接落到设计，选中热点或没选东西时停在交互；手动切换只对当前选区生效。 */
+  /* 设计 / 交互 是面板的第一层分类。默认落在设计（大多数时候是在改样式）；
+     手动切到交互后换选区不再跳回去，连续给一串按钮接交互时不用每次重新切。 */
   const selectionKey = selection ? `${selection.stateId}|${selection.path}` : ''
-  const [modePick, setModePick] = useState<{ key: string; mode: PanelMode } | null>(
-    null,
-  )
+  const [mode, setMode] = useState<PanelMode>('design')
   /* 非热点元素也可以手动开出交互（图片、整块卡片这类）—— 开过或已经连过的，
      下次选中直接给全套控件。 */
   const [forceInteraction, setForceInteraction] = useState<string | null>(null)
   const interactive =
     selection !== null &&
     (isHotspot || Boolean(currentLink) || forceInteraction === selectionKey)
-  const autoMode: PanelMode =
-    selection && !interactive ? 'design' : 'interaction'
-  const mode = modePick?.key === selectionKey ? modePick.mode : autoMode
-  const setMode = (next: PanelMode) => setModePick({ key: selectionKey, mode: next })
 
   const toggleSlotIndependence = () => {
     if (!selection || !isSharedSlot) return
@@ -1211,8 +1205,8 @@ export default function H5LabEditPanel({
         <div className="sticky top-0 z-10 flex gap-1 border-b border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-3 py-2.5">
           {(
             [
-              ['interaction', '交互', GitBranch],
               ['design', '设计', Palette],
+              ['interaction', '交互', GitBranch],
             ] as const
           ).map(([id, label, Icon]) => (
             <button
