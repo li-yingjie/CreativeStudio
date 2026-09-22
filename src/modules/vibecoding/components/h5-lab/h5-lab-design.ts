@@ -8,7 +8,7 @@ import type { H5LabDesign } from './h5-lab-cases'
  * （`data-h5ds-seen`），换风格时只重算 CSS，不再扫。
  */
 
-type ColorToken =
+export type H5LabColorToken =
   | 'pageBg'
   | 'pageInk'
   | 'pageMuted'
@@ -19,32 +19,49 @@ type ColorToken =
   | 'accent'
   | 'accentInk'
 
-export const H5_LAB_COLOR_TOKENS: { group: string; items: { key: ColorToken; label: string }[] }[] = [
+export const H5_LAB_COLOR_TOKENS: {
+  group: string
+  items: { key: H5LabColorToken; label: string; description: string }[]
+}[] = [
   {
     group: '页面',
     items: [
-      { key: 'pageBg', label: '底色' },
-      { key: 'pageInk', label: '文字' },
-      { key: 'pageMuted', label: '辅助' },
+      { key: 'pageBg', label: '页面底色', description: '页面与区块背景' },
+      { key: 'pageInk', label: '主要文字', description: '页面标题与正文' },
+      { key: 'pageMuted', label: '次要文字', description: '时间、说明与提示' },
     ],
   },
   {
     group: '卡片',
     items: [
-      { key: 'paper', label: '纸面' },
-      { key: 'paperInk', label: '文字' },
-      { key: 'paperMuted', label: '辅助' },
-      { key: 'border', label: '描边' },
+      { key: 'paper', label: '卡片底色', description: '卡片与内容容器' },
+      { key: 'paperInk', label: '卡片文字', description: '卡片内标题与正文' },
+      { key: 'paperMuted', label: '卡片辅助', description: '卡片内次要信息' },
+      { key: 'border', label: '卡片描边', description: '边框与装饰线' },
     ],
   },
   {
     group: '主行动',
     items: [
-      { key: 'accent', label: '主色' },
-      { key: 'accentInk', label: '按钮字' },
+      { key: 'accent', label: '行动主色', description: '按钮、链接与强调元素' },
+      { key: 'accentInk', label: '按钮文字', description: '主按钮上的文字' },
     ],
   },
 ]
+
+export type H5LabDesignTokenUsage = Record<H5LabColorToken, number>
+
+export const emptyH5LabDesignTokenUsage = (): H5LabDesignTokenUsage => ({
+  pageBg: 0,
+  pageInk: 0,
+  pageMuted: 0,
+  paper: 0,
+  paperInk: 0,
+  paperMuted: 0,
+  border: 0,
+  accent: 0,
+  accentInk: 0,
+})
 
 export const H5_LAB_FONTS: { label: string; value: string }[] = [
   { label: '苹方 · 无衬线', value: '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif' },
@@ -206,21 +223,24 @@ export function randomH5LabDesign(base: H5LabDesign): Omit<H5LabDesign, 'shadow'
 
 /* ── 标记与 CSS ── */
 
-// 同色时按这个顺序认领角色：主行动最醒目，优先归它。
-const TEXT_TOKENS: ColorToken[] = ['accentInk', 'accent', 'paperInk', 'pageInk', 'paperMuted', 'pageMuted']
-const BG_TOKENS: ColorToken[] = ['accent', 'paper', 'pageBg', 'border']
-const BORDER_TOKENS: ColorToken[] = ['border', 'accent']
+// 同一个原始色值可能承担多个语义角色，全部保留才能让每个 token 都可编辑。
+const TEXT_TOKENS: H5LabColorToken[] = ['accentInk', 'accent', 'paperInk', 'pageInk', 'paperMuted', 'pageMuted']
+const BG_TOKENS: H5LabColorToken[] = ['accent', 'paper', 'pageBg', 'border']
+const BORDER_TOKENS: H5LabColorToken[] = ['border', 'accent']
 
 const normFont = (f: string) => f.replace(/["']/g, '').replace(/\s*,\s*/g, ',').trim().toLowerCase()
 
-function match(value: string, tokens: ColorToken[], base: H5LabDesign): ColorToken | null {
+function matches(
+  value: string,
+  tokens: H5LabColorToken[],
+  base: H5LabDesign,
+): H5LabColorToken[] {
   const c = parseColor(value)
-  if (!c || c[3] === 0) return null
-  for (const token of tokens) {
+  if (!c || c[3] === 0) return []
+  return tokens.filter((token) => {
     const t = parseColor(base[token])
-    if (t && near(c, t)) return token
-  }
-  return null
+    return Boolean(t && near(c, t))
+  })
 }
 
 /** 给帧里没扫过的元素按原始计算样式打角色标记。 */
@@ -231,13 +251,10 @@ export function markH5LabDesign(root: HTMLElement, base: H5LabDesign) {
     el.setAttribute('data-h5ds-seen', '')
     const cs = getComputedStyle(el)
     const roles: string[] = []
-    const text = match(cs.color, TEXT_TOKENS, base)
-    if (text) roles.push(`c-${text}`)
-    const bg = match(cs.backgroundColor, BG_TOKENS, base)
-    if (bg) roles.push(`bg-${bg}`)
+    roles.push(...matches(cs.color, TEXT_TOKENS, base).map((token) => `c-${token}`))
+    roles.push(...matches(cs.backgroundColor, BG_TOKENS, base).map((token) => `bg-${token}`))
     if (parseFloat(cs.borderTopWidth) > 0) {
-      const bd = match(cs.borderTopColor, BORDER_TOKENS, base)
-      if (bd) roles.push(`bd-${bd}`)
+      roles.push(...matches(cs.borderTopColor, BORDER_TOKENS, base).map((token) => `bd-${token}`))
     }
     const font = normFont(cs.fontFamily)
     if (font === normFont(base.displayFont) && base.displayFont !== base.bodyFont) roles.push('f-display')
@@ -249,6 +266,29 @@ export function markH5LabDesign(root: HTMLElement, base: H5LabDesign) {
     if (roles.length) el.setAttribute('data-h5ds', roles.join(' '))
     else el.removeAttribute('data-h5ds')
   }
+}
+
+/** 统计每个颜色角色实际命中的 DOM 元素，面板据此解释改动影响范围。 */
+export function h5LabDesignTokenUsage(
+  roots: Iterable<HTMLElement>,
+): H5LabDesignTokenUsage {
+  const usage = emptyH5LabDesignTokenUsage()
+  for (const root of roots) {
+    const nodes = [root, ...Array.from(root.querySelectorAll<HTMLElement>('[data-h5ds]'))]
+    for (const el of nodes) {
+      const roles = el.getAttribute('data-h5ds')?.split(/\s+/) ?? []
+      for (const token of Object.keys(usage) as H5LabColorToken[]) {
+        if (
+          roles.includes(`c-${token}`) ||
+          roles.includes(`bg-${token}`) ||
+          roles.includes(`bd-${token}`)
+        ) {
+          usage[token] += 1
+        }
+      }
+    }
+  }
+  return usage
 }
 
 /** 图片没法按 token 换色：主色变了就把图片整体转到新主色的色相上，

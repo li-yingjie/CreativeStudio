@@ -30,7 +30,14 @@ import {
   type H5LabScreen,
 } from './h5-lab-prototype'
 import { buildH5LabLayers, type H5LabLayer } from './h5-lab-layers'
-import { h5LabDesignCss, h5LabMergeDesign, markH5LabDesign } from './h5-lab-design'
+import {
+  h5LabDesignCss,
+  h5LabDesignTokenUsage,
+  h5LabMergeDesign,
+  markH5LabDesign,
+  type H5LabColorToken,
+  type H5LabDesignTokenUsage,
+} from './h5-lab-design'
 import {
   applyH5LabBoard,
   applyH5LabGroups,
@@ -77,6 +84,9 @@ interface CanvasView {
 /** 面板要靠它反选图层 —— 画布和面板是布局上的兄弟，只能用一个句柄互通。 */
 export interface H5LabStageApi {
   selectPath: (stateId: string, path: string) => void
+  groupSelectionWithLayout: (
+    layoutMode: 'normal' | 'vertical' | 'horizontal',
+  ) => void
 }
 
 export interface H5LabAsset {
@@ -103,6 +113,12 @@ interface Props {
   onHotspots: (hotspots: H5LabHotspot[]) => void
   /** 页面里用到的图片 —— 下钻素材库画布编辑时当素材源。 */
   onAssets: (assets: H5LabAsset[]) => void
+  /** 设计系统颜色在全部状态帧里的实际命中数量。 */
+  onDesignTokenUsage: (usage: H5LabDesignTokenUsage) => void
+  /** 面板正在查看的颜色角色，画布会显出所有命中元素。 */
+  inspectedDesignToken: H5LabColorToken | null
+  /** 多选只存在于画布内；把数量同步给面板，避免属性误写最后一个元素。 */
+  onMultiSelectionChange: (count: number) => void
   apiRef: { current: H5LabStageApi | null }
   /** 顶栏页面选择器选中的帧 —— 画布把它滚进视野并高亮。 */
   focusFrameId?: string
@@ -147,6 +163,9 @@ export default function H5LabEditStage({
   onLayers,
   onHotspots,
   onAssets,
+  onDesignTokenUsage,
+  inspectedDesignToken,
+  onMultiSelectionChange,
   apiRef,
   focusFrameId,
   onFocusFrame,
@@ -176,6 +195,9 @@ export default function H5LabEditStage({
   >(null)
   const [selectionBox, setSelectionBox] = useState<Box | null>(null)
   const [multiSelections, setMultiSelections] = useState<H5LabSelection[]>([])
+  const groupSelectionRef = useRef<
+    (layoutMode?: 'normal' | 'vertical' | 'horizontal') => void
+  >(() => {})
   const [multiBoxes, setMultiBoxes] = useState<Box[]>([])
   const [textEditingPath, setTextEditingPath] = useState<string | null>(null)
   const [annotationPath, setAnnotationPath] = useState<string | null>(null)
@@ -183,6 +205,15 @@ export default function H5LabEditStage({
   // 覆盖写回后重新量一次选中框；也被滚动 / 缩放 / 尺寸变化触发。
   const [measureTick, setMeasureTick] = useState(0)
   const remeasure = useCallback(() => setMeasureTick((n) => n + 1), [])
+
+  useEffect(() => {
+    onMultiSelectionChange(multiSelections.length)
+  }, [multiSelections.length, onMultiSelectionChange])
+
+  useEffect(
+    () => () => onMultiSelectionChange(0),
+    [onMultiSelectionChange],
+  )
 
   const css = useMemo(() => h5LabCss(overrides), [overrides])
   const design = useMemo(
@@ -233,15 +264,15 @@ export default function H5LabEditStage({
         )
         applyH5LabBoard(root, overrides[frame.id] ?? {})
         applyH5LabPageSettings(root, pageSettings)
-        // 生成屏本来就吃 design 变量，不用再按原稿认领角色。
-        if (!frame.generated) markH5LabDesign(root, labCase.design)
+        // 生成屏本来就吃 design 变量；仍标角色，供设计系统面板定位影响范围。
+        markH5LabDesign(root, frame.generated ? design : labCase.design)
       }
     }
     // 自己写的这批 mutation 也会进 observer，下一帧再放行。
     requestAnimationFrame(() => {
       applyingRef.current = false
     })
-  }, [frames, groups, labCase.design, overrides, pageSettings])
+  }, [design, frames, groups, labCase.design, overrides, pageSettings])
 
   useLayoutEffect(() => {
     applyOverrides()
@@ -265,7 +296,8 @@ export default function H5LabEditStage({
       }
     }
     onAssets([...assets].map(([src, label]) => ({ src, label })))
-  }, [focusedStateId, frames, onAssets, onHotspots, onLayers])
+    onDesignTokenUsage(h5LabDesignTokenUsage(frameRefs.current.values()))
+  }, [focusedStateId, frames, onAssets, onDesignTokenUsage, onHotspots, onLayers])
 
   useEffect(() => {
     const frame = requestAnimationFrame(pushLayers)
@@ -614,6 +646,9 @@ export default function H5LabEditStage({
         onSelect(measure(stateId, path, node))
         remeasure()
       },
+      groupSelectionWithLayout: (layoutMode) => {
+        groupSelectionRef.current(layoutMode)
+      },
     }
     return () => {
       apiRef.current = null
@@ -623,7 +658,13 @@ export default function H5LabEditStage({
   /* ── 拖动：选中元素上再按下就是移动，四角手柄改宽高 ──
      移动不做整块遮罩，否则点不进子元素；命中路径和当前选区相同才算移动。 */
   const dragRef = useRef<{
-    mode: 'move' | 'resize'
+    mode:
+      | 'move'
+      | 'resize'
+      | 'resize-x'
+      | 'resize-x-start'
+      | 'resize-y'
+      | 'resize-y-start'
     stateId: string
     path: string
     startX: number
@@ -639,7 +680,7 @@ export default function H5LabEditStage({
     overridesRef.current = overrides
   }, [overrides])
 
-  const groupSelection = useCallback(() => {
+  const groupSelection = useCallback((layoutMode?: 'normal' | 'vertical' | 'horizontal') => {
     const picked = multiSelections.length > 1 ? multiSelections : []
     if (picked.length < 2) {
       toast('按住 Shift 依次选择至少两个同级元素，再按 ⌘G 打组')
@@ -691,6 +732,17 @@ export default function H5LabEditStage({
       label: `编组 ${groups.filter((group) => group.caseId === labCase.id).length + 1}`,
     }
     onGroups([...groups, next], { group: `group|${stateId}|${id}` })
+    if (layoutMode) {
+      onOverrides(
+        h5LabPatchSlot(
+          overridesRef.current,
+          [stateId],
+          h5LabGroupPath(id),
+          { style: { layoutMode } },
+        ),
+        { group: `group|${stateId}|${id}` },
+      )
+    }
     setMultiSelections([])
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -702,8 +754,31 @@ export default function H5LabEditStage({
         remeasure()
       })
     })
-    toast(`已将 ${childPaths.length} 个元素打组`)
-  }, [groups, labCase.id, measure, multiSelections, onGroups, onSelect, remeasure])
+    toast(
+      layoutMode
+        ? `已将 ${childPaths.length} 个元素打组并设为${
+            layoutMode === 'horizontal'
+              ? '横向布局'
+              : layoutMode === 'vertical'
+                ? '纵向布局'
+                : '自由布局'
+          }`
+        : `已将 ${childPaths.length} 个元素打组`,
+    )
+  }, [
+    groups,
+    labCase.id,
+    measure,
+    multiSelections,
+    onGroups,
+    onOverrides,
+    onSelect,
+    remeasure,
+  ])
+
+  useEffect(() => {
+    groupSelectionRef.current = groupSelection
+  }, [groupSelection])
 
   const ungroupSelection = useCallback(() => {
     if (!selection) return
@@ -712,9 +787,13 @@ export default function H5LabEditStage({
       toast('请先选中一个编组')
       return
     }
-    onOverrides(h5LabReset(overridesRef.current, selection.stateId, selection.path))
+    const historyGroup = `ungroup|${selection.stateId}|${id}`
+    onOverrides(
+      h5LabReset(overridesRef.current, selection.stateId, selection.path),
+      { group: historyGroup },
+    )
     onGroups(groups.filter((group) => group.id !== id), {
-      group: `ungroup|${selection.stateId}|${id}`,
+      group: historyGroup,
     })
     setMultiSelections([])
     onSelect(null)
@@ -793,7 +872,16 @@ export default function H5LabEditStage({
   }, [groupSelection, onOverrides, remeasure, selection, toggleSelectionAutoLayout, ungroupSelection])
 
   const beginDrag = useCallback(
-    (mode: 'move' | 'resize', event: { clientX: number; clientY: number }) => {
+    (
+      mode:
+        | 'move'
+        | 'resize'
+        | 'resize-x'
+        | 'resize-x-start'
+        | 'resize-y'
+        | 'resize-y-start',
+      event: { clientX: number; clientY: number },
+    ) => {
       if (!selection) return
       const style = overridesRef.current[selection.stateId]?.[selection.path]?.style ?? {}
       dragRef.current = {
@@ -829,10 +917,40 @@ export default function H5LabEditStage({
               offsetX: Math.round(drag.baseOffsetX + dx),
               offsetY: Math.round(drag.baseOffsetY + dy),
             }
-          : {
-              width: Math.max(8, Math.round(drag.baseW + dx)),
-              height: Math.max(8, Math.round(drag.baseH + dy)),
-            }
+          : drag.mode === 'resize-x'
+            ? {
+                width: Math.max(8, Math.round(drag.baseW + dx)),
+                widthSizing: 'fixed' as const,
+              }
+            : drag.mode === 'resize-x-start'
+              ? {
+                  width: Math.max(8, Math.round(drag.baseW - dx)),
+                  widthSizing: 'fixed' as const,
+                  offsetX:
+                    Math.round(drag.baseOffsetX) +
+                    drag.baseW -
+                    Math.max(8, Math.round(drag.baseW - dx)),
+                }
+            : drag.mode === 'resize-y'
+              ? {
+                  height: Math.max(8, Math.round(drag.baseH + dy)),
+                  heightSizing: 'fixed' as const,
+                }
+              : drag.mode === 'resize-y-start'
+                ? {
+                    height: Math.max(8, Math.round(drag.baseH - dy)),
+                    heightSizing: 'fixed' as const,
+                    offsetY:
+                      Math.round(drag.baseOffsetY) +
+                      drag.baseH -
+                      Math.max(8, Math.round(drag.baseH - dy)),
+                  }
+              : {
+                  width: Math.max(8, Math.round(drag.baseW + dx)),
+                  height: Math.max(8, Math.round(drag.baseH + dy)),
+                  widthSizing: 'fixed' as const,
+                  heightSizing: 'fixed' as const,
+                }
       onOverrides(
         h5LabPatchSlot(current, slotStateIds(drag.stateId, drag.path), drag.path, { style }),
         { group: `drag|${drag.stateId}|${drag.path}|${drag.mode}` },
@@ -991,6 +1109,19 @@ export default function H5LabEditStage({
         }
         ${designCss}
         ${css}
+        ${
+          inspectedDesignToken
+            ? `
+              [data-h5ds~="c-${inspectedDesignToken}"],
+              [data-h5ds~="bg-${inspectedDesignToken}"],
+              [data-h5ds~="bd-${inspectedDesignToken}"]{
+                outline:1px dashed #9eddbd !important;
+                outline-offset:-1px !important;
+                box-shadow:inset 0 0 0 9999px rgba(183,235,210,.12) !important;
+              }
+            `
+            : ''
+        }
       `}</style>
 
       {/* ── 多状态画布 ── */}
@@ -1220,6 +1351,21 @@ export default function H5LabEditStage({
             <div className="absolute inset-0 border-[1.5px] border-[#2f6bff]" />
             <span className="absolute -top-[19px] left-0 flex items-center whitespace-nowrap rounded-sm bg-[#2f6bff] text-[10px] leading-[17px] text-white">
               <span className="px-1">{selection.label}</span>
+              {selection.kind === 'group' && (
+                <button
+                  type="button"
+                  title="解组（⇧⌘G）"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    ungroupSelection()
+                  }}
+                  className="pointer-events-auto flex h-[17px] items-center border-l border-white/30 px-1.5 font-medium transition-colors hover:bg-white/20"
+                >
+                  解组 ⇧⌘G
+                </button>
+              )}
               <button
                 type="button"
                 title="标注"
@@ -1363,7 +1509,7 @@ export default function H5LabEditStage({
             ).map(([pos, cursor]) => (
               <div
                 key={pos}
-                className={`pointer-events-auto absolute size-[8px] rounded-[1px] border border-[#2f6bff] bg-white ${pos}`}
+                className={`pointer-events-auto absolute z-10 size-[8px] rounded-[1px] border border-[#2f6bff] bg-white ${pos}`}
                 style={{ cursor }}
                 onPointerDown={(event) => {
                   event.preventDefault()
@@ -1372,6 +1518,46 @@ export default function H5LabEditStage({
                 }}
               />
             ))}
+            <div
+              aria-hidden="true"
+              className="pointer-events-auto absolute -left-[5px] bottom-1 top-1 w-[10px]"
+              style={{ cursor: 'ew-resize' }}
+              onPointerDown={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                beginDrag('resize-x-start', event)
+              }}
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-auto absolute -right-[5px] bottom-1 top-1 w-[10px]"
+              style={{ cursor: 'ew-resize' }}
+              onPointerDown={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                beginDrag('resize-x', event)
+              }}
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-auto absolute -top-[5px] left-1 right-1 h-[10px]"
+              style={{ cursor: 'ns-resize' }}
+              onPointerDown={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                beginDrag('resize-y-start', event)
+              }}
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-auto absolute -bottom-[5px] left-1 right-1 h-[10px]"
+              style={{ cursor: 'ns-resize' }}
+              onPointerDown={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                beginDrag('resize-y', event)
+              }}
+            />
           </div>
         )}
 

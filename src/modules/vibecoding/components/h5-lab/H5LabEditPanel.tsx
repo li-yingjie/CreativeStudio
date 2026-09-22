@@ -30,6 +30,8 @@ import {
   H5_LAB_FONTS,
   h5LabMergeDesign,
   randomH5LabDesign,
+  type H5LabColorToken,
+  type H5LabDesignTokenUsage,
 } from './h5-lab-design'
 import {
   h5LabAncestors,
@@ -62,15 +64,19 @@ import type { H5LabHistoryOptions } from './useH5LabHistory'
 
 /* ─── H5 Lab 画布属性面板 ───
  *
- * 结构对齐 OJO 的 Edit section：上半是图层管理（Element view 看当前这一层，
- * Full structure 看整页结构），下半是 Container styles —— 背景 / 不透明度 /
- * 圆角 / 描边 / 阴影，再往下是 Size & layout（位置·旋转·尺寸·内外边距）。
+ * 结构对齐 OJO 的 Edit section：选中元素后上半是当前图层管理，下半是
+ * Container styles —— 背景 / 不透明度 / 圆角 / 描边 / 阴影，再往下是
+ * Size & layout（位置·旋转·尺寸·内外边距）。
  * 内容和图片这两组只在选中文字 / 图片时出现。字段只写覆盖，不动 case 源码。
  */
 
 interface Props {
   labCase: H5LabCase
   selection: H5LabSelection | null
+  multiSelectionCount: number
+  onMultiSelectionFlow: (
+    layoutMode: 'normal' | 'vertical' | 'horizontal',
+  ) => void
   overrides: H5LabOverrides
   onOverrides: (next: H5LabOverrides, options?: H5LabHistoryOptions) => void
   /** 当前槽位是否只编辑所选帧。 */
@@ -89,6 +95,8 @@ interface Props {
   defaultShareImage?: string
   /** 图片下钻素材库画布编辑。 */
   onOpenAssetCanvas: (src?: string) => void
+  designTokenUsage: H5LabDesignTokenUsage
+  onInspectDesignToken: (token: H5LabColorToken | null) => void
   /** 把当前选中的元素带进对话。 */
   onAddToChat: () => void
   onClose: () => void
@@ -752,7 +760,7 @@ function AlignIcon({ axis, edge }: { axis: 'x' | 'y'; edge: AlignEdge }) {
 
 function IconSegment({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-1 overflow-hidden rounded-lg bg-[var(--color-ink)]/[0.045]">
+    <div className="flex flex-1 rounded-lg bg-[var(--color-ink)]/[0.045]">
       {children}
     </div>
   )
@@ -776,9 +784,12 @@ function IconSegmentButton({
       aria-label={label}
       aria-pressed={pressed}
       onClick={onClick}
-      className="grid h-8 flex-1 place-items-center border-r border-[var(--color-surface-0)] text-[var(--color-ink)]/55 transition-colors last:border-r-0 hover:bg-[var(--color-ink)]/[0.06] hover:text-[var(--color-ink)] aria-pressed:text-[#2f6bff]"
+      className="group/tooltip relative grid h-8 flex-1 place-items-center border-r border-[var(--color-surface-0)] text-[var(--color-ink)]/55 transition-colors first:rounded-l-lg last:rounded-r-lg last:border-r-0 hover:bg-[var(--color-ink)]/[0.06] hover:text-[var(--color-ink)] aria-pressed:text-[#2f6bff]"
     >
       {children}
+      <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-[#17191f] px-1.5 py-1 text-[10px] font-normal leading-none text-white opacity-0 shadow-sm group-hover/tooltip:opacity-100 group-focus-visible/tooltip:opacity-100">
+        {label}
+      </span>
     </button>
   )
 }
@@ -895,8 +906,8 @@ function FullStructure({
 }
 
 /* ── 整页设计系统 ──
-   没选中元素时设计档展示的内容：当前页面的配色 / 字体 / 圆角 token，外加一排
-   风格预设和随机生成，点一下整页（含补出来的屏）立即换装，不满意撤销或还原。 */
+   没选中元素时设计档展示当前页面的配色 / 字体 / 圆角 token，外加一排风格预设和
+   随机生成；配置直接对应画布，不再另放一张容易被误认成页面映射的静态小样。 */
 
 // 一句话描述风格时的关键词 → 预设；认不出来就随机一套。
 const STYLE_KEYWORDS: [RegExp, string][] = [
@@ -914,6 +925,8 @@ function DesignSystemSection({
   designName,
   tintImages,
   onTintImages,
+  tokenUsage,
+  onInspectToken,
   onChange,
 }: {
   base: H5LabDesign
@@ -921,15 +934,22 @@ function DesignSystemSection({
   designName: string
   tintImages: boolean
   onTintImages: (next: boolean) => void
+  tokenUsage: H5LabDesignTokenUsage
+  onInspectToken: (token: H5LabColorToken | null) => void
   /** `step` 为 true 时单独占一步撤销（换整套风格），否则按 token 合并。 */
   onChange: (patch: Partial<H5LabDesign>, name: string, step?: boolean) => void
 }) {
   const [prompt, setPrompt] = useState('')
+  const [inspectedToken, setInspectedToken] = useState<H5LabColorToken | null>(null)
   const changed = (Object.keys(base) as (keyof H5LabDesign)[]).some(
     (key) => design[key] !== base[key],
   )
   const setToken = (key: keyof H5LabDesign, value: string | number) =>
     onChange({ [key]: value }, '自定义')
+  const inspectToken = (token: H5LabColorToken | null) => {
+    setInspectedToken(token)
+    onInspectToken(token)
+  }
   const applyPreset = (id: string) => {
     const preset = H5_LAB_DESIGN_PRESETS.find((item) => item.id === id)
     if (!preset) return
@@ -967,49 +987,6 @@ function DesignSystemSection({
           </span>
         </div>
 
-        {/* 风格小样：底色 + 卡片 + 主按钮，一眼看出这套 token 长什么样。 */}
-        <div
-          className="mb-4 overflow-hidden rounded-xl border border-[var(--color-ink)]/8 p-3"
-          style={{ background: design.pageBg }}
-        >
-          <div
-            className="p-3"
-            style={{
-              background: design.paper,
-              border: `1px solid ${design.border}`,
-              borderRadius: Math.min(design.radiusLg, 20),
-            }}
-          >
-            <div
-              className="text-[15px] font-bold leading-tight"
-              style={{ color: design.paperInk, fontFamily: design.displayFont }}
-            >
-              {'标题 Aa'}
-            </div>
-            <div
-              className="mt-1 text-[11px]"
-              style={{ color: design.paperMuted, fontFamily: design.bodyFont }}
-            >
-              {'正文辅助说明文字'}
-            </div>
-            <div className="mt-2.5 flex items-center justify-between">
-              <span className="text-[11px]" style={{ color: design.pageMuted }}>
-                {'时间 | 12.20'}
-              </span>
-              <span
-                className="px-3 py-1 text-[11px] font-semibold"
-                style={{
-                  background: design.accent,
-                  color: design.accentInk,
-                  borderRadius: Math.min(design.radius, 14),
-                }}
-              >
-                {'主按钮'}
-              </span>
-            </div>
-          </div>
-        </div>
-
         <div className="space-y-3">
           {H5_LAB_COLOR_TOKENS.map((group) => (
             <div key={group.group}>
@@ -1021,15 +998,34 @@ function DesignSystemSection({
                   const value = design[item.key]
                   const modified = value !== base[item.key]
                   const hex = /^#[0-9a-f]{6}$/i.test(value) ? value : '#ffffff'
+                  const usage = tokenUsage[item.key]
+                  const unused = usage === 0
                   return (
                     <label
                       key={item.key}
-                      title={`${group.group}${item.label}：${value}`}
-                      className={`relative flex h-9 cursor-pointer items-center gap-2 rounded-lg border px-2 transition-colors hover:border-[var(--color-ink)]/20 ${
-                        modified
-                          ? 'border-[#2f6bff]/25 bg-[#2f6bff]/[0.045]'
-                          : 'border-[var(--color-ink)]/10 bg-[var(--color-surface-0)]'
+                      title={`${item.description} · ${unused ? '当前画布未使用' : `影响 ${usage} 个元素`}`}
+                      onMouseEnter={() => {
+                        if (!unused) inspectToken(item.key)
+                      }}
+                      onMouseLeave={() => inspectToken(null)}
+                      className={`relative flex h-11 items-center gap-2 rounded-lg border px-2 transition-all ${
+                        unused
+                          ? 'cursor-default border-[var(--color-ink)]/[0.06] bg-[var(--color-ink)]/[0.025] opacity-55'
+                          : `cursor-pointer ${
+                              modified
+                                ? 'border-[#2f6bff]/25 bg-[#2f6bff]/[0.045]'
+                                : 'border-[var(--color-ink)]/10 bg-[var(--color-surface-0)]'
+                            }`
                       }`}
+                      style={
+                        inspectedToken === item.key
+                          ? {
+                              borderColor: '#9eddbd',
+                              borderStyle: 'dashed',
+                              background: 'rgba(183,235,210,.12)',
+                            }
+                          : undefined
+                      }
                     >
                       <span
                         className="size-[18px] shrink-0 rounded-[4px] border border-[var(--color-ink)]/15"
@@ -1047,11 +1043,24 @@ function DesignSystemSection({
                           {value}
                         </span>
                       </span>
+                      <span
+                        className={`flex shrink-0 items-center gap-0.5 text-[9.5px] tabular-nums ${
+                          unused ? 'text-[var(--color-ink)]/32' : 'text-[var(--color-ink)]/42'
+                        }`}
+                      >
+                        <Eye size={10} strokeWidth={1.8} />
+                        {unused ? '未使用' : usage}
+                      </span>
                       <input
                         type="color"
                         value={hex}
+                        disabled={unused}
+                        onFocus={() => inspectToken(item.key)}
+                        onBlur={() => inspectToken(null)}
                         onChange={(event) => setToken(item.key, event.target.value)}
-                        className="absolute inset-0 cursor-pointer opacity-0"
+                        className={`absolute inset-0 opacity-0 ${
+                          unused ? 'cursor-default' : 'cursor-pointer'
+                        }`}
                         aria-label={`${group.group}${item.label}`}
                       />
                     </label>
@@ -1060,11 +1069,6 @@ function DesignSystemSection({
               </div>
             </div>
           ))}
-
-          {/* 复刻页大半是图，只换 token 的话整页观感变化很小。 */}
-          <div className="-my-1">
-            <ToggleRow label="图片跟随主色调" checked={tintImages} onChange={onTintImages} />
-          </div>
 
           <div>
             <div className="mb-1.5 text-[11px] font-medium text-[var(--color-ink)]/45">字体</div>
@@ -1139,6 +1143,10 @@ function DesignSystemSection({
               还原原稿
             </button>
           )}
+        </div>
+
+        <div className="mb-2">
+          <ToggleRow label="图片跟随主色调" checked={tintImages} onChange={onTintImages} />
         </div>
 
         <form
@@ -1222,6 +1230,8 @@ const CHANNEL_PUBLISH_HOTSPOTS = new Set(['去查看', '去搜索', '去分享']
 export default function H5LabEditPanel({
   labCase,
   selection,
+  multiSelectionCount,
+  onMultiSelectionFlow,
   overrides,
   onOverrides,
   isSlotIndependent,
@@ -1234,6 +1244,8 @@ export default function H5LabEditPanel({
   onPrototype,
   defaultShareImage = '',
   onOpenAssetCanvas,
+  designTokenUsage,
+  onInspectDesignToken,
   onAddToChat,
   onClose,
 }: Props) {
@@ -1446,7 +1458,8 @@ export default function H5LabEditPanel({
   const m = selection?.measured
   const isText = selection?.kind === 'text' || selection?.kind === 'button'
   const isImage = selection?.kind === 'image'
-  const canAutoLayout = (m?.childCount ?? 0) > 0
+  const isMultiSelection = multiSelectionCount > 1
+  const canAutoLayout = isMultiSelection || (m?.childCount ?? 0) > 0
   const parentPath = selection
     ? selection.path.split('>').slice(0, -1).join('>')
     : ''
@@ -1454,7 +1467,7 @@ export default function H5LabEditPanel({
      display`，于是页面 CSS 本来就是 flex 的元素（以及打组后落在 flex 上下文里的
      wrapper）一选中就显示成"已启用"，主轴/交叉轴还跟着亮起来 —— 用户没开过，
      看着却像开了。量出来的值只在"启用"那一下用来播种，不参与开关状态。 */
-  const layoutOverride = style.layoutMode
+  const layoutOverride = isMultiSelection ? undefined : style.layoutMode
   const autoLayoutEnabled =
     canAutoLayout && layoutOverride !== undefined && layoutOverride !== 'normal'
   const effectiveLayoutMode = autoLayoutEnabled ? layoutOverride : 'normal'
@@ -1478,6 +1491,10 @@ export default function H5LabEditPanel({
   /* 从「自由」切进纵向 / 横向时，把它现在的对齐和间距播种进覆盖 —— 页面本来就是
      flex 的元素这一下外观不会跳。已开启时只换方向，换行状态跟着保留。 */
   const setFlow = (next: 'normal' | 'vertical' | 'horizontal') => {
+    if (isMultiSelection) {
+      onMultiSelectionFlow(next)
+      return
+    }
     if (next === 'normal') {
       patchStyle({ layoutMode: 'normal' })
       return
@@ -1510,7 +1527,7 @@ export default function H5LabEditPanel({
               {selection.tag}
             </span>
             <span className="min-w-0 truncate text-[12px] text-[var(--color-ink)]/50">
-              {selection.label}
+              {isMultiSelection ? `已选 ${multiSelectionCount} 个元素` : selection.label}
             </span>
             {isSharedSlot && (
               <button
@@ -2084,9 +2101,12 @@ export default function H5LabEditPanel({
                                 aria-label={label}
                                 aria-pressed={currentFlow === value}
                                 onClick={() => setFlow(value)}
-                                className="grid h-8 flex-1 place-items-center rounded-md text-[var(--color-ink)]/48 transition-colors hover:text-[var(--color-ink)]/80 aria-pressed:bg-[var(--color-surface-0)] aria-pressed:text-[var(--color-ink)] aria-pressed:shadow-[0_1px_2px_rgba(16,18,24,0.10)]"
+                                className="group/tooltip relative grid h-8 flex-1 place-items-center rounded-md text-[var(--color-ink)]/48 transition-colors hover:text-[var(--color-ink)]/80 aria-pressed:bg-[var(--color-surface-0)] aria-pressed:text-[var(--color-ink)] aria-pressed:shadow-[0_1px_2px_rgba(16,18,24,0.10)]"
                               >
                                 <FlowIcon kind={value} />
+                                <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-[#17191f] px-1.5 py-1 text-[10px] font-normal leading-none text-white opacity-0 shadow-sm group-hover/tooltip:opacity-100 group-focus-visible/tooltip:opacity-100">
+                                  {label}
+                                </span>
                               </button>
                             ))}
                           </div>
@@ -2099,9 +2119,12 @@ export default function H5LabEditPanel({
                             onClick={() =>
                               patchStyle({ layoutMode: wrapOn ? 'horizontal' : 'wrap' })
                             }
-                            className="grid size-9 shrink-0 place-items-center rounded-lg text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] disabled:cursor-not-allowed disabled:opacity-30 aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
+                            className="group/tooltip relative grid size-9 shrink-0 place-items-center rounded-lg text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] disabled:cursor-not-allowed disabled:opacity-30 aria-pressed:bg-[#2f6bff]/10 aria-pressed:text-[#2f6bff]"
                           >
                             <FlowIcon kind="wrap" />
+                            <span className="pointer-events-none absolute right-0 top-full z-50 mt-1 whitespace-nowrap rounded bg-[#17191f] px-1.5 py-1 text-[10px] font-normal leading-none text-white opacity-0 shadow-sm group-hover/tooltip:opacity-100 group-focus-visible/tooltip:opacity-100">
+                              {currentFlow === 'horizontal' ? '自动换行' : '仅横向流可换行'}
+                            </span>
                           </button>
                         </div>
                       </Row>
@@ -2624,22 +2647,17 @@ export default function H5LabEditPanel({
               </>
             ) : (
               <>
-                {/* 没选中元素：设计档是整页设计系统，图层结构收在最下面。 */}
+                {/* 没选中元素：设计档展示整页设计系统。 */}
                 <DesignSystemSection
                   base={labCase.design}
                   design={pageDesign}
                   designName={pageSettings.designName}
                   tintImages={pageSettings.designTintImages}
                   onTintImages={(next) => patchPageSettings({ designTintImages: next })}
+                  tokenUsage={designTokenUsage}
+                  onInspectToken={onInspectDesignToken}
                   onChange={patchPageDesign}
                 />
-                <Group title="整页结构" icon={Layers} defaultOpen={false}>
-                  <FullStructure
-                    layers={layers}
-                    selectedPath={null}
-                    onSelectPath={onSelectPath}
-                  />
-                </Group>
               </>
             )}
           </>

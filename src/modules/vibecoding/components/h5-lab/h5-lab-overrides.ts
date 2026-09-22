@@ -416,12 +416,21 @@ export function h5LabCss(overrides: H5LabOverrides): string {
   const rules: string[] = []
   for (const [stateId, nodes] of Object.entries(overrides)) {
     for (const [path, override] of Object.entries(nodes)) {
+      const groupId = h5LabGroupId(path)
+      // 虚拟组的自由态继续用 wrapper 自带的 display:contents，子元素保持原位置。
+      const style =
+        groupId && override.style?.layoutMode === 'normal'
+          ? { ...override.style, layoutMode: undefined }
+          : override.style
       const body = [
-        ...(override.style ? decls(override.style) : []),
+        ...(style ? decls(style) : []),
         ...rawDecls(override.css),
       ]
       if (body.length === 0) continue
-      const scope = `[data-h5-frame="${stateId}"] [data-h5el=${JSON.stringify(path)}]`
+      const target = groupId
+        ? `[data-h5-group=${JSON.stringify(groupId)}]`
+        : `[data-h5el=${JSON.stringify(path)}]`
+      const scope = `[data-h5-frame="${stateId}"] ${target}`
       rules.push(`${scope}{${body.join(';')}}`)
     }
   }

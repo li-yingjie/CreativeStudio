@@ -94,6 +94,10 @@ import H5LabPhonePreview from './h5-lab/H5LabPhonePreview'
 import { useH5LabHistory } from './h5-lab/useH5LabHistory'
 import WorkshopHistoryPanel from './WorkshopHistoryPanel'
 import type { H5LabLayer } from './h5-lab/h5-lab-layers'
+import {
+  emptyH5LabDesignTokenUsage,
+  type H5LabColorToken,
+} from './h5-lab/h5-lab-design'
 import { buildH5LabFrames } from './h5-lab/H5LabFrames'
 import {
   h5LabPageSettings,
@@ -6859,6 +6863,7 @@ export default function VibeCodingPage({
      和本地存储看到的，`draft` 是画布里正在改的 —— 点顶栏「应用」才合流。
      编辑态不再放可交互预览，就是因为草稿和运行态不该同时在场互相打架。 */
   const [h5LabSelected, setH5LabSelected] = useState<H5LabSelection | null>(null)
+  const [h5LabMultiSelectionCount, setH5LabMultiSelectionCount] = useState(0)
   /** case + DOM path 维度记录解除同步的槽位；默认槽位仍跨状态帧联动。 */
   const [h5LabIndependentSlots, setH5LabIndependentSlots] = useState<
     Record<string, true>
@@ -6870,6 +6875,11 @@ export default function VibeCodingPage({
   const [h5LabLayers, setH5LabLayers] = useState<H5LabLayer[]>([])
   const [h5LabHotspots, setH5LabHotspots] = useState<H5LabHotspot[]>([])
   const [h5LabAssets, setH5LabAssets] = useState<H5LabAsset[]>([])
+  const [h5LabDesignTokenUsage, setH5LabDesignTokenUsage] = useState(
+    emptyH5LabDesignTokenUsage,
+  )
+  const [h5LabInspectedDesignToken, setH5LabInspectedDesignToken] =
+    useState<H5LabColorToken | null>(null)
   const h5LabStageRef = useRef<H5LabStageApi | null>(null)
   /* 补交互生成的界面 + 热点连接关系 —— 同样分草稿和已应用两份。 */
   const [h5LabPrototype, setH5LabPrototype] = useState<H5LabPrototype>(() =>
@@ -6902,6 +6912,7 @@ export default function VibeCodingPage({
     setEditPanelOpen(false)
     setH5LabSelected(null)
     setH5LabAssetCanvas(null)
+    setH5LabInspectedDesignToken(null)
     setH5LabChatCollapsed(false)
     if (persisted) toast('已应用，去预览里试试点触')
     else toast.error('本地保存失败，改动仅保留在当前会话')
@@ -6911,6 +6922,7 @@ export default function VibeCodingPage({
     setEditPanelOpen(false)
     setH5LabSelected(null)
     setH5LabAssetCanvas(null)
+    setH5LabInspectedDesignToken(null)
     // 收起对话流只在这一次编辑里有效，下次进来还是展开的 —— 否则再进画布
     // 左边直接空一块，看着像出错了。
     setH5LabChatCollapsed(false)
@@ -11387,6 +11399,9 @@ export default function VibeCodingPage({
         onLayers={setH5LabLayers}
         onHotspots={setH5LabHotspots}
         onAssets={setH5LabAssets}
+        onDesignTokenUsage={setH5LabDesignTokenUsage}
+        inspectedDesignToken={h5LabInspectedDesignToken}
+        onMultiSelectionChange={setH5LabMultiSelectionCount}
         apiRef={h5LabStageRef}
         focusFrameId={h5LabActiveFrameId}
         onFocusFrame={setH5LabFrameId}
@@ -19250,6 +19265,10 @@ export default function VibeCodingPage({
                           <H5LabEditPanel
                             labCase={h5LabCase}
                             selection={h5LabSelected}
+                            multiSelectionCount={h5LabMultiSelectionCount}
+                            onMultiSelectionFlow={(layoutMode) =>
+                              h5LabStageRef.current?.groupSelectionWithLayout(layoutMode)
+                            }
                             overrides={h5LabDraft}
                             onOverrides={h5LabHistory.setOverrides}
                             isSlotIndependent={Boolean(
@@ -19276,6 +19295,8 @@ export default function VibeCodingPage({
                             onPrototype={h5LabHistory.setPrototype}
                             defaultShareImage={h5LabAssets[0]?.src}
                             onOpenAssetCanvas={openH5LabAssetCanvas}
+                            designTokenUsage={h5LabDesignTokenUsage}
+                            onInspectDesignToken={setH5LabInspectedDesignToken}
                             onAddToChat={() => {
                               if (!h5LabSelected) return
                               const frame = h5LabFrameIds.find(
