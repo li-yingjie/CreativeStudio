@@ -2010,11 +2010,6 @@ function InspirationFeed({
     [basePool, filter],
   )
 
-  /* 换场景或换筛选都重新从头喂，否则会接着上一次的长度继续。 */
-  useEffect(() => {
-    setCount(INSPIRATION_PAGE_SIZE)
-  }, [sceneKey, filter])
-
   useEffect(() => {
     const node = sentinelRef.current
     if (!node || !pool.length || count >= INSPIRATION_MAX_ITEMS) return
@@ -2050,7 +2045,10 @@ function InspirationFeed({
               key={key}
               type="button"
               aria-pressed={filter === key}
-              onClick={() => setFilter(key)}
+              onClick={() => {
+                setFilter(key)
+                setCount(INSPIRATION_PAGE_SIZE)
+              }}
               className={`flex h-7 shrink-0 items-center rounded-full px-3 text-[13px] leading-5 transition-colors ${
                 filter === key
                   ? 'bg-[rgba(83,96,143,0.12)] font-medium text-[#1c1f23]'
@@ -3386,7 +3384,11 @@ export default function PlatformHome({
           aria-label="探索灵感"
           className="relative mx-auto flex w-full max-w-[1308px] flex-col items-center px-6 pb-20 pt-12"
         >
-          <InspirationFeed sceneKey={activeScene} onPick={submit} />
+          <InspirationFeed
+            key={activeScene}
+            sceneKey={activeScene}
+            onPick={submit}
+          />
         </section>
       )}
     </motion.div>

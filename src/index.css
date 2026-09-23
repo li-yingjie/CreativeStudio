@@ -2,6 +2,45 @@
 @import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700&display=swap");
 @import "tailwindcss";
 
+/* Figma 星光入口使用 Roboto Black；仅保留余额所需的数字字形。 */
+@font-face {
+  font-family: 'Starlight Roboto';
+  src: url('/fonts/roboto-black-digits.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  unicode-range: U+0030-0039;
+}
+
+@keyframes starlight-tooltip-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes starlight-tooltip-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-2px) scale(0.99); }
+}
+
+[data-starlight-tooltip] {
+  transform-origin: var(--radix-tooltip-content-transform-origin);
+  will-change: opacity, transform;
+}
+
+[data-starlight-tooltip][data-state='delayed-open'],
+[data-starlight-tooltip][data-state='instant-open'] {
+  animation: starlight-tooltip-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+[data-starlight-tooltip][data-state='closed'] {
+  animation: starlight-tooltip-out 120ms ease-in both;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-starlight-tooltip] { animation: none !important; }
+}
+
 /* Register `--edge-angle` so browsers can animate it between keyframes /
    hover states. Without this, changes jump instantly. */
 @property --edge-angle {

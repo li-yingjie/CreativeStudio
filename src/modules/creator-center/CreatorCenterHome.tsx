@@ -52,6 +52,7 @@ const DouyinIndexPage = lazy(() => import('./DouyinIndexPage'))
 const IncomePage = lazy(() => import('./IncomePage'))
 const LivePage = lazy(() => import('./LivePage'))
 const PublishVideoPage = lazy(() => import('./PublishVideoPage'))
+const StarlightDetailsPage = lazy(() => import('./StarlightDetailsPage'))
 const OverviewRadar = lazy(() =>
   import('./HomeCharts').then((module) => ({ default: module.OverviewRadar })),
 )
@@ -1074,10 +1075,14 @@ export default function CreatorCenterHome({
   active,
   onOpenProduct,
   onScrollStateChange,
+  starlightOpen = false,
+  onCloseStarlight,
 }: {
   active: boolean
   onOpenProduct: (id: ProductId) => void
   onScrollStateChange?: (scrolled: boolean) => void
+  starlightOpen?: boolean
+  onCloseStarlight?: () => void
 }) {
   // 左侧栏当前页：data=数据看板 content=内容管理 其余为建设中占位
   const [page, setPage] = useState('data')
@@ -1087,35 +1092,38 @@ export default function CreatorCenterHome({
   // 关闭直播管理开关后若正停在该页，回落到数据看板（渲染期派生）
   if (page === 'live' && !liveEnabled) setPage('data')
   // 资料头的粉丝/获赞用近7天档的响应（任意档都含 profile 快照）
-  const homePageActive = active && page === 'data'
+  const homePageActive = active && page === 'data' && !starlightOpen
   const { data: profileData } = useCreatorStats('week', homePageActive)
   // 首页新板块（互动/变现/活动/快速导航）共用一次 home-overview 拉取
   const { data: homeData } = useHomeOverview(homePageActive)
   const reduceMotion = useReducedMotion()
   const selectPage = (nextPage: string) => {
+    onCloseStarlight?.()
     if (nextPage === 'data') setHomeScrolled(false)
     setPage(nextPage)
   }
 
   useEffect(() => {
-    if (!active || page !== 'data') {
+    if (!active || page !== 'data' || starlightOpen) {
       onScrollStateChange?.(false)
     }
-  }, [active, onScrollStateChange, page])
+  }, [active, onScrollStateChange, page, starlightOpen])
 
   return (
     <div className={`flex h-full min-h-0 ${navVersion === 1 ? 'bg-transparent' : 'bg-[#F5F6F8]'}`}>
-      <SideNav active={page} onSelect={selectPage} />
+      <SideNav active={starlightOpen ? '' : page} onSelect={selectPage} />
       {/* 只有内容区做载入动画；侧栏等框架保持静止 */}
       <motion.div
-        key={page}
-        initial={reduceMotion ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
+        key={starlightOpen ? 'starlight-details' : page}
+        initial={reduceMotion ? false : { opacity: 0, x: 8 }}
+        animate={{ opacity: 1, x: 0 }}
         transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
         className="flex min-h-0 min-w-0 flex-1"
       >
       <Suspense fallback={<main className="min-w-0 flex-1 bg-[#F5F6F8]"><SectionLoader /></main>}>
-      {isPublishPage(page) ? (
+      {starlightOpen ? (
+        <StarlightDetailsPage />
+      ) : isPublishPage(page) ? (
         <PublishVideoPage key={page} initialKind={publishKindFromPage(page)} />
       ) : page === 'content' ? (
         <ContentPage />

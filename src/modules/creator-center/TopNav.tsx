@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion'
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { toast } from 'sonner'
 import TaskStatusIndicator from '@/shared/components/TaskStatusIndicator'
@@ -12,12 +12,197 @@ import { useNavVersion, type NavVersion } from '@/shared/storage/nav-version'
 import AccountSwitcherPanel from './AccountSwitcher'
 import FigmaGlyph from './FigmaGlyph'
 import MaskIcon from './MaskIcon'
+import StarlightPopoverIcon from './StarlightPopoverIcon'
+import StarlightRechargeDialog from './StarlightRechargeDialog'
 import { CREATOR_PROFILE, PRODUCTS, STARLIGHT, type ProductId } from './data'
 
 type WorkshopNavTaskStatus = Exclude<
   ReturnType<typeof getWorkshopNavTaskStatus>,
   null
 >
+
+const STARLIGHT_RECORDS = [
+  { label: '每日登录奖励', time: '2026-10-16 17:16', amount: '+200' },
+  { label: 'AI 创作-图片生成', time: '2026-10-15 17:16', amount: '-20' },
+  { label: '随变-剧本生成', time: '2026-10-10 17:16', amount: '-20' },
+  { label: '随变-角色生成', time: '2026-10-6 17:16', amount: '-20' },
+  { label: '随变-道具生成', time: '2026-10-5 17:16', amount: '-20' },
+] as const
+
+function StarlightBalancePopover({
+  onOpenStarlight,
+}: {
+  onOpenStarlight?: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [rechargeOpen, setRechargeOpen] = useState(false)
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  const clearTimer = (timer: typeof openTimer) => {
+    if (timer.current) {
+      clearTimeout(timer.current)
+      timer.current = null
+    }
+  }
+  const showSoon = () => {
+    clearTimer(closeTimer)
+    clearTimer(openTimer)
+    openTimer.current = setTimeout(() => setOpen(true), 120)
+  }
+  const hideSoon = () => {
+    clearTimer(openTimer)
+    clearTimer(closeTimer)
+    closeTimer.current = setTimeout(() => setOpen(false), 140)
+  }
+  const showNow = () => {
+    clearTimer(openTimer)
+    clearTimer(closeTimer)
+    setOpen(true)
+  }
+
+  useEffect(
+    () => () => {
+      clearTimer(openTimer)
+      clearTimer(closeTimer)
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (!open) return
+    const handleMove = (event: PointerEvent) => {
+      const target = event.target as Node | null
+      const inside =
+        triggerRef.current?.contains(target) || contentRef.current?.contains(target)
+      clearTimer(closeTimer)
+      if (!inside) closeTimer.current = setTimeout(() => setOpen(false), 140)
+    }
+    document.addEventListener('pointermove', handleMove)
+    return () => document.removeEventListener('pointermove', handleMove)
+  }, [open])
+
+  const openDetails = () => {
+    setOpen(false)
+    ;(onOpenStarlight ?? (() => toast(`当前星光余额：${STARLIGHT}`)))()
+  }
+
+  return (
+    <Popover.Root open={open} modal={false}>
+      <Popover.Trigger asChild>
+        <button
+          ref={triggerRef}
+          type="button"
+          aria-label={`星光余额 ${STARLIGHT}`}
+          aria-describedby={open ? 'starlight-balance-popover' : undefined}
+          onClick={(event) => {
+            event.preventDefault()
+            openDetails()
+          }}
+          onPointerEnter={showSoon}
+          onPointerLeave={hideSoon}
+          onMouseEnter={showSoon}
+          onMouseLeave={hideSoon}
+          onFocus={showNow}
+          onBlur={(event) => {
+            if (!contentRef.current?.contains(event.relatedTarget as Node | null)) hideSoon()
+          }}
+          className="flex h-7 shrink-0 cursor-pointer items-center gap-1 overflow-hidden rounded-[28px] bg-[#F5F7FA] px-3 text-[12px] leading-[normal] font-black text-black transition-colors duration-150 hover:bg-[#F2F4F7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#161823]"
+          style={{ fontFamily: 'Starlight Roboto, Roboto, sans-serif' }}
+        >
+          <img src="/icons/starlight-balance.svg" alt="" className="size-[14px] shrink-0" />
+          <span className="shrink-0 whitespace-nowrap">{STARLIGHT}</span>
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          ref={contentRef}
+          id="starlight-balance-popover"
+          role="dialog"
+          aria-label="星光最近明细"
+          side="bottom"
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          onCloseAutoFocus={(event) => event.preventDefault()}
+          onPointerEnter={showNow}
+          onPointerLeave={hideSoon}
+          onMouseEnter={showNow}
+          onMouseLeave={hideSoon}
+          onFocus={showNow}
+          onBlur={(event) => {
+            const next = event.relatedTarget as Node | null
+            if (!contentRef.current?.contains(next) && !triggerRef.current?.contains(next)) hideSoon()
+          }}
+          data-starlight-tooltip
+          className="z-[90] flex h-[416px] max-h-[calc(100vh-24px)] w-[300px] max-w-[calc(100vw-24px)] flex-col overflow-y-auto rounded-[24px] border border-black/[0.04] bg-white px-5 pb-4 pt-[18px] text-[#1C1F23] shadow-[0_1px_24px_rgba(0,0,0,0.04)] outline-none"
+        >
+          <div className="flex items-center">
+            <div className="flex min-w-0 items-center gap-[5px]">
+              <StarlightPopoverIcon />
+              <span
+                className="truncate text-[16px] font-black leading-5 text-black tabular-nums"
+                style={{ fontFamily: 'Roboto, "Roboto Flex", Arial, sans-serif' }}
+              >
+                {STARLIGHT}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                setRechargeOpen(true)
+              }}
+              className="ml-auto h-[30px] shrink-0 rounded-[10px] bg-[#1F2024] px-3 text-[12px] font-medium leading-[30px] text-white transition-[background-color,transform] duration-150 hover:bg-black active:scale-[0.98]"
+            >
+              充值星光
+            </button>
+          </div>
+
+          <div className="mt-7 text-[12px] leading-[18px] text-[#1C1F23]/35">最近明细</div>
+          <div className="mt-2 space-y-1">
+            {STARLIGHT_RECORDS.map((record) => (
+              <div key={`${record.label}-${record.time}`} className="grid h-12 content-center grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1">
+                <span className="truncate text-[12px] font-medium leading-4">{record.label}</span>
+                <span
+                  className={`row-span-2 self-center text-[12px] font-bold leading-[18px] tabular-nums ${
+                    record.amount.startsWith('+') ? 'text-[#1C1F23]' : 'text-[#FE2C55]'
+                  }`}
+                  style={{ fontFamily: '"PingFang SC", "Microsoft YaHei", sans-serif' }}
+                >
+                  {record.amount}
+                </span>
+                <span
+                  className="truncate text-[11px] leading-4 text-[#1C1F23]/30 tabular-nums"
+                  style={{ fontFamily: '"PingFang SC", "Microsoft YaHei", sans-serif' }}
+                >
+                  {record.time}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-[10px] flex justify-center">
+            <button
+              type="button"
+              onClick={openDetails}
+              className="h-[30px] rounded-[10px] border border-black/[0.06] bg-white px-3 text-[12px] font-medium leading-[30px] text-[#1C1F23] transition-colors duration-150 hover:bg-black/[0.03] active:bg-black/[0.06]"
+            >
+              星光明细
+            </button>
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+      <StarlightRechargeDialog
+        open={rechargeOpen}
+        onClose={() => setRechargeOpen(false)}
+      />
+    </Popover.Root>
+  )
+}
 
 /** 创作者中心顶栏 — 左 logo、中间产品切换、右侧星光余额 + 头像。
  *  常驻所有产品页之上（包括 AI 工坊），产品入口统一使用 icon + 文字。
@@ -32,6 +217,7 @@ export default function TopNav({
   scrolled = false,
   glassLeftInset = 0,
   leftSlot,
+  onOpenStarlight,
   workshopTaskStatus: workshopTaskStatusProp,
 }: {
   active: ProductId
@@ -47,6 +233,8 @@ export default function TopNav({
   glassLeftInset?: number
   /** 方案 1 全宽三段顶栏的左侧品牌区。 */
   leftSlot?: ReactNode
+  /** 打开星光明细；由外壳切回首页产品面并保留现有导航。 */
+  onOpenStarlight?: () => void
   /** 不传时读取全局任务状态；规范/隔离预览可显式传状态，null 表示隐藏。 */
   workshopTaskStatus?: WorkshopNavTaskStatus | null
 }) {
@@ -171,21 +359,11 @@ export default function TopNav({
         className={
           fused
             ? 'flex min-w-0 flex-1 items-center justify-end gap-3'
-            : 'ml-1.5 flex shrink-0 items-center gap-1.5 sm:ml-auto sm:gap-3'
+            : 'ml-1.5 flex shrink-0 items-center gap-3 sm:ml-auto'
         }
       >
         {/* 星光余额（创作激励的计量单位，非通知数） */}
-        <button
-          type="button"
-          aria-label={`星光余额 ${STARLIGHT}`}
-          onClick={() => toast(`当前星光余额：${STARLIGHT}`)}
-          className={`flex items-center gap-1 rounded-full text-[13px] font-medium tabular-nums text-[#161823] hover:bg-black/5 ${
-            fused ? 'h-6 px-1' : 'h-7 px-1.5 sm:px-2'
-          }`}
-        >
-          <img src="/icons/AI.svg" alt="" className="size-4" />
-          {STARLIGHT}
-        </button>
+        <StarlightBalancePopover onOpenStarlight={onOpenStarlight} />
         <AvatarMenu compact={fused} />
       </div>
     </header>
