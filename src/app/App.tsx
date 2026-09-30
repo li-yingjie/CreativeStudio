@@ -32,7 +32,19 @@ const CharacterCardDraw = lazy(
   () => import('@/modules/vibecoding/components/CharacterCardDraw'),
 )
 
+const ClimbingCbti = lazy(
+  () => import('@/modules/vibecoding/components/climbing-cbti/App'),
+)
+
 export default function App() {
+  if (window.location.pathname === '/climbing-cbti-lab') {
+    return (
+      <Suspense fallback={<div className="min-h-dvh bg-[#f2f2f0]" />}>
+        <ClimbingCbti />
+      </Suspense>
+    )
+  }
+
   if (window.location.pathname === '/character-card-draw') {
     return (
       <Suspense fallback={<div className="min-h-dvh bg-[#2d3542]" />}>

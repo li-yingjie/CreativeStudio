@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components -- stage metadata is shared with chat attachments and tabs */
 import {
   CheckCircle2,
   CircleAlert,

@@ -14,14 +14,83 @@ export interface H5LabHistoryOptions {
 
 export interface H5LabHistoryVersion {
   id: string
+  workspaceId: string
   label: string
+  description: string
+  author: H5LabHistoryAuthor
   createdAt: number
+  pageIds: string[]
   snapshot: H5LabHistorySnapshot
+}
+
+export interface H5LabHistoryAuthor {
+  name: string
+  avatarUrl: string
 }
 
 const HISTORY_LIMIT = 80
 const GROUP_IDLE_MS = 750
 const HISTORY_BOOT_TIME = Date.now()
+
+function changedPageIds(
+  before: H5LabHistorySnapshot,
+  next: H5LabHistorySnapshot,
+) {
+  const changed = new Set<string>()
+  const overrideIds = new Set([
+    ...Object.keys(before.overrides),
+    ...Object.keys(next.overrides),
+  ])
+  for (const id of overrideIds) {
+    if (before.overrides[id] !== next.overrides[id]) changed.add(id)
+  }
+
+  const beforeScreens = new Map(
+    before.prototype.screens.map((screen) => [screen.id, screen]),
+  )
+  const nextScreens = new Map(
+    next.prototype.screens.map((screen) => [screen.id, screen]),
+  )
+  for (const id of new Set([...beforeScreens.keys(), ...nextScreens.keys()])) {
+    if (
+      JSON.stringify(beforeScreens.get(id)) !==
+      JSON.stringify(nextScreens.get(id))
+    ) {
+      changed.add(id)
+    }
+  }
+
+  const linkKeys = new Set([
+    ...Object.keys(before.prototype.links),
+    ...Object.keys(next.prototype.links),
+  ])
+  for (const key of linkKeys) {
+    if (
+      JSON.stringify(before.prototype.links[key]) !==
+      JSON.stringify(next.prototype.links[key])
+    ) {
+      changed.add(key.split('||')[0])
+    }
+  }
+
+  const groupStateIds = new Set([
+    ...before.prototype.groups.map((group) => group.stateId),
+    ...next.prototype.groups.map((group) => group.stateId),
+  ])
+  for (const stateId of groupStateIds) {
+    const beforeGroups = before.prototype.groups.filter(
+      (group) => group.stateId === stateId,
+    )
+    const nextGroups = next.prototype.groups.filter(
+      (group) => group.stateId === stateId,
+    )
+    if (JSON.stringify(beforeGroups) !== JSON.stringify(nextGroups)) {
+      changed.add(stateId)
+    }
+  }
+
+  return [...changed].filter(Boolean)
+}
 
 function historyLabel(group?: string) {
   if (!group) return '画布编辑'
@@ -37,21 +106,32 @@ function historyLabel(group?: string) {
 
 /** H5 画布草稿历史。覆盖和原型必须放在同一张快照里，否则补屏 +
  * 连线或跨帧覆盖会被拆成不可预期的半步撤销。 */
-export function useH5LabHistory(initial: H5LabHistorySnapshot) {
+export function useH5LabHistory(
+  initial: H5LabHistorySnapshot,
+  author: H5LabHistoryAuthor,
+) {
   const [current, setCurrent] = useState(initial)
   const [undoStack, setUndoStack] = useState<H5LabHistorySnapshot[]>([])
   const [redoStack, setRedoStack] = useState<H5LabHistorySnapshot[]>([])
   const [versions, setVersions] = useState<H5LabHistoryVersion[]>([])
   const [currentMeta, setCurrentMeta] = useState({
+    id: `draft-${HISTORY_BOOT_TIME.toString(36)}`,
+    workspaceId: 'workspace',
     label: '当前版本',
+    description: '',
+    author,
     createdAt: HISTORY_BOOT_TIME,
+    pageIds: [] as string[],
+    customLabel: false,
   })
   const currentRef = useRef(current)
   const undoRef = useRef(undoStack)
   const redoRef = useRef(redoStack)
   const versionsRef = useRef(versions)
+  const currentMetaRef = useRef(currentMeta)
   const versionSequenceRef = useRef(0)
   const groupRef = useRef<{ key: string; touchedAt: number } | null>(null)
+  const workspaceIdRef = useRef('workspace')
 
   const syncUndo = useCallback((next: H5LabHistorySnapshot[]) => {
     undoRef.current = next
@@ -69,6 +149,29 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
     versionsRef.current = next
     setVersions(next)
   }, [])
+  const syncCurrentMeta = useCallback((next: typeof currentMeta) => {
+    currentMetaRef.current = next
+    setCurrentMeta(next)
+  }, [])
+  const setWorkspaceId = useCallback(
+    (workspaceId: string) => {
+      if (workspaceIdRef.current === workspaceId) return
+      workspaceIdRef.current = workspaceId
+      groupRef.current = null
+      const createdAt = Date.now()
+      syncCurrentMeta({
+        id: `draft-${createdAt.toString(36)}`,
+        workspaceId,
+        label: '当前版本',
+        description: '',
+        author,
+        createdAt,
+        pageIds: [],
+        customLabel: false,
+      })
+    },
+    [author, syncCurrentMeta],
+  )
 
   const commit = useCallback(
     (next: H5LabHistorySnapshot, options?: H5LabHistoryOptions) => {
@@ -90,24 +193,42 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
       syncCurrent(next)
       const createdAt = Date.now()
       const label = historyLabel(group)
+      const pageIds = changedPageIds(before, next)
       if (coalesced && versionsRef.current.length > 0) {
         const previous = versionsRef.current.at(-1)!
         syncVersions([
           ...versionsRef.current.slice(0, -1),
-          { ...previous, label, createdAt, snapshot: next },
+          {
+            ...previous,
+            label,
+            createdAt,
+            pageIds: [...new Set([...previous.pageIds, ...pageIds])],
+            snapshot: next,
+          },
         ])
       } else {
         const version: H5LabHistoryVersion = {
           id: `canvas-${createdAt.toString(36)}-${(versionSequenceRef.current++).toString(36)}`,
+          workspaceId: workspaceIdRef.current,
           label,
+          description: '',
+          author,
           createdAt,
+          pageIds,
           snapshot: next,
         }
         syncVersions([...versionsRef.current, version].slice(-HISTORY_LIMIT))
       }
-      setCurrentMeta({ label, createdAt })
+      syncCurrentMeta({
+        ...currentMetaRef.current,
+        label: currentMetaRef.current.customLabel
+          ? currentMetaRef.current.label
+          : label,
+        createdAt,
+        pageIds,
+      })
     },
-    [syncCurrent, syncRedo, syncUndo, syncVersions],
+    [author, syncCurrent, syncCurrentMeta, syncRedo, syncUndo, syncVersions],
   )
 
   const setOverrides = useCallback(
@@ -131,8 +252,15 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
     syncRedo([before, ...redoRef.current].slice(0, HISTORY_LIMIT))
     groupRef.current = null
     syncCurrent(target)
-    setCurrentMeta({ label: '撤销修改', createdAt: Date.now() })
-  }, [syncCurrent, syncRedo, syncUndo])
+    syncCurrentMeta({
+      ...currentMetaRef.current,
+      label: currentMetaRef.current.customLabel
+        ? currentMetaRef.current.label
+        : '撤销修改',
+      createdAt: Date.now(),
+      pageIds: changedPageIds(before, target),
+    })
+  }, [syncCurrent, syncCurrentMeta, syncRedo, syncUndo])
 
   const redo = useCallback(() => {
     const target = redoRef.current[0]
@@ -142,8 +270,15 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
     syncUndo([...undoRef.current, before].slice(-HISTORY_LIMIT))
     groupRef.current = null
     syncCurrent(target)
-    setCurrentMeta({ label: '重做修改', createdAt: Date.now() })
-  }, [syncCurrent, syncRedo, syncUndo])
+    syncCurrentMeta({
+      ...currentMetaRef.current,
+      label: currentMetaRef.current.customLabel
+        ? currentMetaRef.current.label
+        : '重做修改',
+      createdAt: Date.now(),
+      pageIds: changedPageIds(before, target),
+    })
+  }, [syncCurrent, syncCurrentMeta, syncRedo, syncUndo])
 
   const clear = useCallback(() => {
     groupRef.current = null
@@ -156,9 +291,19 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
       clear()
       syncCurrent(next)
       syncVersions([])
-      setCurrentMeta({ label: '当前版本', createdAt: Date.now() })
+      const createdAt = Date.now()
+      syncCurrentMeta({
+        id: `draft-${createdAt.toString(36)}`,
+        workspaceId: workspaceIdRef.current,
+        label: '当前版本',
+        description: '',
+        author,
+        createdAt,
+        pageIds: [],
+        customLabel: false,
+      })
     },
-    [clear, syncCurrent, syncVersions],
+    [author, clear, syncCurrent, syncCurrentMeta, syncVersions],
   )
 
   const restoreVersion = useCallback(
@@ -170,9 +315,88 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
       syncRedo([])
       groupRef.current = null
       syncCurrent(version.snapshot)
-      setCurrentMeta({ label: `恢复：${version.label}`, createdAt: Date.now() })
+      syncCurrentMeta({
+        id: `draft-${Date.now().toString(36)}`,
+        workspaceId: version.workspaceId,
+        label: `恢复：${version.label}`,
+        description: version.description,
+        author: version.author,
+        createdAt: Date.now(),
+        pageIds: version.pageIds,
+        customLabel: false,
+      })
     },
-    [syncCurrent, syncRedo, syncUndo],
+    [syncCurrent, syncCurrentMeta, syncRedo, syncUndo],
+  )
+
+  const activateVersion = useCallback(
+    (id: string) => {
+      const version = versionsRef.current.find((item) => item.id === id)
+      if (!version) return
+      const before = currentRef.current
+      syncUndo([...undoRef.current, before].slice(-HISTORY_LIMIT))
+      syncRedo([])
+      groupRef.current = null
+      syncCurrent(version.snapshot)
+      syncVersions(versionsRef.current.filter((item) => item.id !== id))
+      syncCurrentMeta({
+        id: version.id,
+        workspaceId: version.workspaceId,
+        label: version.label,
+        description: version.description,
+        author: version.author,
+        createdAt: Date.now(),
+        pageIds: version.pageIds,
+        customLabel: true,
+      })
+    },
+    [syncCurrent, syncCurrentMeta, syncRedo, syncUndo, syncVersions],
+  )
+
+  const updateVersionMetadata = useCallback(
+    (id: string, label: string, description: string) => {
+      if (id === currentMetaRef.current.id) {
+        syncCurrentMeta({
+          ...currentMetaRef.current,
+          label,
+          description,
+          customLabel: true,
+        })
+        return
+      }
+      syncVersions(
+        versionsRef.current.map((version) =>
+          version.id === id ? { ...version, label, description } : version,
+        ),
+      )
+    },
+    [syncCurrentMeta, syncVersions],
+  )
+
+  const deleteVersion = useCallback(
+    (id: string) => {
+      syncVersions(versionsRef.current.filter((version) => version.id !== id))
+    },
+    [syncVersions],
+  )
+
+  const discardCurrent = useCallback(
+    (next: H5LabHistorySnapshot) => {
+      clear()
+      syncCurrent(next)
+      const createdAt = Date.now()
+      syncCurrentMeta({
+        id: `draft-${createdAt.toString(36)}`,
+        workspaceId: workspaceIdRef.current,
+        label: '当前版本',
+        description: '',
+        author,
+        createdAt,
+        pageIds: [],
+        customLabel: false,
+      })
+    },
+    [author, clear, syncCurrent, syncCurrentMeta],
   )
 
   return {
@@ -180,13 +404,26 @@ export function useH5LabHistory(initial: H5LabHistorySnapshot) {
     prototype: current.prototype,
     setOverrides,
     setPrototype,
+    setWorkspaceId,
     undo,
     redo,
     clear,
     replace,
     restoreVersion,
+    activateVersion,
+    updateVersionMetadata,
+    deleteVersion,
+    discardCurrent,
     versions,
-    currentVersion: currentMeta,
+    currentVersion: {
+      id: currentMeta.id,
+      workspaceId: currentMeta.workspaceId,
+      label: currentMeta.label,
+      description: currentMeta.description,
+      author: currentMeta.author,
+      createdAt: currentMeta.createdAt,
+      pageIds: currentMeta.pageIds,
+    },
     canUndo: undoStack.length > 0,
     canRedo: redoStack.length > 0,
   }

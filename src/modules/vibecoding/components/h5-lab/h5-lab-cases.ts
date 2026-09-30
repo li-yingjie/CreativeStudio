@@ -12,6 +12,7 @@ import type { FileNode } from '../ProjectProductView'
  */
 
 const WinterGatheringH5 = lazy(() => import('../WinterGatheringH5'))
+const ClimbingCbti = lazy(() => import('../climbing-cbti/App'))
 const HomeGuideBenchmarkH5 = lazy(() => import('../HomeGuideBenchmarkH5'))
 const StudyAbroadPkH5 = lazy(() => import('../StudyAbroadPkH5'))
 const YoungVoiceXhsRebuild = lazy(() => import('../YoungVoiceXhsRebuild'))
@@ -116,6 +117,48 @@ function caseTree(
 }
 
 export const H5_LAB_CASES: H5LabCase[] = [
+  {
+    id: 'climbing-cbti',
+    project: '岩馆爬行动物图鉴 · 导入',
+    origin: '用户上传 · Climbing_CBTI',
+    summary: '攀岩人格测试：15 道题、8 种基础人格与 2 种隐藏结果，保留原始题面和计分规则。',
+    route: '/climbing-cbti-lab',
+    width: 430,
+    canvasTone: '#f2f2f0',
+    design: {
+      pageBg: '#f2f2f0', pageInk: '#171717', pageMuted: '#beb9b2',
+      paper: '#f4f3ef', paperInk: '#171717', paperMuted: '#beb9b2',
+      border: 'rgba(23,23,23,.12)', accent: '#feca19', accentInk: '#171717',
+      radius: 14, radiusLg: 999, shadow: 'none',
+      displayFont: '"PingFang SC", "Noto Sans SC", sans-serif',
+      bodyFont: '"PingFang SC", "Noto Sans SC", sans-serif',
+    },
+    states: [
+      { id: 'climbing-cbti:cover', label: '首页', note: '点击开始，体验完整答题流程', Component: page(ClimbingCbti) },
+      ...Array.from({ length: 15 }, (_, index) => ({
+        id: `climbing-cbti:q${index + 1}`,
+        label: `第 ${index + 1} 题`,
+        note: '原包共用题面图片；透明按钮承载各题真实选项',
+        Component: page(ClimbingCbti),
+        state: { step: 'quiz', question: index + 1 },
+      })),
+      { id: 'climbing-cbti:loading', label: '识别中', note: '编辑态停留；完整流程中 3 秒后进入结果', Component: page(ClimbingCbti), state: { step: 'loading', resultCode: 'EMS+' } },
+      ...['FPS', 'FMS', 'FPL', 'FML', 'EPS', 'EMS', 'EPL', 'EML', 'FPL+', 'EMS+'].map((code) => ({
+        id: `climbing-cbti:result-${code}`,
+        label: `结果 · ${code}`,
+        note: '原包十种结果共用「活体豆包」图片',
+        Component: page(ClimbingCbti),
+        state: { step: 'result', resultCode: code },
+      })),
+      { id: 'climbing-cbti:preload', label: '资源加载', Component: page(ClimbingCbti), state: { step: 'preload' } },
+      { id: 'climbing-cbti:gate', label: '环境提示', Component: page(ClimbingCbti), state: { step: 'gate' } },
+    ],
+    fileTree: caseTree(
+      'climbing-cbti-editor-assessment.md',
+      ['climbing-cbti/App.tsx', 'climbing-cbti/App.css', 'climbing-cbti/content/questions.ts', 'climbing-cbti/content/results.ts', 'climbing-cbti/lib/scoring.ts'],
+      ['climbing-cbti/home.png', 'climbing-cbti/question.png', 'climbing-cbti/result.png', 'climbing-cbti/bg-wall.png', 'climbing-cbti/loading.webp', 'climbing-cbti/co-brand-logo.png'],
+    ),
+  },
   {
     id: 'winter-gathering',
     project: '冬日召集令 · 复刻',

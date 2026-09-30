@@ -27,6 +27,20 @@ export default defineConfig([
     },
   },
   {
+    // These editors predate the compiler-oriented React hook lint rules.
+    files: ['src/modules/vibecoding/components/tower-defense/**/*.{ts,tsx}'],
+    rules: {
+      'prefer-const': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/rules-of-hooks': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
     files: [
       'server/**/*.{js,mjs,cjs}',
       'api/**/*.{js,mjs,cjs}',

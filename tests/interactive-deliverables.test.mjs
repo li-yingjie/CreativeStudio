@@ -17,6 +17,7 @@ import {
 import {
   ASSET_ONLY_PROJECTS,
   ASSET_LIBRARY_LABEL,
+  DATABASE_LABEL,
   FINISHED_PAGES_LABEL,
   GAME_ASSET_LIBRARY_LABEL,
   GAME_BALANCE_CONFIG_LABEL,
@@ -123,6 +124,18 @@ test('marketing projects expose page editing and tools while the project row own
       { name: PROJECT_DOCUMENT_LABEL, type: 'file' },
       { name: H5_GAMEPLAY_CONFIG_LABEL, type: 'file' },
       { name: ASSET_LIBRARY_LABEL, type: 'file' },
+      { name: DATABASE_LABEL, type: 'file' },
+      {
+        name: '项目文件',
+        type: 'dir',
+        children: [
+          {
+            name: 'deliverables',
+            type: 'dir',
+            children: [{ name: '资源位 · Banner', type: 'file' }],
+          },
+        ],
+      },
     ],
   )
 })

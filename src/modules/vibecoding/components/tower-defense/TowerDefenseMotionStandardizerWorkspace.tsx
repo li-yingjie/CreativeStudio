@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 import './sprite-maker-ii.css'
 import type { SpriteTheme } from "@/components/sprite-theme";
 import {

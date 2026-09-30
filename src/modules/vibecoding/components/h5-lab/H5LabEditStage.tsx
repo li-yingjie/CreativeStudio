@@ -124,6 +124,8 @@ interface Props {
   focusFrameId?: string
   /** 画布上换了聚焦帧时同步给顶栏选择器。 */
   onFocusFrame?: (frameId: string) => void
+  /** 删除补出来的状态帧；基准帧不允许删除。 */
+  onDeleteFrame: (frameId: string) => void
   /** 把选中的元素带进对话，接着聊着改。 */
   onAddToChat: (ref: H5LabChatRef) => void
   /** 给选中元素写一条标注，并带入对话继续描述修改。 */
@@ -169,6 +171,7 @@ export default function H5LabEditStage({
   apiRef,
   focusFrameId,
   onFocusFrame,
+  onDeleteFrame,
   onAddToChat,
   onAnnotate,
   onUndo,
@@ -466,6 +469,17 @@ export default function H5LabEditStage({
         setSpaceHeld(true)
         return
       }
+      if (
+        !editing &&
+        !selection &&
+        multiSelections.length === 0 &&
+        (event.key === 'Delete' || event.key === 'Backspace') &&
+        frames.find((frame) => frame.id === focusedStateId)?.generated
+      ) {
+        event.preventDefault()
+        onDeleteFrame(focusedStateId)
+        return
+      }
       if (event.key !== 'Escape') return
       if (textEditingPath) return
       event.preventDefault()
@@ -485,7 +499,18 @@ export default function H5LabEditStage({
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [multiSelections.length, onExit, onRedo, onSelect, onUndo, selection, textEditingPath])
+  }, [
+    focusedStateId,
+    frames,
+    multiSelections.length,
+    onDeleteFrame,
+    onExit,
+    onRedo,
+    onSelect,
+    onUndo,
+    selection,
+    textEditingPath,
+  ])
 
   /* ── 命中测试 / 选中 ── */
   const measure = useCallback(
@@ -1013,6 +1038,15 @@ export default function H5LabEditStage({
     if (textEditingPath === null) {
       event.preventDefault()
       event.stopPropagation()
+      // 键盘激活和辅助工具可能只派发 click，也应能选中按钮查看属性。
+      if (event.detail === 0) {
+        const hit = resolve(event.target)
+        if (hit) {
+          setMultiSelections([])
+          onFocusFrame?.(hit.stateId)
+          onSelect(measure(hit.stateId, hit.path, hit.el))
+        }
+      }
     }
   }
 
@@ -1190,7 +1224,11 @@ export default function H5LabEditStage({
                   className="flex flex-col"
                   style={{ gap: 8 * boardUiScale }}
                 >
-                  <button
+                  <div
+                    className="flex w-full items-baseline"
+                    style={{ gap: 6 * boardUiScale }}
+                  >
+                    <button
                       type="button"
                       data-h5-frame-picker
                       onClick={(event) => {
@@ -1198,7 +1236,7 @@ export default function H5LabEditStage({
                         onSelect(null)
                         onFocusFrame?.(frame.id)
                       }}
-                      className="flex w-full cursor-pointer items-baseline text-left"
+                      className="flex min-w-0 flex-1 cursor-pointer items-baseline text-left"
                       style={{ gap: 8 * boardUiScale, paddingLeft: 2 * boardUiScale }}
                     >
                     {frame.generated && (
@@ -1243,7 +1281,27 @@ export default function H5LabEditStage({
                         编辑中
                       </span>
                     )}
-                  </button>
+                    </button>
+                    {frame.generated && focused && (
+                      <button
+                        type="button"
+                        title="删除画布"
+                        aria-label={`删除画布「${frame.label}」`}
+                        data-h5-frame-picker
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onDeleteFrame(frame.id)
+                        }}
+                        className="flex shrink-0 cursor-pointer items-center justify-center rounded text-[var(--color-ink)]/40 transition-colors hover:bg-red-500/10 hover:text-red-500"
+                        style={{
+                          width: 22 * boardUiScale,
+                          height: 22 * boardUiScale,
+                        }}
+                      >
+                        <Trash2 size={12 * boardUiScale} strokeWidth={1.8} />
+                      </button>
+                    )}
+                  </div>
                   <div
                     data-h5-frame={frame.id}
                     ref={(node) => {

@@ -91,6 +91,7 @@ interface Props {
   frames: { id: string; label: string; generated?: boolean }[]
   prototype: H5LabPrototype
   onPrototype: (next: H5LabPrototype, options?: H5LabHistoryOptions) => void
+  onDeleteFrame: (frameId: string) => void
   /** 当前渲染页面的第一张头图；分享图未单独设置时直接跟随它。 */
   defaultShareImage?: string
   /** 图片下钻素材库画布编辑。 */
@@ -1242,6 +1243,7 @@ export default function H5LabEditPanel({
   frames,
   prototype,
   onPrototype,
+  onDeleteFrame,
   defaultShareImage = '',
   onOpenAssetCanvas,
   designTokenUsage,
@@ -1871,17 +1873,7 @@ export default function H5LabEditPanel({
                         type="button"
                         title="删除这一屏"
                         onClick={() => {
-                          const links = Object.fromEntries(
-                            Object.entries(prototype.links).filter(
-                              ([, link]) => link.targetId !== item.id,
-                            ),
-                          )
-                          onPrototype({
-                            ...prototype,
-                            screens: prototype.screens.filter((s) => s.id !== item.id),
-                            links,
-                          })
-                          toast('已删除补出来的界面')
+                          onDeleteFrame(item.id)
                         }}
                         className="flex size-6 shrink-0 items-center justify-center rounded text-[var(--color-ink)]/35 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]/75"
                       >

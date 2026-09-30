@@ -91,6 +91,11 @@ function kimiDevApi(): PluginOption {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), kimiDevApi()],
+  build: {
+    // @douyin-ai/ui DatePicker ships one legacy custom-property reference
+    // rejected by Lightning CSS. esbuild preserves the valid component styles.
+    cssMinify: 'esbuild',
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

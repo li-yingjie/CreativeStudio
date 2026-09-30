@@ -1,41 +1,33 @@
-import { useCallback, useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { useState } from 'react'
+import { Button } from '@douyin-ai/ui'
 import {
   Bot,
   Calendar,
   Check,
   CheckCircle2,
   ChevronDown,
-  CircleAlert,
+  ChevronRight,
   CircleHelp,
   FileText,
   Gamepad2,
   Globe,
   LayoutGrid,
-  MoreHorizontal,
-  RotateCcw,
-  Rocket,
+  Megaphone,
+  Smartphone,
   Sparkles,
-  X,
   type LucideIcon,
 } from '@/shared/icons'
-import { usePublishFlowStore } from '@/modules/editor/store/publish-flow-store'
 import type { ProjectKind } from './ProjectProductView'
 import PublishObjectVisualThumb from './PublishObjectVisualThumb'
-import {
-  getPublishObjectVisual,
-  type PublishObjectVisual,
-} from './publish-object-visual'
+import { getPublishObjectVisual } from './publish-object-visual'
 
 /**
- * 统一发布抽屉 — 所有「发布」按钮点击后从右侧滑出。顶部切换「发布配置 /
- * 发布历史」。
+ * Workspace 发布配置。外层「发布」Tab 负责配置 / 历史切换，
+ * 这里仅渲染配置表单和提交结果。
  *
- *  发布配置：先确认发布产物对象，再按产物类型渲染字段。
+ *  先确认发布产物对象，再按产物类型渲染字段。
  *    · AI 分身 / 小程序 → 应用场景开关列表（抖音APP / 抖音小花 两组）。
  *    · 其它产物 → 版本 / 渠道 / 环境 / 活动等表单字段。
- *  发布历史：按版本倒序的发布时间线（产物 + 场景开通结果）。
  *
  * 表单状态仅本地维护（demo 不落库），只为让流程看起来真实可点。
  */
@@ -79,55 +71,29 @@ const SCENE_DEFAULTS: Record<string, boolean> = Object.fromEntries(
   SCENE_GROUPS.flatMap((g) => g.scenes.map((s) => [s.id, s.on])),
 )
 
-/** 发布历史时间线（按版本倒序，第一条为当前版本）。 */
-type HistoryEntry = {
-  time: string
-  author: string
-  current?: boolean
-  scenes?: { label: string; ok: boolean }[]
-}
-
-const PUBLISH_HISTORY: HistoryEntry[] = [
-  { time: '2026-01-09 11:33:44', author: '莉莉安', current: true },
-  {
-    time: '2026-01-01 11:33:44',
-    author: '莉莉安',
-    scenes: [
-      { label: '搜索', ok: true },
-      { label: '底bar', ok: true },
-      { label: '评论区', ok: true },
-      { label: '抖音小花', ok: false },
-    ],
-  },
-  {
-    time: '2023-01-09 11:33:44',
-    author: '莉莉安',
-    scenes: [{ label: '侧边栏', ok: true }],
-  },
-]
-
 export default function PublishDrawer({
   projectName,
   projectKey = projectName,
   projectKind,
+  pageName = projectName,
+  publishedVersionLabel,
+  onConfirmPublish,
+  onCancel,
 }: {
   projectName: string
   projectKey?: string
   projectKind: ProjectKind
+  pageName?: string
+  publishedVersionLabel?: string
+  onConfirmPublish?: () => void
+  onCancel?: () => void
 }) {
-  const step = usePublishFlowStore((s) => s.step)
-  const mode = usePublishFlowStore((s) => s.mode)
-  const anchor = usePublishFlowStore((s) => s.anchor)
-  const confirm = usePublishFlowStore((s) => s.confirm)
-  const closeModal = usePublishFlowStore((s) => s.closeModal)
-
-  const open = mode === 'modal' && step !== 'idle'
-  const confirmed = step === 'confirmed'
+  const [confirmed, setConfirmed] = useState(false)
+  const [magicXOpen, setMagicXOpen] = useState(false)
 
   // AI 分身 / 小程序 share the application-scene toggle list.
   const isSceneKind = projectKind === 'ai-avatar' || projectKind === 'mini-program'
 
-  const [tab, setTab] = useState<'config' | 'history'>('config')
   const [sceneOn, setSceneOn] = useState<Record<string, boolean>>(SCENE_DEFAULTS)
 
   // Per-kind form scaffolding (non-scene kinds).
@@ -142,36 +108,13 @@ export default function PublishDrawer({
   const [activityTarget, setActivityTarget] = useState<'existing' | 'new'>('new')
   const [activityName, setActivityName] = useState('')
 
-  const close = useCallback(() => {
-    setTab('config')
-    closeModal()
-  }, [closeModal])
-
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open, close])
-
-  if (typeof document === 'undefined') return null
+  const confirmPublish = () => {
+    onConfirmPublish?.()
+    setConfirmed(true)
+  }
 
   const meta = KIND_META[projectKind]
   const objectVisual = getPublishObjectVisual(projectKind, projectKey, meta.icon)
-
-  // Float the popover just below the triggering 发布 button, right-aligned to
-  // it. Clamp within the viewport so it never spills off-screen. Falls back to
-  // the top-right corner when no anchor was captured.
-  const POPOVER_W = 320
-  const GAP = 8
-  const vw = typeof window !== 'undefined' ? window.innerWidth : 1280
-  const vh = typeof window !== 'undefined' ? window.innerHeight : 800
-  const top = anchor ? anchor.bottom + GAP : 56
-  const rightEdge = anchor ? anchor.right : vw - 16
-  const left = Math.max(12, Math.min(rightEdge - POPOVER_W, vw - POPOVER_W - 12))
-  const maxH = Math.min(460, vh - top - 16)
 
   const renderSceneGroups = () => (
     <div className="space-y-3.5">
@@ -328,271 +271,221 @@ export default function PublishDrawer({
     }
   }
 
-  return createPortal(
-    <AnimatePresence>
-      {open && (
-        <>
-          {/* Transparent click-catcher — dismiss on outside click without a
-              page dim, so it reads as a lightweight popover. */}
-          <div
-            onClick={close}
-            className="fixed inset-0 z-[290]"
-          />
-          <motion.aside
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-            style={{
-              top,
-              left,
-              width: POPOVER_W,
-              maxWidth: 'calc(100vw - 24px)',
-              maxHeight: maxH,
-              transformOrigin: 'top right',
-            }}
-            className="fixed z-[300] flex flex-col overflow-hidden rounded-2xl border border-[var(--divider)] bg-[var(--color-surface-1)] shadow-[0_20px_50px_-16px_rgba(0,0,0,0.4)]"
-          >
-            {/* Header */}
-            <header className="flex shrink-0 items-center justify-between px-4 pt-3">
-              <div className="flex items-center gap-2 text-[14px] font-semibold text-[var(--color-ink)]">
-                <Rocket size={15} strokeWidth={2} className="text-[var(--color-ink)]/70" />
-                发布
+  if (confirmed) {
+    return (
+      <div className="flex min-h-[360px] flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+        <CheckCircle2 size={44} className="text-emerald-500" strokeWidth={1.6} />
+        <div className="text-[15px] font-semibold text-[var(--color-ink)]">
+          已提交发布
+        </div>
+        <div className="text-[12.5px] leading-[1.6] text-[var(--color-ink)]/55">
+          「{projectName}」已提交发布，可切换到「发布历史」查看。
+        </div>
+        <Button
+          onClick={() => setConfirmed(false)}
+          theme="solid"
+          type="primary"
+          size="small"
+          className="mt-2"
+        >
+          返回发布配置
+        </Button>
+      </div>
+    )
+  }
+
+  if (projectKind === 'marketing-h5') {
+    return (
+      <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-6 py-6">
+        <div className="mx-auto w-full max-w-[980px]">
+          <section>
+            <h2 className="mb-4 text-[16px] font-semibold text-[var(--color-ink)]">
+              发布内容
+            </h2>
+            <div className="overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)]">
+              <div className="flex items-center gap-3 border-b border-[var(--divider-soft)] bg-[var(--fill-subtle)] px-5 py-4">
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-violet-500/10 text-violet-600">
+                  <Megaphone size={22} strokeWidth={1.8} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[14px] font-semibold text-[var(--color-ink)]">
+                    {projectName}
+                  </div>
+                  <div className="mt-0.5 text-[12px] text-[var(--color-ink)]/45">
+                    活动项目
+                  </div>
+                </div>
+                <ChevronDown size={17} className="text-[var(--color-ink)]/38" />
+              </div>
+              <div className="flex items-center gap-3 px-7 py-4">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--fill-subtle)] text-[var(--color-ink)]/55">
+                  <Smartphone size={20} strokeWidth={1.8} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[14px] font-semibold text-[var(--color-ink)]">
+                    {pageName}
+                  </div>
+                  <div className="mt-0.5 text-[12px] text-[var(--color-ink)]/45">
+                    H5 页面
+                  </div>
+                </div>
+                {publishedVersionLabel && (
+                  <div className="shrink-0 text-right">
+                    <div className="text-[10.5px] text-[var(--color-ink)]/38">
+                      已发布版本
+                    </div>
+                    <div className="mt-1 rounded bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-700">
+                      {publishedVersionLabel}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-7">
+            <h2 className="mb-4 text-[16px] font-semibold text-[var(--color-ink)]">
+              发布渠道
+            </h2>
+            <div className="overflow-hidden rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)]">
+              <div className="px-5 pb-2 pt-4 text-[13px] font-semibold text-[var(--color-ink)]">
+                抖音 AI 平台
               </div>
               <button
                 type="button"
-                onClick={close}
-                aria-label="关闭"
-                className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-ink)]/55 hover:bg-[var(--fill-soft)] hover:text-[var(--color-ink)]"
+                className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-[var(--fill-subtle)]"
               >
-                <X size={14} strokeWidth={2} />
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-[var(--divider-soft)] bg-white text-[var(--color-ink)]">
+                  <LayoutGrid size={20} strokeWidth={1.8} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-semibold text-[var(--color-ink)]">
+                    抖音 AI 工作台
+                  </span>
+                  <span className="mt-0.5 block truncate text-[12px] text-[var(--color-ink)]/45">
+                    发布为对话应用或上架创意广场
+                  </span>
+                </span>
+                <span className="rounded bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-700">
+                  已发布
+                </span>
+                <ChevronRight size={17} className="text-[var(--color-ink)]/35" />
               </button>
-            </header>
 
-            {/* Tabs — 发布配置 / 发布历史 (hidden in the success state) */}
-            {!confirmed && (
-              <div className="flex shrink-0 items-center gap-1 border-b border-[var(--divider-soft)] px-3 pb-2 pt-2">
-                <TabPill active={tab === 'config'} onClick={() => setTab('config')}>
-                  发布配置
-                </TabPill>
-                <TabPill active={tab === 'history'} onClick={() => setTab('history')}>
-                  发布历史
-                </TabPill>
+              <div className="mx-5 border-t border-[var(--divider-soft)]" />
+              <div className="px-5 pb-2 pt-4 text-[13px] font-semibold text-[var(--color-ink)]">
+                MagicX
               </div>
-            )}
+              <button
+                type="button"
+                aria-expanded={magicXOpen}
+                onClick={() => setMagicXOpen((open) => !open)}
+                className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-[var(--fill-subtle)]"
+              >
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-violet-500/15 bg-violet-500/[0.06] text-violet-600">
+                  <Sparkles size={20} strokeWidth={1.8} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-semibold text-[var(--color-ink)]">
+                    发布到抖音投放端
+                  </span>
+                  <span className="mt-0.5 block truncate text-[12px] text-[var(--color-ink)]/45">
+                    将 H5 页面发布至抖音直播端、非直播端
+                  </span>
+                </span>
+                <span className="rounded bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-700">
+                  待发布
+                </span>
+                {magicXOpen ? (
+                  <ChevronDown size={17} className="text-[var(--color-ink)]/35" />
+                ) : (
+                  <ChevronRight size={17} className="text-[var(--color-ink)]/35" />
+                )}
+              </button>
 
-            {confirmed ? (
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-                <CheckCircle2 size={44} className="text-emerald-500" strokeWidth={1.6} />
-                <div className="text-[15px] font-semibold text-[var(--color-ink)]">已提交发布</div>
-                <div className="text-[12.5px] leading-[1.6] text-[var(--color-ink)]/55">
-                  「{projectName}」已提交发布，发布记录可在「发布历史」中查看。
-                </div>
-                <button
-                  type="button"
-                  onClick={close}
-                  className="mt-2 rounded-md bg-[var(--color-ink)] px-4 py-2 text-[12.5px] font-medium text-[var(--color-ink-contrast)] transition-opacity hover:opacity-90"
-                >
-                  完成
-                </button>
-              </div>
-            ) : tab === 'history' ? (
-              <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4">
-                <HistoryTimeline projectName={projectName} objectVisual={objectVisual} />
-              </div>
-            ) : (
-              <>
-                {/* Body — config */}
-                <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-3.5 py-3">
-                  {/* 1) 发布产物对象确认 */}
-                  <div className="mb-3.5">
-                    <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-ink)]/45">
-                      发布产物
-                    </div>
-                    <div className="flex items-center gap-2.5 rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2">
-                      <PublishObjectVisualThumb visual={objectVisual} size="lg" />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[13px] font-medium text-[var(--color-ink)]">
-                          {projectName}
-                        </div>
-                        <div className="truncate text-[11.5px] text-[var(--color-ink)]/50">
-                          {meta.label} · {meta.objectHint}
-                        </div>
-                      </div>
-                      <span className="flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-[11px] font-medium text-emerald-600">
-                        <Check size={11} strokeWidth={2.6} />
-                        待发布
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 2) 配置字段 */}
-                  {isSceneKind && (
-                    <div className="mb-2 text-[12px] text-[var(--color-ink)]/45">应用场景</div>
-                  )}
+              {magicXOpen && (
+                <div className="border-t border-[var(--divider-soft)] bg-[var(--fill-subtle)] px-5 py-5">
                   {renderFields()}
-                </div>
-
-                {/* Footer */}
-                <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-[var(--divider-soft)] px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={close}
-                    className="rounded-md px-3 py-1.5 text-[12.5px] text-[var(--color-ink)]/70 hover:bg-[var(--fill-soft)] hover:text-[var(--color-ink)]"
-                  >
-                    取消
-                  </button>
-                  <button
-                    type="button"
-                    onClick={confirm}
-                    className="rounded-md bg-[var(--color-ink)] px-3.5 py-1.5 text-[12.5px] font-medium text-[var(--color-ink-contrast)] transition-opacity hover:opacity-90"
-                  >
-                    确认发布
-                  </button>
-                </footer>
-              </>
-            )}
-          </motion.aside>
-        </>
-      )}
-    </AnimatePresence>,
-    document.body,
-  )
-}
-
-/* ─── publish history ─── */
-
-function HistoryTimeline({
-  projectName,
-  objectVisual,
-}: {
-  projectName: string
-  objectVisual: PublishObjectVisual
-}) {
-  return (
-    <div className="relative">
-      {PUBLISH_HISTORY.map((entry, i) => {
-        const last = i === PUBLISH_HISTORY.length - 1
-        return (
-          <div key={i} className="relative flex gap-3 pb-6 last:pb-0">
-            {/* rail + node */}
-            <div className="relative flex w-3 shrink-0 justify-center">
-              {!last && (
-                <span className="absolute top-3 bottom-[-12px] w-px bg-[var(--divider)]" />
-              )}
-              <span
-                className={`relative z-10 mt-1 h-2.5 w-2.5 rounded-full ${
-                  entry.current ? 'bg-[var(--color-ink)]' : 'bg-[var(--color-ink)]/25'
-                }`}
-              />
-            </div>
-            {/* content */}
-            <div className="min-w-0 flex-1">
-              {entry.current ? (
-                <div className="flex flex-wrap items-center gap-2 rounded-lg bg-[var(--fill-subtle)] px-3 py-2">
-                  <span className="text-[13px] font-medium text-[var(--color-ink)]">{entry.time}</span>
-                  <Author name={entry.author} />
-                  <button
-                    type="button"
-                    className="ml-auto flex items-center gap-1 text-[12.5px] text-[var(--color-ink)]/70 hover:text-[var(--color-ink)]"
-                  >
-                    <RotateCcw size={12} strokeWidth={2} />
-                    查看当前版本发布进展
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-medium text-[var(--color-ink)]">{entry.time}</span>
-                    <Author name={entry.author} />
-                    <button
-                      type="button"
-                      className="ml-auto flex h-6 w-6 items-center justify-center rounded text-[var(--color-ink)]/40 hover:bg-[var(--fill-soft)] hover:text-[var(--color-ink)]/70"
+                  <div className="mt-6 flex items-center justify-end gap-2">
+                    <Button
+                      onClick={() => setMagicXOpen(false)}
+                      theme="light"
+                      type="tertiary"
+                      size="small"
                     >
-                      <MoreHorizontal size={15} />
-                    </button>
+                      取消
+                    </Button>
+                    <Button
+                      onClick={confirmPublish}
+                      theme="solid"
+                      type="primary"
+                      size="small"
+                    >
+                      确认发布
+                    </Button>
                   </div>
-                  <div className="mt-2 text-[12px] text-[var(--color-ink)]/45">产物发布</div>
-                  <div className="mt-1">
-                    <span className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-[var(--divider)] px-2 py-1 text-[12px] text-[var(--color-ink)]/75">
-                      <PublishObjectVisualThumb visual={objectVisual} />
-                      <span className="max-w-[180px] truncate">{projectName}</span>
-                    </span>
-                  </div>
-                  {entry.scenes && (
-                    <>
-                      <div className="mt-2.5 text-[12px] text-[var(--color-ink)]/45">场景开通</div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        {entry.scenes.map((sc) => (
-                          <span
-                            key={sc.label}
-                            className="inline-flex items-center gap-1 rounded-full border border-[var(--divider)] px-2.5 py-1 text-[12px] text-[var(--color-ink)]/75"
-                          >
-                            {sc.label}
-                            {sc.ok ? (
-                              <CheckCircle2 size={13} className="text-emerald-500" />
-                            ) : (
-                              <CircleAlert size={13} className="text-[#ff4d4f]" />
-                            )}
-                          </span>
-                        ))}
-                        {entry.scenes.some((s) => !s.ok) && (
-                          <button
-                            type="button"
-                            className="text-[12.5px] text-[#3478ff] underline-offset-2 hover:underline"
-                          >
-                            查看失败原因
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </>
+                </div>
               )}
             </div>
+          </section>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="thin-scroll min-h-0 flex-1 overflow-y-auto px-6 py-6">
+      <div className="mx-auto w-full max-w-[720px]">
+        <div className="mb-5">
+          <div className="mb-2 text-[12px] font-medium text-[var(--color-ink)]/55">
+            发布产物
           </div>
-        )
-      })}
+          <div className="flex items-center gap-3 rounded-lg border border-[var(--divider)] bg-[var(--color-surface-0)] px-4 py-3">
+            <PublishObjectVisualThumb visual={objectVisual} size="lg" />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13px] font-medium text-[var(--color-ink)]">
+                {projectName}
+              </div>
+              <div className="truncate text-[11.5px] text-[var(--color-ink)]/50">
+                {meta.label} · {meta.objectHint}
+              </div>
+            </div>
+            <span className="flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-700">
+              <Check size={11} strokeWidth={2.6} />
+              待发布
+            </span>
+          </div>
+        </div>
+
+        {isSceneKind && (
+          <div className="mb-2 text-[12px] text-[var(--color-ink)]/45">应用场景</div>
+        )}
+        {renderFields()}
+
+        <footer className="mt-8 flex items-center justify-end gap-2 border-t border-[var(--divider-soft)] pt-4">
+          <Button
+            onClick={onCancel}
+            theme="light"
+            type="tertiary"
+            size="small"
+          >
+            取消
+          </Button>
+          <Button
+            onClick={confirmPublish}
+            theme="solid"
+            type="primary"
+            size="small"
+          >
+            确认发布
+          </Button>
+        </footer>
+      </div>
     </div>
   )
 }
 
-function Author({ name }: { name: string }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--fill-subtle)] px-1.5 py-0.5 text-[12px] text-[var(--color-ink)]/70">
-      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-ink)]/15 text-[9px] text-[var(--color-ink)]/70">
-        {name.slice(0, 1)}
-      </span>
-      {name}
-    </span>
-  )
-}
-
 /* ─── small form primitives ─── */
-
-function TabPill({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors ${
-        active
-          ? 'bg-[var(--fill-subtle)] text-[var(--color-ink)]'
-          : 'text-[var(--color-ink)]/50 hover:text-[var(--color-ink)]/80'
-      }`}
-    >
-      {children}
-    </button>
-  )
-}
 
 /** macOS-style toggle — compact (31×19), green when on, knob slides. */
 function Switch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {

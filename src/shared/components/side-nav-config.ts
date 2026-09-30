@@ -61,8 +61,8 @@ const COLOR_KEYS = [
 
 export type SideNavColorKey = (typeof COLOR_KEYS)[number]
 
-/** 导航默认底色跟随宿主 Semi 主题；独立运行时回退到设计稿灰。 */
-export const SIDE_NAV_DEFAULT_BACKGROUND = 'var(--semi-color-nav-bg, #F2F2F7)'
+/** 导航保持产品原有灰底，不跟随局部引入的组件库主题变量。 */
+export const SIDE_NAV_DEFAULT_BACKGROUND = '#F2F2F7'
 
 /** 代码默认值 = 设计稿（统一导航 579-57535）的规格。 */
 export const SIDE_NAV_DEFAULTS: SideNavConfig = {

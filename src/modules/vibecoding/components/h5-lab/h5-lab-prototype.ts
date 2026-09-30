@@ -55,9 +55,19 @@ export interface H5LabChatRef {
   src?: string
 }
 
+/** 对话里的同名元素必须能区分；保留语义名，并用路径末两级作稳定定位。 */
+export function h5LabRefDisplayLabel(ref: H5LabChatRef): string {
+  const pathSegments = ref.path.split('>').filter(Boolean)
+  const locator = pathSegments.slice(-2).join(' > ') || ref.path
+  return `${ref.label} · ${locator}`
+}
+
 /** 带进对话的元素写给模型的那行上下文。 */
 export function h5LabRefContext(ref: H5LabChatRef): string {
-  const bits = [`状态帧「${ref.frameLabel}」里的「${ref.label}」(${ref.tag})`]
+  const bits = [
+    `状态帧「${ref.frameLabel}」里的「${ref.label}」(${ref.tag})`,
+    `元素路径：${ref.path}`,
+  ]
   if (ref.text) bits.push(`当前文案：${ref.text.slice(0, 60)}`)
   if (ref.src) bits.push(`当前图片：${ref.src}`)
   return `【画布选中】${bits.join('｜')}`
