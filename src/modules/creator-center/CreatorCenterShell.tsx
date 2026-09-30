@@ -288,14 +288,22 @@ export default function CreatorCenterShell() {
   // 与工坊同样首次进入后保持挂载，切走再切回不丢状态。
   const [avatarMounted, setAvatarMounted] = useState(false)
   const [homeScrolled, setHomeScrolled] = useState(false)
+  const [starlightOpen, setStarlightOpen] = useState(false)
   const handleWorkshopCanvasModeChange = useCallback((open: boolean) => {
     setWorkshopCanvasMode(open)
   }, [])
   const selectProduct = (id: ProductId) => {
+    setStarlightOpen(false)
     if (id === 'home') setHomeMounted(true)
     if (id === 'workshop') setWorkshopMounted(true)
     if (id === 'ai-avatar') setAvatarMounted(true)
     setActive(id)
+  }
+  const openStarlight = () => {
+    setHomeMounted(true)
+    setHomeScrolled(false)
+    setActive('home')
+    setStarlightOpen(true)
   }
   const workshopImmersive =
     active === 'workshop' && workshopCanvasMode
@@ -327,10 +335,11 @@ export default function CreatorCenterShell() {
           <TopNav
             active={active}
             onSelect={selectProduct}
+            onOpenStarlight={openStarlight}
             showLogo={false}
             fused
             overlay={active === 'home'}
-            scrolled={active === 'home' && homeScrolled}
+            scrolled={active === 'home' && (homeScrolled || starlightOpen)}
             glassLeftInset={visualSideNavWidth}
             leftSlot={(
               <SideNavBrandHeader
@@ -345,8 +354,9 @@ export default function CreatorCenterShell() {
           <TopNav
             active={active}
             onSelect={selectProduct}
+            onOpenStarlight={openStarlight}
             overlay={active === 'home'}
-            scrolled={active === 'home' && homeScrolled}
+            scrolled={active === 'home' && (homeScrolled || starlightOpen)}
             glassLeftInset={configuredSideNavWidth}
           />
         )
@@ -366,6 +376,8 @@ export default function CreatorCenterShell() {
                 active={active === 'home'}
                 onOpenProduct={selectProduct}
                 onScrollStateChange={setHomeScrolled}
+                starlightOpen={starlightOpen}
+                onCloseStarlight={() => setStarlightOpen(false)}
               />
             </Suspense>
           </ProductSurface>

@@ -28,7 +28,7 @@ export const PRODUCTS: ProductEntry[] = [
 ]
 
 /** 星光余额（创作激励计量单位，顶栏右侧展示）。 */
-export const STARLIGHT = 276
+export const STARLIGHT = 18402
 
 /** 首页「智能创作」入口卡。homeFront/homeBack 是设计稿分层导出的 4x 透明 PNG；
  *  front/back 保留给产品占位页使用，避免首页素材更新波及其它页面。 */
