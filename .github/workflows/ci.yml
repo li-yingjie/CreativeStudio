@@ -17,6 +17,5 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm install --global npm@10.9.8
-      - run: npm install --legacy-peer-deps --no-audit --no-fund
+      - run: npm ci
       - run: npm run check

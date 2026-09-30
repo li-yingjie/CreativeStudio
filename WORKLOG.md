@@ -1,4 +1,4 @@
-# 2026-09-30 — 修复线上 CI 的依赖安装：保留 Semi 可构建的 date-fns 2，为 AI UI 与 Tailwind 4 的旧 peer 声明启用 legacy-peer-deps，并绕开 runner 上 npm ci 的退出处理缺陷。
+# 2026-09-30 — 修复线上 CI 的依赖安装：保留 Semi 可构建的 date-fns 2，将 master-icon 固定为 tarball 并由项目 postinstall 构建，避开 Git 依赖的嵌套安装崩溃。
 
 # 2026-09-30 — 为版本管理分支上线补齐产品树回归断言，并对 Tower Defense 遗留编辑器设置局部 React ESLint 兼容规则。
 
