@@ -1,5 +1,13 @@
 /* eslint-disable react-refresh/only-export-components -- asset schema and selectors are shared with the project toolbar */
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from 'react'
 import {
   ArrowLeft,
   ArrowUp,
@@ -40,7 +48,19 @@ const XiahuaMascot3DStudio = lazy(() => import('./XiahuaMascot3DStudio'))
 
 export type { AssetGroup, AssetItem, AssetKind }
 
+type AssetCanvasEditor = ComponentType<{
+  groups: AssetGroup[]
+  onClose: () => void
+}>
+
+type AssetQuickTools = ComponentType<{
+  onCanvasEdit?: () => void
+  onUpload?: () => void
+}>
+
 interface GarudaAssetsViewProps {
+  /** ACG 活动素材页已经在传「显示页面用途」，这里还没实现展示；先收下类型，行为不变。 */
+  showPageUsage?: boolean
   /** Group/items to render. Defaults to the Garuda game's GROUPS so
    *  existing call sites stay unchanged; pass a project-specific list
    *  (e.g. H5 活动素材) to reuse the same layout for other surfaces. */
@@ -55,6 +75,9 @@ interface GarudaAssetsViewProps {
    *  toolbar / edit panel can bind to the specific asset object. */
   selectedAsset?: AssetItem | null
   onSelectAsset?: (a: AssetItem | null) => void
+  /** 运营活动 / 互动游戏各带一套素材画布，默认走游戏这一路。 */
+  CanvasEditor?: AssetCanvasEditor
+  QuickTools?: AssetQuickTools
 }
 
 /** Derive frame-N's path from the frame-0 src by re-padding the trailing
@@ -223,6 +246,8 @@ export default function GarudaAssetsView({
   onKindChange,
   selectedAsset: controlledSel,
   onSelectAsset,
+  CanvasEditor = ImageCanvasEditor,
+  QuickTools = ImageQuickTools,
 }: GarudaAssetsViewProps = {}) {
   const [internalKind, setInternalKind] = useState<AssetKind>('image')
   const [internalSel, setInternalSel] = useState<AssetItem | null>(null)
@@ -375,7 +400,7 @@ export default function GarudaAssetsView({
 
   if (canvasOpen) {
     return (
-      <ImageCanvasEditor
+      <CanvasEditor
         groups={garudaImageGroups(displayGroups)}
         onClose={() => setCanvasOpen(false)}
       />
@@ -403,6 +428,7 @@ export default function GarudaAssetsView({
         prompt={promptDrafts[assetKey] ?? resolvedPrompt.text}
         promptTag={resolvedPrompt.skillLabel}
         model={resolvedPrompt.model}
+        QuickTools={QuickTools}
         onPromptChange={(next) =>
           setPromptDrafts((current) => ({ ...current, [assetKey]: next }))
         }
@@ -653,6 +679,7 @@ function AssetPromptDetail({
   prompt,
   promptTag,
   model,
+  QuickTools,
   onPromptChange,
   onSelect,
   onSelectVersion,
@@ -664,6 +691,7 @@ function AssetPromptDetail({
   prompt: string
   promptTag: string
   model: string
+  QuickTools: AssetQuickTools
   onPromptChange: (next: string) => void
   onSelect: (item: AssetItem) => void
   onSelectVersion: (item: AssetItem, version: number) => void
@@ -833,7 +861,7 @@ function AssetPromptDetail({
                 {kind === 'image' && (
                   <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                     <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-visible rounded-2xl border border-[var(--divider-soft)] bg-[var(--color-surface-0)] px-2 py-1.5 shadow-[0_12px_30px_-10px_rgba(16,18,24,0.28)]">
-                      <ImageQuickTools
+                      <QuickTools
                         onCanvasEdit={onCanvasEdit}
                         onUpload={openUpload}
                       />

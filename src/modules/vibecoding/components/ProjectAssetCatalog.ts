@@ -1,4 +1,52 @@
+import { ACG_FROM_DOC_BRAND_KIT_CANDIDATES } from '../assets/acgExperienceBrandKit.ts'
+
 export type AssetKind = 'image' | 'audio' | 'video'
+
+export type AssetLayerType = 'raster' | 'text' | 'vector' | 'upload'
+
+export type AssetLayerRenderer =
+  | 'image-model'
+  | 'raster-art'
+  | 'true-text'
+  | 'brand-asset'
+  | 'source-asset'
+
+export interface AssetLayer {
+  id: string
+  name: string
+  type: AssetLayerType
+  renderer: AssetLayerRenderer
+  x: number
+  y: number
+  width: number
+  height: number
+  z: number
+  visible: boolean
+  locked: boolean
+  opacity?: number
+  src?: string
+  text?: string
+  fontRef?: { id: string; version: string; family: string }
+  color?: string
+  fontSize?: number
+  fontWeight?: number
+  fontFamily?: string
+  letterSpacing?: number
+  lineHeight?: number
+  textAlign?: 'left' | 'center' | 'right'
+}
+
+export interface AssetLayerManifest {
+  canvas: { width: number; height: number }
+  templateRef?: { id: string; version: string; name: string }
+  styleBibleRef?: { id: string; version: string; name: string }
+  layers: AssetLayer[]
+}
+
+export interface AssetLayeringHint {
+  recommendation: 'keep-flat' | 'consider-layering'
+  reason: string
+}
 
 export interface AssetPrompt {
   text: string
@@ -24,6 +72,11 @@ export interface AssetItem {
   frames?: number
   kind?: AssetKind
   prompt?: AssetPrompt
+  /** Every image version resolves to a manifest. Legacy items without one
+   *  are lazily represented as a single full-canvas raster layer. */
+  layerManifest?: AssetLayerManifest
+  /** Transient authoring advice, never a persisted lifecycle state. */
+  layeringHint?: AssetLayeringHint
 }
 
 export interface AssetGroup {
@@ -201,104 +254,198 @@ export const GARUDA_ASSET_GROUPS: AssetGroup[] = [
   },
 ]
 
-const H5_IP_SKILL = '抖音 IP skill'
+export const QIXI_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '联合视觉样张',
+    desc: '当前仅保留已通过基础校验的 2 张样张；其余 6 关、奖励、抽奖与分享素材待生成',
+    items: [
+      {
+        id: 'qixi-home-kv-v1',
+        src: '/assets/qixi/home-kv-v1.webp',
+        label: '活动主视觉 KV · 月夜鹊桥',
+        prompt: {
+          text: '为七夕「搭鹊桥 · 找喜鹊」互动 H5 生成现代东方剪纸感主视觉：深黛蓝月夜、米白满月、鹊羽层叠成桥、少量朱砂红奖励节点；左上保留标题安全区，画面不生成任何文字、金额或水印。',
+          skillLabel: '七夕活动视觉 skill',
+          model: 'OpenAI ImageGen',
+        },
+      },
+      {
+        id: 'qixi-level-01-v1',
+        src: '/assets/qixi/level-01-v1.webp',
+        label: '找喜鹊第 1 关 · 月夜园林',
+        prompt: {
+          text: '为七夕找喜鹊玩法生成 2:3 竖版现代东方剪纸月夜园林场景，深黛蓝与米白为主，将恰好 5 只喜鹊自然隐入树枝、桥拱与云纹锚点，大小可辨但不突兀；不生成文字、按钮、热区标记或水印。',
+          skillLabel: '七夕找图场景 skill',
+          model: 'OpenAI ImageGen',
+        },
+      },
+    ],
+  },
+]
 
-function h5Asset(
+export const ACG_REPLICA_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '主会场切片基线',
+    desc: '来自 ACG 新春会线上设计稿（750 × 9776）的原始分辨率切片，按纵向 1600px 分段；页面由切片装配，交互热区叠加在其上',
+    items: [1600, 1600, 1600, 1600, 1600, 1600, 176].map((h, i) => {
+      const start = i * 1600
+      return {
+        id: `acg-replica-strip-${i + 1}`,
+        src: `/assets/acg-replica/strip-${String(i + 1).padStart(2, '0')}.webp`,
+        label: `主会场切片 ${i + 1}（y ${start}–${start + h}）`,
+        prompt: {
+          text: `设计稿画板 1-369 纵向区段 y ${start}–${start + h}，原始分辨率导出后转 WebP；替换为 AI 生成版时保持 750 × ${h} 尺寸与同段内容布局。`,
+          skillLabel: '设计稿切片 skill',
+          model: 'Figma 渲染导出',
+        },
+      }
+    }),
+  },
+]
+
+function acgFromDocGeneratedAsset(
   id: string,
   file: string,
   label: string,
-  text: string,
-  model = 'NanoBanana',
+  subject: string,
 ): AssetItem {
   return {
     id,
-    src: `/assets/acg-new-year/materials/${file}`,
+    src: `/assets/acg-from-doc/generated/${file}`,
     label,
     prompt: {
-      text,
-      skillLabel: H5_IP_SKILL,
-      model,
+      text: `调用平台基础 Kit brand.douyin-acg-new-year-2026@1.2.0 与已选页面 Kit ${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0].id}@${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0].version}，为 2026 ACG 新春内容事件生成页面素材。用途与主体：${subject}。使用暖奶油画布、珊瑚红/抖音红、清亮天空蓝、橙色与暖金高光；保持大色块可读、平滑受控阴影、柔和定向光、连续渐变、清晰轮廓与克制微纹理，直接绑定页面组件。明确排除可见颗粒、斑驳、脏纹理、过锐光晕、混乱高频细节、过量粒子、已有 IP、Logo、水印和烘焙 UI 文字。`,
+      skillLabel: '抖音 ACG Brand Kit · Asset BOM 生成',
+      model: 'OpenAI ImageGen',
     },
   }
 }
 
+export const ACG_FROM_DOC_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '页面 Brand Kit 定调',
+    desc: '三套 Kit 都基于同一页面蓝图组装，并附代表素材图；比较的是主 KV、艺术字、色彩材质、玩法皮肤和生图合约，不是单张风格图',
+    items: [
+      {
+        id: 'acg-doc-style-star-rail',
+        src: ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0].previewSrc,
+        label: `${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0].name} · 已采用`,
+        prompt: {
+          text: `调用 Brand Kit ${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0].id}@${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[0].version}，为中国 ACG 新春内容事件生成移动端 H5 主视觉：明亮天空与暖奶油云海中，珊瑚红金轨道连接六个原创幻想世界，原创旅行者群像乘幻想载具向新春游园入口出发；暖奶油、抖音红、珊瑚橙、清亮蓝与暖金。顶部与下部保留独立平台锁定、艺术字和按钮安全区。使用大色块、平滑阴影、连续渐变和克制微纹理；排除颗粒、斑驳、过锐、高频碎细节、文字、Logo、水印或已有 IP。`,
+          skillLabel: '页面 Brand Kit 编译',
+          model: 'OpenAI ImageGen',
+        },
+      },
+      {
+        id: 'acg-doc-style-manga-annual',
+        src: ACG_FROM_DOC_BRAND_KIT_CANDIDATES[1].previewSrc,
+        label: `${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[1].name} · 备选`,
+        prompt: {
+          text: `调用 Brand Kit ${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[1].id}@${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[1].version}，为中国 ACG 新春内容事件生成移动端 H5 风格样图：六个幻想篇章以漫画分镜组成旅行路径，一位原创旅行者从底部进入；暖象牙纸、朱红、墨黑与钴蓝，高级年刊编辑设计。网点只作为局部受控图形，不覆盖大面积肤色与渐变；排除可见噪点、斑驳、脏纹理、过锐、文字、Logo、水印或已有 IP。`,
+          skillLabel: '页面 Brand Kit 编译',
+          model: 'OpenAI ImageGen',
+        },
+      },
+      {
+        id: 'acg-doc-style-candy-arcade',
+        src: ACG_FROM_DOC_BRAND_KIT_CANDIDATES[2].previewSrc,
+        label: `${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[2].name} · 备选`,
+        prompt: {
+          text: `调用 Brand Kit ${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[2].id}@${ACG_FROM_DOC_BRAND_KIT_CANDIDATES[2].version}，为中国 ACG 新春内容事件生成移动端 H5 风格样图：六个软胶潮玩幻想区由透明霓虹轨道连接，一位原创旅行者从底部进入；莓果紫、糖果珊瑚、发光青与奶油黄，高级 3D 微缩场景。表面干净、平滑着色、柔和光照、克制材质；排除颗粒、斑驳、过锐、高频碎细节、文字、Logo、水印或已有 IP。`,
+          skillLabel: '页面 Brand Kit 编译',
+          model: 'OpenAI ImageGen',
+        },
+      },
+    ],
+  },
+  {
+    title: '主视觉与活动身份',
+    desc: '设计风格确认后由 Agent 根据页面蓝图生成；主 KV 与艺术字分别保留，便于替换和多尺寸适配',
+    items: [
+      acgFromDocGeneratedAsset('acg-doc-hero-kv', 'hero-kv.webp', '主会场 KV · 星轨新春列车', '竖版主会场 KV，六个幻想世界与新春列车构成年度旅程，预留移动端品牌与操作安全区'),
+      acgFromDocGeneratedAsset('acg-doc-title-art', 'title-art.webp', '活动艺术字 · 次元新春漫游记', '透明背景中文艺术字，象牙金立体笔画与珊瑚漆红阴影，可叠加在复杂主视觉上'),
+    ],
+  },
+  {
+    title: '六大篇章场景',
+    desc: '每个篇章都有独立场景，不再用同一渐变色块区分',
+    items: [
+      acgFromDocGeneratedAsset('acg-doc-chapter-abstract', 'chapter-abstract.webp', '01 抽象奇境', '失重错位的新春幻想城，承担当前篇章头图与路线卡'),
+      acgFromDocGeneratedAsset('acg-doc-chapter-aesthetic', 'chapter-aesthetic.webp', '02 美学圣殿', '水晶乐器与月光舞台构成的美学圣殿'),
+      acgFromDocGeneratedAsset('acg-doc-chapter-joy', 'chapter-joy.webp', '03 欢愉乐园', '星轨摩天轮与游园会构成的快乐篇章'),
+      acgFromDocGeneratedAsset('acg-doc-chapter-healing', 'chapter-healing.webp', '04 治愈绿洲', '发光灵鹿与林间泉水构成的治愈场景'),
+      acgFromDocGeneratedAsset('acg-doc-chapter-battle', 'chapter-battle.webp', '05 燃斗竞技场', '赤红能量龙与圆形竞技场构成的热血篇章'),
+      acgFromDocGeneratedAsset('acg-doc-chapter-bond', 'chapter-bond.webp', '06 羁绊回响谷', '蓝色记忆河流与灯笼山谷构成的羁绊篇章'),
+    ],
+  },
+  {
+    title: '作品封面与主理人',
+    desc: '作品焦点位、双榜、随机 Feed、详情层和主理人卡使用真实内容视觉',
+    items: [
+      ...[
+        ['work-gravity.webp', '作品封面 · 重力失控 48 小时'],
+        ['work-moon.webp', '作品封面 · 纸月亮舞会'],
+        ['work-npc.webp', '作品封面 · NPC 决定今天休假'],
+        ['work-save.webp', '作品封面 · 给十年前的存档写封信'],
+        ['work-monster.webp', '作品封面 · 今天也要拯救小怪兽'],
+        ['work-combo.webp', '作品封面 · 必杀技也会放空'],
+        ['host-trickster.webp', '主理人 · 抽象奇境'],
+        ['host-musician.webp', '主理人 · 美学圣殿'],
+        ['host-inventor.webp', '主理人 · 欢愉乐园'],
+        ['host-keeper.webp', '主理人 · 治愈绿洲'],
+        ['host-director.webp', '主理人 · 燃斗竞技场'],
+        ['host-archivist.webp', '主理人 · 羁绊回响谷'],
+      ].map(([file, label], index) =>
+        acgFromDocGeneratedAsset(`acg-doc-content-${index + 1}`, file, label, index < 6 ? '原创 ACG 短片封面，用于作品卡、榜单和详情' : '原创篇章主理人肖像，用于主理人身份卡'),
+      ),
+    ],
+  },
+  {
+    title: '任务与奖励物件',
+    desc: '任务、抽奖、头像框、心愿与 Big Day 权益使用统一收藏级物件视觉',
+    items: [
+      acgFromDocGeneratedAsset('acg-doc-reward-red-packet', 'reward-red-packet.webp', '星轨新春红包', '珊瑚漆红红包与金色星徽'),
+      acgFromDocGeneratedAsset('acg-doc-reward-pass', 'reward-pass.webp', '六芒星旅行通行证', '篇章旅程通行证与薄荷晶体'),
+      acgFromDocGeneratedAsset('acg-doc-reward-frame', 'reward-frame.webp', '限定头像框', '新春鱼灯与星轨组成的头像框'),
+      acgFromDocGeneratedAsset('acg-doc-reward-firework', 'reward-firework.webp', '星火爆竹挂件', '投票任务对应的收藏级爆竹挂件'),
+      acgFromDocGeneratedAsset('acg-doc-reward-capsule', 'reward-capsule.webp', '幸运扭蛋', '用于抽奖次数和开奖结果的幸运扭蛋'),
+      acgFromDocGeneratedAsset('acg-doc-reward-ticket', 'reward-ticket.webp', 'Big Day 入场券', '连接许愿与 2 月 14 日晚会的活动入场券'),
+    ],
+  },
+]
+
 export const ACG_NEW_YEAR_ASSET_GROUPS: AssetGroup[] = [
   {
-    title: '活动素材',
-    desc: '抖音 ACG 游戏新春会 · 12 项独立生成素材',
+    title: '主视觉与传播适配',
+    desc: '直接来自 2026 抖音 ACG 新春会 Figma 的真实画板；保留 node 来源，不混入脑暴或生成占位图',
     items: [
-      h5Asset(
-        'acg-01-hero',
-        '01-activity-hero.png',
-        '01 / 活动主视觉',
-        '春节游戏主题活动主视觉，红色新春舞台背景，悬挂灯笼、中国结与烟花，集合多款热门游戏角色形成热闹群像。画面中心下方预留“抖音 ACG 游戏新春会”主标题，红金高亮、节庆氛围浓郁，16:9 横版商业活动 KV，高细节。',
-      ),
-      h5Asset(
-        'acg-02-corgi',
-        '02-party-corgi.png',
-        '02 / 派对动物角色',
-        '一只可爱的 3D 卡通柯基吉祥物，橙白柔软短毛，大耳朵、圆眼睛、黑色鼻头，佩戴红色项圈与金色圆牌，正面略微侧身站立。玩具级角色设计，毛绒与软胶结合，柔和棚拍光，透明背景，完整全身，高细节。',
-      ),
-      h5Asset(
-        'acg-03-dungeon',
-        '03-dungeon-character.png',
-        '03 / 地下城角色立绘',
-        '地下城冒险主题的 Q 版男性角色立绘，白色兜帽与红棕描边，手持巨大木槌，另一只手做出制止姿势。日系游戏角色比例，清晰赛璐璐上色，表情坚定，正面三分之二视角，透明背景，完整角色。',
-      ),
-      h5Asset(
-        'acg-04-king',
-        '04-king-character.png',
-        '04 / 王者角色素材',
-        '东方幻想竞技游戏的青年男性英雄，青黑长发，裸露上身搭配金色与青色机械饰甲，右手凝聚金蓝双色能量。写实游戏宣传立绘，动态姿态，边缘带速度残影，透明背景，横向构图，高细节。',
-      ),
-      h5Asset(
-        'acg-05-egg',
-        '05-egg-party-keyboard.png',
-        '05 / 蛋仔角色素材',
-        '一个可爱的 3D 卡通机器人角色，拟人化电子乐器造型，一个蓝色小钢琴/电子琴角色，拥有圆润的白色身体和黄色圆形头部，头顶两个黄色小天线。角色正面朝向镜头，身体漂浮在空中，姿态轻松可爱。\n\n巨大的圆形黄色脸部位于后方，脸上有两个星星形状的闪亮眼睛，黑色小嘴，带有害羞可爱的表情。前方是一台倾斜放置的蓝色电子键盘乐器，圆角矩形设计，表面光滑，带有白色和黑色琴键，左右两侧有黄色圆形机械手臂握住键盘。\n\n整体采用玩具级工业设计，软胶材质，磨砂塑料质感，圆润边角，高级产品渲染效果，简洁几何造型，轻微反射，高光柔和，Octane Render 风格，3D icon design，儿童玩具风格。\n\n纯浅灰色背景，居中构图，漂浮展示，无阴影或柔和接触阴影，干净商业产品展示图，高细节。',
-      ),
-      h5Asset(
-        'acg-06-cannon',
-        '06-title-cannon.png',
-        '06 / 标题炮筒装饰',
-        '两个红橙色玩具炮筒组成的新春装饰图标，圆润软胶材质，金黄色金属包边，绿色点火环与红色引线，顶部绽放小型金色烟花。3D icon design，透明背景，居中构图，柔和高光，高细节。',
-      ),
-      h5Asset(
-        'acg-07-video-cover',
-        '07-focus-video-cover.png',
-        '07 / 焦点视频封面',
-        '梦幻派对游戏的横版焦点视频封面，粉蓝天空、彩虹道路、糖果城堡和漂浮星球，前景是戴黄色安全帽的可爱角色，远处多个角色飞跃拱门。明亮 3D 卡通渲染，童趣、轻盈、高饱和，16:9 宣传海报构图。',
-      ),
-      h5Asset(
-        'acg-08-content-party',
-        '08-content-cover-party.png',
-        '08 / 内容封面素材 01',
-        '都市潮流动作游戏的横版内容封面，粉发少女在前景伸手指向镜头，多名未来街头角色与机器人分布在黄色几何分镜中。动漫赛璐璐风格，黑黄主色，高动势漫画排版，16:9，高细节。',
-      ),
-      h5Asset(
-        'acg-09-content-action',
-        '09-content-cover-action.png',
-        '09 / 内容封面素材 02',
-        '极简电影感竖版风景，橙粉色落日天空与海面，中间以细长黑色落地窗框形成节奏，一个微小人物沿地平线行走。大面积留白、宁静孤独、低饱和胶片色调，9:16。',
-      ),
-      h5Asset(
-        'acg-10-content-sunset',
-        '10-content-cover-sunset.png',
-        '10 / 内容封面素材 03',
-        '超现实极简竖版风景，深蓝天空、白色沙丘、橙红色花田与一棵孤树，天空悬挂细小月牙，远处只有一个人物。强烈色块分层，安静梦境感，9:16，杂志摄影质感。',
-      ),
-      h5Asset(
-        'acg-11-content-field',
-        '11-content-cover-field.png',
-        '11 / 内容封面素材 04',
-        '极简梦幻竖版风景，浅粉天空中悬浮巨大淡粉月亮，绿色田野延伸至地平线，一个微小人物站在月下。柔和粉绿配色、低对比、宁静超现实氛围，9:16，高级海报感。',
-      ),
-      h5Asset(
-        'acg-12-mascot',
-        '12-event-mascot-horse.png',
-        '12 / 活动入口吉祥物',
-        '站立的 3D 卡通红色小马吉祥物，深棕色蓬松鬃毛与尾巴，米色大口鼻、手脚，半睁眼和简单弧线笑脸。圆润软胶玩具质感，透明背景，三分之四正面，高细节。',
-      ),
+      documentedLayeredCaseAsset('acg-discovery-banner', '/assets/figma-deliverables/acg/discovery-banner-1372x512.png', '游戏中心发现页 Banner', 'node 2229:63622，活动主身份、群像与轨道场景的完整横向交付', { width: 1372, height: 512 }),
+      documentedCaseAsset('acg-kv-landscape', '/assets/figma-deliverables/acg/key-visual-landscape.png', '主会场 KV 横版', 'node 2253:13642，主会场 1920×1080 KV', { width: 1920, height: 1080 }),
+      documentedCaseAsset('acg-kv-portrait', '/assets/figma-deliverables/acg/key-visual-portrait.png', '主会场 KV 竖版', 'node 2253:13707，主会场 1080×1920 KV', { width: 1080, height: 1920 }),
+      documentedCaseAsset('acg-splash', '/assets/figma-deliverables/acg/splash-screen.png', 'ACG 新春会开屏', 'node 2229:67795，1242×2208 开屏画板', { width: 1242, height: 2208 }),
+      documentedCaseAsset('acg-partner-honor', '/assets/figma-deliverables/acg/partner-poster-honor.png', '王者合作海报', 'node 2017:7470，合作 IP 竖版传播海报', { width: 1080, height: 1920 }),
+    ],
+  },
+  {
+    title: '站内资源位矩阵',
+    desc: '搜索、话题、活动中心、游戏中心与创作广场的真实尺寸适配',
+    items: [
+      documentedCaseAsset('acg-search', '/assets/figma-deliverables/acg/search-banner.png', '精选搜索 Banner', 'node 2181:42603，搜索承接资源位', { width: 1029, height: 360 }),
+      documentedCaseAsset('acg-topic-header', '/assets/figma-deliverables/acg/topic-header-banner.png', '话题头图与 Banner', 'node 2229:64229，话题页活动身份组合', { width: 1125, height: 450 }),
+      documentedCaseAsset('acg-activity-center', '/assets/figma-deliverables/acg/activity-center-banner.png', '活动中心 Banner', 'node 2229:64459，活动中心入口', { width: 1029, height: 420 }),
+      documentedCaseAsset('acg-creative-plaza', '/assets/figma-deliverables/acg/creative-plaza-banner.png', '创作广场 Banner', 'node 2229:65564，游戏中心创作广场入口', { width: 1029, height: 384 }),
+      documentedCaseAsset('acg-topic-narrow', '/assets/figma-deliverables/acg/topic-banner.png', '话题窄 Banner', 'node 2276:18124，开年高燃话题 Banner', { width: 1029, height: 195 }),
+      documentedCaseAsset('acg-cny-banner', '/assets/figma-deliverables/acg/cny-page-banner.png', '精选 CNY 页 Banner', 'node 2181:42598，精选活动页入口', { width: 747, height: 420 }),
+    ],
+  },
+  {
+    title: '页面、节目单与战报',
+    desc: '活动长页与结算内容只作为项目实例沉淀，提炼结构时保留 IP 与数据授权边界',
+    items: [
+      documentedCaseAsset('acg-game-venue', '/assets/figma-deliverables/acg/game-venue-long.png', '游戏分会场长页', 'node 1470:25605，游戏会场完整长页', { width: 750, height: 9776 }),
+      documentedCaseAsset('acg-anime-venue', '/assets/figma-deliverables/acg/anime-venue-long.png', '二次元分会场长页', 'node 1529:29607，二次元会场完整长页', { width: 375, height: 3383 }),
+      documentedCaseAsset('acg-program', '/assets/figma-deliverables/acg/program-guide-long.png', '节目单长图', 'node 2895:67559，完整节目单传播长图', { width: 1080, height: 11493 }),
+      documentedCaseAsset('acg-report', '/assets/figma-deliverables/acg/final-report-long.png', '活动战报长图', 'node 2911:6506，数据与内容结算战报', { width: 1080, height: 26668 }),
     ],
   },
 ]
@@ -482,21 +629,86 @@ const XIAHUA_ASSET_VARIANTS: Record<string, string[]> = {
 
 export const XIAHUA_ASSET_GROUPS: AssetGroup[] = [
   {
+    title: 'Figma 真实交付基线',
+    desc: '暑期 UI 最终页中的玩水与夜食页面、收集状态和原生入口；用于同项目派生与资产提炼，不把交互过程板当成成品',
+    items: [
+      documentedCaseAsset('xh-figma-water', '/assets/figma-deliverables/xiahua/water-venue-full.png', '玩水完整长页', '暑期UI - 玩水 / node 7976:42929，玩水主题主会场', { width: 375, height: 2989 }),
+      documentedCaseAsset('xh-figma-food', '/assets/figma-deliverables/xiahua/food-venue-full.png', '夜食完整长页', '暑期UI - 美食 / node 9553:15006，夜食主题主会场', { width: 375, height: 1898 }),
+      documentedCaseAsset('xh-figma-outfits', '/assets/figma-deliverables/xiahua/my-summer-outfits.png', '我的夏装', '暑期UI - 玩水 / node 8091:73128，收集与交换状态', { width: 375, height: 812 }),
+      documentedCaseAsset('xh-figma-night-food', '/assets/figma-deliverables/xiahua/my-night-food.png', '我的夜食', '暑期UI - 美食 / node 9834:33984，夜食卡图鉴状态', { width: 375, height: 812 }),
+      documentedCaseAsset('xh-figma-native', '/assets/figma-deliverables/xiahua/native-activity-home.png', '原生活动首页', '暑期UI - 玩水 / node 8214:64702，活动原生承接', { width: 390, height: 845 }),
+    ],
+  },
+  {
+    title: '资源位规范',
+    desc: '活动中心、搜索、话题、评价、团购、POI 等站内入口位型规范；画面为同文件「年度足迹」活动真实图例，夏日版输出待设计',
+    items: [
+      documentedCaseAsset('xh-slot-activity-center', '/assets/figma-deliverables/xiahua/resource-activity-center-banner.png', '活动中心 Banner 343×140', '暑期交互 / node 6917:89837，活动中心入口位型', { width: 343, height: 140 }),
+      documentedCaseAsset('xh-slot-search-bg', '/assets/figma-deliverables/xiahua/resource-search-card-bg.png', '搜索卡背景 390×110', '暑期交互 / node 6917:90312，搜索承接背景位型', { width: 390, height: 110 }),
+      documentedCaseAsset('xh-slot-search-cover', '/assets/figma-deliverables/xiahua/resource-search-card-cover.png', '搜索卡活动封面 144×144', '暑期交互 / node 6917:89977，搜索卡活动识别位型', { width: 144, height: 144 }),
+      documentedCaseAsset('xh-slot-topic', '/assets/figma-deliverables/xiahua/resource-topic-banner.png', '话题页 Banner 343×65', '暑期交互 / node 6917:90868，话题页导流位型', { width: 343, height: 65 }),
+      documentedCaseAsset('xh-slot-review', '/assets/figma-deliverables/xiahua/resource-review-banner.png', '评价页 Banner 343×80', '暑期交互 / node 6917:91237，评价场景位型', { width: 343, height: 80 }),
+      documentedCaseAsset('xh-slot-groupbuy', '/assets/figma-deliverables/xiahua/resource-groupbuy-banner.png', '团购 Banner 351×64', '暑期交互 / node 6917:91530，团购频道位型', { width: 351, height: 64 }),
+      documentedCaseAsset('xh-slot-poi', '/assets/figma-deliverables/xiahua/resource-poi-banner.png', '城市 POI Banner 343×88', '暑期交互 / node 6917:92381，城市 POI 位型', { width: 343, height: 88 }),
+      documentedCaseAsset('xh-slot-creator', '/assets/figma-deliverables/xiahua/resource-creator-zone-cover.png', '创作者专区封面 549×549', '暑期交互 / node 6917:92374，创作者活动专区位型', { width: 183, height: 183 }),
+    ],
+  },
+  {
+    title: 'IP 立绘与动作',
+    desc: '选马页三款小马真实立绘与玩水线游泳动作图，全部透明底，供会场、资源位与传播复用',
+    items: [
+      documentedCaseAsset('xh-ip-macaron', '/assets/figma-deliverables/xiahua/ip-horse-macaron.png', '小马「马卡龙」立绘', '暑期UI - 美食 / node 9683:26529，选马角色立绘', { width: 93, height: 150 }),
+      documentedCaseAsset('xh-ip-yizima', '/assets/figma-deliverables/xiahua/ip-horse-yizima.png', '小马「一字马」立绘', '暑期UI - 美食 / node 9683:26535，选马角色立绘', { width: 115, height: 153 }),
+      documentedCaseAsset('xh-ip-mashangdao', '/assets/figma-deliverables/xiahua/ip-horse-mashangdao.png', '小马「马上到」立绘', '暑期UI - 美食 / node 9683:26542，选马角色立绘', { width: 173, height: 253 }),
+      documentedCaseAsset('xh-ip-swim', '/assets/figma-deliverables/xiahua/ip-horse-swim.png', '游泳马动作图', '暑期UI - 玩水 / node 7955:6684，玩水线动作素材', { width: 332, height: 215 }),
+    ],
+  },
+  {
     title: '主视觉与品牌',
     desc: '活动头图、标题字与 IP —— 定调深夜食堂 × 小马的整体气质',
     items: [
-      xiahuaAsset(
-        'xh-kv-head',
-        'head-kv.png',
-        '主视觉 / 深夜食堂 KV',
-        `${XIAHUA_ART_DIRECTION}。深夜居酒屋俯视场景：戴白色小鸡帽的红色小马 IP 坐在木桌前，桌上摆满小龙虾、烤串、火锅、卤味等夜宵，窗外是紫蓝色霓虹街景，暖黄吊灯打光，右侧一只红色小龙虾角色挥手互动。竖版活动头图，顶部预留标题区，高细节 3D 渲染。`,
-      ),
-      xiahuaAsset(
-        'xh-title',
-        'title.png',
-        '活动标题字 / 这夏夯爆了',
-        '中文书法涂鸦字「这夏夯爆了」，白色主字 + 荧光绿高亮「夏」「夯」，笔锋带喷漆滴落与飞白，右上角小字档期「7.20-8.31」，副标题「集夏夜美食 赢黄金汉堡喵喵！」。透明背景，横版排布，潮流手绘字体设计。',
-      ),
+      documentedCaseAsset('xh-hero-beach', '/assets/figma-deliverables/xiahua/hero-beach-scene.png', '头图 · 玩水氛围场景', '暑期UI - 玩水 / node 7955:6647，沙滩海面氛围场景，小马入水画面', { width: 390, height: 533 }),
+      {
+        ...xiahuaAsset(
+          'xh-kv-head',
+          'head-kv.png',
+          '主视觉 / 深夜食堂 KV',
+          `${XIAHUA_ART_DIRECTION}。深夜居酒屋俯视场景：戴白色小鸡帽的红色小马 IP 坐在木桌前，桌上摆满小龙虾、烤串、火锅、卤味等夜宵，窗外是紫蓝色霓虹街景，暖黄吊灯打光，右侧一只红色小龙虾角色挥手互动。竖版活动头图，顶部预留标题区，高细节 3D 渲染。`,
+        ),
+        layerManifest: {
+          canvas: { width: 375, height: 494 },
+          templateRef: {
+            id: 'template.campaign-kv-layered',
+            version: '1.2.0',
+            name: '活动主视觉分层模板',
+          },
+          styleBibleRef: {
+            id: 'style.night-food-3d',
+            version: '2.3.1',
+            name: '夜食 3D 烟火感',
+          },
+          layers: [
+            { id: 'kv-base', name: '底景 · 深夜食堂', type: 'raster', renderer: 'image-model', src: '/assets/xiahua/kv/base.png', x: 0, y: 0, width: 375, height: 494, z: 0, visible: true, locked: true },
+            { id: 'kv-mascot', name: '主角 · 小马 IP', type: 'upload', renderer: 'source-asset', src: '/assets/xiahua/kv/mascot.png', x: 17, y: 131, width: 285, height: 283, z: 1, visible: true, locked: false },
+            { id: 'kv-food', name: '前景 · 火锅', type: 'upload', renderer: 'source-asset', src: '/assets/xiahua/kv/huoguo.png', x: 216, y: 230, width: 93, height: 126, z: 2, visible: true, locked: false },
+            { id: 'kv-accent', name: '装饰 · 小龙虾', type: 'upload', renderer: 'source-asset', src: '/assets/xiahua/kv/longxia.png', x: 268, y: 122, width: 67, height: 80, z: 3, visible: true, locked: false },
+            { id: 'kv-title', name: '艺术字 · 这夏夯爆了', type: 'raster', renderer: 'raster-art', src: '/assets/xiahua/title.png', x: 64, y: 24, width: 247, height: 68, z: 4, visible: true, locked: false },
+            { id: 'kv-logo', name: '品牌 · 抖音生活服务', type: 'vector', renderer: 'brand-asset', src: '/assets/xiahua/footer-logo.png', x: 127, y: 452, width: 121, height: 32, z: 5, visible: true, locked: true },
+          ],
+        } satisfies AssetLayerManifest,
+      },
+      {
+        ...xiahuaAsset(
+          'xh-title',
+          'title.png',
+          '活动标题字 / 这夏夯爆了',
+          '中文书法涂鸦字「这夏夯爆了」，白色主字 + 荧光绿高亮「夏」「夯」，笔锋带喷漆滴落与飞白，右上角小字档期「7.20-8.31」，副标题「集夏夜美食 赢黄金汉堡喵喵！」。透明背景，横版排布，潮流手绘字体设计。',
+        ),
+        layeringHint: {
+          recommendation: 'keep-flat',
+          reason: '艺术字的笔触、飞白和多色叠加是整体视觉，默认保持单图。',
+        } satisfies AssetLayeringHint,
+      },
       xiahuaAsset(
         'xh-result-title',
         'result-title.png',
@@ -561,7 +773,13 @@ export const XIAHUA_ASSET_GROUPS: AssetGroup[] = [
       xiahuaAsset('xh-btn-my-cards', 'btn-my-cards.png', '侧入口 / 我的夜食', `${XIAHUA_ART_DIRECTION}。左侧半圆浮层入口，棕红色底衬白色两行小字「我的夜食」，右半贴合屏幕边缘。透明背景，UI 切图。`),
       xiahuaAsset('xh-btn-my-prizes', 'btn-my-prizes.png', '侧入口 / 我的奖品', `${XIAHUA_ART_DIRECTION}。右侧半圆浮层入口，棕红色底衬白色两行小字「我的奖品」，左半贴合屏幕边缘。透明背景，UI 切图。`),
       xiahuaAsset('xh-panel-bg', 'panel-bg.png', '集卡面板底', `${XIAHUA_ART_DIRECTION}。集卡进度面板底衬：深棕渐变圆角矩形，左上角内凹形成标题区，边缘带一圈浅棕描边。纯色 UI 底图，无文字。`),
-      xiahuaAsset('xh-bean-bar', 'bean-bar.png', '金豆入口条', `${XIAHUA_ART_DIRECTION}。横条形入口：左侧端着托盘的厨师小马 IP，中间白色文案「烹饪得金豆，好礼兑不停」与金豆计数，右侧红色圆形「冲！」按钮带角标。深棕底圆角长条，横版 UI 切图。`),
+      {
+        ...xiahuaAsset('xh-bean-bar', 'bean-bar.png', '金豆入口条', `${XIAHUA_ART_DIRECTION}。横条形入口：左侧端着托盘的厨师小马 IP，中间白色文案「烹饪得金豆，好礼兑不停」与金豆计数，右侧红色圆形「冲！」按钮带角标。深棕底圆角长条，横版 UI 切图。`),
+        layeringHint: {
+          recommendation: 'consider-layering',
+          reason: '金豆数字、行动文案和按钮需经常更新，适合保留真文字层。',
+        } satisfies AssetLayeringHint,
+      },
     ],
   },
   {
@@ -570,7 +788,13 @@ export const XIAHUA_ASSET_GROUPS: AssetGroup[] = [
     items: [
       xiahuaAsset('xh-sec-tasks', 'sec-tasks.png', '任务区 / 玩一夏 赚更多', `${XIAHUA_ART_DIRECTION}。任务列表区块：顶部橙色标题「（玩一夏 赚更多。）」带「每天0点刷新」角标，下方「抽夜食!!／攒体力」双页签与多张米色任务卡（带定位投稿、赠送美食卡、浏览活动页），每张右侧红色行动按钮。竖版整段 UI 长图。`),
       xiahuaAsset('xh-sec-topics', 'sec-topics.png', '话题区 / 暑期灵感话题', `${XIAHUA_ART_DIRECTION}。内容话题区块：标题「暑期（灵感话题）」，下方两行胶囊话题标签，再下方横向滑动的美食内容卡片（配图 + 话题名 + 箭头）。深棕底，竖版整段 UI 长图。`),
-      xiahuaAsset('xh-sec-banner', 'sec-banner.png', '底部 banner / 更多精彩活动', `${XIAHUA_ART_DIRECTION}。底部推广区块：居中胶囊按钮「更多精彩活动」，下方一张浅色活动 banner 占位卡。深棕底，横版整段 UI 切图。`),
+      {
+        ...xiahuaAsset('xh-sec-banner', 'sec-banner.png', '底部 banner / 更多精彩活动', `${XIAHUA_ART_DIRECTION}。底部推广区块：居中胶囊按钮「更多精彩活动」，下方一张浅色活动 banner 占位卡。深棕底，横版整段 UI 切图。`),
+        layeringHint: {
+          recommendation: 'consider-layering',
+          reason: 'Banner 主题、按钮文案和品牌标识可复用，其余区域可保持整图背景。',
+        } satisfies AssetLayeringHint,
+      },
     ],
   },
 ].map((group) => ({
@@ -580,6 +804,378 @@ export const XIAHUA_ASSET_GROUPS: AssetGroup[] = [
     return variants ? { ...item, variants } : item
   }),
 }))
+
+function documentedCaseAsset(
+  id: string,
+  src: string,
+  label: string,
+  purpose: string,
+  canvas: { width: number; height: number } = { width: 750, height: 1624 },
+): AssetItem {
+  return {
+    id,
+    src,
+    label,
+    prompt: {
+      text: `${purpose}。这是从真实 Figma 案例归档的项目交付实例；只允许在保持活动身份、版式职责和授权边界的前提下派生同项目变体，不得作为跨项目通用品牌素材直接复用。`,
+      skillLabel: '活动交付适配 skill',
+      model: 'Design Compiler',
+    },
+    layerManifest: {
+      canvas,
+      layers: [
+        { id: `${id}-source`, name: '真实交付画面', type: 'raster', renderer: 'source-asset', x: 0, y: 0, width: canvas.width, height: canvas.height, z: 0, visible: true, locked: true, src },
+      ],
+    },
+    layeringHint: {
+      recommendation: 'consider-layering',
+      reason: '项目实例保留原稿；后续只拆分需要独立替换的标题、角色、数据和行动按钮。',
+    },
+  }
+}
+
+/**
+ * Demo 中的智能分层结果：真实交付图仍作为不可变像素基线，标题、行动区和
+ * 品牌区只记录可选中的语义区域，不伪造原 Figma 文件已经导出了独立图层。
+ */
+function documentedLayeredCaseAsset(
+  id: string,
+  src: string,
+  label: string,
+  purpose: string,
+  canvas: { width: number; height: number },
+): AssetItem {
+  const item = documentedCaseAsset(id, src, label, purpose, canvas)
+  return {
+    ...item,
+    layerManifest: {
+      canvas,
+      templateRef: {
+        id: 'analysis.smart-layer.v1',
+        version: '1.0.0',
+        name: '智能分层编辑源',
+      },
+      layers: [
+        {
+          id: `${id}-source`,
+          name: '真实交付画面 · 像素保护基线',
+          type: 'raster',
+          renderer: 'source-asset',
+          x: 0,
+          y: 0,
+          width: canvas.width,
+          height: canvas.height,
+          z: 0,
+          visible: true,
+          locked: true,
+          src,
+        },
+        {
+          id: `${id}-title-region`,
+          name: '智能识别 · 标题区域',
+          type: 'text',
+          renderer: 'true-text',
+          text: '',
+          fontRef: { id: 'font.douyin-sans', version: '2.0', family: '抖音 Sans' },
+          x: Math.round(canvas.width * 0.07),
+          y: Math.round(canvas.height * 0.12),
+          width: Math.round(canvas.width * 0.56),
+          height: Math.round(canvas.height * 0.24),
+          z: 1,
+          visible: true,
+          locked: false,
+        },
+        {
+          id: `${id}-action-region`,
+          name: '智能识别 · 行动区域',
+          type: 'text',
+          renderer: 'true-text',
+          text: '',
+          fontRef: { id: 'font.douyin-sans', version: '2.0', family: '抖音 Sans' },
+          x: Math.round(canvas.width * 0.68),
+          y: Math.round(canvas.height * 0.7),
+          width: Math.round(canvas.width * 0.24),
+          height: Math.round(canvas.height * 0.14),
+          z: 2,
+          visible: true,
+          locked: false,
+        },
+        {
+          id: `${id}-brand-region`,
+          name: '智能识别 · 品牌保护区',
+          type: 'vector',
+          renderer: 'brand-asset',
+          x: Math.round(canvas.width * 0.74),
+          y: Math.round(canvas.height * 0.08),
+          width: Math.round(canvas.width * 0.18),
+          height: Math.round(canvas.height * 0.1),
+          z: 3,
+          visible: true,
+          locked: true,
+        },
+      ],
+    },
+    layeringHint: {
+      recommendation: 'consider-layering',
+      reason: 'Demo 已记录智能识别区域；真实交付图继续作为受保护像素基线，避免把推断区域冒充原生设计图层。',
+    },
+  }
+}
+
+export const SPRING_GALA_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '站内页面与直播封面',
+    desc: '来自 Figma UI / 直播间物料页的真实最终画板',
+    items: [
+      documentedCaseAsset('gala-lynx', '/assets/figma-deliverables/spring-gala/main-venue-full.png', 'Lynx 春晚完整长页', 'UI / node 773:119100，直播、节目与互动内容中枢', { width: 375, height: 5925 }),
+      documentedCaseAsset('gala-archive', '/assets/figma-deliverables/spring-gala/past-gala-archive.png', '历年春晚回放', 'UI / node 361:32601，年份与回放内容', { width: 375, height: 812 }),
+      documentedCaseAsset('gala-live-main', '/assets/figma-deliverables/spring-gala/live-main-camera.png', '直播主机位封面', '直播间物料 / node 739:121303', { width: 1116, height: 630 }),
+      documentedCaseAsset('gala-live-captions', '/assets/figma-deliverables/spring-gala/live-captions-cover.png', '无障碍字幕封面', '直播间物料 / node 739:120836', { width: 1116, height: 630 }),
+      documentedCaseAsset('gala-live-sign', '/assets/figma-deliverables/spring-gala/live-sign-language-cover.png', '无障碍手语封面', '直播间物料 / node 739:121021', { width: 1116, height: 630 }),
+    ],
+  },
+  {
+    title: '资源位与传播物料',
+    desc: '同一活动身份在 Banner、头图、节目封面与行政屏中的真实画幅适配',
+    items: [
+      documentedLayeredCaseAsset('gala-banner', '/assets/figma-deliverables/spring-gala/activity-banner.png', '活动 Banner', '资源位延展 / node 439:12044', { width: 1074, height: 192 }),
+      documentedCaseAsset('gala-header', '/assets/figma-deliverables/spring-gala/activity-header.png', '活动头图', '资源位延展 / node 439:12072', { width: 738, height: 1032 }),
+      documentedCaseAsset('gala-program-landscape', '/assets/figma-deliverables/spring-gala/program-cover-landscape.png', '节目封面横版', '资源位延展 / node 423:13605', { width: 1125, height: 633 }),
+      documentedCaseAsset('gala-program-portrait', '/assets/figma-deliverables/spring-gala/program-cover-portrait.png', '节目封面竖版', '资源位延展 / node 423:13656', { width: 1125, height: 1600 }),
+      documentedCaseAsset('gala-admin-p', '/assets/figma-deliverables/spring-gala/admin-screen-portrait.png', '行政竖屏', '资源位延展 / node 686:120040', { width: 1079, height: 1920 }),
+      documentedCaseAsset('gala-admin-l', '/assets/figma-deliverables/spring-gala/admin-screen-landscape.png', '行政横屏', '资源位延展 / node 686:120050', { width: 1920, height: 1079 }),
+    ],
+  },
+]
+
+export const EVERNIGHT_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '抽卡页面与图鉴',
+    desc: 'Figma 正式页面中的主会场、任务页、图鉴与搜索入口',
+    items: [
+      documentedCaseAsset('evernight-main', '/assets/figma-deliverables/evernight/main-venue.png', '抽卡主会场', '页面 / node 40:27228，卡池、抽卡、图鉴与任务', { width: 750, height: 3652 }),
+      documentedCaseAsset('evernight-tasks', '/assets/figma-deliverables/evernight/task-page.png', '抽卡任务页', '页面 / node 747:9409，任务与次数领取', { width: 750, height: 1603 }),
+      documentedCaseAsset('evernight-atlas', '/assets/figma-deliverables/evernight/collection-page.png', '卡片图鉴', '页面 / node 110:81917，已收集与未解锁状态', { width: 750, height: 2687 }),
+      documentedLayeredCaseAsset('evernight-banner', '/assets/figma-deliverables/evernight/search-banner-1029x420.png', '搜索 Banner', '页面 / node 1220:54942，搜索承接', { width: 1029, height: 420 }),
+    ],
+  },
+  {
+    title: '卡框与结果视觉',
+    desc: 'SP / SSR / SR / R / DYR 稀有度卡框和抽卡结果舞台',
+    items: [
+      documentedCaseAsset('evernight-frame-sp', '/assets/figma-deliverables/evernight/card-frame-sp.png', 'SP 卡框', '页面 / node 1608:11633', { width: 492, height: 676 }),
+      documentedCaseAsset('evernight-frame-ssr', '/assets/figma-deliverables/evernight/card-frame-ssr.png', 'SSR 卡框', '页面 / node 1608:11662', { width: 492, height: 676 }),
+      documentedCaseAsset('evernight-frame-sr', '/assets/figma-deliverables/evernight/card-frame-sr.png', 'SR 卡框', '页面 / node 1608:11695', { width: 492, height: 676 }),
+      documentedCaseAsset('evernight-frame-r', '/assets/figma-deliverables/evernight/card-frame-r.png', 'R 卡框', '页面 / node 1608:11724', { width: 492, height: 676 }),
+      documentedCaseAsset('evernight-frame-dyr', '/assets/figma-deliverables/evernight/card-frame-dyr.png', 'DYR 独占卡框', '页面 / node 1608:11777', { width: 492, height: 676 }),
+      documentedCaseAsset('evernight-result', '/assets/figma-deliverables/evernight/draw-result-stage.png', '抽卡结果舞台', '页面 / node 1601:11382', { width: 672, height: 924 }),
+    ],
+  },
+]
+
+/* ─── 只交付设计素材的项目（无页面、无玩法配置） ─── */
+
+function sourcedAsset(
+  id: string,
+  src: string,
+  label: string,
+  sourceNote: string,
+  skillLabel: string,
+  model = '来源素材引用',
+): AssetItem {
+  return {
+    id,
+    src,
+    label,
+    prompt: {
+      text: `${sourceNote}。该条目是有来源的项目资产，不把引用素材伪装成重新生成结果；后续变体必须保留来源、授权边界与品牌保护区。`,
+      skillLabel,
+      model,
+    },
+  }
+}
+
+export const XINZAI_IP_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '心仔规范与标准形象',
+    desc: '来自心仔官方 IP 手册；用于城市生活季物料前的角色一致性与供应商校验',
+    items: [
+      sourcedAsset('xinzai-color-standard', '/assets/ip-kits/xinzai-2026/01-color-standard.png', '标准色与辅助色', '心仔官方 IP 手册中的色彩规范', '心仔 IP Kit'),
+      sourcedAsset('xinzai-anatomy', '/assets/ip-kits/xinzai-2026/02-character-anatomy.png', '角色结构与保护特征', '心仔官方 IP 手册中的角色结构页', '心仔 IP Kit'),
+      sourcedAsset('xinzai-3d-front', '/assets/ip-kits/xinzai-2026/03-3d-front.png', '3D 标准正面', '心仔官方 IP 手册中的 3D 标准形象', '心仔 IP Kit'),
+      sourcedAsset('xinzai-2d-front', '/assets/ip-kits/xinzai-2026/04-2d-front.png', '2D 标准正面', '心仔官方 IP 手册中的 2D 标准形象', '心仔 IP Kit'),
+      sourcedAsset('xinzai-height-ratio', '/assets/ip-kits/xinzai-2026/05-height-ratio.png', '角色高度与比例', '心仔官方 IP 手册中的比例规范', '心仔 IP Kit'),
+      sourcedAsset('xinzai-emotion-expect', '/assets/ip-kits/xinzai-2026/06-emotion-expect.png', '表情 · 期待', '心仔官方 IP 手册中的表情示例', '心仔 IP Kit'),
+      sourcedAsset('xinzai-emotion-angry', '/assets/ip-kits/xinzai-2026/07-emotion-angry.png', '表情 · 生气', '心仔官方 IP 手册中的表情示例', '心仔 IP Kit'),
+    ],
+  },
+  {
+    title: '吃喝玩乐动作资产',
+    desc: '围绕“靠谱的吃喝玩乐好搭子”定位沉淀的项目动作，可直接进入同 IP 物料适配',
+    items: [
+      sourcedAsset('xinzai-action-greeting', '/assets/ip-kits/xinzai-2026/08-action-greeting.jpg', '动作 · 打招呼', '心仔官方动作资产', '心仔 IP Kit'),
+      sourcedAsset('xinzai-action-hotpot', '/assets/ip-kits/xinzai-2026/09-action-hotpot.png', '动作 · 吃火锅', '心仔官方动作资产', '心仔 IP Kit'),
+      sourcedAsset('xinzai-action-karaoke', '/assets/ip-kits/xinzai-2026/10-action-karaoke.png', '动作 · 唱歌', '心仔官方动作资产', '心仔 IP Kit'),
+      sourcedAsset('xinzai-action-skateboard', '/assets/ip-kits/xinzai-2026/11-action-skateboard.png', '动作 · 滑板', '心仔官方动作资产', '心仔 IP Kit'),
+      sourcedAsset('xinzai-action-plane', '/assets/ip-kits/xinzai-2026/12-action-plane.png', '动作 · 出行', '心仔官方动作资产', '心仔 IP Kit'),
+      sourcedAsset('xinzai-action-spring', '/assets/ip-kits/xinzai-2026/13-action-spring.png', '动作 · 春日出游', '心仔官方动作资产', '心仔 IP Kit'),
+    ],
+  },
+]
+
+const JINGXIN_CANVAS = { width: 1536, height: 2752 }
+const JINGXIN_PREFIX = '/assets/mock-projects/livestream'
+
+export const JINGXIN_LIVESTREAM_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '直播间组合预览',
+    desc: '静心采耳馆整套效果；源稿 1536×2752，按 1374×2437 直播间目标规格导出',
+    items: [
+      {
+        ...sourcedAsset(
+          'jingxin-live-preview',
+          `${JINGXIN_PREFIX}/jingxin-preview.png`,
+          '静心采耳馆 · 组合预览',
+          '直播间贴片生成案例的完整组合预览，主题为素雅古风静养空间',
+          'livestream-sticker skill',
+          'Seedream 4.5 + 确定性排版',
+        ),
+        layerManifest: {
+          canvas: JINGXIN_CANVAS,
+          templateRef: {
+            id: 'livestream.sticker.magicx.v1',
+            version: '1.0.0',
+            name: '直播间贴片五件套',
+          },
+          layers: [
+            { id: 'jingxin-background', name: '直播背景 · 素雅古风空间', type: 'raster', renderer: 'source-asset', x: 0, y: 0, width: 1536, height: 2752, z: 0, visible: true, locked: true, src: `${JINGXIN_PREFIX}/jingxin-background.jpg` },
+            { id: 'jingxin-top-gradient', name: '上贴片 · 米黄竹纹淡雾', type: 'raster', renderer: 'source-asset', x: 0, y: 0, width: 1536, height: 2752, z: 1, visible: true, locked: false, src: `${JINGXIN_PREFIX}/jingxin-top-gradient.png` },
+            { id: 'jingxin-bottom-gradient', name: '下贴片 · 素色国风地贴', type: 'raster', renderer: 'source-asset', x: 0, y: 0, width: 1536, height: 2752, z: 2, visible: true, locked: false, src: `${JINGXIN_PREFIX}/jingxin-bottom-gradient.png` },
+            { id: 'jingxin-title', name: '主题标题', type: 'raster', renderer: 'source-asset', x: 0, y: 0, width: 1536, height: 2752, z: 3, visible: true, locked: false, src: `${JINGXIN_PREFIX}/jingxin-title.png` },
+            { id: 'jingxin-brand', name: '门店品牌区', type: 'raster', renderer: 'brand-asset', x: 0, y: 0, width: 1536, height: 2752, z: 4, visible: true, locked: true, src: `${JINGXIN_PREFIX}/jingxin-brand.png` },
+            { id: 'jingxin-benefits', name: '优惠信息', type: 'raster', renderer: 'source-asset', x: 0, y: 0, width: 1536, height: 2752, z: 5, visible: true, locked: false, src: `${JINGXIN_PREFIX}/jingxin-benefits.png` },
+            { id: 'jingxin-side-offer', name: '侧贴片 · 到店优惠', type: 'raster', renderer: 'source-asset', x: 0, y: 0, width: 1536, height: 2752, z: 6, visible: true, locked: false, src: `${JINGXIN_PREFIX}/jingxin-side-offer.png` },
+          ],
+        },
+      },
+    ],
+  },
+  {
+    title: '可独立交付贴片',
+    desc: '背景、标题、品牌、上下渐变、权益和侧贴片可单独下载与替换',
+    items: [
+      sourcedAsset('jingxin-live-background', `${JINGXIN_PREFIX}/jingxin-background.jpg`, '直播背景', '静心采耳馆直播间背景成图', 'livestream-sticker skill'),
+      sourcedAsset('jingxin-live-title', `${JINGXIN_PREFIX}/jingxin-title.png`, '标题贴片', '静心采耳馆透明标题贴片', 'livestream-sticker skill'),
+      sourcedAsset('jingxin-live-brand', `${JINGXIN_PREFIX}/jingxin-brand.png`, '品牌贴片', '静心采耳馆品牌标识贴片', 'livestream-sticker skill'),
+      sourcedAsset('jingxin-live-top', `${JINGXIN_PREFIX}/jingxin-top-gradient.png`, '上贴片', '米黄色竹纹淡雾上贴片', 'livestream-sticker skill'),
+      sourcedAsset('jingxin-live-bottom', `${JINGXIN_PREFIX}/jingxin-bottom-gradient.png`, '下贴片', '素色国风地贴下贴片', 'livestream-sticker skill'),
+      sourcedAsset('jingxin-live-benefits', `${JINGXIN_PREFIX}/jingxin-benefits.png`, '套餐权益贴片', '经典采耳 45 分钟 ¥68、城市专享套餐 ¥55', 'livestream-sticker skill'),
+      sourcedAsset('jingxin-live-side', `${JINGXIN_PREFIX}/jingxin-side-offer.png`, '侧贴片', '静心采耳馆直播间到店优惠侧贴片', 'livestream-sticker skill'),
+    ],
+  },
+]
+
+const RESOURCE_POSITION_PREFIX = '/assets/mock-projects/resource-position'
+const resourcePositionAsset = (
+  id: string,
+  file: string,
+  label: string,
+  route: string,
+) =>
+  sourcedAsset(
+    id,
+    `${RESOURCE_POSITION_PREFIX}/${file}`,
+    label,
+    `生活服务热点资源位 V6.7.8 正式成图，1170×330，${route}`,
+    '热点资源位 Banner skill',
+    'Seedream 4.5 + 程序合成',
+  )
+
+export const LIFE_SERVICE_RESOURCE_POSITION_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '清凉、出行与城市体验',
+    desc: '按语义路由使用蓝色或绿色模板；标题、Logo 和右侧固定件已通过最终回归',
+    items: [
+      resourcePositionAsset('resource-ice-camp', 'ice-camp.png', '夏日冰饮｜全城冰饮清凉指南', '蓝色清凉路由'),
+      resourcePositionAsset('resource-heat-escape', 'heat-escape.png', '高温预警下的｜快乐避暑姿势', '蓝色清凉路由'),
+      resourcePositionAsset('resource-zibo-photo', 'zibo-photo.png', '在淄博拍到了人生照片', '绿色旅行路由'),
+    ],
+  },
+  {
+    title: '餐饮、节点与行业热点',
+    desc: '保留文档给定标题与固定品牌件，只收录正式成图，不混入生成过程稿',
+    items: [
+      resourcePositionAsset('resource-duck-camp', 'duck-camp.png', '吃鸭创“燥”营', '黄色活动路由'),
+      resourcePositionAsset('resource-autumn-milk-tea', 'autumn-milk-tea.png', '秋天第一杯奶茶来了', '黄色节点路由'),
+      resourcePositionAsset('resource-chaoshan-beef', 'chaoshan-beef.png', '潮汕牛肉你涮几秒', '灰色餐饮路由'),
+      resourcePositionAsset('resource-bread-brain', 'bread-brain.png', '面包脑袋集合', '灰色餐饮路由'),
+      resourcePositionAsset('resource-industry-showcase', 'industry-showcase.png', '行业热点 Showcase 专项', '黄色兜底路由'),
+    ],
+  },
+]
+
+export const HOT_TOPIC_BANNER_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: '热点 Banner 正式交付',
+    desc: '1170×330 标准资源位；首张保留真实文字图层，可直接改字并拖动未锁定元素',
+    items: [
+      {
+        ...sourcedAsset(
+          'hot-topic-industry-layered',
+          '/assets/hot-topic-banner/industry-showcase-1170x330.png',
+          '行业热点专项 Banner',
+          '生活服务热点话题 Banner V6.7.8 正式成图，1170×330',
+          '生服热点话题 Banner Skill',
+          'Seedream 4.5 + 确定性分层排版',
+        ),
+        layerManifest: {
+          canvas: { width: 1170, height: 330 },
+          templateRef: {
+            id: 'template.hot-topic-banner',
+            version: '6.7.8',
+            name: '无 IP 热点话题 Banner',
+          },
+          styleBibleRef: {
+            id: 'brand.douyin-life-service-resource-spec',
+            version: '1.0.0',
+            name: '生活服务资源位规范',
+          },
+          layers: [
+            { id: 'hot-topic-scene', name: '主题画面与固定件', type: 'raster', renderer: 'image-model', src: '/assets/hot-topic-banner/industry-showcase-base-1170x330.png', x: 0, y: 0, width: 1170, height: 330, z: 0, visible: true, locked: true },
+            { id: 'hot-topic-logo', name: '抖音生活服务 Logo', type: 'raster', renderer: 'brand-asset', src: '/assets/hot-topic-banner/douyin-life-service-logo.png', x: 27, y: 25, width: 192, height: 33, z: 1, visible: true, locked: true },
+            { id: 'hot-topic-title', name: '主标题', type: 'text', renderer: 'true-text', text: '行业热点专项', color: '#FF5239', fontSize: 105, fontWeight: 400, fontFamily: 'FangFang XianFeng, PingFang SC, sans-serif', letterSpacing: -7.35, lineHeight: 1, textAlign: 'left', x: 67, y: 106, width: 585, height: 99, z: 2, visible: true, locked: false },
+            { id: 'hot-topic-subtitle', name: '副标题', type: 'text', renderer: 'true-text', text: '今天又拿捏“热点”了', color: '#FF5239', fontSize: 36, fontWeight: 400, fontFamily: 'FangFang XianFeng, PingFang SC, sans-serif', letterSpacing: -1.8, lineHeight: 1, textAlign: 'center', x: 200, y: 225, width: 309, height: 34, z: 3, visible: true, locked: false },
+          ],
+        } satisfies AssetLayerManifest,
+      },
+      sourcedAsset('hot-topic-template-blue', '/assets/hot-topic-banner/template-blue.png', '蓝色模板 Banner', '生活服务热点资源位蓝色语义路由模板，1170×330', '生服热点话题 Banner Skill'),
+      sourcedAsset('hot-topic-template-green', '/assets/hot-topic-banner/template-green.png', '绿色模板 Banner', '生活服务热点资源位绿色语义路由模板，1170×330', '生服热点话题 Banner Skill'),
+      sourcedAsset('hot-topic-template-yellow', '/assets/hot-topic-banner/template-yellow.png', '黄色模板 Banner', '生活服务热点资源位黄色语义路由模板，1170×330', '生服热点话题 Banner Skill'),
+      sourcedAsset('hot-topic-template-gray', '/assets/hot-topic-banner/template-gray.png', '灰色模板 Banner', '生活服务热点资源位灰色语义路由模板，1170×330', '生服热点话题 Banner Skill'),
+    ],
+  },
+  {
+    title: '案例战报长图',
+    desc: '同一项目的案例结算物料；保持单图层，按原始长图比例进入单图画布',
+    items: [
+      sourcedAsset('hot-topic-hotel-report', '/assets/hot-topic-banner/hotel-case-poster-1620x6900.png', '成都世园酒店案例战报', '生活服务行业案例战报正式长图，1620×6900', '案例战报海报 Skill'),
+    ],
+  },
+]
+
+const HEADER_PREFIX = '/assets/mock-projects/headers'
+export const MAGICX_HEADER_ASSET_GROUPS: AssetGroup[] = [
+  {
+    title: 'MagicX 首页案例方向',
+    desc: '2026-08-18 首页案例快照；作为活动头图提案的构图参考，不冒充本项目新生成资产',
+    items: [
+      sourcedAsset('header-wunvzhou', `${HEADER_PREFIX}/wunvzhou-romance-banner.png`, '婺女洲中式浪漫 Banner', 'MagicX 首页案例“婺女洲中式浪漫 banner”', '活动头图参考 skill'),
+      sourcedAsset('header-jiangnan', `${HEADER_PREFIX}/dou-says-jiangnan.png`, 'Dou 说江南好', 'MagicX 首页案例“Dou 说江南好直播活动”', '活动头图参考 skill'),
+      sourcedAsset('header-travel-guide', `${HEADER_PREFIX}/travel-guide-banner.png`, '去班味旅行指南 Banner', 'MagicX 首页案例“去班味旅行指南 banner”', '活动头图参考 skill'),
+      sourcedAsset('header-ice-contest', `${HEADER_PREFIX}/national-ice-contest.png`, '全国省冰大赛海报', 'MagicX 首页案例“全国省冰大赛海报”', '活动头图参考 skill'),
+    ],
+  },
+]
 
 export function resolveAssetPrompt(item: AssetItem): AssetPrompt {
   if (item.prompt) return item.prompt

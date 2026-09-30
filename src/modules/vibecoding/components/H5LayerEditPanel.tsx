@@ -560,7 +560,7 @@ function ImageGenerationHistory({ element }: { element: H5ElementSel }) {
   const sources = IMAGE_HISTORY_SOURCES[element.id] ?? [element.value ?? '']
   const basePrompt =
     element.prompt ??
-    `保持抖音 ACG 游戏新春会的红金新春视觉语言，重新生成「${element.label.replace(/\.(png|jpe?g|webp|svg)$/i, '')}」，保持当前构图、尺寸比例与透明关系。`
+    `保持 2026 抖音 ACG 新春会的暖橙新春视觉语言，重新生成「${element.label.replace(/\.(png|jpe?g|webp|svg)$/i, '')}」，保持当前构图、尺寸比例与透明关系。`
   const images = [element.value ?? sources[0], ...sources]
     .filter(Boolean)
     .filter((source, index, all) => all.indexOf(source) === index)
@@ -812,7 +812,7 @@ function OverallEditor() {
           <Field label="活动名称">
             <input
               type="text"
-              defaultValue="抖音 ACG 游戏新春会"
+              defaultValue="2026 抖音 ACG 新春会"
               className="w-full rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
             />
           </Field>
@@ -1014,7 +1014,7 @@ function RulesEditor() {
       <Field label="尾注文案">
         <textarea
           rows={4}
-          defaultValue={'抖音 ACG 游戏新春会\n好游戏一起过新年'}
+          defaultValue={'2026 抖音 ACG 新春会\n游戏动漫一起过新年'}
           className="thin-scroll w-full resize-none rounded-md border border-[var(--divider)] bg-[var(--color-surface-0)] px-3 py-2 text-[13px] leading-[1.6] text-[var(--color-ink)] outline-none focus:border-[var(--color-ink)]/40"
         />
       </Field>
@@ -1159,7 +1159,7 @@ function ImageElementEditor({ el }: { el: H5ElementSel }) {
   const [fit, setFit] = useState('cover')
   const [prompt, setPrompt] = useState(
     el.prompt ??
-      `保持抖音 ACG 游戏新春会的红金新春视觉语言，重新生成「${el.label.replace(/\.(png|jpe?g|webp|svg)$/i, '')}」，保持当前构图、尺寸比例与透明关系，高细节商业活动素材。`,
+      `保持 2026 抖音 ACG 新春会的暖橙新春视觉语言，重新生成「${el.label.replace(/\.(png|jpe?g|webp|svg)$/i, '')}」，保持当前构图、尺寸比例与透明关系，高细节商业活动素材。`,
   )
   return (
     <div className="space-y-5">

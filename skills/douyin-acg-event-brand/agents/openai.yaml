@@ -1,0 +1,4 @@
+interface:
+  display_name: "抖音 ACG 活动 Brand Kit"
+  short_description: "编译并审查抖音 ACG 活动视觉、素材槽位与生图生产合同"
+  default_prompt: "Use $douyin-acg-event-brand to compile and audit a reusable ACG campaign Brand Kit from this brief or approved visual reference."

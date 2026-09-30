@@ -44,6 +44,10 @@ import {
 } from '@/shared/storage/nav-version'
 import AsciiTexture from './AsciiTexture'
 import InterestCardShowcase from './InterestCardShowcase'
+import MioraInspirationGallery, {
+  type InspirationProductCategory,
+  type InspirationSourceFilter,
+} from './MioraInspirationGallery'
 import { XIAHUA_TEMPLATE_TOKEN } from './XiahuaBuildScript'
 
 /* ─── AI 工坊首页 — 方案 7 按 Figma 探索 490:13302 实现 ───
@@ -65,6 +69,34 @@ const PLACEHOLDER = '说说你想做什么，例如：生成一套炉石风格�
 const BLUE = '#1664FF'
 const INTEREST_CARD_ICON = '/assets/workshop/xinquka.svg'
 const SCENE_TRANSITION = { duration: 0.16, ease: 'easeOut' as const }
+
+const SCHEME_ONE_QUICK_ACTIONS = [
+  {
+    label: '页面生成',
+    image: '/assets/workshop/figma-scenes/scheme2-skill-h5.jpg',
+    prompt: '生成一个运营活动页面',
+  },
+  {
+    label: '人像海报',
+    image: '/assets/workshop/figma-scenes/details/hero-creative-avatar.png',
+    prompt: '生成一张活动人像海报',
+  },
+  {
+    label: '创意图景',
+    image: '/assets/workshop/figma-scenes/details/hero-game-card.png',
+    prompt: '生成一组活动创意图景',
+  },
+  {
+    label: '资源位',
+    image: '/assets/workshop/figma-scenes/creative-spring.png?v=2',
+    prompt: '生成一套活动资源位图片',
+  },
+  {
+    label: '灵感策划',
+    image: '/assets/workshop/figma-scenes/scheme2-skill-interactive.jpg',
+    prompt: '帮我策划一个有传播力的运营活动',
+  },
+] as const
 
 /** 快捷入口。选中后工具条只留这枚蓝色入口，后面跟该类型的下拉槽位
  *  （豆包那套交互）：第一个槽是做什么，后面是参数。 */
@@ -188,17 +220,28 @@ const SUGGESTIONS = [
   '看评测视频生成对比兴趣卡',
 ]
 
-const TABS = [
-  '全网灵感',
-  '海报',
-  '资源位图片',
-  '活动KV',
-  '直播间背景',
-  '游戏卡牌',
-  '游戏角色',
-  'H5活动页',
-  '原生化活动页',
-  '兴趣卡模板',
+const PRODUCT_CATEGORIES: { key: InspirationProductCategory; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'campaign', label: '活动营销' },
+  { key: 'creative', label: '创意素材' },
+  { key: 'game', label: '游戏创作' },
+]
+
+const PRODUCT_SECONDARIES: Record<InspirationProductCategory, readonly string[]> = {
+  all: ['全部'],
+  campaign: ['全部', '集卡抽奖', '节日会场', '直播互动', '测评答题', '榜单投票', '体育赛事', '年度盘点'],
+  interest: ['全部', '心理测试', '知识问答', '推荐卡', '工具卡'],
+  creative: ['全部', '海报', '活动 KV', '资源位 / Banner', '直播间背景', '社媒视觉', '动效视频'],
+  game: ['全部', '网页游戏', '游戏卡牌', '角色立绘', '场景原画', '道具与 UI', '动画特效'],
+  app: ['全部', '小程序', '网站 / Web App', 'AI 分身', '自动化工具'],
+  operations: ['全部', '运营提案', '内容规划', '脚本创作', '分析报告', '热点研究'],
+}
+
+const SOURCE_OPTIONS: { value: InspirationSourceFilter; label: string }[] = [
+  { value: 'all', label: '全部来源' },
+  { value: 'magicx', label: 'MagicX' },
+  { value: 'workshop', label: 'AI 工坊' },
+  { value: 'network', label: '全网' },
 ]
 
 type StandaloneSceneKey =
@@ -224,6 +267,10 @@ interface StandaloneSubscene {
   commands: readonly string[]
   toolbarParams?: readonly StandaloneToolbarParam[]
 }
+
+const CLASSIC_TOWER_DEFENSE_COMMAND = '生成经典路线塔防'
+const CLASSIC_TOWER_DEFENSE_PROMPT =
+  '生成一款塔防建造游戏，玩法：英雄和建筑塔守擂，角色：己方英雄，敌方6种兵种，世界观风格为：三国主题风格'
 
 interface H5InstructionSlots {
   theme: string
@@ -1088,9 +1135,11 @@ function StandaloneSceneSwitcher({
     <div
       role="group"
       aria-label="创作场景"
-      className="inline-flex items-center gap-1 rounded-[24px] bg-[rgba(83,96,143,0.07)] p-1"
+      className="inline-flex items-center gap-2 rounded-[24px] bg-[rgba(83,96,143,0.07)] p-1"
     >
-      {STANDALONE_SCENES.map((scene) => {
+      {STANDALONE_SCENES.filter(
+        (scene) => scene.key === 'marketing' || scene.key === 'game',
+      ).map((scene) => {
         const active = scene.key === activeScene
         return (
           <button
@@ -1098,7 +1147,7 @@ function StandaloneSceneSwitcher({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(scene.key)}
-            className={`relative flex h-9 w-[104px] items-center justify-center gap-1.5 rounded-full px-2.5 text-[14px] font-semibold transition-colors ${
+            className={`relative flex h-9 w-[112px] items-center justify-center gap-1.5 rounded-full px-2.5 text-[14px] font-semibold transition-colors ${
               active
                 ? 'text-white'
                 : 'text-[#1c1f23] hover:bg-white/70'
@@ -1741,6 +1790,48 @@ function SchemeTwoAppFooter() {
   )
 }
 
+function SchemeOneQuickActions({
+  onPick,
+}: {
+  onPick: (prompt: string) => void
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="创作快捷入口"
+      className="relative z-10 mx-auto mt-6 flex w-full max-w-[792px] items-center justify-center gap-2"
+    >
+      {SCHEME_ONE_QUICK_ACTIONS.map((action) => (
+        <button
+          key={action.label}
+          type="button"
+          onClick={() => onPick(action.prompt)}
+          className="flex h-[50px] w-[152px] shrink-0 items-center rounded-[12px] border border-[#f3f3f3] bg-gradient-to-b from-white/45 to-white px-[5px] py-1 text-left shadow-[0_4px_50px_rgba(0,0,0,0.07)] backdrop-blur-[12px] transition-transform hover:-translate-y-0.5 motion-reduce:transition-none"
+        >
+          <span className="flex h-10 w-[140px] items-center gap-1">
+            <span className="relative size-10 shrink-0 overflow-hidden rounded-[11px] bg-gradient-to-b from-[#fafafa] to-[#d2d2d2]">
+              <img
+                src={action.image}
+                alt=""
+                className="size-full object-contain"
+              />
+            </span>
+            <span className="flex min-w-0 flex-1 items-center gap-1 rounded-full px-2 py-1 text-[12px] leading-4 text-[#1c1f23]">
+              <span className="truncate">{action.label}</span>
+              <ArrowUpRight
+                aria-hidden
+                size={12}
+                strokeWidth={1.8}
+                className="shrink-0"
+              />
+            </span>
+          </span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function StandaloneSubsceneCasePrompts({
   subscene,
   cases,
@@ -1863,8 +1954,10 @@ function SceneCaseCard({
       type="button"
       onClick={() => onPick(item.prompt)}
       aria-label={`参考${item.title}做同款，作者${item.author}`}
-      className={`group relative flex w-full min-w-0 flex-col overflow-hidden rounded-[10px] bg-[#f9fafb] px-[10px] pb-4 pt-[10px] text-left ${
-        tall ? 'h-[488px] max-w-[240px]' : 'h-[455px] max-w-[243px]'
+      className={`group relative flex w-full min-w-0 flex-col overflow-hidden text-left ${
+        tall
+          ? 'h-[488px] max-w-[240px] rounded-[10px] bg-[#f9fafb] px-[10px] pb-4 pt-[10px]'
+          : 'h-[441px] max-w-[238px] gap-1 rounded-[16px] border border-[#f2f4f6] bg-gradient-to-b from-white/45 to-white p-1 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.07)] backdrop-blur-[12px]'
       }`}
     >
       <span
@@ -1883,7 +1976,11 @@ function SceneCaseCard({
           做同款
         </span>
       </span>
-      <span className="flex h-[66px] w-full shrink-0 flex-col pt-3">
+      <span
+        className={`flex w-full shrink-0 flex-col ${
+          tall ? 'h-[66px] pt-3' : 'h-[64px] px-[10px] pb-1.5 pt-1'
+        }`}
+      >
         <span className="h-[22px] w-full truncate text-[14px] font-medium leading-[22px] text-[#1e1c23]">
           {item.title}
         </span>
@@ -1934,67 +2031,55 @@ function useInspirationPool(activeSceneKey: StandaloneSceneKey) {
   }, [activeSceneKey])
 }
 
-const INSPIRATION_PAGE_SIZE = 8
-/** 循环上限，纯粹是别让 DOM 无限长；按 8 张一屏差不多要滑三十屏。 */
-const INSPIRATION_MAX_ITEMS = 240
-
-/* 筛选项文案取自设计稿 495:16338。 */
-type InspirationFilterKey =
+type FeaturedProjectFilterKey =
   | 'all'
-  | 'saved'
-  | 'h5'
-  | 'native'
-  | 'poster'
-  | 'one-pager'
-  | 'game-assets'
+  | 'activity-pages'
+  | 'visual-posters'
   | 'live-room'
+  | 'worldbuilding'
+  | 'characters'
+  | 'maps'
 
-const INSPIRATION_FILTERS = [
-  ['all', '全网灵感'],
-  ['saved', '我的收藏'],
-  ['h5', 'H5活动页'],
-  ['native', '原生活动页'],
-  ['poster', '海报和资源位图片'],
-  ['one-pager', '一页纸'],
-  ['game-assets', '游戏资产'],
-  ['live-room', '直播间装修'],
-] as const satisfies readonly (readonly [InspirationFilterKey, string])[]
+const FEATURED_PROJECT_FILTERS = [
+  ['all', '全部'],
+  ['activity-pages', '活动页面'],
+  ['visual-posters', '视觉海报'],
+  ['live-room', '直播间背景'],
+  ['worldbuilding', '世界观'],
+  ['characters', '游戏角色'],
+  ['maps', '地图设定'],
+] as const satisfies readonly (readonly [FeaturedProjectFilterKey, string])[]
 
-/** 演示用的「已收藏」，随便挑几条各类的。 */
-const INSPIRATION_SAVED_IDS = new Set([
-  'marketing-star-plan',
-  'h5-singing-duel',
-  'native-celebrity-entry',
-  'poster-newyear',
-  'game-tarot',
-  'creative-gold',
-])
-
-/* demo 案例没有分类字段，按 id 的来源前缀归类。 */
-const INSPIRATION_MATCHERS: Record<
-  Exclude<InspirationFilterKey, 'all'>,
+const FEATURED_PROJECT_MATCHERS: Record<
+  Exclude<FeaturedProjectFilterKey, 'all'>,
   (item: StandaloneSceneCase) => boolean
 > = {
-  saved: (item) => INSPIRATION_SAVED_IDS.has(item.id),
-  h5: (item) =>
-    item.id.startsWith('h5-') || item.id.startsWith('marketing-'),
-  native: (item) => item.id.startsWith('native-'),
-  poster: (item) =>
+  'activity-pages': (item) =>
+    item.id.startsWith('h5-') ||
+    item.id.startsWith('marketing-') ||
+    item.id.startsWith('native-'),
+  'visual-posters': (item) =>
     item.id.startsWith('poster-') || item.id.startsWith('creative-'),
-  // 一页纸暂时没有案例，落到空态提示。
-  'one-pager': () => false,
-  'game-assets': (item) => item.id.startsWith('game-'),
   'live-room': (item) => item.id === 'creative-lantern',
+  worldbuilding: (item) => item.id.startsWith('game-'),
+  characters: (item) => item.id.startsWith('game-'),
+  maps: (item) => item.id.startsWith('game-'),
 }
 
-function applyInspirationFilter(
+function applyFeaturedProjectFilter(
   pool: readonly StandaloneSceneCase[],
-  filter: InspirationFilterKey,
+  filter: FeaturedProjectFilterKey,
 ) {
-  return filter === 'all' ? pool : pool.filter(INSPIRATION_MATCHERS[filter])
+  if (filter === 'all') return pool.slice(0, 8)
+  const matches = pool.filter(FEATURED_PROJECT_MATCHERS[filter])
+  const matchIds = new Set(matches.map((item) => item.id))
+  return [
+    ...matches,
+    ...pool.filter((item) => !matchIds.has(item.id)),
+  ].slice(0, 8)
 }
 
-function InspirationFeed({
+function FeaturedProjects({
   sceneKey,
   onPick,
 }: {
@@ -2002,73 +2087,57 @@ function InspirationFeed({
   onPick: (prompt: string) => void
 }) {
   const basePool = useInspirationPool(sceneKey)
-  const [filter, setFilter] = useState<InspirationFilterKey>('all')
-  const [count, setCount] = useState(INSPIRATION_PAGE_SIZE)
-  const sentinelRef = useRef<HTMLDivElement>(null)
+  const [filter, setFilter] =
+    useState<FeaturedProjectFilterKey>('activity-pages')
   const pool = useMemo(
-    () => applyInspirationFilter(basePool, filter),
+    () => applyFeaturedProjectFilter(basePool, filter),
     [basePool, filter],
   )
 
-  useEffect(() => {
-    const node = sentinelRef.current
-    if (!node || !pool.length || count >= INSPIRATION_MAX_ITEMS) return
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return
-        setCount((current) =>
-          Math.min(current + INSPIRATION_PAGE_SIZE, INSPIRATION_MAX_ITEMS),
-        )
-      },
-      { rootMargin: '400px 0px' },
-    )
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [count, pool.length])
-
-  const items = Array.from({ length: pool.length ? count : 0 }, (_, index) => {
-    const item = pool[index % pool.length]
-    // 循环到第二轮起 id 会重复，拼上轮次才能当 key。
-    return { item, key: `${item.id}#${Math.floor(index / pool.length)}` }
-  })
-
   return (
-    <div className="w-full max-w-[1008px]">
-      <div className="mb-5 flex w-full flex-wrap items-center gap-x-3 gap-y-2">
+    <div className="w-full max-w-[1000px]">
+      <div className="mb-4 flex w-full items-center justify-between gap-4">
         <div
           role="group"
-          aria-label="灵感筛选"
-          className="flex flex-wrap items-center gap-2"
+          aria-label="精选项目分类"
+          className="flex min-w-0 flex-wrap items-center gap-1"
         >
-          {INSPIRATION_FILTERS.map(([key, label]) => (
+          <span className="mr-1 shrink-0 text-[13px] font-semibold leading-5 text-[#1c1f23]">
+            精选项目
+          </span>
+          {FEATURED_PROJECT_FILTERS.map(([key, label]) => (
             <button
               key={key}
               type="button"
               aria-pressed={filter === key}
-              onClick={() => {
-                setFilter(key)
-                setCount(INSPIRATION_PAGE_SIZE)
-              }}
-              className={`flex h-7 shrink-0 items-center rounded-full px-3 text-[13px] leading-5 transition-colors ${
+              onClick={() => setFilter(key)}
+              className={`flex h-9 shrink-0 items-center rounded-[8px] px-3 text-[13px] leading-5 transition-colors ${
                 filter === key
                   ? 'bg-[rgba(83,96,143,0.12)] font-medium text-[#1c1f23]'
-                  : 'text-[#1c1f23]/55 hover:bg-[rgba(83,96,143,0.07)] hover:text-[#1c1f23]/80'
+                  : 'text-[#1c1f23]/60 hover:bg-[rgba(83,96,143,0.07)] hover:text-[#1c1f23]/80'
               }`}
             >
               {label}
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={() => setFilter('all')}
+          className="flex h-9 shrink-0 items-center gap-1 px-2 text-[12px] text-[#1c1f23]/70 transition-colors hover:text-[#1c1f23]"
+        >
+          查看全部
+          <ArrowUpRight aria-hidden size={12} strokeWidth={1.8} />
+        </button>
       </div>
-      <div className="grid grid-cols-4 justify-items-center gap-3 max-xl:grid-cols-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
-        {items.map(({ item, key }) => (
-          <SceneCaseCard key={key} item={item} onPick={onPick} />
+      <div className="grid grid-cols-4 justify-items-center gap-4 max-xl:grid-cols-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+        {pool.map((item) => (
+          <SceneCaseCard key={item.id} item={item} onPick={onPick} />
         ))}
       </div>
-      <div ref={sentinelRef} aria-hidden className="h-px w-full" />
-      {(!pool.length || count >= INSPIRATION_MAX_ITEMS) && (
+      {!pool.length && (
         <p className="pt-8 text-center text-[13px] leading-5 text-[#1c1f23]/35">
-          {pool.length ? '没有更多灵感了' : '这个筛选下还没有作品'}
+          这个筛选下还没有作品
         </p>
       )}
     </div>
@@ -2256,7 +2325,7 @@ function HomeSkillSelect({
     <div ref={ref} className="relative shrink-0">
       <button
         type="button"
-        aria-label="选择技能"
+        aria-label="选择扩展"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
@@ -2265,7 +2334,7 @@ function HomeSkillSelect({
         }`}
       >
         <FolderCode size={16} strokeWidth={1.8} />
-        技能
+        扩展
       </button>
       {open && (
         <div
@@ -2449,8 +2518,11 @@ export default function PlatformHome({
   onSubmit: (
     text: string,
     attachment?: { name: string; size: number; type: string },
+    scene?: 'marketing' | 'game',
   ) => void
   onOpenResourceLibrary: () => void
+  /** 调用方（VibeCodingPage）已经在传，首页里还没接上入口；先收下类型，行为不变。 */
+  onOpenProject?: (name: string) => void
 }) {
   const navVersion = useNavVersion((state) => state.version)
   const standaloneWorkshopLayout = usesStandaloneWorkshopLayout(navVersion)
@@ -2491,7 +2563,10 @@ export default function PlatformHome({
       : STANDALONE_SCENE_SUGGESTIONS[activeScene]
   const showsComposerPrefix =
     (!sharedSkeleton && Boolean(selectedSubscene)) || Boolean(selectedHomeSkill)
-  const [activeTab, setActiveTab] = useState('游戏卡牌')
+  const [activeProductCategory, setActiveProductCategory] =
+    useState<InspirationProductCategory>('all')
+  const [activeSecondary, setActiveSecondary] = useState('全部')
+  const [sourceFilter, setSourceFilter] = useState<InspirationSourceFilter>('all')
   /* 快捷入口：选中一个类型后，右侧换成它自己的下拉槽位。 */
   const [tool, setTool] = useState<Tool | null>(null)
   /* 槽位按 `${tool.key}.${槽位名}` 存，切换类型时各自的选择还在。 */
@@ -2503,6 +2578,7 @@ export default function PlatformHome({
   const [subsceneParams, setSubsceneParams] = useState<Record<string, string>>({})
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const composerTextareaRef = useRef<HTMLTextAreaElement>(null)
   /* 输入 @ 弹出模板引用：选中后 token 进输入框，提交时由工坊识别并复刻。 */
   const [mentionOpen, setMentionOpen] = useState(false)
   const mentionRef = useRef<HTMLDivElement>(null)
@@ -2530,6 +2606,15 @@ export default function PlatformHome({
   }
 
   const pickSubsceneCommand = (command: string) => {
+    if (
+      selectedSubscene?.key === 'tower-defense' &&
+      command === CLASSIC_TOWER_DEFENSE_COMMAND
+    ) {
+      setActiveSlotInstruction(null)
+      setDraft(CLASSIC_TOWER_DEFENSE_PROMPT)
+      return
+    }
+
     if (selectedSubscene?.key === 'h5' && command === H5_SLOT_COMMAND) {
       const slots = { ...DEFAULT_H5_INSTRUCTION_SLOTS }
       setH5InstructionSlots(slots)
@@ -2661,11 +2746,28 @@ export default function PlatformHome({
     setActiveSlotInstruction(null)
   }
 
-  /* 「H5活动页」这一栏把存好的活动模板排在最前面。 */
+  const fillInspirationDraft = (text: string) => {
+    setDraft(text)
+    setMentionOpen(false)
+    requestAnimationFrame(() => {
+      const textarea = composerTextareaRef.current
+      textarea?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      textarea?.focus()
+      requestAnimationFrame(() => textarea?.setSelectionRange(text.length, text.length))
+    })
+    toast.success('完整 Prompt 已带入，可继续修改')
+  }
+
+  /* 本地产物先按新分类挂载；外部来源继续走灵感聚合。 */
   const works = useMemo(
-    () =>
-      activeTab === 'H5活动页' && templateRegistered
-        ? [
+    () => {
+      if (sourceFilter !== 'all' && sourceFilter !== 'workshop') return []
+      if (
+        activeProductCategory === 'campaign' &&
+        (activeSecondary === '全部' || activeSecondary === '集卡抽奖')
+      ) {
+        return templateRegistered
+          ? [
             {
               id: 'tpl-xiahua',
               img: '/assets/xiahua/head-kv.png',
@@ -2673,10 +2775,18 @@ export default function PlatformHome({
               likes: 0,
               template: true,
             },
-            ...WORKS,
           ]
-        : WORKS,
-    [activeTab, templateRegistered],
+          : []
+      }
+      if (
+        activeProductCategory === 'game' &&
+        (activeSecondary === '全部' || activeSecondary === '游戏卡牌')
+      ) {
+        return WORKS
+      }
+      return []
+    },
+    [activeProductCategory, activeSecondary, sourceFilter, templateRegistered],
   )
 
   /* 选中的类型 + 各槽位作为前缀带进 prompt，别只是装饰。 */
@@ -2701,9 +2811,18 @@ export default function PlatformHome({
       const selectedSkillScope = selectedHomeSkill
         ? `｜技能：${selectedHomeSkill.title}`
         : ''
-      return onSubmit(`【${scope}${selectedSkillScope}】${request}`, attachment)
+      return onSubmit(
+        `【${scope}${selectedSkillScope}】${request}`,
+        attachment,
+        activeScene === 'game' ? 'game' : 'marketing',
+      )
     }
-    if (!tool) return onSubmit(request, attachment)
+    if (!tool)
+      return onSubmit(
+        request,
+        attachment,
+        activeScene === 'game' ? 'game' : 'marketing',
+      )
     const picked = tool.params.map((p) => params[`${tool.key}.${p.label}`])
     // 选了活动模板 = 引用它复刻：把 token 带进 prompt，工坊按模板拆替换清单
     const usesTemplate =
@@ -2711,7 +2830,11 @@ export default function PlatformHome({
     const ps = picked.filter((v) => v !== '选择模板').join(' / ')
     const body = usesTemplate ? `${XIAHUA_TEMPLATE_TOKEN} ${request}` : request
     const scope = ps ? `【${tool.label}｜${ps}】` : `【${tool.label}】`
-    onSubmit(`${scope}${body}`, attachment)
+    onSubmit(
+      `${scope}${body}`,
+      attachment,
+      activeScene === 'game' ? 'game' : 'marketing',
+    )
   }
 
   return (
@@ -2789,7 +2912,9 @@ export default function PlatformHome({
         <div
           className={`relative flex w-full flex-col items-center ${
             standaloneWorkshopLayout
-              ? sharedSkeleton
+              ? schemeOne
+                ? 'h-[381px]'
+                : sharedSkeleton
                 ? 'h-[349px]'
                 : 'h-[381px]'
               : 'h-[350px]'
@@ -2801,7 +2926,9 @@ export default function PlatformHome({
             alt=""
             className={`pointer-events-none absolute z-0 w-[945px] max-w-none select-none ${
               standaloneWorkshopLayout
-                ? sharedSkeleton
+                ? schemeOne
+                  ? 'top-[92px]'
+                  : sharedSkeleton
                   ? 'top-[60px]'
                   : 'top-[92px]'
                 : 'top-[-24px]'
@@ -2811,7 +2938,7 @@ export default function PlatformHome({
             <div
               aria-hidden
               className={`pointer-events-none absolute z-[1] h-[272px] w-[945px] max-w-none select-none ${
-                sharedSkeleton ? 'top-[60px]' : 'top-[92px]'
+                schemeOne ? 'top-[92px]' : sharedSkeleton ? 'top-[60px]' : 'top-[92px]'
               }`}
             >
               {activeSceneConfig.heroDetails.map((src, index) => (
@@ -2835,7 +2962,9 @@ export default function PlatformHome({
           <div
             className={`relative z-10 flex flex-col items-center ${
               standaloneWorkshopLayout
-                ? sharedSkeleton
+                ? schemeOne
+                  ? 'gap-6 pt-[284px]'
+                  : sharedSkeleton
                   ? 'gap-6 pt-[252px]'
                   : 'gap-6 pt-[284px]'
                 : 'gap-4 pt-[274px]'
@@ -2850,21 +2979,21 @@ export default function PlatformHome({
                 {standaloneWorkshopLayout ? '创意工坊' : 'AI工坊'}
               </span>
             </div>
-            {standaloneWorkshopLayout && (
-              <StandaloneSceneSwitcher
-                activeScene={activeScene}
-                reduceMotion={reduceMotion}
-                onChange={(scene) => {
-                  setActiveScene(scene)
-                  setSelectedSubscene(null)
-                  setActiveSlotInstruction(null)
-                  setTool(null)
-                }}
-              />
-            )}
+            <StandaloneSceneSwitcher
+              activeScene={activeScene}
+              reduceMotion={reduceMotion}
+              onChange={(scene) => {
+                setActiveScene(scene)
+                setSelectedSubscene(null)
+                setActiveSlotInstruction(null)
+                setTool(null)
+              }}
+            />
             {!standaloneWorkshopLayout && (
               <p className="flex items-center gap-1 text-[16px] tracking-[0.32px] text-[#1C1F23]/60">
-                把好想法变成好玩法 <span aria-hidden>💡</span>
+                {activeScene === 'game'
+                  ? '用现在的游戏能力搭可玩项目'
+                  : '用活动营销能力搭 H5 与玩法页'}
               </p>
             )}
           </div>
@@ -2874,7 +3003,7 @@ export default function PlatformHome({
         <div
           className={`relative z-20 w-full ${
             standaloneWorkshopLayout
-              ? `${sharedSkeleton ? 'mt-4' : 'mt-12'} max-w-[816px]`
+              ? `${schemeOne ? 'mt-12' : sharedSkeleton ? 'mt-4' : 'mt-12'} max-w-[816px]`
               : 'mt-[18px] max-w-[800px]'
           }`}
         >
@@ -2945,9 +3074,10 @@ export default function PlatformHome({
             )}
             <ChatComposer
               /* 传附件不撑高 —— 附件卡挤占输入区，输入框整体高度不动。 */
-              height={standaloneWorkshopLayout ? (sharedSkeleton ? 166 : 134) : 166}
+              height={standaloneWorkshopLayout ? (schemeOne ? 150 : sharedSkeleton ? 166 : 134) : 166}
               className={sharedSkeleton ? 'relative z-10' : ''}
               value={draft}
+              textareaRef={composerTextareaRef}
               onChange={(v) => {
                 setDraft(v)
                 setMentionOpen(v.endsWith('@'))
@@ -3191,9 +3321,9 @@ export default function PlatformHome({
                 </>
               }
               footerLeftClassName={standaloneWorkshopLayout ? 'gap-0' : ''}
-              /* 内部工作台不提供模型选择，输入框右侧只留发送。 */
               footerExtra={
-                standaloneWorkshopLayout || tool ? null : (
+                (standaloneWorkshopLayout && schemeOne) ||
+                (!standaloneWorkshopLayout && !tool) ? (
                   <button
                     type="button"
                     onClick={() => toast('切换模型（演示）')}
@@ -3203,14 +3333,17 @@ export default function PlatformHome({
                     Auto
                     <ChevronDown size={16} strokeWidth={1.8} />
                   </button>
-                )
+                ) : null
               }
             />
-            {standaloneWorkshopLayout && sharedSkeleton && (
+            {standaloneWorkshopLayout && schemeOne && (
+              <SchemeOneQuickActions onPick={setDraft} />
+            )}
+            {standaloneWorkshopLayout && sharedSkeleton && !schemeOne && (
               <SchemeTwoAppFooter />
             )}
           </div>
-          {standaloneWorkshopLayout && sharedSkeleton && (
+          {standaloneWorkshopLayout && sharedSkeleton && !schemeOne && (
             <>
               <div className="relative z-10 mx-auto mt-6 w-full max-w-[800px]">
                 {(() => {
@@ -3258,14 +3391,36 @@ export default function PlatformHome({
               没有灵感？试试点击以下需求
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              {SUGGESTIONS.map((s) => (
+              {(activeScene === 'game'
+                ? STANDALONE_SCENE_SUGGESTIONS.game.map((subscene) => ({
+                    key: subscene.key,
+                    label: subscene.label,
+                    prompt: subscene.prompt,
+                    scene: 'game' as const,
+                  }))
+                : SUGGESTIONS.map((label) => ({
+                    key: label,
+                    label,
+                    prompt: label,
+                    scene: 'marketing' as const,
+                  }))
+              ).map((chip) => (
                 <button
-                  key={s}
+                  key={chip.key}
                   type="button"
-                  onClick={() => onSubmit(s)}
+                  onClick={() => {
+                    if (chip.scene === 'game') {
+                      setDraft(chip.prompt)
+                      requestAnimationFrame(() =>
+                        composerTextareaRef.current?.focus(),
+                      )
+                      return
+                    }
+                    onSubmit(chip.prompt, undefined, chip.scene)
+                  }}
                   className="flex h-[42px] items-center gap-2 rounded-[12px] bg-[#F5F7FA] px-4 text-[14px] leading-5 text-[#090C14] transition-colors hover:bg-[#ECEFF5]"
                 >
-                  {s}
+                  {chip.label}
                   <ArrowUpRight size={12} strokeWidth={2} className="shrink-0 opacity-60" />
                 </button>
               ))}
@@ -3273,105 +3428,144 @@ export default function PlatformHome({
           </div>
         )}
 
-        {/* ── 分类 tab + 灵感作品 ── */}
+        {/* ── 分类 + 灵感作品 ── */}
         {standaloneWorkshopLayout && !sharedSkeleton ? (
           <StandaloneSceneCases
             scene={activeSceneConfig}
             onPick={submit}
           />
         ) : !standaloneWorkshopLayout ? (
-          <div className="mt-[72px] w-full">
-          <div className="flex flex-wrap items-center gap-1 pb-2">
-            {TABS.map((tab) => (
+          <div className="mt-[72px] w-full xl:w-[85%] xl:self-center">
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-[18px] font-semibold leading-7 text-[#1C1F23]">全网灵感</h2>
+              <p className="mt-0.5 text-[12px] leading-5 text-[#1C1F23]/45">按想交付的产物快速找到可复用案例</p>
+            </div>
+            <label className="relative shrink-0">
+              <span className="sr-only">选择案例来源</span>
+              <select
+                value={sourceFilter}
+                onChange={(event) => setSourceFilter(event.target.value as InspirationSourceFilter)}
+                className="h-9 appearance-none rounded-[10px] border border-black/[0.07] bg-white pl-3 pr-8 text-[12px] text-[#1C1F23]/70 outline-none transition-colors hover:border-black/[0.13] focus:border-[#1664FF]/40"
+              >
+                {SOURCE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <ChevronDown size={13} strokeWidth={1.8} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#1C1F23]/45" />
+            </label>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1 rounded-[12px] border border-black/[0.05] bg-white/65 p-1.5 shadow-[0_1px_2px_rgba(31,35,41,0.02)]">
+            {PRODUCT_CATEGORIES.map((category) => (
               <button
-                key={tab}
+                key={category.key}
                 type="button"
-                onClick={() => setActiveTab(tab)}
-                aria-current={tab === activeTab ? 'true' : undefined}
-                className={`flex h-9 items-center rounded-[3px] px-3 text-[14px] leading-5 transition-colors ${
-                  tab === activeTab
-                    ? 'bg-[rgba(49,46,56,0.05)] font-semibold text-[#1F1C23]'
-                    : 'text-[rgba(31,28,35,0.6)] hover:text-[#1F1C23]'
+                onClick={() => {
+                  setActiveProductCategory(category.key)
+                  setActiveSecondary(PRODUCT_SECONDARIES[category.key][0])
+                }}
+                aria-current={category.key === activeProductCategory ? 'true' : undefined}
+                className={`flex h-9 items-center rounded-[9px] px-3.5 text-[13px] leading-5 transition-colors ${
+                  category.key === activeProductCategory
+                    ? 'bg-[#1C1F23] font-medium text-white shadow-[0_2px_8px_rgba(28,31,35,0.16)]'
+                    : 'text-[rgba(31,28,35,0.6)] hover:bg-black/[0.03] hover:text-[#1F1C23]'
                 }`}
               >
-                {tab}
+                {category.label}
               </button>
             ))}
           </div>
 
-          {/* 「兴趣卡模板」换成案例墙 —— 卡面网格是给卡牌类看的，
-              兴趣卡要看的是它在 Feed 里长什么样。 */}
-          {activeTab === '兴趣卡模板' ? (
-            <div className="mt-2">
+          {activeProductCategory !== 'all' && (
+            <div className="mt-3 px-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {activeProductCategory === 'campaign' && (
+                  <span className="w-[60px] shrink-0 text-[11px] font-medium text-[#1C1F23]/40">互动玩法</span>
+                )}
+                {PRODUCT_SECONDARIES[activeProductCategory].map((secondary) => (
+                  <button
+                    key={secondary}
+                    type="button"
+                    onClick={() => setActiveSecondary(secondary)}
+                    aria-pressed={secondary === activeSecondary}
+                    className={`flex h-8 items-center rounded-full px-3 text-[12px] transition-colors ${
+                      secondary === activeSecondary
+                        ? 'bg-[#EAF1FF] font-medium text-[#1664FF]'
+                        : 'bg-[#F5F6F8] text-[#1C1F23]/55 hover:bg-[#ECEEF2] hover:text-[#1C1F23]'
+                    }`}
+                  >
+                    {secondary}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeProductCategory === 'interest' &&
+          (sourceFilter === 'all' || sourceFilter === 'workshop') ? (
+            <div className="mt-4">
               <InterestCardShowcase
-                onPick={({ title }) =>
-                  onSubmit(`参考「${title}」这张兴趣卡，帮我做同款`)
-                }
+                subcategory={activeSecondary}
+                onPick={({ title }) => onSubmit(`参考「${title}」这张兴趣卡，帮我做同款`)}
               />
             </div>
-          ) : (
-          <div className="mt-2 grid grid-cols-5 gap-3 max-xl:grid-cols-4 max-lg:grid-cols-3 max-md:grid-cols-2">
-            {/* 存过的活动模板挂在「H5活动页」这一栏的最前面 —— 存完就该能在
-                首页看到它，而不是只藏在输入框的 @ 里 */}
-            {works.map((w) => (
-              <div
-                key={w.id}
-                className="group relative flex h-[331px] flex-col items-center overflow-hidden rounded-[12px] border border-[rgba(45,66,107,0.06)] shadow-[inset_0_1px_2px_0_white]"
-              >
+          ) : works.length ? (
+            <div className="mt-4 grid grid-cols-4 gap-3 max-lg:grid-cols-3 max-md:grid-cols-2">
+              {works.map((w) => (
                 <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 rounded-[12px] bg-gradient-to-b from-[rgba(255,255,255,0.45)] to-white backdrop-blur-[12px]"
-                />
-                {/* 卡面：设计稿里是 179×322 居中、带双层投影 */}
-                <div
-                  className="relative mt-[5px] h-[322px] w-[179px] shrink-0 overflow-hidden rounded-[12px]"
-                  style={{
-                    filter:
-                      'drop-shadow(5px 10px 15px rgba(0,0,0,0.2)) drop-shadow(10px 20px 20px rgba(0,0,0,0.2))',
-                  }}
+                  key={w.id}
+                  className="group relative flex h-[331px] flex-col items-center overflow-hidden rounded-[12px] border border-[rgba(45,66,107,0.06)] shadow-[inset_0_1px_2px_0_white]"
                 >
-                  <img src={w.img} alt="" className="size-full object-cover" />
-                  {/* 底部压暗，托住作者行 */}
+                  <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[12px] bg-gradient-to-b from-[rgba(255,255,255,0.45)] to-white backdrop-blur-[12px]" />
                   <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-x-0 bottom-0 h-[120px] bg-gradient-to-t from-black/55 to-transparent"
-                  />
-                  <div className="absolute inset-x-[13px] bottom-[13px] flex items-center justify-between text-[12px] leading-4 text-white">
-                    <span className="flex min-w-0 items-center gap-[5px]">
-                      <img
-                        src={AUTHOR_AVATAR}
-                        alt=""
-                        className="size-4 shrink-0 rounded-full object-cover"
-                      />
-                      <span className="truncate">{w.author}</span>
-                    </span>
-                    <span className="flex shrink-0 items-center gap-px tabular-nums">
-                      <Star size={11} strokeWidth={2} />
-                      {w.likes}
-                    </span>
+                    className="relative mt-[5px] h-[322px] w-[179px] shrink-0 overflow-hidden rounded-[12px]"
+                    style={{ filter: 'drop-shadow(5px 10px 15px rgba(0,0,0,0.2)) drop-shadow(10px 20px 20px rgba(0,0,0,0.2))' }}
+                  >
+                    <img src={w.img} alt="" className="size-full object-cover" />
+                    <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[120px] bg-gradient-to-t from-black/55 to-transparent" />
+                    <div className="absolute inset-x-[13px] bottom-[13px] flex items-center justify-between text-[12px] leading-4 text-white">
+                      <span className="flex min-w-0 items-center gap-[5px]">
+                        <img src={AUTHOR_AVATAR} alt="" className="size-4 shrink-0 rounded-full object-cover" />
+                        <span className="truncate">{w.author}</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-px tabular-nums">
+                        <Star size={11} strokeWidth={2} />
+                        {w.likes}
+                      </span>
+                    </div>
                   </div>
+                  {w.template && (
+                    <span className="absolute left-[18px] top-[10px] rounded-[6px] bg-[#1C1F23]/75 px-1.5 py-[2px] text-[11px] font-medium text-white backdrop-blur-[2px]">我的模板</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      w.template
+                        ? onSubmit(`${XIAHUA_TEMPLATE_TOKEN} 参考这个模板帮我生成一个新活动`)
+                        : onSubmit(`参考这张卡面，帮我做同款「${activeSecondary}」`)
+                    }
+                    className="absolute inset-x-[13px] bottom-[13px] flex h-10 translate-y-2 items-center justify-center gap-2 rounded-[100px] bg-[#1C1F23] text-[14px] font-medium text-[#F5F7FA] opacity-0 transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none"
+                  >
+                    <Sparkles size={16} strokeWidth={1.8} />
+                    {w.template ? '用这个模板' : '做同款'}
+                  </button>
                 </div>
-                {/* hover：做同款 */}
-                {w.template && (
-                  <span className="absolute left-[18px] top-[10px] rounded-[6px] bg-[#1C1F23]/75 px-1.5 py-[2px] text-[11px] font-medium text-white backdrop-blur-[2px]">
-                    我的模板
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() =>
-                    w.template
-                      ? onSubmit(`${XIAHUA_TEMPLATE_TOKEN} 参考这个模板帮我生成一个新活动`)
-                      : onSubmit(`参考这张卡面，帮我做同款「${activeTab}」`)
-                  }
-                  className="absolute inset-x-[13px] bottom-[13px] flex h-10 translate-y-2 items-center justify-center gap-2 rounded-[100px] bg-[#1C1F23] text-[14px] font-medium text-[#F5F7FA] opacity-0 transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none"
-                >
-                  <Sparkles size={16} strokeWidth={1.8} />
-                  {w.template ? '用这个模板' : '做同款'}
-                </button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <MioraInspirationGallery
+              productCategory={activeProductCategory}
+              secondaryCategory={activeSecondary}
+              sourceFilter={sourceFilter}
+              onPick={(item) =>
+                fillInspirationDraft(
+                  item.description.startsWith('复刻一个「地球村直播大赏」')
+                    ? item.description
+                    : `参考「${item.title}」的视觉与创意描述帮我创作：${item.description}`,
+                )
+              }
+            />
           )}
           </div>
         ) : null}
@@ -3382,13 +3576,9 @@ export default function PlatformHome({
       {schemeOne && (
         <section
           aria-label="探索灵感"
-          className="relative mx-auto flex w-full max-w-[1308px] flex-col items-center px-6 pb-20 pt-12"
+          className="relative mx-auto flex w-full max-w-[1308px] flex-col items-center px-6 pb-20 pt-8"
         >
-          <InspirationFeed
-            key={activeScene}
-            sceneKey={activeScene}
-            onPick={submit}
-          />
+          <FeaturedProjects sceneKey={activeScene} onPick={submit} />
         </section>
       )}
     </motion.div>

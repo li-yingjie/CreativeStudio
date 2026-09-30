@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" fill="none">
+  <rect width="390" height="844" fill="#121A1C"/>
+  <rect x="0" y="0" width="390" height="844" fill="url(#glow)"/>
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="28%" r="70%">
+      <stop offset="0%" stop-color="#F0C56C" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#121A1C" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="18" y="16" width="56" height="6" rx="3" fill="#F4F3E8" opacity="0.35"/>
+  <rect x="160" y="16" width="70" height="6" rx="3" fill="#F4F3E8" opacity="0.55"/>
+  <rect x="316" y="16" width="56" height="6" rx="3" fill="#F4F3E8" opacity="0.35"/>
+  
+  
+  <text x="195" y="300" text-anchor="middle" fill="#F4F3E8" font-family="PingFang SC, sans-serif" font-size="26" font-weight="600">守卫成功</text>
+  <text x="195" y="334" text-anchor="middle" fill="#A4B1AA" font-family="PingFang SC, sans-serif" font-size="13">月光灯塔再次照亮了林地</text>
+  
+  <rect x="72" y="620" width="246" height="44" rx="14" fill="#F0C56C"/>
+  <text x="195" y="648" text-anchor="middle" fill="#121A1C" font-family="PingFang SC, sans-serif" font-size="14" font-weight="600">再守一局</text>
+  <rect x="24" y="800" width="342" height="22" rx="11" fill="#20302D"/>
+  <text x="195" y="815" text-anchor="middle" fill="#A4B1AA" font-family="PingFang SC, sans-serif" font-size="10">方案 A · 占位成品 · result</text>
+</svg>

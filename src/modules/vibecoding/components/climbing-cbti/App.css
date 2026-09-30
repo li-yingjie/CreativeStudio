@@ -1,0 +1,448 @@
+.cbti-root {
+  container-type: inline-size;
+  font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  font-weight: 700;
+  line-height: 1.5;
+  color: #171717;
+  width: 100%;
+  & button { font-family: inherit; }
+  *, *::before, *::after { box-sizing: border-box; }
+
+.app-shell {
+  min-height: 100vh;
+  min-height: 100svh;
+  background: #f2f2f0 url("/assets/climbing-cbti/bg-wall.png") center center / cover no-repeat;
+  color: #171717;
+}
+
+.phone-stage {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+& button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gate-stage,
+.utility-stage,
+.scene-page {
+  display: grid;
+  place-items: center;
+}
+
+.gate-stage,
+.utility-stage {
+  width: 100%;
+  overflow: hidden;
+  background: #f2f2f0 url("/assets/climbing-cbti/bg-wall.png") center center / cover no-repeat;
+}
+
+.env-gate-panel,
+.preload-panel,
+.loading-panel {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: calc(36px + env(safe-area-inset-top)) 28px calc(36px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.env-gate-panel {
+  gap: 26px;
+}
+
+.preload-panel,
+.loading-panel {
+  gap: 22px;
+}
+
+.gate-hero,
+.preload-hero {
+  width: min(58vw, 228px);
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.gate-logo,
+.preload-logo {
+  width: min(68vw, 176px);
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.gate-copy,
+.preload-panel p,
+.loading-panel h2 {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.gate-copy,
+.preload-panel p {
+  max-width: 14em;
+  font-size: 1.2rem;
+}
+
+.loading-panel h2 {
+  font-size: 1.16rem;
+}
+
+.loading-scan {
+  width: min(56vw, 220px);
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.loading-panel--figma {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.loading-figure {
+  position: absolute;
+  left: 50%;
+  top: 22.5%;
+  width: min(48vw, 190px);
+  max-width: 190px;
+  height: auto;
+  object-fit: contain;
+  transform: translateX(-50%);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.loading-progress-track {
+  position: absolute;
+  left: 23.41%;
+  top: 54.69%;
+  width: 53.18%;
+  height: 20px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #222222;
+}
+
+.loading-progress-fill {
+  width: var(--loading-progress, 48.33%);
+  height: 100%;
+  background: #feca19;
+  transition: width 180ms linear;
+}
+
+.loading-copy {
+  position: absolute;
+  left: 50%;
+  top: 61%;
+  margin: 0;
+  color: #000000;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 30px;
+  text-align: center;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.loading-copy span {
+  display: block;
+}
+
+.cover-panel {
+  --cover-height: 100vh;
+  --scene-ratio: 0.6666666667;
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow: hidden;
+}
+
+.cover-background {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--cover-height) * var(--scene-ratio));
+  height: var(--cover-height);
+  max-width: none;
+  object-fit: fill;
+  object-position: center center;
+  transform: translate(-50%, -50%);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+@supports (height: 100svh) {
+  .cover-panel {
+    --cover-height: 100svh;
+  }
+}
+
+.cover-start-button {
+  position: absolute;
+  left: 50%;
+  bottom: calc(108px + env(safe-area-inset-bottom));
+  width: min(72vw, 292px);
+  min-height: 62px;
+  border-radius: 999px;
+  background: #1d1d1d;
+  color: #ffffff;
+  font-size: 1.34rem;
+  font-weight: 700;
+  line-height: 1;
+  transform: translateX(-50%);
+  transition: transform 140ms ease, background-color 140ms ease;
+  cursor: pointer;
+}
+
+.cover-start-button:active {
+  background: #111111;
+  transform: translateX(-50%) scale(0.97);
+}
+
+.scene-page {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 0;
+  overflow: hidden;
+  background: #f2f2f0;
+}
+
+.scene-stage {
+  --scene-height: 100vh;
+  --scene-ratio: 0.6666666667;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--scene-height) * var(--scene-ratio));
+  height: var(--scene-height);
+  overflow: hidden;
+  background: #f4f3ef;
+  transform: translate(-50%, -50%);
+}
+
+@supports (height: 100svh) {
+  .scene-stage {
+    --scene-height: 100svh;
+  }
+}
+
+.scene-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.hotspot-button {
+  position: absolute;
+  cursor: pointer;
+}
+
+.hotspot-button.is-debug {
+  border: 6px solid var(--hotspot-color);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hotspot-button:active {
+  transform: scale(0.99);
+}
+
+.hotspot-debug-label {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--hotspot-color);
+  color: #000000;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.scene-page--result {
+  background: #f2f2f0;
+}
+
+.scene-stage--result {
+  background: #f4f3ef;
+}
+
+.result-fallback-card {
+  display: flex;
+  height: 100%;
+  padding: 96px 72px 240px;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 18px;
+  background: #f7f2e8;
+}
+
+.fallback-code {
+  font-size: 5.6rem;
+  font-weight: 700;
+  line-height: 0.92;
+}
+
+.result-fallback-card strong {
+  font-size: 2.4rem;
+  line-height: 1.1;
+}
+
+.result-fallback-card p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.result-action-cluster {
+  position: absolute;
+  right: 13px;
+  bottom: calc(clamp(84px, 11.38vh, 104px) + env(safe-area-inset-bottom));
+  z-index: 5;
+  display: grid;
+  gap: clamp(12px, 3.75vw, 15px);
+  width: clamp(96px, 27.2vw, 107px);
+}
+
+@supports (height: 100svh) {
+  .result-action-cluster {
+    bottom: calc(clamp(84px, 11.38svh, 104px) + env(safe-area-inset-bottom));
+  }
+}
+
+.result-action-button {
+  height: clamp(32px, 9vw, 35.5px);
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: clamp(13px, 3.63vw, 14.3px);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 140ms ease, opacity 140ms ease;
+}
+
+.result-action-button:active {
+  transform: scale(0.97);
+}
+
+.result-action-button--publish {
+  background: #ff5ca2;
+}
+
+.result-action-button--save {
+  background: #111111;
+}
+
+.result-action-button--share {
+  background: #42a1ff;
+}
+
+.result-status-message {
+  position: absolute;
+  left: 50%;
+  bottom: calc(278px + env(safe-area-inset-bottom));
+  z-index: 6;
+  width: min(78%, 300px);
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.86);
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 420px) {
+  .cover-start-button {
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    min-height: 58px;
+    font-size: 1.2rem;
+  }
+
+  .hotspot-button.is-debug {
+    border-width: 4px;
+  }
+
+  .hotspot-debug-label {
+    left: 10px;
+    top: 10px;
+    min-width: 32px;
+    height: 32px;
+    font-size: 0.92rem;
+  }
+
+  .result-action-button {
+    font-size: 0.76rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover-start-button,
+  .result-action-button,
+  .hotspot-button {
+    transition: none;
+  }
+
+  .loading-progress-fill {
+    animation: none;
+  }
+}
+
+/* 画板高度跟随案例基准，不随工坊浏览器窗口变化。 */
+&.cbti-embedded {
+  .app-shell, .phone-stage, .env-gate-panel, .preload-panel, .loading-panel,
+  .cover-panel, .scene-page { min-height: 760px; }
+  .cover-panel, .scene-page, .loading-panel--figma { height: 760px; }
+  .cover-panel { --cover-height: 760px; }
+  .scene-stage { --scene-height: 760px; }
+  .cover-start-button { bottom: 108px; }
+  .result-action-cluster { bottom: 87px; }
+}
+
+.cover-start-button { width: min(72cqw, 292px); }
+.gate-hero, .preload-hero { width: min(58cqw, 228px); }
+.gate-logo, .preload-logo { width: min(68cqw, 176px); }
+.loading-scan { width: min(56cqw, 220px); }
+.loading-figure { width: min(48cqw, 190px); }
+.hotspot-button:focus-visible { outline: 3px solid #2390ff; outline-offset: -3px; }
+}

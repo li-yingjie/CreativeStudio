@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from 'react'
+import type { KeyboardEvent, ReactNode, Ref } from 'react'
 import { ArrowUp } from '@/shared/icons'
 
 /** 对话输入框统一高度（各产品 composer 共用）。 */
@@ -11,6 +11,7 @@ export const CHAT_COMPOSER_HEIGHT = 114
 export default function ChatComposer({
   value,
   onChange,
+  onInputKeyDown,
   onSend,
   placeholder,
   ariaLabel,
@@ -30,6 +31,8 @@ export default function ChatComposer({
 }: {
   value: string
   onChange: (v: string) => void
+  /** 返回 true 表示按键已由挂载方处理，不再触发默认发送行为。 */
+  onInputKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => boolean | void
   onSend: () => void
   placeholder: string
   ariaLabel?: string
@@ -77,6 +80,7 @@ export default function ChatComposer({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={(e) => {
+              if (onInputKeyDown?.(e)) return
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
                 onSend()

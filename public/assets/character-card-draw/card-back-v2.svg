@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 360" role="img" aria-label="星光与双流线装饰的原创卡背">
+  <defs>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#111923"/><stop offset=".55" stop-color="#263547"/><stop offset="1" stop-color="#111923"/></linearGradient>
+    <linearGradient id="stream" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e5f5ff"/><stop offset=".35" stop-color="#8fb9d5"/><stop offset=".7" stop-color="#d5ebf4"/><stop offset="1" stop-color="#6f91b2"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#fffdf0" stop-opacity=".95"/><stop offset=".22" stop-color="#f5f7e8" stop-opacity=".48"/><stop offset="1" stop-color="#edf9ff" stop-opacity="0"/></radialGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="4"/></filter>
+    <clipPath id="panel"><rect x="17" y="17" width="206" height="326"/></clipPath>
+    <g id="star" fill="#fffdf2"><path d="M0-24 3-3 21 0 3 3 0 24-3 3-21 0-3-3Z"/><circle r="4"/></g>
+    <g id="little" fill="#f3f2df"><path d="M0-7 1-1 7 0 1 1 0 7-1 1-7 0-1-1Z"/></g>
+  </defs>
+  <rect x="1" y="1" width="238" height="358" rx="9" fill="#f4f6f0" stroke="#e2e8eb" stroke-width="2"/>
+  <rect x="11" y="11" width="218" height="338" fill="#263442" stroke="#d2d5cc" stroke-width="1.5"/>
+  <rect x="17" y="17" width="206" height="326" fill="url(#ink)" stroke="#e3e4d8" stroke-width="2"/>
+  <rect x="23" y="23" width="194" height="314" fill="none" stroke="#b8c5c7" stroke-width="1"/>
+  <path d="M23 43h194M23 317h194" stroke="#e1dfcb" stroke-width="2"/>
+  <path d="M25 31 43 42 60 27 77 42 94 27 120 43 146 27 163 42 180 27 197 42 215 31M25 329l18-11 17 15 17-15 17 15 26-16 26 16 17-15 17 15 17-15 18 11" fill="none" stroke="#d6d7c8" stroke-width="1.5"/>
+  <path d="M120 23 137 42 120 58 103 42ZM120 302l17 16-17 19-17-19Z" fill="#738ba2" stroke="#e6e5d7" stroke-width="2"/>
+  <path d="M120 29 131 42 120 52 109 42ZM120 308l11 10-11 13-11-13Z" fill="#172333" stroke="#eee9d7" stroke-width="1"/>
+  <path d="M120 54 205 136 120 225 35 136ZM120 137l81 88-81 80-81-80Z" fill="none" stroke="#b9c8cb" stroke-opacity=".7" stroke-width="1.6"/>
+  <path d="M120 71 187 136 120 207 53 136ZM120 156l66 69-66 63-66-63Z" fill="none" stroke="#dce1d3" stroke-opacity=".65" stroke-width="1"/>
+  <path d="M27 178 41 162 56 178 41 193ZM213 178l-14-16-15 16 15 15ZM120 159l13 19-13 21-13-21Z" fill="#52687d" stroke="#e4e4d4" stroke-width="1.8"/>
+  <path d="M120 165l8 13-8 14-8-14Z" fill="#172333" stroke="#e5e5da" stroke-width="1"/>
+  <g clip-path="url(#panel)">
+  <path d="M62 52C30 88 31 111 70 135s50 35 10 65-37 66 8 91c42 23 35 43 5 52M178 52c32 36 31 59-8 83s-50 35-10 65 37 66-8 91c-42 23-35 43-5 52" fill="none" stroke="#a5d1e9" stroke-opacity=".35" stroke-width="30" filter="url(#soft)"/>
+  <path d="M62 52C30 88 31 111 70 135s50 35 10 65-37 66 8 91c42 23 35 43 5 52M178 52c32 36 31 59-8 83s-50 35-10 65 37 66-8 91c-42 23-35 43-5 52" fill="none" stroke="#617f9a" stroke-width="21" stroke-linecap="round"/>
+  <path d="M62 52C30 88 31 111 70 135s50 35 10 65-37 66 8 91c42 23 35 43 5 52M178 52c32 36 31 59-8 83s-50 35-10 65 37 66-8 91c-42 23-35 43-5 52" fill="none" stroke="url(#stream)" stroke-width="17" stroke-linecap="round"/>
+  <path d="M58 54C37 88 35 108 72 132s45 37 11 66-36 67 9 91M182 54c21 34 23 54-14 78s-45 37-11 66 36 67-9 91" fill="none" stroke="#f5fcff" stroke-opacity=".9" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <circle cx="120" cy="89" r="37" fill="url(#glow)"/><circle cx="120" cy="271" r="37" fill="url(#glow)"/>
+  <use href="#star" transform="translate(120 89) scale(1.12)"/><use href="#star" transform="translate(120 271) scale(1.12)"/>
+  <use href="#star" transform="translate(41 178) scale(.58)"/><use href="#star" transform="translate(199 178) scale(.58)"/>
+  <use href="#little" transform="translate(78 77)"/><use href="#little" transform="translate(162 77)"/><use href="#little" transform="translate(78 283)"/><use href="#little" transform="translate(162 283)"/>
+  <use href="#little" transform="translate(120 140) scale(.75)"/><use href="#little" transform="translate(120 220) scale(.75)"/>
+  <circle cx="61" cy="116" r="1.5" fill="#f6f3e5"/><circle cx="179" cy="116" r="1.5" fill="#f6f3e5"/><circle cx="61" cy="243" r="1.5" fill="#f6f3e5"/><circle cx="179" cy="243" r="1.5" fill="#f6f3e5"/>
+</svg>

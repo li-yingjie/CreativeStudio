@@ -37,7 +37,12 @@ function Options({
   const g = step.gate
   if (!g) return null
   // 带自由输入的（选主玩法那种）才用选择卡；其余就是跟在这条回复下面的建议回复
-  if (g.choices?.some((c) => c.input)) return <ChoiceCard choices={g.choices} onPick={onPick} />
+  if (g.choiceLayout === 'cards' || g.choices?.some((c) => c.input)) {
+    return <ChoiceCard choices={g.choices} onPick={onPick} rich={g.choiceLayout === 'cards'} />
+  }
+  if (g.choiceLayout === 'compact') {
+    return <ChoiceCard choices={g.choices} onPick={onPick} />
+  }
   if (g.choices?.length)
     return (
       <motion.div
@@ -86,14 +91,90 @@ function Options({
 function ChoiceCard({
   choices,
   onPick,
+  rich = false,
 }: {
   choices: NonNullable<BuildStep['gate']>['choices']
   onPick: (to: string, text?: string) => void
+  rich?: boolean
 }) {
   const [draft, setDraft] = useState('')
   const list = choices ?? []
   const options = list.filter((c) => !c.input)
   const custom = list.find((c) => c.input)
+  if (rich) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, delay: 0.15 }}
+        className="mt-3 max-w-[450px] space-y-2"
+      >
+        {options.map((choice, index) => (
+          <button
+            key={`${choice.to}-${index}`}
+            type="button"
+            onClick={() => onPick(choice.to, choice.title)}
+            aria-label={`${choice.title}：${choice.desc}`}
+            className="group flex min-h-[112px] w-full cursor-pointer items-stretch overflow-hidden rounded-[14px] border border-[var(--divider)] bg-[var(--color-surface-0)] text-left transition-[border-color,background-color,transform] hover:-translate-y-px hover:border-[#357ef8]/50 hover:bg-[#357ef8]/[0.025] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#357ef8]"
+          >
+            <span className="relative flex min-h-[112px] w-[96px] shrink-0 items-center justify-center overflow-hidden bg-[var(--color-surface-1)]">
+              {choice.preview ? (
+                <img src={choice.preview} alt="" className="absolute inset-0 size-full object-cover" />
+              ) : (
+                <span aria-hidden="true" className="grid w-[46px] grid-cols-2 gap-1.5 opacity-45">
+                  <span className="col-span-2 h-2.5 rounded-[3px] bg-[var(--color-ink)]/25" />
+                  <span className="h-5 rounded-[4px] border border-dashed border-[var(--color-ink)]/35" />
+                  <span className="h-5 rounded-[4px] border border-dashed border-[var(--color-ink)]/35" />
+                </span>
+              )}
+              {choice.recommended ? (
+                <span className="absolute left-1.5 top-1.5 rounded-[4px] bg-white/92 px-1.5 py-0.5 text-[8px] font-medium text-[#357ef8] shadow-sm">
+                  推荐
+                </span>
+              ) : null}
+            </span>
+            <span className="min-w-0 flex-1 px-3 py-2.5">
+              <span className="flex items-center gap-1.5">
+                <span className="truncate text-[13px] font-semibold text-[var(--color-ink)]">{choice.title}</span>
+                {choice.tag ? <span className="shrink-0 rounded-[4px] bg-[var(--color-ink)]/[0.06] px-1.5 py-0.5 text-[9px] text-[var(--color-ink)]/46">{choice.tag}</span> : null}
+              </span>
+              {choice.eyebrow ? <span className="mt-0.5 block text-[9px] font-medium text-[#357ef8]">{choice.eyebrow}</span> : null}
+              <span className="mt-1 block text-[11px] leading-[16px] text-[var(--color-ink)]/52">{choice.desc}</span>
+              {choice.facts?.length ? (
+                <span className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] text-[var(--color-ink)]/34">
+                  {choice.facts.map((fact) => <span key={fact}>{fact}</span>)}
+                </span>
+              ) : null}
+            </span>
+            <span aria-hidden="true" className="flex w-7 shrink-0 items-center justify-center text-[18px] text-[var(--color-ink)]/22 transition-transform group-hover:translate-x-0.5 group-hover:text-[#357ef8]">›</span>
+          </button>
+        ))}
+        {custom ? (
+          <div className="flex items-center gap-2 rounded-[14px] border border-[var(--divider)] bg-[var(--color-surface-0)] p-2.5">
+            <input
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && draft.trim())
+                  onPick(custom.to, draft.trim())
+              }}
+              placeholder={custom.placeholder ?? custom.desc}
+              aria-label={custom.title}
+              className="min-w-0 flex-1 rounded-[9px] border border-[var(--divider-soft)] bg-[var(--color-surface-1)] px-3 py-2 text-[12.5px] text-[var(--color-ink)] outline-none focus:border-sky-400"
+            />
+            <button
+              type="button"
+              disabled={!draft.trim()}
+              onClick={() => draft.trim() && onPick(custom.to, draft.trim())}
+              className="h-8 shrink-0 cursor-pointer rounded-[8px] bg-[#357ef8] px-3 text-[12px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              发送
+            </button>
+          </div>
+        ) : null}
+      </motion.div>
+    )
+  }
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -116,6 +197,11 @@ function ChoiceCard({
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5">
               <span className="text-[13px] font-medium text-[var(--color-ink)]">{c.title}</span>
+              {c.recommended && (
+                <span className="rounded-[4px] bg-[#357ef8]/10 px-1 text-[9px] leading-[15px] text-[#357ef8]">
+                  推荐
+                </span>
+              )}
               {c.tag && (
                 <span className="rounded-[4px] bg-[var(--color-ink)]/[0.06] px-1 text-[10px] leading-[15px] text-[var(--color-ink)]/50">
                   {c.tag}
@@ -256,8 +342,8 @@ export default function XiahuaBuildFlow({
               key={b.key}
               index={at}
               text={docText ?? v.text}
-              fileName={docName}
-              meta={docMeta}
+              fileName={docName ?? v.fileName}
+              meta={docMeta ?? v.meta}
             />
           )
         }

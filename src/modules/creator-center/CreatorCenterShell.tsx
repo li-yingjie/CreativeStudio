@@ -25,6 +25,7 @@ const NAV_H = '48px'
 /** Figma 425:30414 的根画布底板；顶栏和侧栏本身均为透明。 */
 const L_SHAPED_BACKGROUND =
   'linear-gradient(170deg, #F8F8F9 4.37%, #F1F3F8 100%)'
+
 /** 取当前产品实际可见的侧栏宽度，让顶部品牌段跟随拖拽与收起。 */
 function useActiveSideNavWidth(enabled: boolean, activeProduct: ProductId, fallback: number) {
   const [width, setWidth] = useState(fallback)
@@ -248,12 +249,11 @@ function LShapedContentCorner({ left }: { left: number }) {
 export default function CreatorCenterShell() {
   const navVersion = useNavVersion((s) => s.version)
   const standaloneWorkshop = usesStandaloneWorkshopLayout(navVersion)
-  const [active, setActive] = useState<ProductId>(() =>
-    standaloneWorkshop ? 'workshop' : 'home',
-  )
+  // 当前产品只开放 AI 工坊；其它产品页面和样式代码继续保留，但不再作为入口。
+  const [active, setActive] = useState<ProductId>('workshop')
   const reduceMotion = useReducedMotion() ?? false
-  const [homeMounted, setHomeMounted] = useState(!standaloneWorkshop)
-  const [workshopMounted, setWorkshopMounted] = useState(standaloneWorkshop)
+  const [homeMounted, setHomeMounted] = useState(false)
+  const [workshopMounted, setWorkshopMounted] = useState(true)
   const [workshopCanvasMode, setWorkshopCanvasMode] = useState(false)
   const configuredSideNavWidth = useSideNavConfig((state) => state.config.width)
   const configuredCollapsedWidth = useSideNavConfig((state) => state.config.collapsedWidth)
@@ -307,7 +307,8 @@ export default function CreatorCenterShell() {
   }
   const workshopImmersive =
     active === 'workshop' && workshopCanvasMode
-  const topNavHidden = workshopImmersive || standaloneWorkshop
+  // 当前 Demo 聚焦 AI 工坊，整条跨产品顶栏暂不展示；TopNav 组件保留供后续复用。
+  const topNavHidden = true
   const contentToggleLayout = usesContentToggleLayout(navVersion)
 
   useEffect(() => {
@@ -362,7 +363,7 @@ export default function CreatorCenterShell() {
       )}
       {/* overflow-hidden：产品层的轻位移不外溢成文档滚动条（避免顶栏抖动）。 */}
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        {(homeMounted || !standaloneWorkshop) && (
+        {homeMounted && (
           <ProductSurface active={active === 'home'} reduceMotion={reduceMotion}>
             <Suspense
               fallback={(

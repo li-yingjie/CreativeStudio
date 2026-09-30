@@ -1,0 +1,250 @@
+{
+  "case_id": "film_jiu_men_card_2026",
+  "reviews": [
+    {
+      "review_id": "review_group_2ef3ff9cb4f4",
+      "source_document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+      "source_block_id": null,
+      "asset_ids": [
+        "media_12e1657a52e7f265",
+        "media_eac346e98558a9f9",
+        "media_3a564b38ebf6e5eb",
+        "media_cbab10eb4c5945a3",
+        "media_5ae2282162e9ac54",
+        "media_91e0d67fe8044f72",
+        "media_32fcc1493809b2c9",
+        "media_d197c69c187e5fa4",
+        "media_d7a728c723927dc8",
+        "media_662b4dce1de64b68",
+        "media_9a2963c6bbf0c6de",
+        "media_57c44cabc5e41015",
+        "media_3417a7e842e5d9b6",
+        "media_960e258c01209ee4",
+        "media_0c7d41ae7d5ff43e",
+        "media_7af9ddd9640dd120",
+        "media_887369d5059e8fd6",
+        "media_160fb30573a26628",
+        "media_aea8fd0cfcd47801",
+        "media_b78ee3c4f8f13c43",
+        "media_9fa0951983336e03",
+        "media_b57da2969afa101d",
+        "media_39724cb266e88df5",
+        "media_f1389f507528ed92",
+        "media_248def504c6f6345",
+        "media_4213081c8aedae2e",
+        "media_0b7eb1ee40b56f3c",
+        "media_ed2a8adc255b139b",
+        "media_49dfa9011b3e557a",
+        "media_6e9c8c33bce73a9b",
+        "media_a10421739f6255b0",
+        "media_c5c76de42ea52c2f",
+        "media_05592acb509b53b2",
+        "media_ae75f9351e0845c8",
+        "media_76af807ebc963403",
+        "media_540ae1329ddb91cf",
+        "media_e7ee94bf853e8e8d",
+        "media_7457ff40965c4117",
+        "media_222a872ec9c39e51",
+        "media_830cb3a9dd91d940",
+        "media_a3e576dfbeef68ff",
+        "media_7307b4bb0da76fa7",
+        "media_d8097d6d31f9670c",
+        "media_c887e24f95ec91c6"
+      ],
+      "sample_contexts": [
+        "影视作品信息 作品cid：7510936014924284466 作品官号： 1731102388002089 各任务权重 排序 出现时机 任务名 任务属性 任务描述 每日任务上限 场景示意图 1 活动首日 每日签到 完成后抽卡机会+1 1",
+        "图片尺寸：738*1014 文件大小：小于1M 文件格式：PNG （基于设计稿1.5x导出） normalBorder_等级名 例：normalBorder_R 需要包含卡册边框， 卡册边框固定命名：normalBorder_cover 卡各等级显示边框（发光）",
+        "卡各等级显示边框（发光） 图片尺寸：580*760 文件大小：小于1M 文件格式：PNG （基于设计稿1x导出） borderGlow_等级名 例：borderGlow_SP 卡背面（无卡状态）"
+      ],
+      "questions": [
+        "这一组是九门目标素材、其他活动参考，还是平台规范？",
+        "这一组是过程稿、已提供成品，还是最终上线稿？"
+      ],
+      "suggested_role": "unknown",
+      "suggestion_reason": "仅凭文档上下文无法判断素材归属或最终性",
+      "status": "open",
+      "asset_count": 44
+    },
+    {
+      "review_id": "review_group_dfc2aecfb547",
+      "source_document_id": "YQWtdvLIMoZ7fJxVGEScZ1tpnKb",
+      "source_block_id": null,
+      "asset_ids": [
+        "media_dd6761b7fa935727",
+        "media_477771bb9be51741",
+        "media_c1683c005ebf5e84",
+        "media_e5fb62a36c26ceeb",
+        "media_9954ac980a8cbe54",
+        "media_bbfe18878c7c66b0",
+        "media_2491d6a386e66a3b"
+      ],
+      "sample_contexts": [
+        "完成后抽卡机会+3 10 资源位设计 供应商：《九门》抽卡物料提供规范 页面主题素材需关注 设计关注 以下每个表格大类都需要提供一个单的文件夹，后续如果有更新，需在更新的压缩包上附上更新日期，只放入需要更新的图片即可，新包要命名要标明更新日期，且注意保留老包； 大卡卡面是最重要的资源，其体积要求比较严格，要求提供的图大小在800kb左右，最大不要超过1M； 物料输出规范 等级卡框物料（优先级：1） 晚交付影响研发配置to签、编号位置和查看实际效果 物料名 物料示意图 实际输出尺寸 命名规范 素材提供 卡各等级显示边框（不发光）",
+        "例： flipBg_DYR 无抽卡 各按钮物料（优先级：1） 设计出图时只需关注每个大分类，小分类中按钮只有文字不同，所用背景图、字体配置皆相同； 每个按钮图片，可以有两种类型的配置 复杂按钮 ：对于样式比较复杂的按钮，直接提供背景图和文字颜色 简单按钮 ：对于背景的形状和颜色比较简单的按钮（如方形、规则的弧形、纯色背景），直接提供背景色和文字颜色 所有需要背景图的按钮，合并到一个压缩包内即可。纯色、形状规则的背景按钮，提供背景颜色和文字颜色 物料名 物料说明 物料示意图 实际输出要求 命名规范 素材提供区 第一组按钮 单次抽卡（未集齐状态）",
+        "视频尺寸：492 × 676 文件大小：小于5M 文件格式：MP4 ⚠ 带框版本需要输出直角视频 video_等级名_1 例： video_R_1 卡片物料（静态）（优先级：3） 物料名 物料示意图 实际输出尺寸 命名规范 素材提供 大卡卡面"
+      ],
+      "questions": [
+        "这一组是过程稿、已提供成品，还是最终上线稿？"
+      ],
+      "suggested_role": "platform_spec",
+      "suggestion_reason": "图片位于平台物料规格上下文",
+      "status": "open",
+      "asset_count": 7
+    },
+    {
+      "review_id": "review_group_8ca79fe14f88",
+      "source_document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+      "source_block_id": "Swzjd3qsZsOrbAbGX48cToeonOg",
+      "asset_ids": [
+        "media_c19297c16dad87cf",
+        "media_2e3aaca6c9673353"
+      ],
+      "sample_contexts": [
+        "九门大会 链接: [链接已省略] 提取码：[已省略]"
+      ],
+      "questions": [
+        "这一组是过程稿、已提供成品，还是最终上线稿？"
+      ],
+      "suggested_role": "target_activity_asset",
+      "suggestion_reason": "目标活动素材同步块中出现九门素材语义",
+      "status": "open",
+      "asset_count": 2
+    },
+    {
+      "review_id": "review_group_b26f4a336939",
+      "source_document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+      "source_block_id": "W98Gd5mvQszAVnbhXSEccRuEnHg",
+      "asset_ids": [
+        "media_126d5f53114fcd9f",
+        "media_03f90d61d750ecb1",
+        "media_b213aa31902c4298",
+        "media_e050c8c997ad0b11",
+        "media_f5be41dc70c951e9",
+        "media_ea39a69a48b359b5",
+        "media_f7faa5c590ed469e",
+        "media_de1969a16ee5107a",
+        "media_7ad8d87c63f5fbdc",
+        "media_e4c7a10475300eea",
+        "media_e3fd8f1c03771c40"
+      ],
+      "sample_contexts": [
+        "活动标题 抽九门名门卡，入奇楼探密境",
+        "活动标题 抽九门名门卡，入奇楼探密境 活动副标题 抽卡入九门，解锁你的专属家族",
+        "活动副标题 抽卡入九门，解锁你的专属家族 活动页分享 IM卡片文案 字数限制： 主标题：单行11字，超过会换行；双行21字，超过会显示省略号； 副标题：13字，超过会显示省略号 主标题：和我一起抽《九门》名门卡 副标题：一键解锁你的九门探险之旅"
+      ],
+      "questions": [
+        "这一组是九门目标素材、其他活动参考，还是平台规范？",
+        "这一组是过程稿、已提供成品，还是最终上线稿？"
+      ],
+      "suggested_role": "unknown",
+      "suggestion_reason": "仅凭文档上下文无法判断素材归属或最终性",
+      "status": "open",
+      "asset_count": 11
+    },
+    {
+      "review_id": "review_group_7ae70e9842d1",
+      "source_document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+      "source_block_id": "NzyNdyz3DsrE35bt1fBctJS5nme",
+      "asset_ids": [
+        "media_b282143cfc4e41be",
+        "media_7f096e3d11988376",
+        "media_35ce2147074285d9",
+        "media_b6d344aceedeb803",
+        "media_25f174fe969e78c9",
+        "media_cfee99494f30ecd0",
+        "media_4f9c8b8c38c5caa4",
+        "media_f47746a010e906de",
+        "media_6f0d8fb730744520",
+        "media_47cece533d9cf133",
+        "media_7757669ed5db9ba8",
+        "media_4f842efb21b8afcf",
+        "media_8c87b20df7bb71db",
+        "media_586f1fb44ae95491",
+        "media_f4f461bb6fe2c93c",
+        "media_1c5b9666259565e4",
+        "media_f73bbbe40f3437f4",
+        "media_f942aae318574dbe",
+        "media_b3b9ac3de8131368",
+        "media_71a710be1c0d13b8",
+        "media_a78850e084b77abb",
+        "media_8c2b05014cb26007",
+        "media_0fd1d6007a0c81f4",
+        "media_82db00fdfe8c1b18",
+        "media_a3b16e46f08cd6da",
+        "media_63d5e89a5beaed56",
+        "media_a3c2def18ca6088b",
+        "media_519fc1474be4fb24",
+        "media_d6f3a80d26f8ddb0",
+        "media_8ae0676b17d6fe4d",
+        "media_4bb27fb8c006e120",
+        "media_68c46638c3c8952b",
+        "media_3b164ccec23ace25",
+        "media_c9332e37dc8e2b96",
+        "media_9136b76c1fbf603c",
+        "media_faf1fed2402516b4",
+        "media_72e0b86946ce028e",
+        "media_2266205dc91b86f7",
+        "media_8939e571cec5cdec",
+        "media_f3653bd2b1506bdf",
+        "media_a2387053d15263c6",
+        "media_7a9d450204c6d8c5",
+        "media_a59b4a7e1ea3b293",
+        "media_0deac1cff0653536",
+        "media_2451019688c73c78",
+        "media_e81c1530c2d52dc7",
+        "media_da4ce7a5edce2db6",
+        "media_b71c8889a748bb41",
+        "media_5f52e5199cd9f83c",
+        "media_720fa36c4e469dab",
+        "media_c80e0761145705c8",
+        "media_d31c61775cc7fb03",
+        "media_2b2c005b6538950d"
+      ],
+      "sample_contexts": [
+        "卡面等级（英文名） 卡面等级（中文名） 卡面等级名场景示意图 优先级 卡片数量 卡片名场景示意图 卡片1 卡片2 卡片3 卡片4 卡片5 卡片6 卡片7 卡片8 卡片9 卡片10 卡片11 卡片12 卡片13 卡片14 卡片15 卡片16 卡片17 卡片18 卡片19 卡片20 DYR 卡面为抖音独家 抖音专属卡",
+        "卡片6 卡片7 卡片8 卡片9 卡片10 卡片11 卡片12 卡片13 卡片14 卡片15 卡片16 卡片17 卡片18 卡片19 卡片20 DYR 卡面为抖音独家 抖音专属卡",
+        "抖音专属卡 1 4"
+      ],
+      "questions": [
+        "这一组是过程稿、已提供成品，还是最终上线稿？"
+      ],
+      "suggested_role": "target_activity_asset",
+      "suggestion_reason": "图片位于九门卡片等级与卡名配置区块",
+      "status": "open",
+      "asset_count": 53
+    },
+    {
+      "review_id": "review_group_cf8f80290782",
+      "source_document_id": "Pq50d5VeHovFu5xKB1bcElWgnOe",
+      "source_block_id": "KVDoduPFksRlo5bQUy2cTOvJnZe",
+      "asset_ids": [
+        "media_63ff7b35a71c0eb1",
+        "media_e858670d352077ac",
+        "media_36a060660892242f",
+        "media_60616adc2bb3ba5f",
+        "media_4e738e866537eab7",
+        "media_833e590e136da298",
+        "media_07f7f479fcf47b65",
+        "media_db50d585950ba647",
+        "media_a7e18e57c94ac896",
+        "media_0195add335babe5d",
+        "media_2ce8c1ff34ad10f1",
+        "media_92ac78d853bd1f0e",
+        "media_878977b7b63cbd86"
+      ],
+      "sample_contexts": [
+        "资源位 MR 内容 数量 资源 参考 设计参考 活动中心Banner",
+        "资源位 MR 内容 数量 资源 参考 设计参考 活动中心Banner 交互规范 《九门》正在热播 快来抽取九门掌门签名小卡",
+        "交互规范 《九门》正在热播 快来抽取九门掌门签名小卡"
+      ],
+      "questions": [
+        "这一组是九门目标素材、其他活动参考，还是平台规范？",
+        "这一组是过程稿、已提供成品，还是最终上线稿？"
+      ],
+      "suggested_role": "unknown",
+      "suggestion_reason": "仅凭文档上下文无法判断素材归属或最终性",
+      "status": "open",
+      "asset_count": 13
+    }
+  ]
+}
