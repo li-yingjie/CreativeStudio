@@ -1,3 +1,5 @@
+# 2026-09-30 — 修复线上 CI 的 npm peer 依赖解析：保留 Semi 可构建的 date-fns 2，并为 AI UI 与 Tailwind 4 的旧 peer 声明启用 legacy-peer-deps。
+
 # 2026-09-30 — 为版本管理分支上线补齐产品树回归断言，并对 Tower Defense 遗留编辑器设置局部 React ESLint 兼容规则。
 
 # 2026-09-30 — 为变更管理编辑器记录补充统一 Vn 编号，并让页面下拉复用同一版本序列的最近两版。
