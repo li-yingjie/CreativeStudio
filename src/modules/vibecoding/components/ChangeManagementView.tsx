@@ -8,12 +8,11 @@ import {
   IconButton,
   Input,
   Modal,
-  SearchForm,
+  Select,
   Tag,
   TextArea,
   Timeline,
-  type SearchFormProps,
-} from '@douyin-ai/ui'
+} from '@douyinfe/semi-ui'
 import {
   Copy,
   GitBranch,
@@ -26,7 +25,7 @@ import {
   Trash2,
 } from '@/shared/icons'
 import { matchesDateRange } from './change-management-utils'
-import '@ies/semi-theme-aiui/semi.css'
+import '@douyinfe/semi-ui/dist/css/semi.min.css'
 
 export interface ChangeChatVersion {
   id: string
@@ -97,15 +96,6 @@ function matchesQuery(query: string, ...values: (string | undefined)[]) {
       value?.toLocaleLowerCase('zh-CN').includes(normalized),
     )
   )
-}
-
-function datePickerValue(value: string | Date | undefined) {
-  if (!value) return ''
-  if (typeof value === 'string') return value
-  const year = value.getFullYear()
-  const month = String(value.getMonth() + 1).padStart(2, '0')
-  const day = String(value.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 async function writeClipboard(value: string) {
@@ -235,7 +225,6 @@ function VersionInfoDialog({
             value={label}
             maxLength={50}
             onChange={setLabel}
-            theme="outline"
             className="mt-2 w-full"
           />
         </label>
@@ -250,7 +239,6 @@ function VersionInfoDialog({
             maxLength={200}
             autosize={{ minRows: 4, maxRows: 4 }}
             onChange={setDescription}
-            theme="outline"
             className="mt-2 w-full"
           />
           <span className="mt-1 block text-right text-[10px] text-[#1c1f23]/32">
@@ -424,50 +412,6 @@ export default function ChangeManagementView({
         .sort((a, b) => b.createdAt - a.createdAt),
     [editorVersions, endDate, query, startDate],
   )
-  const searchFields = useMemo<SearchFormProps['fields']>(
-    () =>
-      [
-        {
-          component: 'input',
-          key: 'query',
-          label: '搜索',
-          props: {
-            prefix: <Search size={14} strokeWidth={1.8} />,
-            showClear: true,
-            theme: 'outline',
-          },
-        },
-        {
-          component: 'datePicker',
-          key: 'dateRange',
-          label: '日期',
-          props: {
-            type: 'dateRange',
-            placeholder: ['请选择日期', '请选择日期'],
-            format: 'yyyy-MM-dd',
-            density: 'compact',
-            theme: 'outline',
-          },
-        },
-        {
-          component: 'select',
-          key: 'type',
-          label: '变更类型',
-          initValue: 'all',
-          props: {
-            optionList: [
-              { value: 'all', label: '全部变更类型' },
-              { value: 'editor', label: '编辑器内容' },
-              { value: 'chat', label: '对话流版本' },
-            ],
-            theme: 'outline',
-          },
-        },
-        // SearchForm reads field props at runtime, but 0.3.0's published
-        // FormField declaration incorrectly narrows these props to undefined.
-      ] as unknown as SearchFormProps['fields'],
-    [],
-  )
   const currentEditorVisible =
     matchesQuery(
       query,
@@ -632,33 +576,54 @@ export default function ChangeManagementView({
             </span>
           </div>
 
-          <SearchForm
+          <div
             key={`${selectedVersionId ?? 'none'}:${selectionRequest ?? 0}`}
-            compact
-            fields={searchFields}
-            initValues={{ query: '', dateRange: undefined, type: 'all' }}
-            className="change-history-search-form mb-6"
-            onSearch={(values) => {
-              const formValues = values as {
-                query?: string
-                dateRange?: (string | Date)[]
-                type?: 'all' | 'chat' | 'editor'
+            className="change-history-search-form mb-6 flex flex-wrap items-center gap-2"
+          >
+            <Input
+              aria-label="搜索变更"
+              prefix={<Search size={14} strokeWidth={1.8} />}
+              showClear
+              value={query}
+              placeholder="搜索版本"
+              onChange={setQuery}
+              className="min-w-[180px] flex-1"
+            />
+            <input
+              aria-label="开始日期"
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+              className="h-8 rounded border border-[var(--divider)] bg-white px-2 text-[12px] text-[var(--color-ink)]"
+            />
+            <input
+              aria-label="结束日期"
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              className="h-8 rounded border border-[var(--divider)] bg-white px-2 text-[12px] text-[var(--color-ink)]"
+            />
+            <Select
+              aria-label="变更类型"
+              value={tab}
+              onChange={(value) =>
+                setTab(String(value) as 'all' | 'chat' | 'editor')
               }
-              const range = formValues.dateRange ?? []
-              setQuery(formValues.query ?? '')
-              setStartDate(datePickerValue(range[0]))
-              setEndDate(datePickerValue(range[1]))
-              setTab(formValues.type ?? 'all')
-              setOpenMenu(null)
-            }}
-          />
+              optionList={[
+                { value: 'all', label: '全部变更类型' },
+                { value: 'editor', label: '编辑器内容' },
+                { value: 'chat', label: '对话流版本' },
+              ]}
+              className="w-[140px]"
+            />
+          </div>
 
           {dateGroups.length === 0 ? (
             <div className="border-t border-[var(--divider-soft)] py-16 text-center text-[12px] text-[var(--color-ink)]/38">
               没有匹配的版本
             </div>
           ) : (
-            <Timeline lineType="solid" className="change-history-timeline">
+            <Timeline className="change-history-timeline">
               {dateGroups.map((group) => (
                 <Timeline.Item key={group}>
                   <h2 className="change-history-date">{group}</h2>

@@ -22,7 +22,7 @@ vi.mock('@/shared/icons', () => {
   }
 })
 
-vi.mock('@douyin-ai/ui', () => {
+vi.mock('@douyinfe/semi-ui', () => {
   const Dropdown = (props: {
     children: React.ReactNode
     render: React.ReactNode

@@ -10,7 +10,7 @@ import {
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import * as Popover from '@radix-ui/react-popover'
-import { Button, ButtonGroup, IconButton, Tabs } from '@douyin-ai/ui'
+import { Button, ButtonGroup, IconButton, Tabs } from '@douyinfe/semi-ui'
 import { Tooltip } from './Tooltip'
 import { toast } from 'sonner'
 import ChatPreview from '@/modules/editor/components/preview/ChatPreview'
@@ -17650,11 +17650,6 @@ export default function VibeCodingPage({
                       onChange={(key) => setActivePreviewTab(Number(key))}
                       type="button"
                       size="small"
-                      tabStyle={{
-                        minHeight: 28,
-                        padding: '5px 10px',
-                        fontSize: 12.5,
-                      }}
                       className="workspace-primary-tabs min-w-0"
                       tabList={openTabs.map((tab, i) => {
                         const TabIcon = productLabelIcon(tab.label)
@@ -20549,10 +20544,9 @@ export default function VibeCodingPage({
                                 setTowerReplayKey((key) => key + 1)
                               }
                               icon={<RefreshCw size={13} strokeWidth={1.8} />}
-                              size="medium"
-                              shape="circle"
-                              theme="white"
-                              className="preview-replay-button"
+                              size="default"
+                              theme="light"
+                              className="preview-replay-button rounded-full"
                             />
                           )}
                           <ButtonGroup
@@ -20573,8 +20567,8 @@ export default function VibeCodingPage({
                               }
                               icon={<Minus size={13} strokeWidth={1.8} />}
                               size="small"
-                              shape="circle"
                               theme="borderless"
+                              className="rounded-full"
                             />
                             <Button
                               title="重置缩放"
@@ -20595,8 +20589,8 @@ export default function VibeCodingPage({
                               }
                               icon={<Plus size={13} strokeWidth={1.8} />}
                               size="small"
-                              shape="circle"
                               theme="borderless"
+                              className="rounded-full"
                             />
                           </ButtonGroup>
                         </div>

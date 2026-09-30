@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button } from '@douyin-ai/ui'
+import { Button } from '@douyinfe/semi-ui'
 import {
   Bot,
   Calendar,

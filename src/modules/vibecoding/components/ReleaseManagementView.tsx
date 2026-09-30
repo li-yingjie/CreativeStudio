@@ -5,7 +5,7 @@ import {
   Tabs,
   Tag,
   Timeline,
-} from '@douyin-ai/ui'
+} from '@douyinfe/semi-ui'
 import {
   CheckCircle2,
   FileText,
@@ -68,7 +68,6 @@ export default function ReleaseManagementView({
         onChange={(key) => setTab(key as 'config' | 'history')}
         type="button"
         size="small"
-        tabStyle={{ minHeight: 32, padding: '6px 12px', fontSize: 13 }}
         tabList={[
           { itemKey: 'config', tab: '发布配置' },
           { itemKey: 'history', tab: '发布历史' },
@@ -97,7 +96,6 @@ export default function ReleaseManagementView({
                 className="release-page-select w-[260px] max-w-full @max-[420px]:w-full"
                 dropdownClassName="release-page-select-dropdown"
                 size="default"
-                theme="outline"
               />
             </header>
           )}
@@ -111,7 +109,6 @@ export default function ReleaseManagementView({
               ) : (
                 <Timeline
                   aria-label={`${projectName}的发布历史`}
-                  lineType="solid"
                   className="release-version-timeline"
                 >
                   {visibleVersions.map((version) => (

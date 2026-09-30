@@ -1,3 +1,5 @@
+# 2026-09-30 — 将变更/发布管理从公网不可安装的私有 UI 包迁移到固定版本的公开 Semi UI，并重建仅使用 npmjs 与 GitHub 的锁文件，解除 CI 与 Vercel 安装阻塞。
+
 # 2026-09-30 — 修复线上 CI 的依赖安装：保留 Semi 可构建的 date-fns 2，将 master-icon 固定为 tarball 并由项目 postinstall 构建，避开 Git 依赖的嵌套安装崩溃。
 
 # 2026-09-30 — 为版本管理分支上线补齐产品树回归断言，并对 Tower Defense 遗留编辑器设置局部 React ESLint 兼容规则。
