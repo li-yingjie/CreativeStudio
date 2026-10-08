@@ -19,7 +19,7 @@ import {
   Plus,
   Trash2,
 } from '@/shared/icons'
-import type { H5LabCase } from './h5-lab-cases'
+import type { H5LabCase, H5LabDesign } from './h5-lab-cases'
 import { buildH5LabFrames } from './H5LabFrames'
 import {
   applyH5LabPageSettings,
@@ -41,6 +41,7 @@ import {
 import {
   applyH5LabBoard,
   applyH5LabGroups,
+  applyH5LabInsertedElements,
   h5LabCss,
   h5LabGroupId,
   h5LabGroupPath,
@@ -52,6 +53,8 @@ import {
   h5LabReset,
   type H5LabOverrides,
   type H5LabGroup,
+  type H5LabInsertedElement,
+  type H5LabInsertedElementKind,
   type H5LabSelection,
 } from './h5-lab-overrides'
 import { useHostTitle } from './useHostTitle'
@@ -84,6 +87,12 @@ interface CanvasView {
 /** 面板要靠它反选图层 —— 画布和面板是布局上的兄弟，只能用一个句柄互通。 */
 export interface H5LabStageApi {
   selectPath: (stateId: string, path: string) => void
+  reorderPath: (
+    stateId: string,
+    sourcePath: string,
+    targetPath: string,
+    placement?: 'before' | 'after',
+  ) => boolean
   groupSelectionWithLayout: (
     layoutMode: 'normal' | 'vertical' | 'horizontal',
   ) => void
@@ -92,6 +101,7 @@ export interface H5LabStageApi {
 export interface H5LabAsset {
   src: string
   label: string
+  kind: 'image' | 'video'
 }
 
 interface Props {
@@ -126,6 +136,11 @@ interface Props {
   onFocusFrame?: (frameId: string) => void
   /** 删除补出来的状态帧；基准帧不允许删除。 */
   onDeleteFrame: (frameId: string) => void
+  elements: H5LabInsertedElement[]
+  onElements: (
+    elements: H5LabInsertedElement[],
+    options?: H5LabHistoryOptions,
+  ) => void
   /** 把选中的元素带进对话，接着聊着改。 */
   onAddToChat: (ref: H5LabChatRef) => void
   /** 给选中元素写一条标注，并带入对话继续描述修改。 */
@@ -139,6 +154,75 @@ interface Props {
 }
 
 type Box = { left: number; top: number; width: number; height: number }
+
+const INSERTABLE_COMPONENTS: {
+  kind: H5LabInsertedElementKind
+  label: string
+  hint: string
+  html: (design: H5LabDesign) => string
+}[] = [
+  {
+    kind: 'heading',
+    label: '标题',
+    hint: '添加一行章节标题',
+    html: (design) =>
+      `<h2 data-h5ds-seen data-h5ds="c-pageInk f-display" style="box-sizing:border-box;width:calc(100% - 32px);margin:20px 16px 8px;color:${design.pageInk};font-family:${escapeHtmlAttribute(design.displayFont)};font-size:24px;font-weight:600;line-height:1.35">标题文本</h2>`,
+  },
+  {
+    kind: 'paragraph',
+    label: '正文',
+    hint: '添加一段说明文字',
+    html: (design) =>
+      `<p data-h5ds-seen data-h5ds="c-pageInk f-body" style="box-sizing:border-box;width:calc(100% - 32px);margin:8px 16px 20px;color:${design.pageInk};font-family:${escapeHtmlAttribute(design.bodyFont)};font-size:14px;font-weight:400;line-height:1.7">在这里输入正文内容。</p>`,
+  },
+]
+
+const MAX_PASTED_IMAGE_BYTES = 4 * 1024 * 1024
+
+function escapeHtmlAttribute(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+}
+
+function readImageFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () =>
+      typeof reader.result === 'string'
+        ? resolve(reader.result)
+        : reject(new Error('图片读取失败'))
+    reader.onerror = () => reject(reader.error ?? new Error('图片读取失败'))
+    reader.readAsDataURL(file)
+  })
+}
+
+function cleanCopiedElement(node: HTMLElement, sourceStateId?: string) {
+  const clone = node.cloneNode(true) as HTMLElement
+  for (const element of [clone, ...Array.from(clone.querySelectorAll<HTMLElement>('*'))]) {
+    for (const attribute of Array.from(element.attributes)) {
+      if (attribute.name.startsWith('data-h5')) element.removeAttribute(attribute.name)
+    }
+    element.removeAttribute('contenteditable')
+  }
+  if (sourceStateId) clone.dataset.h5CopySourceFrame = sourceStateId
+  return clone.outerHTML
+}
+
+async function writeHtmlToClipboard(html: string) {
+  if (typeof ClipboardItem !== 'undefined' && navigator.clipboard.write) {
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([html], { type: 'text/plain' }),
+      }),
+    ])
+    return
+  }
+  await navigator.clipboard.writeText(html)
+}
 
 function sameBox(a: Box | null, b: Box | null) {
   if (a === b) return true
@@ -172,6 +256,8 @@ export default function H5LabEditStage({
   focusFrameId,
   onFocusFrame,
   onDeleteFrame,
+  elements,
+  onElements,
   onAddToChat,
   onAnnotate,
   onUndo,
@@ -184,6 +270,13 @@ export default function H5LabEditStage({
   const scrollRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const frameRefs = useRef(new Map<string, HTMLDivElement>())
+  const copiedElementRef = useRef<{ html: string; sourceStateId: string } | null>(
+    null,
+  )
+  const overridesRef = useRef(overrides)
+  useEffect(() => {
+    overridesRef.current = overrides
+  }, [overrides])
   const [view, setView] = useState<CanvasView>({
     zoom: INITIAL_ZOOM,
     x: DEFAULT_FRAME_LEFT_PADDING - CONTENT_INLINE_PADDING * INITIAL_ZOOM,
@@ -208,6 +301,20 @@ export default function H5LabEditStage({
   // 覆盖写回后重新量一次选中框；也被滚动 / 缩放 / 尺寸变化触发。
   const [measureTick, setMeasureTick] = useState(0)
   const remeasure = useCallback(() => setMeasureTick((n) => n + 1), [])
+
+  /* 帧标题右侧只保留最基础的文本插入。 */
+  const [addingForFrame, setAddingForFrame] = useState<string | null>(null)
+  const addMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!addingForFrame) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (addMenuRef.current?.contains(event.target as Node)) return
+      setAddingForFrame(null)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [addingForFrame])
 
   useEffect(() => {
     onMultiSelectionChange(multiSelections.length)
@@ -261,6 +368,10 @@ export default function H5LabEditStage({
     for (const frame of frames) {
       const root = frameRefs.current.get(frame.id)
       if (root) {
+        applyH5LabInsertedElements(
+          root,
+          elements.filter((element) => element.stateId === frame.id),
+        )
         applyH5LabGroups(
           root,
           groups.filter((group) => group.stateId === frame.id),
@@ -275,30 +386,38 @@ export default function H5LabEditStage({
     requestAnimationFrame(() => {
       applyingRef.current = false
     })
-  }, [design, frames, groups, labCase.design, overrides, pageSettings])
+  }, [design, elements, frames, groups, labCase.design, overrides, pageSettings])
 
   useLayoutEffect(() => {
     applyOverrides()
   }, [applyOverrides, previewKey])
 
-  /* 聚焦帧的图层树 / 交互热点，以及全部帧里用到的图片 —— 选区、覆盖或页面
+  /* 聚焦帧的图层树 / 交互热点，以及全部帧里用到的媒体 —— 选区、覆盖或页面
      自身 DOM 变化后都重新推一次。 */
   const pushLayers = useCallback(() => {
     const root = frameRefs.current.get(focusedStateId)
     onLayers(root ? buildH5LabLayers(root) : [])
     onHotspots(root ? findH5LabHotspots(root) : [])
 
-    const assets = new Map<string, string>()
+    const assets = new Map<string, H5LabAsset>()
     for (const frame of frames) {
       const frameRoot = frameRefs.current.get(frame.id)
       if (!frameRoot) continue
-      for (const img of Array.from(frameRoot.querySelectorAll('img'))) {
-        const src = img.getAttribute('src')
+      for (const media of Array.from(
+        frameRoot.querySelectorAll<HTMLImageElement | HTMLVideoElement>('img, video'),
+      )) {
+        const src = media.getAttribute('src')
         if (!src || assets.has(src)) continue
-        assets.set(src, img.alt?.trim() || src.split('/').at(-1) || '图片')
+        const kind = media instanceof HTMLVideoElement ? 'video' : 'image'
+        const label =
+          (media instanceof HTMLImageElement ? media.alt?.trim() : media.title?.trim()) ||
+          media.getAttribute('aria-label')?.trim() ||
+          src.split('/').at(-1) ||
+          (kind === 'video' ? '视频' : '图片')
+        assets.set(src, { src, label, kind })
       }
     }
-    onAssets([...assets].map(([src, label]) => ({ src, label })))
+    onAssets([...assets.values()])
     onDesignTokenUsage(h5LabDesignTokenUsage(frameRefs.current.values()))
   }, [focusedStateId, frames, onAssets, onDesignTokenUsage, onHotspots, onLayers])
 
@@ -594,7 +713,7 @@ export default function H5LabEditStage({
           html: el.innerHTML,
           className: typeof el.className === 'string' ? el.className : '',
           src:
-            el instanceof HTMLImageElement
+            el instanceof HTMLImageElement || el instanceof HTMLVideoElement
               ? el.getAttribute('src') ?? ''
               : /url\("?(.*?)"?\)/.exec(style.backgroundImage)?.[1] ?? '',
           color: style.color,
@@ -636,6 +755,192 @@ export default function H5LabEditStage({
     [zoom],
   )
 
+  const insertElementIntoFrame = useCallback(
+    (
+      frameId: string,
+      element: Omit<
+        H5LabInsertedElement,
+        'id' | 'caseId' | 'stateId' | 'parentPath'
+      >,
+      historyGroup: string,
+    ) => {
+      const root = frameRefs.current.get(frameId)
+      if (!root) return false
+      const parent =
+        root.querySelector<HTMLElement>('main') ??
+        root.firstElementChild ??
+        root
+      if (!(parent instanceof HTMLElement)) return false
+      const parentPath = parent === root ? '' : h5LabPathOf(root, parent) ?? ''
+      const id = `${element.kind}-${Date.now().toString(36)}-${Math.random()
+        .toString(36)
+        .slice(2, 6)}`
+      onElements(
+        [
+          ...elements,
+          {
+            ...element,
+            id,
+            caseId: labCase.id,
+            stateId: frameId,
+            parentPath,
+          },
+        ],
+        { group: `${historyGroup}|${frameId}|${id}` },
+      )
+      onFocusFrame?.(frameId)
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const nextRoot = frameRefs.current.get(frameId)
+          const wrapper = nextRoot?.querySelector<HTMLElement>(
+            `[data-h5-inserted="${CSS.escape(id)}"]`,
+          )
+          const target = wrapper?.firstElementChild
+          if (!(target instanceof HTMLElement) || !nextRoot) return
+          const path = h5LabPathOf(nextRoot, target)
+          if (!path) return
+          onSelect(measure(frameId, path, target))
+          remeasure()
+        })
+      })
+      return true
+    },
+    [
+      elements,
+      labCase.id,
+      measure,
+      onElements,
+      onFocusFrame,
+      onSelect,
+      remeasure,
+    ],
+  )
+
+  const addTextElementToFrame = (
+    frameId: string,
+    component: (typeof INSERTABLE_COMPONENTS)[number],
+  ) => {
+    if (
+      insertElementIntoFrame(
+        frameId,
+        {
+          kind: component.kind,
+          label: component.label,
+          // HTML 存原稿 token；当前皮肤由 data-h5ds 规则覆盖，切回原稿也能复原。
+          html: component.html(labCase.design),
+        },
+        'add-text',
+      )
+    ) {
+      setAddingForFrame(null)
+      toast(`已添加${component.label}`)
+    }
+  }
+
+  /* 图片和复制出的 DOM 都落到当前聚焦帧，可在同帧或切换帧后粘贴。 */
+  useEffect(() => {
+    const onPaste = async (event: ClipboardEvent) => {
+      const active = document.activeElement
+      if (
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        (active instanceof HTMLElement && active.isContentEditable)
+      ) {
+        return
+      }
+
+      const clipboard = event.clipboardData
+      if (!clipboard) return
+      const imageFile = Array.from(clipboard.items)
+        .find((item) => item.kind === 'file' && item.type.startsWith('image/'))
+        ?.getAsFile()
+      const clipboardHtml = clipboard.getData('text/html')
+      const plainText = clipboard.getData('text/plain')
+      const html =
+        clipboardHtml ||
+        (/^\s*</.test(plainText) ? plainText : '') ||
+        (clipboard.types.length === 0 ? copiedElementRef.current?.html ?? '' : '')
+      const parsed = html
+        ? new DOMParser().parseFromString(html, 'text/html')
+        : null
+      const pastedElement = parsed?.body.firstElementChild
+      if (!imageFile && !(pastedElement instanceof HTMLElement)) return
+
+      event.preventDefault()
+      if (imageFile && imageFile.size > MAX_PASTED_IMAGE_BYTES) {
+        toast.error('图片不能超过 4 MB')
+        return
+      }
+
+      const stateId = focusedStateId
+      if (imageFile) {
+        let src = ''
+        try {
+          src = await readImageFile(imageFile)
+        } catch {
+          toast.error('图片读取失败，请重新粘贴')
+          return
+        }
+        if (!src) return
+        const label = imageFile.name || '粘贴图片'
+        if (
+          insertElementIntoFrame(
+            stateId,
+            {
+              kind: 'image',
+              label,
+              html: `<img src="${escapeHtmlAttribute(src)}" alt="${escapeHtmlAttribute(label)}" style="box-sizing:border-box;display:block;width:calc(100% - 32px);height:auto;margin:20px 16px;object-fit:contain" />`,
+            },
+            'paste-image',
+          )
+        ) {
+          toast('图片已粘贴，可继续对话或进入素材库编辑')
+        }
+        return
+      }
+
+      if (!(pastedElement instanceof HTMLElement)) return
+      const sourceStateId = pastedElement.dataset.h5CopySourceFrame
+      const cleanHtml = cleanCopiedElement(pastedElement)
+      const tag = pastedElement.tagName.toLowerCase()
+      const text = (pastedElement.textContent ?? '').trim().replace(/\s+/g, ' ')
+      const label =
+        pastedElement.getAttribute('aria-label')?.trim() ||
+        (text ? text.slice(0, 16) : tag === 'div' ? '复制的容器' : `复制的 ${tag}`)
+      const kind = tag === 'img' ? 'image' : 'html'
+      if (
+        insertElementIntoFrame(
+          stateId,
+          { kind, label, html: cleanHtml },
+          'paste-element',
+        )
+      ) {
+        const frameLabel =
+          frames.find((frame) => frame.id === stateId)?.label ?? '当前画板'
+        toast(
+          sourceStateId && sourceStateId !== stateId
+            ? `已跨画板粘贴到「${frameLabel}」`
+            : '已粘贴到当前画板',
+        )
+      }
+    }
+
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [
+    elements,
+    focusedStateId,
+    frames,
+    insertElementIntoFrame,
+    labCase.id,
+    measure,
+    onElements,
+    onFocusFrame,
+    onSelect,
+    remeasure,
+  ])
+
   const resolve = useCallback(
     (target: EventTarget | null) => {
       if (!(target instanceof Element)) return null
@@ -660,6 +965,68 @@ export default function H5LabEditStage({
     [frames],
   )
 
+  const reorderPath = useCallback(
+    (
+      stateId: string,
+      sourcePath: string,
+      targetPath: string,
+      placement: 'before' | 'after' = 'before',
+    ) => {
+      if (sourcePath === targetPath) return false
+      const root = frameRefs.current.get(stateId)
+      const source = root ? h5LabNodeAt(root, sourcePath) : null
+      const target = root ? h5LabNodeAt(root, targetPath) : null
+      const parent = source?.parentElement
+      if (!root || !source || !target || !parent || target.parentElement !== parent) {
+        toast.error('只能调整同一父级下的图层顺序')
+        return false
+      }
+      const siblings = Array.from(parent.children).filter(
+        (child): child is HTMLElement =>
+          child instanceof HTMLElement &&
+          !['STYLE', 'SCRIPT', 'BR'].includes(child.tagName),
+      )
+      const sourceIndex = siblings.indexOf(source)
+      if (sourceIndex < 0 || !siblings.includes(target)) return false
+      const reordered = siblings.filter((node) => node !== source)
+      let targetIndex = reordered.indexOf(target)
+      if (placement === 'after') targetIndex += 1
+      reordered.splice(targetIndex, 0, source)
+      if (reordered.every((node, index) => node === siblings[index])) return false
+
+      const entries = siblings.flatMap((node, index) => {
+        const path =
+          node.dataset.h5Group
+            ? h5LabGroupPath(node.dataset.h5Group)
+            : h5LabPathOf(root, node)
+        if (!path) return []
+        node.dataset.h5SourcePath = path
+        if (!node.dataset.h5SourceOrder) node.dataset.h5SourceOrder = String(index)
+        return [{ node, path }]
+      })
+      if (entries.length !== siblings.length) return false
+      const orderedPaths = reordered.flatMap((node) => {
+        const hit = entries.find((entry) => entry.node === node)
+        return hit ? [hit.path] : []
+      })
+      let next = overridesRef.current
+      for (const [index, path] of orderedPaths.entries()) {
+        next = h5LabPatchSlot(next, [stateId], path, {
+          siblingOrder: index,
+        })
+      }
+      onOverrides(next, {
+        group: `reorder|${stateId}|${sourcePath}`,
+      })
+      requestAnimationFrame(() => {
+        pushLayers()
+        remeasure()
+      })
+      return true
+    },
+    [onOverrides, pushLayers, remeasure],
+  )
+
   /* 面板反选图层用的句柄。 */
   useEffect(() => {
     apiRef.current = {
@@ -671,6 +1038,7 @@ export default function H5LabEditStage({
         onSelect(measure(stateId, path, node))
         remeasure()
       },
+      reorderPath,
       groupSelectionWithLayout: (layoutMode) => {
         groupSelectionRef.current(layoutMode)
       },
@@ -678,7 +1046,7 @@ export default function H5LabEditStage({
     return () => {
       apiRef.current = null
     }
-  }, [apiRef, measure, onFocusFrame, onSelect, remeasure])
+  }, [apiRef, measure, onFocusFrame, onSelect, remeasure, reorderPath])
 
   /* ── 拖动：选中元素上再按下就是移动，四角手柄改宽高 ──
      移动不做整块遮罩，否则点不进子元素；命中路径和当前选区相同才算移动。 */
@@ -700,11 +1068,6 @@ export default function H5LabEditStage({
     baseOffsetY: number
     moved: boolean
   } | null>(null)
-  const overridesRef = useRef(overrides)
-  useEffect(() => {
-    overridesRef.current = overrides
-  }, [overrides])
-
   const groupSelection = useCallback((layoutMode?: 'normal' | 'vertical' | 'horizontal') => {
     const picked = multiSelections.length > 1 ? multiSelections : []
     if (picked.length < 2) {
@@ -845,6 +1208,44 @@ export default function H5LabEditStage({
     toast(enabled ? '已关闭自动布局' : '已启用纵向自动布局')
   }, [onOverrides, remeasure, selection])
 
+  const reorderSelectionStep = useCallback(
+    (direction: -1 | 1, toEdge: boolean) => {
+      if (!selection) return
+      const root = frameRefs.current.get(selection.stateId)
+      const node = root ? h5LabNodeAt(root, selection.path) : null
+      const parent = node?.parentElement
+      if (!root || !node || !parent) return
+      const siblings = Array.from(parent.children).filter(
+        (child): child is HTMLElement =>
+          child instanceof HTMLElement &&
+          !['STYLE', 'SCRIPT', 'BR'].includes(child.tagName),
+      )
+      const index = siblings.indexOf(node)
+      const targetIndex = toEdge
+        ? direction > 0
+          ? siblings.length - 1
+          : 0
+        : index + direction
+      const target = siblings[targetIndex]
+      if (!target || target === node) {
+        toast(direction > 0 ? '已在最前层' : '已在最后层')
+        return
+      }
+      const targetPath = target.dataset.h5Group
+        ? h5LabGroupPath(target.dataset.h5Group)
+        : h5LabPathOf(root, target)
+      if (!targetPath) return
+      const changed = reorderPath(
+        selection.stateId,
+        selection.path,
+        targetPath,
+        direction > 0 ? 'after' : 'before',
+      )
+      if (changed) toast(direction > 0 ? '已前移一层' : '已后移一层')
+    },
+    [reorderPath, selection],
+  )
+
   useEffect(() => {
     const onShortcut = (event: KeyboardEvent) => {
       const target = event.target
@@ -866,6 +1267,19 @@ export default function H5LabEditStage({
         return
       }
       if (!selection) return
+      const bracketDirection =
+        event.code === 'BracketRight' || event.key === ']' || event.key === '】'
+          ? 1
+          : event.code === 'BracketLeft' ||
+              event.key === '[' ||
+              event.key === '【'
+            ? -1
+            : 0
+      if ((event.metaKey || event.ctrlKey) && bracketDirection !== 0) {
+        event.preventDefault()
+        reorderSelectionStep(bracketDirection, event.shiftKey)
+        return
+      }
       if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(key)) {
         event.preventDefault()
         const step = event.shiftKey ? 10 : 1
@@ -894,7 +1308,15 @@ export default function H5LabEditStage({
     }
     window.addEventListener('keydown', onShortcut)
     return () => window.removeEventListener('keydown', onShortcut)
-  }, [groupSelection, onOverrides, remeasure, selection, toggleSelectionAutoLayout, ungroupSelection])
+  }, [
+    groupSelection,
+    onOverrides,
+    remeasure,
+    reorderSelectionStep,
+    selection,
+    toggleSelectionAutoLayout,
+    ungroupSelection,
+  ])
 
   const beginDrag = useCallback(
     (
@@ -1222,10 +1644,10 @@ export default function H5LabEditStage({
                 <div
                   key={frame.id}
                   className="flex flex-col"
-                  style={{ gap: 8 * boardUiScale }}
+                  style={{ width: labCase.width, gap: 8 * boardUiScale }}
                 >
                   <div
-                    className="flex w-full items-baseline"
+                    className="flex w-full items-start"
                     style={{ gap: 6 * boardUiScale }}
                   >
                     <button
@@ -1236,71 +1658,174 @@ export default function H5LabEditStage({
                         onSelect(null)
                         onFocusFrame?.(frame.id)
                       }}
-                      className="flex min-w-0 flex-1 cursor-pointer items-baseline text-left"
-                      style={{ gap: 8 * boardUiScale, paddingLeft: 2 * boardUiScale }}
+                      className="flex min-w-0 flex-1 cursor-pointer flex-col items-start overflow-hidden text-left"
+                      style={{ gap: 2 * boardUiScale, paddingLeft: 2 * boardUiScale }}
                     >
-                    {frame.generated && (
                       <span
-                        className="rounded-sm bg-[#2f6bff]/12 text-[#2f6bff]"
-                        style={{
-                          paddingInline: 4 * boardUiScale,
-                          fontSize: 10 * boardUiScale,
-                          lineHeight: `${16 * boardUiScale}px`,
-                        }}
+                        className="flex min-w-0 max-w-full items-center"
+                        style={{ gap: 8 * boardUiScale }}
                       >
-                        新增
+                        {frame.generated && (
+                          <span
+                            className="shrink-0 rounded-sm bg-[#2f6bff]/12 text-[#2f6bff]"
+                            style={{
+                              paddingInline: 4 * boardUiScale,
+                              fontSize: 10 * boardUiScale,
+                              lineHeight: `${16 * boardUiScale}px`,
+                            }}
+                          >
+                            新增
+                          </span>
+                        )}
+                        <span
+                          className={`min-w-0 truncate whitespace-nowrap ${
+                            focused
+                              ? 'font-semibold text-[var(--color-ink)]'
+                              : 'font-medium text-[var(--color-ink)]/55'
+                          }`}
+                          style={{ fontSize: 13 * boardUiScale }}
+                        >
+                          {frame.label}
+                        </span>
+                        {focused && (
+                          <span
+                            className="shrink-0 rounded-full bg-[#d4ebff] font-semibold text-[#357ef8]"
+                            style={{
+                              paddingInline: 6 * boardUiScale,
+                              paddingBlock: boardUiScale,
+                              fontSize: 10 * boardUiScale,
+                            }}
+                          >
+                            编辑中
+                          </span>
+                        )}
                       </span>
-                    )}
-                    <span
-                      className={
-                        focused
-                          ? 'font-semibold text-[var(--color-ink)]'
-                          : 'font-medium text-[var(--color-ink)]/55'
-                      }
-                      style={{ fontSize: 13 * boardUiScale }}
-                    >
-                      {frame.label}
-                    </span>
-                    {frame.note && (
+                      {frame.note && (
                       <span
-                        className="text-[var(--color-ink)]/40"
-                        style={{ fontSize: 11 * boardUiScale }}
+                          className="block w-full truncate text-[var(--color-ink)]/40"
+                          style={{
+                            fontSize: 11 * boardUiScale,
+                            lineHeight: `${16 * boardUiScale}px`,
+                          }}
+                          title={frame.note}
                       >
-                        {frame.note}
+                          {frame.note}
                       </span>
-                    )}
-                    {focused && (
-                      <span
-                        className="rounded-full bg-[#d4ebff] font-semibold text-[#357ef8]"
-                        style={{
-                          paddingInline: 6 * boardUiScale,
-                          paddingBlock: boardUiScale,
-                          fontSize: 10 * boardUiScale,
-                        }}
-                      >
-                        编辑中
-                      </span>
-                    )}
+                      )}
                     </button>
-                    {frame.generated && focused && (
-                      <button
-                        type="button"
-                        title="删除画布"
-                        aria-label={`删除画布「${frame.label}」`}
-                        data-h5-frame-picker
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          onDeleteFrame(frame.id)
-                        }}
-                        className="flex shrink-0 cursor-pointer items-center justify-center rounded text-[var(--color-ink)]/40 transition-colors hover:bg-red-500/10 hover:text-red-500"
-                        style={{
-                          width: 22 * boardUiScale,
-                          height: 22 * boardUiScale,
-                        }}
+                    <div
+                      className="flex shrink-0 items-center"
+                      style={{ gap: 6 * boardUiScale }}
+                    >
+                      <div
+                        className="relative"
+                        ref={addingForFrame === frame.id ? addMenuRef : undefined}
                       >
-                        <Trash2 size={12 * boardUiScale} strokeWidth={1.8} />
-                      </button>
-                    )}
+                        <button
+                          type="button"
+                          data-h5-frame-picker
+                          title="给这一帧新增模块"
+                          aria-expanded={addingForFrame === frame.id}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            onFocusFrame?.(frame.id)
+                            setAddingForFrame((current) =>
+                              current === frame.id ? null : frame.id,
+                            )
+                          }}
+                          className="flex cursor-pointer items-center whitespace-nowrap rounded-full border border-[var(--divider-soft)] bg-white text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)]"
+                          style={{
+                            height: 22 * boardUiScale,
+                            paddingInline: 8 * boardUiScale,
+                            gap: 4 * boardUiScale,
+                            fontSize: 11 * boardUiScale,
+                          }}
+                        >
+                          <Plus
+                            size={11 * boardUiScale}
+                            strokeWidth={2.2}
+                          />
+                          添加元素
+                        </button>
+                        {addingForFrame === frame.id && (
+                          <div
+                            className="thin-scroll absolute right-0 z-20 flex flex-col overflow-y-auto border border-[var(--divider-soft)] bg-white shadow-[0_8px_24px_rgba(16,18,24,0.14)]"
+                            style={{
+                              top: 26 * boardUiScale,
+                              width: 184 * boardUiScale,
+                              padding: 4 * boardUiScale,
+                              borderRadius: 10 * boardUiScale,
+                            }}
+                          >
+                            <div
+                              className="font-medium text-[var(--color-ink)]/45"
+                              style={{
+                                padding: `${5 * boardUiScale}px ${8 * boardUiScale}px`,
+                                fontSize: 10 * boardUiScale,
+                              }}
+                            >
+                              文本
+                            </div>
+                            {INSERTABLE_COMPONENTS.map((component) => (
+                                <button
+                                  key={component.kind}
+                                  type="button"
+                                  data-h5-frame-picker
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    addTextElementToFrame(frame.id, component)
+                                  }}
+                                  className="flex cursor-pointer flex-col items-start text-left transition-colors hover:bg-[var(--fill-hover)]"
+                                  style={{
+                                    gap: 2 * boardUiScale,
+                                    paddingInline: 8 * boardUiScale,
+                                    paddingBlock: 6 * boardUiScale,
+                                    borderRadius: 7 * boardUiScale,
+                                  }}
+                                >
+                                  <span
+                                    className="font-medium text-[var(--color-ink)]/80"
+                                    style={{
+                                      fontSize: 12 * boardUiScale,
+                                      lineHeight: 1.3,
+                                    }}
+                                  >
+                                    {component.label}
+                                  </span>
+                                  <span
+                                    className="text-[var(--color-ink)]/40"
+                                    style={{
+                                      fontSize: 10.5 * boardUiScale,
+                                      lineHeight: 1.35,
+                                    }}
+                                  >
+                                    {component.hint}
+                                  </span>
+                                </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {frame.generated && focused && (
+                        <button
+                          type="button"
+                          title="删除画布"
+                          aria-label={`删除画布「${frame.label}」`}
+                          data-h5-frame-picker
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            onDeleteFrame(frame.id)
+                          }}
+                          className="flex shrink-0 cursor-pointer items-center justify-center rounded text-[var(--color-ink)]/40 transition-colors hover:bg-red-500/10 hover:text-red-500"
+                          style={{
+                            width: 22 * boardUiScale,
+                            height: 22 * boardUiScale,
+                          }}
+                        >
+                          <Trash2 size={12 * boardUiScale} strokeWidth={1.8} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div
                     data-h5-frame={frame.id}
@@ -1466,14 +1991,28 @@ export default function H5LabEditStage({
               </button>
               <button
                 type="button"
-                title="复制元素 HTML"
+                title="复制元素"
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.preventDefault()
                   event.stopPropagation()
                   const root = frameRefs.current.get(selection.stateId)
                   const node = root ? h5LabNodeAt(root, selection.path) : null
-                  void navigator.clipboard.writeText(node?.outerHTML ?? selection.measured.html)
+                  if (!node) {
+                    toast.error('当前元素无法复制')
+                    return
+                  }
+                  const html = cleanCopiedElement(node, selection.stateId)
+                  copiedElementRef.current = {
+                    html,
+                    sourceStateId: selection.stateId,
+                  }
+                  void writeHtmlToClipboard(html)
+                    .then(() => toast.success('复制成功'))
+                    .catch(() => {
+                      // 浏览器拒绝系统剪贴板时，仍保留编辑器内副本供跨画板粘贴。
+                      toast.success('复制成功')
+                    })
                 }}
                 className="pointer-events-auto flex size-[17px] items-center justify-center border-l border-white/30 transition-colors hover:bg-white/20"
               >

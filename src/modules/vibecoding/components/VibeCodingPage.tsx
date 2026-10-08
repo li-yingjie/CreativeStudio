@@ -110,6 +110,8 @@ import ReleaseManagementView, {
 import type { H5LabLayer } from './h5-lab/h5-lab-layers'
 import {
   emptyH5LabDesignTokenUsage,
+  H5_LAB_DESIGN_PRESETS,
+  randomH5LabDesign,
   type H5LabColorToken,
 } from './h5-lab/h5-lab-design'
 import { buildH5LabFrames } from './h5-lab/H5LabFrames'
@@ -587,6 +589,16 @@ const TOWER_DEFENSE_FLOW_STORAGE_KEY =
 const CHANGE_MANAGEMENT_LABEL = '变更管理'
 const RELEASE_MANAGEMENT_LABEL = '发布'
 const H5_LAB_INITIAL_APPLIED_AT = Date.now()
+const H5_LAB_STYLE_PROMPT_TAG = '【生成页面整体风格】'
+const H5_LAB_STYLE_PROMPT_FIELD = '风格描述：'
+const H5_LAB_STYLE_KEYWORDS: [RegExp, string][] = [
+  [/粉|樱|少女|可爱|甜|情人/u, 'sakura'],
+  [/绿|森|自然|露营|户外|春/u, 'forest'],
+  [/赛博|霓虹|夜|科技|游戏|潮|暗/u, 'neon'],
+  [/红|春节|新年|年货|喜庆|国潮|金/u, 'festive'],
+  [/黑白|极简|高级|克制|品牌|发布/u, 'mono'],
+  [/橙|橘|夏|汽水|活力|清爽/u, 'citrus'],
+]
 const H5_LAB_VERSION_AUTHOR = {
   name: '孙思媛',
   avatarUrl: '/assets/avatar/1.png',
@@ -5083,6 +5095,18 @@ export default function VibeCodingPage({
     const targetProjectId = opts?.projectId ?? projectTitle
     const targetProjectKind = opts?.projectKind ?? kindOf(targetProjectId)
     const targetSessionId = opts?.sessionId ?? activeSessionId
+    const isH5LabStylePrompt =
+      targetProjectId === projectTitle &&
+      Boolean(h5LabCase) &&
+      text.startsWith(H5_LAB_STYLE_PROMPT_TAG)
+    const h5LabStyleDescription = isH5LabStylePrompt
+      ? text.slice(text.lastIndexOf(H5_LAB_STYLE_PROMPT_FIELD) + H5_LAB_STYLE_PROMPT_FIELD.length).trim()
+      : ''
+    if (isH5LabStylePrompt && !h5LabStyleDescription) {
+      toast('请先在“风格描述”后补充你想要的视觉风格')
+      focusComposerAtEnd()
+      return
+    }
     const waitingForGameType =
       sentMessages.at(-1)?.trigger === 'game-type-clarification'
     if (waitingForGameType && /^【塔防】/u.test(text)) {
@@ -5094,6 +5118,15 @@ export default function VibeCodingPage({
       return
     }
     const messageId = createMessageId()
+    if (isH5LabStylePrompt) {
+      const styleName = applyH5LabStylePrompt(h5LabStyleDescription)
+      if (styleName) {
+        aiReplyCacheRef.current.set(
+          `${targetProjectId}::${targetSessionId}::${messageId}`,
+          `已按“${h5LabStyleDescription}”生成并应用「${styleName}」。页面结构、文案和交互保持不变，你可以在右侧“风格皮肤”中继续切换或微调设计系统。`,
+        )
+      }
+    }
     const plannedState = [
       ['idle', '待机'],
       ['move', '移动'],
@@ -7325,7 +7358,7 @@ export default function VibeCodingPage({
   const [h5LabPreviewVersion, setH5LabPreviewVersion] = useState<
     'before' | 'current'
   >('current')
-  /* 图片下钻：保留发起编辑的槽位，素材改完才能精准同步回同一张页面图片。 */
+  /* 媒体下钻：保留发起编辑的槽位，素材改完才能精准同步回同一个页面节点。 */
   const [h5LabAssetCanvas, setH5LabAssetCanvas] = useState<{
     src: string
     selection: H5LabSelection
@@ -11599,6 +11632,9 @@ export default function VibeCodingPage({
           groups: (h5LabPrototypeDraft.groups ?? []).filter(
             (group) => group.stateId !== frameId,
           ),
+          elements: (h5LabPrototypeDraft.elements ?? []).filter(
+            (element) => element.stateId !== frameId,
+          ),
         },
         { group: historyGroup },
       )
@@ -11635,6 +11671,68 @@ export default function VibeCodingPage({
       h5LabCase ? h5LabPageSettings(h5LabPrototypeDraft, h5LabCase.id) : null,
     [h5LabCase, h5LabPrototypeDraft],
   )
+  const applyH5LabStylePrompt = useCallback(
+    (description: string) => {
+      if (!h5LabCase) return null
+      const pageSettings = h5LabPageSettings(h5LabPrototypeDraft, h5LabCase.id)
+      const hit = H5_LAB_STYLE_KEYWORDS.find(([pattern]) =>
+        pattern.test(description),
+      )
+      const preset =
+        hit &&
+        H5_LAB_DESIGN_PRESETS.find((candidate) => candidate.id === hit[1])
+      const generatedDesign = preset
+        ? { ...h5LabCase.design, ...preset.design }
+        : { ...h5LabCase.design, ...randomH5LabDesign(h5LabCase.design) }
+      const usedNames = new Set([
+        ...H5_LAB_DESIGN_PRESETS.map((item) => item.name),
+        ...pageSettings.generatedDesignSkins.map((item) => item.name),
+      ])
+      const baseName = description.slice(0, 12)
+      let name = baseName
+      let suffix = 2
+      while (usedNames.has(name)) {
+        name = `${baseName} ${suffix}`
+        suffix += 1
+      }
+      const design = Object.fromEntries(
+        Object.entries(generatedDesign).filter(
+          ([key, value]) =>
+            h5LabCase.design[key as keyof typeof h5LabCase.design] !== value,
+        ),
+      )
+      h5LabHistory.setPrototype({
+        ...h5LabPrototypeDraft,
+        settings: {
+          ...h5LabPrototypeDraft.settings,
+          [h5LabCase.id]: {
+            ...(h5LabPrototypeDraft.settings[h5LabCase.id] ?? {}),
+            design,
+            designName: name,
+            generatedDesignSkins: [
+              ...pageSettings.generatedDesignSkins,
+              {
+                id: `skin-${Date.now().toString(36)}`,
+                name,
+                design: generatedDesign,
+              },
+            ],
+          },
+        },
+      })
+      toast(`已生成并应用「${name}」`)
+      return name
+    },
+    [h5LabCase, h5LabHistory, h5LabPrototypeDraft],
+  )
+  const requestH5LabStyleGeneration = useCallback(() => {
+    if (!h5LabCase) return
+    setH5LabChatCollapsed(false)
+    setComposerText(
+      `${H5_LAB_STYLE_PROMPT_TAG}\n请为「${h5LabCase.project}」生成统一的页面视觉风格。保持现有信息结构、文案和交互不变，统一调整颜色、字体、圆角、描边及图片色调。\n${H5_LAB_STYLE_PROMPT_FIELD}`,
+    )
+    focusComposerAtEnd()
+  }, [h5LabCase])
   const setH5LabSlotIndependent = useCallback(
     (path: string, independent: boolean) => {
       if (!h5LabCase) return
@@ -11650,11 +11748,15 @@ export default function VibeCodingPage({
     },
     [h5LabCase],
   )
-  /* 图片下钻走「素材库」tab：进去切 tab、出来切回预览，画布编辑态一直留着。 */
+  /* 媒体下钻走「素材库」tab：进去切 tab、出来切回预览，画布编辑态一直留着。 */
   const openH5LabAssetCanvas = useCallback(
     (src?: string) => {
       if (!h5LabSelected) return
-      setH5LabAssetCanvas({ src: src ?? '', selection: h5LabSelected })
+      if (h5LabSelected.kind !== 'image' && h5LabSelected.kind !== 'video') return
+      setH5LabAssetCanvas({
+        src: src ?? '',
+        selection: h5LabSelected,
+      })
       setOpenTabs((prev) => {
         const index = prev.findIndex((tab) => tab.label === ASSET_LIBRARY_LABEL)
         if (index >= 0) {
@@ -12224,6 +12326,23 @@ export default function VibeCodingPage({
         focusFrameId={h5LabActiveFrameId}
         onFocusFrame={setH5LabFrameId}
         onDeleteFrame={deleteH5LabFrame}
+        elements={(h5LabPrototypeDraft.elements ?? []).filter(
+          (element) => element.caseId === h5LabCase.id,
+        )}
+        onElements={(elements, options) =>
+          h5LabHistory.setPrototype(
+            {
+              ...h5LabPrototypeDraft,
+              elements: [
+                ...(h5LabPrototypeDraft.elements ?? []).filter(
+                  (element) => element.caseId !== h5LabCase.id,
+                ),
+                ...elements,
+              ],
+            },
+            options,
+          )
+        }
         onAddToChat={addH5LabRefToChat}
         onAnnotate={addH5LabAnnotation}
         onUndo={h5LabHistory.undo}
@@ -12232,7 +12351,7 @@ export default function VibeCodingPage({
         previewKey={miniAppKey}
       />
     ) : (
-      <PhoneMockup width={436} height={880} maxScale={1.2}>
+      <PhoneMockup width={436} height={766} maxScale={1.2}>
         <H5LabPhonePreview
           key={h5LabPreviewVersion}
           labCase={h5LabCase}
@@ -20278,7 +20397,7 @@ export default function VibeCodingPage({
                         // Every other tab — code files, MD artefacts, dashboards —
                         // routes through renderTab, which knows how to render each
                         // kind from its filename.
-                        // 复刻 case 的图片下钻：素材画布挂在「素材库」tab 下，
+                        // 复刻 case 的媒体下钻：素材画布挂在「素材库」tab 下，
                         // 它自带一条工具条，上面的预览工具栏已经让位。
                         if (
                           projectLane === 'marketing' &&
@@ -20290,10 +20409,11 @@ export default function VibeCodingPage({
                             <MarketingImageCanvasEditor
                               groups={[
                                 {
-                                  title: `${h5LabCase.project} · 页面用图`,
+                                  title: `${h5LabCase.project} · 页面素材`,
                                   items: h5LabAssets.map((asset) => ({
                                     src: asset.src,
                                     label: asset.label,
+                                    kind: asset.kind,
                                   })),
                                 },
                               ]}
@@ -21026,11 +21146,27 @@ export default function VibeCodingPage({
                             onSelectPath={(path) =>
                               h5LabStageRef.current?.selectPath(
                                 h5LabSelected?.stateId ??
+                                  h5LabFrameId ??
                                   h5LabCase.states[0]?.id ??
                                   '',
                                 path,
                               )
                             }
+                            onReorderLayer={(
+                              sourcePath,
+                              targetPath,
+                              placement,
+                            ) => {
+                              h5LabStageRef.current?.reorderPath(
+                                h5LabSelected?.stateId ??
+                                  h5LabFrameId ??
+                                  h5LabCase.states[0]?.id ??
+                                  '',
+                                sourcePath,
+                                targetPath,
+                                placement,
+                              )
+                            }}
                             hotspots={h5LabHotspots}
                             frames={h5LabFrameIds.map(
                               ({ id, label, generated }) => ({
@@ -21039,13 +21175,20 @@ export default function VibeCodingPage({
                                 generated,
                               }),
                             )}
+                            focusedFrameId={h5LabFrameId}
                             prototype={h5LabPrototypeDraft}
                             onPrototype={h5LabHistory.setPrototype}
                             onDeleteFrame={deleteH5LabFrame}
-                            defaultShareImage={h5LabAssets[0]?.src}
+                            defaultShareImage={
+                              h5LabAssets.find((asset) => asset.kind === 'image')
+                                ?.src
+                            }
                             onOpenAssetCanvas={openH5LabAssetCanvas}
                             designTokenUsage={h5LabDesignTokenUsage}
                             onInspectDesignToken={setH5LabInspectedDesignToken}
+                            onRequestStyleGeneration={
+                              requestH5LabStyleGeneration
+                            }
                             onAddToChat={() => {
                               if (!h5LabSelected) return
                               const frame = h5LabFrameIds.find(

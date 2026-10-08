@@ -14,6 +14,7 @@ import { buildH5LabFrames } from './H5LabFrames'
 import {
   applyH5LabBoard,
   applyH5LabGroups,
+  applyH5LabInsertedElements,
   h5LabCss,
   h5LabPathOf,
   type H5LabOverrides,
@@ -79,13 +80,24 @@ export default function H5LabPhonePreview({
   useLayoutEffect(() => {
     const root = frameRef.current
     if (!root || !frame) return
+    applyH5LabInsertedElements(
+      root,
+      (prototype.elements ?? []).filter((element) => element.stateId === frame.id),
+    )
     applyH5LabGroups(
       root,
       (prototype.groups ?? []).filter((group) => group.stateId === frame.id),
     )
     applyH5LabBoard(root, overrides[frame.id] ?? {})
     applyH5LabPageSettings(root, pageSettings)
-  }, [frame, overrides, pageSettings, previewKey, prototype.groups])
+  }, [
+    frame,
+    overrides,
+    pageSettings,
+    previewKey,
+    prototype.elements,
+    prototype.groups,
+  ])
 
   /* 页面是 lazy 组件，挂上来晚于 layout effect；新节点进来时补打设计系统角色。 */
   useEffect(() => {

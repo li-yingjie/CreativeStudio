@@ -78,6 +78,9 @@ export function loadH5LabPreviousAppliedVersion(): H5LabPreviousAppliedVersion {
           groups: Array.isArray(snapshot.prototype.groups)
             ? snapshot.prototype.groups
             : [],
+          elements: Array.isArray(snapshot.prototype.elements)
+            ? snapshot.prototype.elements
+            : [],
         },
       },
     }

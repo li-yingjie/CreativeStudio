@@ -69,6 +69,8 @@ export interface H5LabStyleOverride {
 }
 
 export interface H5LabNodeOverride {
+  /** 同一父容器内的 DOM 顺序；用于图层前移、后移和拖拽排序。 */
+  siblingOrder?: number
   /** 文案覆盖（纯文本节点）。 */
   text?: string
   /** 元素内部 HTML 覆盖；应用时会移除脚本、事件属性和危险 URL。 */
@@ -94,6 +96,29 @@ export interface H5LabGroup {
   label: string
 }
 
+export type H5LabInsertedElementKind =
+  | 'heading'
+  | 'paragraph'
+  | 'section'
+  | 'card'
+  | 'image-card'
+  | 'image'
+  | 'html'
+  | 'button'
+  | 'divider'
+  | 'container'
+
+/** 设计态插入的真实 DOM 组件。内容落在当前帧内，后续仍可选中并使用覆盖模型编辑。 */
+export interface H5LabInsertedElement {
+  id: string
+  caseId: string
+  stateId: string
+  parentPath: string
+  kind: H5LabInsertedElementKind
+  label: string
+  html: string
+}
+
 export const h5LabGroupPath = (id: string) => `@group:${id}`
 
 export function h5LabGroupId(path: string): string | null {
@@ -108,7 +133,7 @@ export interface H5LabSelection {
   label: string
   tag: string
   /** 元素类型，决定面板给哪几组字段。 */
-    kind: 'text' | 'image' | 'button' | 'box' | 'svg' | 'group'
+    kind: 'text' | 'image' | 'video' | 'button' | 'box' | 'svg' | 'group'
   /** 选中瞬间的实测值，用于面板字段预填。 */
   measured: {
     width: number
@@ -165,7 +190,9 @@ function signature(el: Element) {
 
 /** 从画板根算出元素路径；元素不在这棵树里时返回 null。 */
 export function h5LabPathOf(root: HTMLElement, el: HTMLElement): string | null {
-  const sourcePath = el.getAttribute('data-h5-group-child-path')
+  const sourcePath =
+    el.getAttribute('data-h5-group-child-path') ??
+    el.getAttribute('data-h5-source-path')
   if (sourcePath) return sourcePath
   const chain: string[] = []
   let node: Element | null = el
@@ -199,6 +226,10 @@ export function h5LabNodeAt(root: HTMLElement, path: string): HTMLElement | null
     root.querySelectorAll<HTMLElement>('[data-h5-group-child-path]'),
   ).find((node) => node.dataset.h5GroupChildPath === path)
   if (groupedChild) return groupedChild
+  const orderedNode = Array.from(
+    root.querySelectorAll<HTMLElement>('[data-h5-source-path]'),
+  ).find((node) => node.dataset.h5SourcePath === path)
+  if (orderedNode) return orderedNode
   let node: Element = root
   for (const seg of path.split('>')) {
     const match = /^(.*?)(?:\[(\d+)\])?$/.exec(seg)
@@ -237,6 +268,7 @@ const TAG_LABELS: Record<string, string> = {
   a: '链接',
   button: '按钮',
   img: '图片',
+  video: '视频',
   svg: '矢量图',
   section: '区块',
   header: '页头',
@@ -259,6 +291,7 @@ export function h5LabKindOf(el: HTMLElement): H5LabSelection['kind'] {
   if (el.hasAttribute('data-h5-group')) return 'group'
   const tag = el.tagName.toLowerCase()
   if (tag === 'img') return 'image'
+  if (tag === 'video') return 'video'
   if (tag === 'svg' || el.namespaceURI === 'http://www.w3.org/2000/svg') return 'svg'
   if (tag === 'button' || el.getAttribute('role') === 'button') return 'button'
   // 标题和正文常用 br / span 拆行或着色；它们仍应作为一个文字对象编辑。
@@ -281,6 +314,11 @@ export function h5LabLabelOf(el: HTMLElement): string {
   if (tag === 'img') {
     const alt = (el as HTMLImageElement).alt?.trim()
     return alt ? `图片 · ${alt.slice(0, 12)}` : '图片'
+  }
+  if (tag === 'video') {
+    const title = el.getAttribute('title')?.trim()
+    const aria = el.getAttribute('aria-label')?.trim()
+    return title || aria || '视频'
   }
   const base = TAG_LABELS[tag] ?? tag
   const text = (el.textContent ?? '')
@@ -459,6 +497,107 @@ function safeInnerHtml(html: string): string {
   return template.innerHTML
 }
 
+/** 把设计态新增组件投影到页面 DOM。节点带唯一语义类名，因此可继续被选中和覆盖。 */
+export function applyH5LabInsertedElements(
+  root: HTMLElement,
+  elements: H5LabInsertedElement[],
+) {
+  const wanted = new Set(elements.map((element) => element.id))
+  for (const stale of Array.from(
+    root.querySelectorAll<HTMLElement>('[data-h5-inserted]'),
+  )) {
+    if (!wanted.has(stale.dataset.h5Inserted ?? '')) stale.remove()
+  }
+
+  for (const element of elements) {
+    let node = root.querySelector<HTMLElement>(
+      `[data-h5-inserted="${CSS.escape(element.id)}"]`,
+    )
+    const parent = element.parentPath
+      ? h5LabNodeAt(root, element.parentPath)
+      : root
+    if (!parent) continue
+    if (!node) {
+      node = document.createElement('div')
+      node.dataset.h5Inserted = element.id
+      node.className = `h5-added-${element.id}`
+      node.setAttribute('aria-label', element.label)
+      parent.appendChild(node)
+    }
+    const html = safeInnerHtml(element.html)
+    if (node.innerHTML !== html) node.innerHTML = html
+    if (!node.hasAttribute('data-h5-free-position')) {
+      // 新增组件先按文档流得出自然落点，再脱离文档流。后续 transform 移动
+      // 只改变视觉位置，不会在页面末尾留下原始占位。
+      node.style.display = 'flow-root'
+      const naturalRect = node.getBoundingClientRect()
+      const naturalOffsetParent = node.offsetParent
+      const naturalLeft = node.offsetLeft
+      const naturalTop = node.offsetTop
+      const naturalWidth = node.offsetWidth
+      const naturalHeight = node.offsetHeight
+      node.style.position = 'absolute'
+      const offsetParent =
+        node.offsetParent instanceof HTMLElement ? node.offsetParent : root
+      const sameOffsetParent = naturalOffsetParent === offsetParent
+      const offsetRect = offsetParent.getBoundingClientRect()
+      const scaleX =
+        offsetParent.offsetWidth > 0
+          ? offsetRect.width / offsetParent.offsetWidth
+          : 1
+      const scaleY =
+        offsetParent.offsetHeight > 0
+          ? offsetRect.height / offsetParent.offsetHeight
+          : scaleX
+      const staticLeft = sameOffsetParent
+        ? naturalLeft
+        : (naturalRect.left - offsetRect.left) / (scaleX || 1) +
+          offsetParent.scrollLeft
+      const staticTop = sameOffsetParent
+        ? naturalTop
+        : (naturalRect.top - offsetRect.top) / (scaleY || 1) +
+          offsetParent.scrollTop
+      const siblings = Array.from(
+        offsetParent.querySelectorAll<HTMLElement>(
+          '[data-h5-inserted][data-h5-free-position]',
+        ),
+      ).filter(
+        (sibling) => sibling !== node && sibling.offsetParent === offsetParent,
+      )
+      const rootRect = root.getBoundingClientRect()
+      const frameTop =
+        (rootRect.top - offsetRect.top) / (scaleY || 1) +
+        offsetParent.scrollTop
+      const frameBottom =
+        (rootRect.bottom - offsetRect.top) / (scaleY || 1) +
+        offsetParent.scrollTop
+      const height = naturalHeight || naturalRect.height / (scaleY || 1)
+      const minTop = frameTop + 16
+      const maxTop = Math.max(minTop, frameBottom - height - 16)
+      const previousBottom = siblings.reduce(
+        (bottom, sibling) =>
+          Math.max(bottom, sibling.offsetTop + sibling.offsetHeight),
+        0,
+      )
+      const previousTop = siblings.reduce(
+        (top, sibling) => Math.min(top, sibling.offsetTop),
+        Number.POSITIVE_INFINITY,
+      )
+      const afterPrevious = previousBottom + 8
+      const targetTop =
+        siblings.length === 0
+          ? Math.min(Math.max(staticTop, minTop), maxTop)
+          : afterPrevious <= maxTop
+            ? afterPrevious
+            : Math.max(minTop, previousTop - height - 8)
+      node.style.left = `${Math.round(staticLeft)}px`
+      node.style.top = `${Math.round(targetTop)}px`
+      node.style.width = `${Math.round(naturalWidth || naturalRect.width / (scaleX || 1))}px`
+      node.dataset.h5FreePosition = 'true'
+    }
+  }
+}
+
 /** 把一块画板的内容覆盖写回 DOM，并给命中的节点补 `data-h5el`（样式 CSS 靠它
  *  命中）。样式是声明式的，文案 / 图片只能命令式补写，所以页面每次重渲染后都要
  *  再跑一次。 */
@@ -474,6 +613,22 @@ export function applyH5LabBoard(
   for (const [path, override] of Object.entries(board)) {
     const node = h5LabNodeAt(root, path)
     if (!node) continue
+    if (override.siblingOrder !== undefined && node.parentElement) {
+      const siblings = Array.from(node.parentElement.children).filter(
+        (child): child is HTMLElement =>
+          child instanceof HTMLElement &&
+          !['STYLE', 'SCRIPT', 'BR'].includes(child.tagName),
+      )
+      for (const [index, sibling] of siblings.entries()) {
+        if (!sibling.dataset.h5SourcePath) {
+          const siblingPath = h5LabPathOf(root, sibling)
+          if (siblingPath) sibling.dataset.h5SourcePath = siblingPath
+        }
+        if (!sibling.dataset.h5SourceOrder) {
+          sibling.dataset.h5SourceOrder = String(index)
+        }
+      }
+    }
     if (node.getAttribute('data-h5el') !== path) {
       node.setAttribute('data-h5el', path)
     }
@@ -484,14 +639,40 @@ export function applyH5LabBoard(
       node.textContent = override.text
     }
     if (override.src === undefined) continue
-    if (node instanceof HTMLImageElement) {
+    if (node instanceof HTMLImageElement || node instanceof HTMLVideoElement) {
       if (node.getAttribute('src') !== override.src) {
         node.setAttribute('src', override.src)
+        if (node instanceof HTMLVideoElement) node.load()
       }
     } else if (!node.style.backgroundImage.includes(override.src)) {
       node.style.backgroundImage = `url("${override.src}")`
       node.style.backgroundSize = node.style.backgroundSize || 'cover'
     }
+  }
+
+  const orderedParents = new Set<HTMLElement>()
+  for (const node of Array.from(
+    root.querySelectorAll<HTMLElement>('[data-h5-source-order]'),
+  )) {
+    if (node.parentElement) orderedParents.add(node.parentElement)
+  }
+  for (const parent of orderedParents) {
+    const orderedChildren = Array.from(parent.children)
+      .filter(
+        (child): child is HTMLElement =>
+          child instanceof HTMLElement &&
+          child.dataset.h5SourceOrder !== undefined,
+      )
+      .sort((a, b) => {
+        const aPath = a.dataset.h5SourcePath ?? ''
+        const bPath = b.dataset.h5SourcePath ?? ''
+        const aOrder =
+          board[aPath]?.siblingOrder ?? Number(a.dataset.h5SourceOrder)
+        const bOrder =
+          board[bPath]?.siblingOrder ?? Number(b.dataset.h5SourceOrder)
+        return aOrder - bOrder
+      })
+    for (const child of orderedChildren) parent.appendChild(child)
   }
 }
 

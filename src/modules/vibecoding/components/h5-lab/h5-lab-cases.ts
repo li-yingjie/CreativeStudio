@@ -138,15 +138,15 @@ export const H5_LAB_CASES: H5LabCase[] = [
       ...Array.from({ length: 15 }, (_, index) => ({
         id: `climbing-cbti:q${index + 1}`,
         label: `第 ${index + 1} 题`,
-        note: '原包共用题面图片；透明按钮承载各题真实选项',
+        note: '逐题真实题面；透明按钮承载对应选项',
         Component: page(ClimbingCbti),
         state: { step: 'quiz', question: index + 1 },
       })),
-      { id: 'climbing-cbti:loading', label: '识别中', note: '编辑态停留；完整流程中 3 秒后进入结果', Component: page(ClimbingCbti), state: { step: 'loading', resultCode: 'EMS+' } },
+      { id: 'climbing-cbti:loading', label: '识别中', note: '播放物种识别视频；完整流程在视频结束后进入结果', Component: page(ClimbingCbti), state: { step: 'loading', resultCode: 'EMS+' } },
       ...['FPS', 'FMS', 'FPL', 'FML', 'EPS', 'EMS', 'EPL', 'EML', 'FPL+', 'EMS+'].map((code) => ({
         id: `climbing-cbti:result-${code}`,
         label: `结果 · ${code}`,
-        note: '原包十种结果共用「活体豆包」图片',
+        note: '每种人格对应独立结果图',
         Component: page(ClimbingCbti),
         state: { step: 'result', resultCode: code },
       })),
@@ -156,7 +156,7 @@ export const H5_LAB_CASES: H5LabCase[] = [
     fileTree: caseTree(
       'climbing-cbti-editor-assessment.md',
       ['climbing-cbti/App.tsx', 'climbing-cbti/App.css', 'climbing-cbti/content/questions.ts', 'climbing-cbti/content/results.ts', 'climbing-cbti/lib/scoring.ts'],
-      ['climbing-cbti/home.png', 'climbing-cbti/question.png', 'climbing-cbti/result.png', 'climbing-cbti/bg-wall.png', 'climbing-cbti/loading.webp', 'climbing-cbti/co-brand-logo.png'],
+      ['climbing-cbti/home.png', 'climbing-cbti/questions/Q1–Q15.jpg', 'climbing-cbti/results/*.jpg', 'climbing-cbti/videos/generating.mp4', 'climbing-cbti/bg-wall.png', 'climbing-cbti/loading.webp', 'climbing-cbti/douyin-logo.png'],
     ),
   },
   {

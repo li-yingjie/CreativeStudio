@@ -2,6 +2,7 @@ import {
   h5LabLabelOf,
   h5LabPathOf,
   type H5LabGroup,
+  type H5LabInsertedElement,
 } from './h5-lab-overrides'
 import type { H5LabDesign } from './h5-lab-cases'
 
@@ -50,6 +51,8 @@ export interface H5LabChatRef {
   path: string
   label: string
   tag: string
+  /** add 表示这是待生成模块，不是画布上已经存在的元素。 */
+  intent?: 'add'
   /** 文案 / 图片地址，写进给模型的上下文行。 */
   text?: string
   src?: string
@@ -57,6 +60,7 @@ export interface H5LabChatRef {
 
 /** 对话里的同名元素必须能区分；保留语义名，并用路径末两级作稳定定位。 */
 export function h5LabRefDisplayLabel(ref: H5LabChatRef): string {
+  if (ref.intent === 'add') return `新增 ${ref.label}`
   const pathSegments = ref.path.split('>').filter(Boolean)
   const locator = pathSegments.slice(-2).join(' > ') || ref.path
   return `${ref.label} · ${locator}`
@@ -64,6 +68,9 @@ export function h5LabRefDisplayLabel(ref: H5LabChatRef): string {
 
 /** 带进对话的元素写给模型的那行上下文。 */
 export function h5LabRefContext(ref: H5LabChatRef): string {
+  if (ref.intent === 'add') {
+    return `【画布新增】计划在状态帧「${ref.frameLabel}」新增「${ref.label}」模块(${ref.tag})，请根据用户描述生成并放入当前页面。`
+  }
   const bits = [
     `状态帧「${ref.frameLabel}」里的「${ref.label}」(${ref.tag})`,
     `元素路径：${ref.path}`,
@@ -127,6 +134,12 @@ export interface H5LabPageSettings {
   design: Partial<H5LabDesign>
   /** 当前风格名（预设 / 随机），只做面板展示。 */
   designName: string
+  /** 用户通过描述或随机生成后保存到风格下拉里的皮肤。 */
+  generatedDesignSkins: {
+    id: string
+    name: string
+    design: Partial<H5LabDesign>
+  }[]
   /** 换主色时图片是否跟着转色相。 */
   designTintImages: boolean
 }
@@ -140,6 +153,7 @@ export const DEFAULT_H5_LAB_PAGE_SETTINGS: H5LabPageSettings = {
   shareImage: '',
   design: {},
   designName: '',
+  generatedDesignSkins: [],
   designTintImages: true,
 }
 
@@ -151,6 +165,8 @@ export interface H5LabPrototype {
   settings: Record<string, Partial<H5LabPageSettings>>
   /** 设计师在画布里创建的 Figma 式编组。 */
   groups: H5LabGroup[]
+  /** 设计态直接插入现有页面的组件节点。 */
+  elements: H5LabInsertedElement[]
 }
 
 export const emptyH5LabPrototype = (): H5LabPrototype => ({
@@ -158,6 +174,7 @@ export const emptyH5LabPrototype = (): H5LabPrototype => ({
   links: {},
   settings: {},
   groups: [],
+  elements: [],
 })
 
 export function h5LabPageSettings(
@@ -268,6 +285,13 @@ export function h5LabPrototypeDiffCount(
   if (JSON.stringify(ownGroups(draft)) !== JSON.stringify(ownGroups(committed))) {
     count += 1
   }
+  const ownElements = (p: H5LabPrototype) =>
+    (p.elements ?? []).filter((element) => element.caseId === caseId)
+  if (
+    JSON.stringify(ownElements(draft)) !== JSON.stringify(ownElements(committed))
+  ) {
+    count += 1
+  }
   return count
 }
 
@@ -286,6 +310,7 @@ export function loadH5LabPrototype(): H5LabPrototype {
       settings:
         parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : {},
       groups: Array.isArray(parsed.groups) ? parsed.groups : [],
+      elements: Array.isArray(parsed.elements) ? parsed.elements : [],
     }
   } catch {
     return emptyH5LabPrototype()

@@ -89,6 +89,22 @@ function changedPageIds(
     }
   }
 
+  const elementStateIds = new Set([
+    ...(before.prototype.elements ?? []).map((element) => element.stateId),
+    ...(next.prototype.elements ?? []).map((element) => element.stateId),
+  ])
+  for (const stateId of elementStateIds) {
+    const beforeElements = (before.prototype.elements ?? []).filter(
+      (element) => element.stateId === stateId,
+    )
+    const nextElements = (next.prototype.elements ?? []).filter(
+      (element) => element.stateId === stateId,
+    )
+    if (JSON.stringify(beforeElements) !== JSON.stringify(nextElements)) {
+      changed.add(stateId)
+    }
+  }
+
   return [...changed].filter(Boolean)
 }
 
@@ -99,6 +115,7 @@ function historyLabel(group?: string) {
   if (group.startsWith('link|')) return '配置页面交互'
   if (group.startsWith('group|')) return '创建元素编组'
   if (group.startsWith('ungroup|')) return '取消元素编组'
+  if (group.startsWith('add-element|')) return '添加页面元素'
   if (group.startsWith('slot-')) return '同步状态帧'
   if (/move|drag|resize|layout|position/.test(group)) return '调整位置与布局'
   return '自动保存'

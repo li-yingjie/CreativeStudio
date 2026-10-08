@@ -21,6 +21,36 @@
   min-height: 100svh;
 }
 
+.transition-frame {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100svh;
+  opacity: 1;
+}
+
+.transition-frame.is-fading-out,
+.transition-frame.is-fading-in {
+  pointer-events: none;
+}
+
+.transition-frame.is-fading-out {
+  animation: page-fade-out 500ms ease forwards;
+}
+
+.transition-frame.is-fading-in {
+  animation: page-fade-in 500ms ease forwards;
+}
+
+@keyframes page-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes page-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 & button {
   appearance: none;
   border: 0;
@@ -58,7 +88,7 @@
 }
 
 .env-gate-panel {
-  gap: 26px;
+  gap: 18px;
 }
 
 .preload-panel,
@@ -84,6 +114,15 @@
   -webkit-user-drag: none;
 }
 
+.gate-douyin-logo {
+  width: min(16vw, 62px);
+  max-width: 62px;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
 .gate-copy,
 .preload-panel p,
 .loading-panel h2 {
@@ -96,6 +135,18 @@
 .preload-panel p {
   max-width: 14em;
   font-size: 1.2rem;
+}
+
+.gate-copy {
+  max-width: none;
+  color: #171717;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.gate-copy span {
+  display: block;
 }
 
 .loading-panel h2 {
@@ -167,6 +218,24 @@
 
 .loading-copy span {
   display: block;
+}
+
+.result-loading-page {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  background: #000000;
+}
+
+.result-loading-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  background: #000000;
 }
 
 .cover-panel {
@@ -431,8 +500,8 @@
 /* 画板高度跟随案例基准，不随工坊浏览器窗口变化。 */
 &.cbti-embedded {
   .app-shell, .phone-stage, .env-gate-panel, .preload-panel, .loading-panel,
-  .cover-panel, .scene-page { min-height: 760px; }
-  .cover-panel, .scene-page, .loading-panel--figma { height: 760px; }
+  .cover-panel, .scene-page, .transition-frame { min-height: 760px; }
+  .cover-panel, .scene-page, .loading-panel--figma, .result-loading-page { height: 760px; }
   .cover-panel { --cover-height: 760px; }
   .scene-stage { --scene-height: 760px; }
   .cover-start-button { bottom: 108px; }
@@ -442,6 +511,7 @@
 .cover-start-button { width: min(72cqw, 292px); }
 .gate-hero, .preload-hero { width: min(58cqw, 228px); }
 .gate-logo, .preload-logo { width: min(68cqw, 176px); }
+.gate-douyin-logo { width: min(16cqw, 62px); }
 .loading-scan { width: min(56cqw, 220px); }
 .loading-figure { width: min(48cqw, 190px); }
 .hotspot-button:focus-visible { outline: 3px solid #2390ff; outline-offset: -3px; }

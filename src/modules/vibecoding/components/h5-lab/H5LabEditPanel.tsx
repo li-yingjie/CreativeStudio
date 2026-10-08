@@ -1,4 +1,11 @@
-import { useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
+import {
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent as ReactDragEvent,
+  type ReactNode,
+} from 'react'
 import { toast } from 'sonner'
 import {
   Box as BoxIcon,
@@ -6,6 +13,7 @@ import {
   ExternalLink,
   Eye,
   GitBranch,
+  GripVertical,
   Image as ImageIcon,
   Layers,
   LayoutTemplate,
@@ -21,6 +29,7 @@ import {
   Trash2,
   Type as TypeIcon,
   Upload,
+  Video,
   X,
 } from '@/shared/icons'
 import type { H5LabCase, H5LabDesign } from './h5-lab-cases'
@@ -36,6 +45,7 @@ import {
 import {
   h5LabAncestors,
   h5LabElementView,
+  findH5LabLayer,
   type H5LabLayer,
 } from './h5-lab-layers'
 import {
@@ -85,19 +95,28 @@ interface Props {
   /** 当前聚焦状态帧的图层树（由画布现推）。 */
   layers: H5LabLayer[]
   onSelectPath: (path: string) => void
+  onReorderLayer: (
+    sourcePath: string,
+    targetPath: string,
+    placement: 'before' | 'after',
+  ) => void
   /** 当前聚焦帧里盘出来的可交互热点。 */
   hotspots: H5LabHotspot[]
   /** 画布上的全部帧（含补出来的界面），做跳转目标选项。 */
   frames: { id: string; label: string; generated?: boolean }[]
+  /** 当前画布聚焦帧；取消元素选择后仍用于全局交互盘点。 */
+  focusedFrameId?: string | null
   prototype: H5LabPrototype
   onPrototype: (next: H5LabPrototype, options?: H5LabHistoryOptions) => void
   onDeleteFrame: (frameId: string) => void
   /** 当前渲染页面的第一张头图；分享图未单独设置时直接跟随它。 */
   defaultShareImage?: string
-  /** 图片下钻素材库画布编辑。 */
+  /** 图片或视频下钻素材库画布编辑。 */
   onOpenAssetCanvas: (src?: string) => void
   designTokenUsage: H5LabDesignTokenUsage
   onInspectDesignToken: (token: H5LabColorToken | null) => void
+  /** 在主对话框预填整页风格生成控制 Prompt。 */
+  onRequestStyleGeneration: () => void
   /** 把当前选中的元素带进对话。 */
   onAddToChat: () => void
   onClose: () => void
@@ -800,6 +819,7 @@ function IconSegmentButton({
 const KIND_ICON: Record<H5LabSelection['kind'], typeof TypeIcon> = {
   text: TypeIcon,
   image: ImageIcon,
+  video: Video,
   button: LayoutTemplate,
   svg: Palette,
   box: BoxIcon,
@@ -814,6 +834,7 @@ function LayerRow({
   expandable,
   expanded,
   onToggle,
+  onReorder,
 }: {
   layer: H5LabLayer
   depth: number
@@ -822,14 +843,56 @@ function LayerRow({
   expandable?: boolean
   expanded?: boolean
   onToggle?: () => void
+  onReorder?: (
+    sourcePath: string,
+    targetPath: string,
+    placement: 'before' | 'after',
+  ) => void
 }) {
   const Icon = KIND_ICON[layer.kind]
+  const [dropPlacement, setDropPlacement] = useState<'before' | 'after' | null>(
+    null,
+  )
+  const handleDragOver = (event: ReactDragEvent<HTMLDivElement>) => {
+    if (!onReorder) return
+    event.preventDefault()
+    event.stopPropagation()
+    event.dataTransfer.dropEffect = 'move'
+    const rect = event.currentTarget.getBoundingClientRect()
+    setDropPlacement(event.clientY < rect.top + rect.height / 2 ? 'before' : 'after')
+  }
   return (
     <div
-      className={`flex h-7 items-center gap-1 rounded-md pr-1.5 transition-colors ${
+      onDragOver={handleDragOver}
+      onDragLeave={(event) => {
+        const nextTarget = event.relatedTarget
+        if (
+          !(nextTarget instanceof Node) ||
+          !event.currentTarget.contains(nextTarget)
+        ) {
+          setDropPlacement(null)
+        }
+      }}
+      onDrop={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        const sourcePath = event.dataTransfer.getData('application/x-h5-layer')
+        const placement = dropPlacement ?? 'before'
+        setDropPlacement(null)
+        if (sourcePath && sourcePath !== layer.path) {
+          onReorder?.(sourcePath, layer.path, placement)
+        }
+      }}
+      className={`relative flex h-7 items-center gap-1 rounded-md pr-1.5 transition-colors ${
         active
           ? 'bg-[#2f6bff]/10 text-[#2f6bff]'
           : 'text-[var(--color-ink)]/70 hover:bg-[var(--fill-hover)]'
+      } ${
+        dropPlacement === 'before'
+          ? 'before:absolute before:inset-x-1 before:top-0 before:h-0.5 before:bg-[#2f6bff]'
+          : dropPlacement === 'after'
+            ? 'after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 after:bg-[#2f6bff]'
+            : ''
       }`}
       style={{ paddingLeft: 4 + depth * 10 }}
     >
@@ -852,8 +915,15 @@ function LayerRow({
       <button
         type="button"
         onClick={onSelect}
-        className="flex h-full min-w-0 flex-1 items-center gap-1.5 text-left"
+        draggable={Boolean(onReorder)}
+        onDragStart={(event) => {
+          event.dataTransfer.effectAllowed = 'move'
+          event.dataTransfer.setData('application/x-h5-layer', layer.path)
+        }}
+        onDragEnd={() => setDropPlacement(null)}
+        className="flex h-full min-w-0 flex-1 cursor-grab items-center gap-1 text-left active:cursor-grabbing"
       >
+        <GripVertical size={10} strokeWidth={1.8} className="shrink-0 opacity-35" />
         <Icon size={11} strokeWidth={1.8} className="shrink-0 opacity-60" />
         <span className="min-w-0 truncate text-[11.5px]">{layer.label}</span>
         <span className="ml-auto shrink-0 font-mono text-[9.5px] opacity-35">{layer.tag}</span>
@@ -866,10 +936,16 @@ function FullStructure({
   layers,
   selectedPath,
   onSelectPath,
+  onReorderLayer,
 }: {
   layers: H5LabLayer[]
   selectedPath: string | null
   onSelectPath: (path: string) => void
+  onReorderLayer: (
+    sourcePath: string,
+    targetPath: string,
+    placement: 'before' | 'after',
+  ) => void
 }) {
   // 选中路径上的祖先默认展开，其余收着，长页才不会一屏全是行。
   const [manual, setManual] = useState<Record<string, boolean>>({})
@@ -891,6 +967,7 @@ function FullStructure({
             onSelect={() => onSelectPath(layer.path)}
             expandable={expandable}
             expanded={expanded}
+            onReorder={onReorderLayer}
             onToggle={() =>
               setManual((prev) => ({ ...prev, [layer.path]: !expanded }))
             }
@@ -910,37 +987,35 @@ function FullStructure({
    没选中元素时设计档展示当前页面的配色 / 字体 / 圆角 token，外加一排风格预设和
    随机生成；配置直接对应画布，不再另放一张容易被误认成页面映射的静态小样。 */
 
-// 一句话描述风格时的关键词 → 预设；认不出来就随机一套。
-const STYLE_KEYWORDS: [RegExp, string][] = [
-  [/粉|樱|少女|可爱|甜|情人/, 'sakura'],
-  [/绿|森|自然|露营|户外|春/, 'forest'],
-  [/赛博|霓虹|夜|科技|游戏|潮|暗/, 'neon'],
-  [/红|春节|新年|年货|喜庆|国潮|金/, 'festive'],
-  [/黑白|极简|高级|克制|品牌|发布/, 'mono'],
-  [/橙|橘|夏|汽水|活力|清爽/, 'citrus'],
-]
-
 function DesignSystemSection({
   base,
   design,
   designName,
+  generatedSkins,
   tintImages,
   onTintImages,
   tokenUsage,
   onInspectToken,
   onChange,
+  onRequestStyleGeneration,
 }: {
   base: H5LabDesign
   design: H5LabDesign
   designName: string
+  generatedSkins: H5LabPageSettings['generatedDesignSkins']
   tintImages: boolean
   onTintImages: (next: boolean) => void
   tokenUsage: H5LabDesignTokenUsage
   onInspectToken: (token: H5LabColorToken | null) => void
   /** `step` 为 true 时单独占一步撤销（换整套风格），否则按 token 合并。 */
-  onChange: (patch: Partial<H5LabDesign>, name: string, step?: boolean) => void
+  onChange: (
+    patch: Partial<H5LabDesign>,
+    name: string,
+    step?: boolean,
+    saveSkin?: boolean,
+  ) => void
+  onRequestStyleGeneration: () => void
 }) {
-  const [prompt, setPrompt] = useState('')
   const [inspectedToken, setInspectedToken] = useState<H5LabColorToken | null>(null)
   const changed = (Object.keys(base) as (keyof H5LabDesign)[]).some(
     (key) => design[key] !== base[key],
@@ -957,22 +1032,139 @@ function DesignSystemSection({
     onChange(preset.design, preset.name, true)
     toast(`已换成「${preset.name}」风格`)
   }
+  const applyGeneratedSkin = (id: string) => {
+    const skin = generatedSkins.find((item) => item.id === id)
+    if (!skin) return
+    onChange(skin.design, skin.name, true)
+    toast(`已换成「${skin.name}」风格`)
+  }
+  const nextSkinName = (name: string) => {
+    const used = new Set([
+      ...H5_LAB_DESIGN_PRESETS.map((item) => item.name),
+      ...generatedSkins.map((item) => item.name),
+    ])
+    if (!used.has(name)) return name
+    let index = 2
+    while (used.has(`${name} ${index}`)) index += 1
+    return `${name} ${index}`
+  }
   const shuffle = () => {
-    onChange(randomH5LabDesign(base), '随机风格', true)
-    toast('已随机生成一套风格，不满意再点一次')
+    const name = nextSkinName('随机风格')
+    onChange(randomH5LabDesign(base), name, true, true)
+    toast(`已生成并保存「${name}」`)
   }
-  const generateFromPrompt = () => {
-    const text = prompt.trim()
-    if (!text) return
-    const hit = STYLE_KEYWORDS.find(([pattern]) => pattern.test(text))
-    const preset = hit && H5_LAB_DESIGN_PRESETS.find((item) => item.id === hit[1])
-    onChange(preset ? preset.design : randomH5LabDesign(base), text.slice(0, 12), true)
-    toast(`已按「${text}」生成新风格`)
-    setPrompt('')
-  }
+  const activeGeneratedSkin = generatedSkins.findLast(
+    (item) => item.name === designName,
+  )
+  const activePreset = H5_LAB_DESIGN_PRESETS.find(
+    (item) => item.name === designName,
+  )
+  const selectedSkin = !changed
+    ? 'original'
+    : activeGeneratedSkin
+      ? `generated:${activeGeneratedSkin.id}`
+      : activePreset
+        ? `preset:${activePreset.id}`
+        : 'custom'
 
   return (
     <>
+      <section className="border-b border-[var(--divider-soft)] px-4 py-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Sparkles size={13} strokeWidth={1.8} className="text-[var(--color-ink)]/45" />
+          <span className="text-[13px] font-semibold text-[var(--color-ink)]/82">
+            风格皮肤
+          </span>
+          {changed && (
+            <button
+              type="button"
+              onClick={() => {
+                onChange(base, '', true)
+                toast('已还原到原稿设计系统')
+              }}
+              className="ml-auto flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+            >
+              <RotateCcw size={10} strokeWidth={1.8} />
+              还原原稿
+            </button>
+          )}
+        </div>
+
+        <SelectField
+          ariaLabel="风格皮肤"
+          value={selectedSkin}
+          hasOverride={changed}
+          onChange={(next) => {
+            if (next === 'original') {
+              onChange(base, '', true)
+              return
+            }
+            if (next.startsWith('preset:')) {
+              applyPreset(next.slice('preset:'.length))
+              return
+            }
+            if (next.startsWith('generated:')) {
+              applyGeneratedSkin(next.slice('generated:'.length))
+            }
+          }}
+        >
+          <option value="original">原稿风格</option>
+          {selectedSkin === 'custom' && <option value="custom">自定义调整</option>}
+          <optgroup label="内置皮肤">
+            {H5_LAB_DESIGN_PRESETS.map((preset) => (
+              <option key={preset.id} value={`preset:${preset.id}`}>
+                {preset.name} · {preset.hint}
+              </option>
+            ))}
+          </optgroup>
+          {generatedSkins.length > 0 && (
+            <optgroup label="生成的皮肤">
+              {generatedSkins.map((skin) => (
+                <option key={skin.id} value={`generated:${skin.id}`}>
+                  {skin.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+        </SelectField>
+
+        <div className="mt-2 flex h-5 overflow-hidden rounded-md border border-[var(--color-ink)]/10">
+          {[design.pageBg, design.paper, design.border, design.pageInk, design.accent].map(
+            (color, index) => (
+              <span key={index} className="flex-1" style={{ background: color }} />
+            ),
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={onRequestStyleGeneration}
+          className="mt-2.5 flex h-9 w-full items-center gap-2 rounded-lg border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] px-2.5 text-left text-[12px] text-[var(--color-ink)]/58 transition-colors hover:border-[#2f6bff]/35 hover:bg-[#2f6bff]/[0.04] hover:text-[#2f6bff]"
+        >
+          <MessageSquarePlus size={13} strokeWidth={1.8} className="shrink-0" />
+          <span className="min-w-0 flex-1 truncate">在左侧对话中描述并生成风格</span>
+          <ChevronRight size={12} strokeWidth={1.8} className="shrink-0 opacity-55" />
+        </button>
+
+        <div className="mt-2 flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <ToggleRow
+              label="图片跟随主色调"
+              checked={tintImages}
+              onChange={onTintImages}
+            />
+          </div>
+          <button
+            type="button"
+            title="随机生成一套皮肤"
+            onClick={shuffle}
+            className="flex size-8 shrink-0 items-center justify-center rounded-md border border-[var(--color-ink)]/10 text-[var(--color-ink)]/55 transition-colors hover:border-[#2f6bff]/40 hover:bg-[#2f6bff]/[0.05] hover:text-[#2f6bff]"
+          >
+            <Wand2 size={13} strokeWidth={1.8} />
+          </button>
+        </div>
+      </section>
+
       <section className="px-4 py-4">
         <div className="mb-3 flex items-center gap-2">
           <Palette size={13} strokeWidth={1.8} className="text-[var(--color-ink)]/45" />
@@ -1127,96 +1319,6 @@ function DesignSystemSection({
         </div>
       </section>
 
-      <section className="border-t border-[var(--divider-soft)] px-4 py-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Sparkles size={13} strokeWidth={1.8} className="text-[var(--color-ink)]/45" />
-          <span className="text-[13px] font-semibold text-[var(--color-ink)]/82">试试新风格</span>
-          {changed && (
-            <button
-              type="button"
-              onClick={() => {
-                onChange(base, '', true)
-                toast('已还原到原稿设计系统')
-              }}
-              className="ml-auto flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] text-[var(--color-ink)]/50 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
-            >
-              <RotateCcw size={10} strokeWidth={1.8} />
-              还原原稿
-            </button>
-          )}
-        </div>
-
-        <div className="mb-2">
-          <ToggleRow label="图片跟随主色调" checked={tintImages} onChange={onTintImages} />
-        </div>
-
-        <form
-          className="mb-2.5 flex h-9 items-center gap-1 rounded-lg border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] pl-2.5 pr-1 focus-within:border-[#2f6bff]/60"
-          onSubmit={(event) => {
-            event.preventDefault()
-            generateFromPrompt()
-          }}
-        >
-          <input
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            placeholder="一句话描述风格，如：新春喜庆"
-            className="h-full min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-[var(--color-ink)]/32"
-          />
-          <button
-            type="submit"
-            disabled={!prompt.trim()}
-            className="flex h-7 shrink-0 items-center rounded-md bg-[#17171a] px-2.5 text-[11px] font-medium text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            生成
-          </button>
-        </form>
-
-        <div className="grid grid-cols-2 gap-1.5">
-          {H5_LAB_DESIGN_PRESETS.map((preset) => {
-            const active = changed && designName === preset.name
-            return (
-              <button
-                key={preset.id}
-                type="button"
-                title={preset.hint}
-                aria-pressed={active}
-                onClick={() => applyPreset(preset.id)}
-                className="group/preset overflow-hidden rounded-lg border border-[var(--color-ink)]/10 text-left transition-colors hover:border-[var(--color-ink)]/25 aria-pressed:border-[#2f6bff] aria-pressed:ring-1 aria-pressed:ring-[#2f6bff]/30"
-              >
-                <div className="flex h-7" style={{ background: preset.design.pageBg }}>
-                  {[preset.design.paper, preset.design.border, preset.design.pageInk, preset.design.accent].map(
-                    (color, index) => (
-                      <span
-                        key={index}
-                        className="flex-1"
-                        style={{ background: index === 0 ? 'transparent' : color }}
-                      />
-                    ),
-                  )}
-                </div>
-                <div className="px-2 py-1.5">
-                  <div className="text-[11.5px] font-medium text-[var(--color-ink)]/82">
-                    {preset.name}
-                  </div>
-                  <div className="truncate text-[10px] text-[var(--color-ink)]/40">
-                    {preset.hint}
-                  </div>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        <button
-          type="button"
-          onClick={shuffle}
-          className="mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[var(--color-ink)]/18 text-[12px] text-[var(--color-ink)]/65 transition-colors hover:border-[#2f6bff]/50 hover:bg-[#2f6bff]/[0.04] hover:text-[#2f6bff]"
-        >
-          <Wand2 size={12} strokeWidth={1.8} />
-          随机生成一套
-        </button>
-      </section>
     </>
   )
 }
@@ -1239,8 +1341,10 @@ export default function H5LabEditPanel({
   onSlotIndependentChange,
   layers,
   onSelectPath,
+  onReorderLayer,
   hotspots,
   frames,
+  focusedFrameId,
   prototype,
   onPrototype,
   onDeleteFrame,
@@ -1248,6 +1352,7 @@ export default function H5LabEditPanel({
   onOpenAssetCanvas,
   designTokenUsage,
   onInspectDesignToken,
+  onRequestStyleGeneration,
   onAddToChat,
   onClose,
 }: Props) {
@@ -1274,7 +1379,8 @@ export default function H5LabEditPanel({
     return h5LabAncestors(selection.path)
   }, [selection])
 
-  const activeFrameId = selection?.stateId ?? frames[0]?.id ?? ''
+  const activeFrameId =
+    selection?.stateId ?? focusedFrameId ?? frames[0]?.id ?? ''
   const sharedStateIds = useMemo(
     () => labCase.states.map((item) => item.id),
     [labCase.states],
@@ -1304,6 +1410,22 @@ export default function H5LabEditPanel({
     () => hotspots.filter((item) => !CHANNEL_PUBLISH_HOTSPOTS.has(item.label.trim())),
     [hotspots],
   )
+  const interactionItems = useMemo(() => {
+    const items = new Map(editableHotspots.map((item) => [item.path, item]))
+    const prefix = `${activeFrameId}||`
+    for (const key of Object.keys(prototype.links)) {
+      if (!key.startsWith(prefix)) continue
+      const path = key.slice(prefix.length)
+      if (items.has(path)) continue
+      const layer = findH5LabLayer(layers, path)
+      items.set(path, {
+        path,
+        label: layer?.label ?? '已配置交互元素',
+        tag: layer?.tag ?? 'div',
+      })
+    }
+    return Array.from(items.values())
+  }, [activeFrameId, editableHotspots, layers, prototype.links])
   const selectedHotspot = selection
     ? hotspots.find((item) => item.path === selection.path)
     : undefined
@@ -1312,7 +1434,7 @@ export default function H5LabEditPanel({
   )
   const isHotspot =
     selection !== null && editableHotspots.some((item) => item.path === selection.path)
-  const linkedCount = editableHotspots.filter(
+  const linkedCount = interactionItems.filter(
     (item) => prototype.links[linkKey(activeFrameId, item.path)],
   ).length
   const pageSettings = h5LabPageSettings(prototype, labCase.id)
@@ -1333,7 +1455,12 @@ export default function H5LabEditPanel({
   }
 
   const pageDesign = h5LabMergeDesign(labCase.design, pageSettings.design)
-  const patchPageDesign = (patch: Partial<H5LabDesign>, name: string, step = false) => {
+  const patchPageDesign = (
+    patch: Partial<H5LabDesign>,
+    name: string,
+    step = false,
+    saveSkin = false,
+  ) => {
     // 只存和原稿不同的 token，还原原稿就是空对象。
     const merged = { ...pageDesign, ...patch }
     const design = Object.fromEntries(
@@ -1350,6 +1477,16 @@ export default function H5LabEditPanel({
             ...(prototype.settings[labCase.id] ?? {}),
             design,
             designName: Object.keys(design).length ? name : '',
+            generatedDesignSkins: saveSkin
+              ? [
+                  ...pageSettings.generatedDesignSkins,
+                  {
+                    id: `skin-${Date.now().toString(36)}`,
+                    name,
+                    design: merged,
+                  },
+                ]
+              : pageSettings.generatedDesignSkins,
           },
         },
       },
@@ -1444,12 +1581,14 @@ export default function H5LabEditPanel({
     })
   }
 
-  const pickImage = (event: ChangeEvent<HTMLInputElement>) => {
+  const pickMedia = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error('图片超过 4MB，请先压缩')
+    const isVideoFile = file.type.startsWith('video/')
+    const maxSize = isVideoFile ? 50 * 1024 * 1024 : 4 * 1024 * 1024
+    if (file.size > maxSize) {
+      toast.error(isVideoFile ? '视频超过 50MB，请先压缩' : '图片超过 4MB，请先压缩')
       return
     }
     const reader = new FileReader()
@@ -1460,6 +1599,8 @@ export default function H5LabEditPanel({
   const m = selection?.measured
   const isText = selection?.kind === 'text' || selection?.kind === 'button'
   const isImage = selection?.kind === 'image'
+  const isVideo = selection?.kind === 'video'
+  const isMedia = isImage || isVideo
   const isMultiSelection = multiSelectionCount > 1
   const canAutoLayout = isMultiSelection || (m?.childCount ?? 0) > 0
   const parentPath = selection
@@ -1808,15 +1949,15 @@ export default function H5LabEditPanel({
               <p className="mb-2 text-[11px] leading-[1.65] text-[var(--color-ink)]/45">
                 这些 case 只反推了首屏，热点按下去之后原作没给。已接
                 <b className="mx-0.5 font-semibold text-[var(--color-ink)]/70">
-                  {linkedCount}/{editableHotspots.length}
+                  {linkedCount}/{interactionItems.length}
                 </b>
                 个，其余可以选中后现补一屏。
               </p>
-              {editableHotspots.length === 0 ? (
+              {interactionItems.length === 0 ? (
                 <p className="py-1 text-[11px] text-[var(--color-ink)]/35">这一帧没有可交互元素</p>
               ) : (
                 <ul className="-mx-1">
-                  {editableHotspots.map((hotspot) => {
+                  {interactionItems.map((hotspot) => {
                     const link = prototype.links[linkKey(activeFrameId, hotspot.path)]
                     const target = frames.find((item) => item.id === link?.targetId)
                     return (
@@ -1949,6 +2090,7 @@ export default function H5LabEditPanel({
                           depth={0}
                           active={layer.path === selection?.path}
                           onSelect={() => onSelectPath(layer.path)}
+                          onReorder={onReorderLayer}
                         />
                       ))}
                     </div>
@@ -1959,6 +2101,7 @@ export default function H5LabEditPanel({
                   layers={layers}
                   selectedPath={selection?.path ?? null}
                   onSelectPath={onSelectPath}
+                  onReorderLayer={onReorderLayer}
                 />
               )}
             </section>
@@ -2461,7 +2604,7 @@ export default function H5LabEditPanel({
                       ref={fileRef}
                       type="file"
                       accept="image/*"
-                      onChange={pickImage}
+                      onChange={pickMedia}
                       className="hidden"
                     />
                     <div className="flex gap-1.5">
@@ -2474,6 +2617,57 @@ export default function H5LabEditPanel({
                         上传替换
                       </button>
                       {/* 页面上只能换图；要真的改画面，从这里下钻到素材库画布。 */}
+                      <button
+                        type="button"
+                        onClick={() => onOpenAssetCanvas(node?.src ?? m?.src)}
+                        className="flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md border border-[#2f6bff]/25 bg-[#2f6bff]/[0.06] text-[11.5px] text-[#2f6bff] transition-colors hover:bg-[#2f6bff]/[0.12]"
+                      >
+                        <ExternalLink size={11} strokeWidth={1.8} />
+                        素材库画布编辑
+                      </button>
+                    </div>
+                  </Group>
+                )}
+
+                {isVideo && (
+                  <Group title="视频" icon={Video}>
+                    <div className="mb-2 flex h-32 items-center justify-center overflow-hidden rounded-md border border-[var(--color-ink)]/10 bg-black">
+                      {(node?.src ?? m?.src) ? (
+                        <video
+                          key={node?.src ?? m?.src}
+                          src={node?.src ?? m?.src}
+                          controls
+                          muted
+                          playsInline
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-[11px] text-white/45">暂无视频</span>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={node?.src ?? m?.src ?? ''}
+                      placeholder="视频地址"
+                      onChange={(event) => patchNode({ src: event.target.value })}
+                      className="mb-2 h-7 w-full rounded-md border border-[var(--color-ink)]/10 bg-[var(--color-surface-0)] px-2 text-[11.5px] text-[var(--color-ink)] outline-none focus:border-[#2f6bff]/60"
+                    />
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="video/mp4,video/webm,video/quicktime"
+                      onChange={pickMedia}
+                      className="hidden"
+                    />
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => fileRef.current?.click()}
+                        className="flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md border border-[var(--color-ink)]/10 text-[11.5px] text-[var(--color-ink)]/70 transition-colors hover:bg-[var(--fill-hover)] hover:text-[var(--color-ink)]"
+                      >
+                        <Upload size={11} strokeWidth={1.8} />
+                        上传替换
+                      </button>
                       <button
                         type="button"
                         onClick={() => onOpenAssetCanvas(node?.src ?? m?.src)}
@@ -2513,11 +2707,11 @@ export default function H5LabEditPanel({
                       onAdd={() => patchStyle({ background: m?.background || '#ffffff' })}
                     />
                   )}
-                  <Row label="颜色" disabled={selection.kind === 'image'}>
+                  <Row label="颜色" disabled={isMedia}>
                     <ColorRow
                       value={style.color}
                       fallback={m?.color ?? '#000000'}
-                      disabled={selection.kind === 'image'}
+                      disabled={isMedia}
                       onChange={(next) => patchStyle({ color: next })}
                       onClear={() => patchStyle({ color: undefined })}
                     />
@@ -2644,11 +2838,13 @@ export default function H5LabEditPanel({
                   base={labCase.design}
                   design={pageDesign}
                   designName={pageSettings.designName}
+                  generatedSkins={pageSettings.generatedDesignSkins}
                   tintImages={pageSettings.designTintImages}
                   onTintImages={(next) => patchPageSettings({ designTintImages: next })}
                   tokenUsage={designTokenUsage}
                   onInspectToken={onInspectDesignToken}
                   onChange={patchPageDesign}
+                  onRequestStyleGeneration={onRequestStyleGeneration}
                 />
               </>
             )}

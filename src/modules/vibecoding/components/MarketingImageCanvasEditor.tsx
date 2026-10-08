@@ -37,6 +37,7 @@ type CanvasItem = {
   id: string
   src: string
   label: string
+  kind: 'image' | 'video'
   x: number
   y: number
   w: number
@@ -71,7 +72,17 @@ function buildLayout(
     for (const it of g.items) {
       const a = aspects[it.src] ?? 1
       const w = Math.max(44, Math.min(260, Math.round(ROW_H * a)))
-      items.push({ id: nanoid(6), src: it.src, label: it.label, x, y: imgY, w, h: ROW_H, z: ++z })
+      items.push({
+        id: nanoid(6),
+        src: it.src,
+        label: it.label,
+        kind: it.kind === 'video' ? 'video' : 'image',
+        x,
+        y: imgY,
+        w,
+        h: ROW_H,
+        z: ++z,
+      })
       x += w + GAP_X
     }
     y = imgY + ROW_H + ROW_GAP
@@ -123,10 +134,11 @@ export default function MarketingImageCanvasEditor({
     return () => observer.disconnect()
   }, [])
 
-  // Preload every image to measure its aspect ratio, then lay out once so
-  // each row's items keep their natural proportions.
+  // Measure both images and videos before layout so every asset keeps its
+  // natural aspect ratio on the shared canvas.
   useEffect(() => {
     let cancelled = false
+    const cleanups: (() => void)[] = []
     const all = groups.flatMap((g) => g.items)
     const result: Record<string, number> = {}
     let remaining = all.length
@@ -144,18 +156,49 @@ export default function MarketingImageCanvasEditor({
       return
     }
     all.forEach((it) => {
-      const img = new Image()
+      let settled = false
+      let timeoutId = 0
       const mark = (ratio: number) => {
+        if (settled) return
+        settled = true
+        window.clearTimeout(timeoutId)
         result[it.src] = ratio
         if (--remaining === 0) finish()
       }
+      timeoutId = window.setTimeout(
+        () => mark(it.kind === 'video' ? 16 / 9 : 1),
+        5000,
+      )
+      if (it.kind === 'video') {
+        const video = document.createElement('video')
+        const markVideo = () =>
+          mark(video.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : 1)
+        video.preload = 'metadata'
+        video.onloadedmetadata = markVideo
+        video.onerror = () => mark(1)
+        video.src = it.src
+        cleanups.push(() => {
+          window.clearTimeout(timeoutId)
+          video.onloadedmetadata = null
+          video.onerror = null
+          video.removeAttribute('src')
+        })
+        return
+      }
+      const img = new Image()
       img.onload = () =>
         mark(img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1)
       img.onerror = () => mark(1)
       img.src = it.src
+      cleanups.push(() => {
+        window.clearTimeout(timeoutId)
+        img.onload = null
+        img.onerror = null
+      })
     })
     return () => {
       cancelled = true
+      cleanups.forEach((cleanup) => cleanup())
     }
   }, [groups])
 
@@ -318,15 +361,24 @@ export default function MarketingImageCanvasEditor({
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file || !selectedId) return
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error('图片超过 4MB，请先压缩')
+    const selected = items.find((item) => item.id === selectedId)
+    if (!selected) return
+    const isVideo = selected.kind === 'video'
+    const acceptsFile = isVideo ? file.type.startsWith('video/') : file.type.startsWith('image/')
+    if (!acceptsFile) {
+      toast.error(isVideo ? '请选择视频文件' : '请选择图片文件')
+      return
+    }
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 4 * 1024 * 1024
+    if (file.size > maxSize) {
+      toast.error(isVideo ? '视频超过 50MB，请先压缩' : '图片超过 4MB，请先压缩')
       return
     }
     const reader = new FileReader()
     reader.onload = () => {
       const src = String(reader.result)
       setItems((prev) => prev.map((item) => (item.id === selectedId ? { ...item, src } : item)))
-      toast('已更新画布中的图片')
+      toast(isVideo ? '已更新画布中的视频' : '已更新画布中的图片')
     }
     reader.readAsDataURL(file)
   }
@@ -334,7 +386,7 @@ export default function MarketingImageCanvasEditor({
   const syncSelected = () => {
     if (!selectedItem || !onSync) return
     onSync(selectedItem.src)
-    toast('图片已同步回页面')
+    toast(selectedItem.kind === 'video' ? '视频已同步回页面' : '图片已同步回页面')
     onClose()
   }
 
@@ -352,7 +404,9 @@ export default function MarketingImageCanvasEditor({
           返回
         </button>
         <span className="ml-1 text-[12.5px] font-semibold text-[var(--color-ink)]">画布编辑</span>
-        <span className="font-mono text-[11px] text-[var(--color-ink)]/40">{items.length} 张图片</span>
+        <span className="font-mono text-[11px] text-[var(--color-ink)]/40">
+          {items.length} 个素材
+        </span>
         <div className="ml-auto flex items-center gap-1.5">
           <button
             type="button"
@@ -393,7 +447,7 @@ export default function MarketingImageCanvasEditor({
         <input
           ref={uploadRef}
           type="file"
-          accept="image/*"
+          accept={selectedItem?.kind === 'video' ? 'video/mp4,video/webm,video/quicktime' : 'image/*'}
           onChange={replaceSelected}
           className="hidden"
         />
@@ -463,7 +517,7 @@ export default function MarketingImageCanvasEditor({
                   {l.title}
                 </span>
               ))}
-              {/* images */}
+              {/* media */}
               {items.map((it) => {
                 const active = it.id === selectedId
                 return (
@@ -475,12 +529,24 @@ export default function MarketingImageCanvasEditor({
                     }`}
                     style={{ left: it.x, top: it.y, width: it.w, height: it.h, zIndex: it.z, cursor: 'grab' }}
                   >
-                    <img
-                      src={it.src}
-                      alt={it.label}
-                      draggable={false}
-                      className="pointer-events-none h-full w-full object-contain"
-                    />
+                    {it.kind === 'video' ? (
+                      <video
+                        src={it.src}
+                        aria-label={it.label}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        className="pointer-events-none h-full w-full bg-black object-contain"
+                      />
+                    ) : (
+                      <img
+                        src={it.src}
+                        alt={it.label}
+                        draggable={false}
+                        className="pointer-events-none h-full w-full object-contain"
+                      />
+                    )}
                     {active && (
                       <>
                         <span className="pointer-events-none absolute -top-5 left-0 max-w-full truncate rounded bg-[var(--color-ink)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-ink-contrast)]">

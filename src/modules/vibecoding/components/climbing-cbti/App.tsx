@@ -1,4 +1,12 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type SyntheticEvent,
+} from "react";
 import "./App.css";
 const bgWallSrc = "/assets/climbing-cbti/bg-wall.png";
 const coverBackgroundSrc = "/assets/climbing-cbti/home.png";
@@ -22,7 +30,8 @@ import type {
   Scores,
 } from "./types";
 
-const LOADING_DELAY_MS = 3000;
+const PAGE_FADE_MS = 500;
+const RESULT_LOADING_VIDEO_SRC = "/assets/climbing-cbti/videos/generating.mp4";
 const DEBUG_FORCE_RESULT: ResultCode | false = false;
 const SUPPORTED_ENV_PATTERN = /(aweme|douyin|iesdouyin|bytedancewebview|ttwebview)/i;
 const DEBUG_HOTSPOT_COLORS: Record<OptionKey, string> = {
@@ -30,16 +39,22 @@ const DEBUG_HOTSPOT_COLORS: Record<OptionKey, string> = {
   B: "#ffcb24",
   C: "#2390ff",
 };
+const DIMENSION_DEBUG_CONFIG = [
+  { dimension: "FE", leftKey: "F", rightKey: "E" },
+  { dimension: "PM", leftKey: "P", rightKey: "M" },
+  { dimension: "SL", leftKey: "S", rightKey: "L" },
+] as const;
 
 const UI_ASSETS_TO_PRELOAD = Array.from(
   new Set([
     coverBackgroundSrc,
     bgWallSrc,
-    "/assets/climbing-cbti/co-brand-logo.png",
+    "/assets/climbing-cbti/douyin-logo.png",
     "/assets/climbing-cbti/loading.webp",
     ...questions.map(
       (question) =>
-        questionScenes[question.id]?.imageSrc ?? "/assets/climbing-cbti/question.png",
+        questionScenes[question.id]?.imageSrc ??
+        `/assets/climbing-cbti/questions/Q${question.id}.jpg`,
     ),
     ...Object.values(results).flatMap((result) => [result.previewSrc, result.downloadSrc]),
   ]),
@@ -55,6 +70,16 @@ type AppState = {
   completedElapsedMs?: number;
 };
 
+type ScreenKind = AppStep | "preload";
+
+type ScreenSnapshot = {
+  key: string;
+  kind: ScreenKind;
+  appState: AppState;
+};
+
+type TransitionPhase = "idle" | "out" | "in";
+
 function createInitialState(): AppState {
   return {
     step: "cover",
@@ -62,6 +87,34 @@ function createInitialState(): AppState {
     answers: [],
     scores: initialScores(),
   };
+}
+
+function createScreenSnapshot(appState: AppState, assetsReady: boolean): ScreenSnapshot {
+  if (!assetsReady) {
+    return { key: "preload", kind: "preload", appState };
+  }
+
+  if (appState.step === "quiz") {
+    return { key: `quiz-${appState.currentIndex}`, kind: "quiz", appState };
+  }
+
+  if (appState.step === "loading") {
+    return {
+      key: `loading-${appState.resultCode ?? "pending"}`,
+      kind: "loading",
+      appState,
+    };
+  }
+
+  if (appState.step === "result") {
+    return {
+      key: `result-${appState.resultCode ?? "pending"}`,
+      kind: "result",
+      appState,
+    };
+  }
+
+  return { key: appState.step, kind: appState.step, appState };
 }
 
 function getRuntimeFlags() {
@@ -78,16 +131,26 @@ function getRuntimeFlags() {
     storageFlag = null;
   }
 
+  const hasDebugHotspotsParam = debugHotspotsParam === "1" || debugHotspotsParam === "true";
+  const hasDebugStorageFlag = storageFlag === "1" || storageFlag === "true";
+  const debugMode =
+    debugParam === "1" ||
+    debugParam === "true" ||
+    debugParam === "hotspots" ||
+    debugParam === "report" ||
+    hasDebugHotspotsParam ||
+    hasDebugStorageFlag;
+
   return {
     forceEnvGate: params.get("forceEnvGate") === "1",
     bypassEnvGate: import.meta.env.DEV || params.get("bypassEnvGate") === "1",
+    debugMode,
     debugHotspots:
-      debugHotspotsParam === "1" ||
-      debugHotspotsParam === "true" ||
+      hasDebugHotspotsParam ||
       debugParam === "1" ||
+      debugParam === "true" ||
       debugParam === "hotspots" ||
-      storageFlag === "1" ||
-      storageFlag === "true",
+      hasDebugStorageFlag,
   };
 }
 
@@ -138,6 +201,54 @@ async function downloadImageSource(src: string, filename: string) {
   return true;
 }
 
+function logDebugQuestion(question: (typeof questions)[number]) {
+  console.groupCollapsed(`[CBTI Debug] Q${question.id} ${question.prompt}`);
+  console.table(
+    question.options.map((option) => ({
+      option: option.key,
+      text: option.text,
+      scores: option.scores.join(", "),
+    })),
+  );
+  console.groupEnd();
+}
+
+function logDebugAnswer(
+  question: (typeof questions)[number],
+  option: QuestionOption,
+  nextScores: Scores,
+) {
+  console.groupCollapsed(`[CBTI Debug] Q${question.id} 选择 ${option.key}`);
+  console.info("question", question.prompt);
+  console.info("selected", {
+    key: option.key,
+    text: option.text,
+    scores: option.scores,
+  });
+  console.info("scoresAfterAnswer", nextScores);
+  console.groupEnd();
+}
+
+function logDebugResult(resultCode: ResultCode, resultName: string, scores: Scores) {
+  console.groupCollapsed(`[CBTI Debug] Final Result ${resultCode} ${resultName}`);
+  console.table(
+    DIMENSION_DEBUG_CONFIG.map(({ dimension, leftKey, rightKey }) => ({
+      dimension,
+      leftKey,
+      leftScore: scores[leftKey],
+      rightKey,
+      rightScore: scores[rightKey],
+      winner: scores[leftKey] >= scores[rightKey] ? leftKey : rightKey,
+    })),
+  );
+  console.info("hiddenScores", {
+    anxiety: scores.anxiety,
+    doubao: scores.doubao,
+  });
+  console.info("rawScores", scores);
+  console.groupEnd();
+}
+
 export interface ClimbingSeed {
   step?: AppStep | "gate" | "preload";
   question?: number;
@@ -162,7 +273,6 @@ function App({ embedded = false, state: seed }: { embedded?: boolean; state?: Cl
     : runtimeFlags.bypassEnvGate || isDouyinEnvironment();
   const totalQuestions = questions.length;
   const currentQuestion = questions[state.currentIndex];
-  const currentScene = currentQuestion ? questionScenes[currentQuestion.id] : undefined;
   const resultCode: ResultCode | undefined = DEBUG_FORCE_RESULT || state.resultCode;
   const result = resultCode ? results[resultCode] : undefined;
   const fallbackCardSrc = useMemo(
@@ -170,6 +280,70 @@ function App({ embedded = false, state: seed }: { embedded?: boolean; state?: Cl
     [result],
   );
   const resultDisplaySrc = resultImageAvailable ? result?.previewSrc ?? "" : fallbackCardSrc;
+  const lastDebugQuestionIdRef = useRef<number | null>(null);
+  const lastDebugResultRef = useRef<string | null>(null);
+  const targetScreen = useMemo(
+    () => createScreenSnapshot(state, assetsReady && seed?.step !== "preload"),
+    [assetsReady, seed?.step, state],
+  );
+  const [displayScreen, setDisplayScreen] = useState<ScreenSnapshot>(() => targetScreen);
+  const [transitionPhase, setTransitionPhase] = useState<TransitionPhase>("idle");
+  const transitionTimeoutsRef = useRef<number[]>([]);
+  const displayScreenKeyRef = useRef(displayScreen.key);
+  const displayState = displayScreen.appState;
+  const displayQuestion = questions[displayState.currentIndex];
+  const displayScene = displayQuestion ? questionScenes[displayQuestion.id] : undefined;
+  const displayResultCode: ResultCode | undefined = DEBUG_FORCE_RESULT || displayState.resultCode;
+  const displayResult = displayResultCode ? results[displayResultCode] : undefined;
+  const displayFallbackCardSrc = useMemo(
+    () => (displayResult ? createFallbackCardDataUrl(displayResult) : ""),
+    [displayResult],
+  );
+  const displayResultSrc = resultImageAvailable
+    ? displayResult?.previewSrc ?? ""
+    : displayFallbackCardSrc;
+
+  useEffect(() => {
+    displayScreenKeyRef.current = displayScreen.key;
+  }, [displayScreen.key]);
+
+  useEffect(() => {
+    if (displayScreenKeyRef.current === targetScreen.key) {
+      return;
+    }
+
+    transitionTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    transitionTimeoutsRef.current = [];
+    setTransitionPhase("out");
+
+    const fadeOutTimeoutId = window.setTimeout(() => {
+      setDisplayScreen(targetScreen);
+      displayScreenKeyRef.current = targetScreen.key;
+      setTransitionPhase("in");
+
+      const fadeInTimeoutId = window.setTimeout(() => {
+        setTransitionPhase("idle");
+        transitionTimeoutsRef.current = [];
+      }, PAGE_FADE_MS);
+
+      transitionTimeoutsRef.current = [fadeInTimeoutId];
+    }, PAGE_FADE_MS);
+
+    transitionTimeoutsRef.current = [fadeOutTimeoutId];
+
+    return () => {
+      transitionTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      transitionTimeoutsRef.current = [];
+    };
+  }, [targetScreen]);
+
+  const transitionClassName = [
+    "transition-frame",
+    transitionPhase === "out" ? "is-fading-out" : "",
+    transitionPhase === "in" ? "is-fading-in" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   useEffect(() => {
     if (!isSupportedEnvironment) {
@@ -208,31 +382,52 @@ function App({ embedded = false, state: seed }: { embedded?: boolean; state?: Cl
   }, [isSupportedEnvironment]);
 
   useEffect(() => {
-    if (state.step !== "loading" || seed?.step === "loading") {
+    if (!runtimeFlags.debugMode || state.step !== "quiz" || !currentQuestion) {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
-      setState((current) => {
-        const resolvedResultCode = DEBUG_FORCE_RESULT || current.resultCode;
+    if (lastDebugQuestionIdRef.current === currentQuestion.id) {
+      return;
+    }
 
-        if (!resolvedResultCode) {
-          return current;
-        }
+    logDebugQuestion(currentQuestion);
+    lastDebugQuestionIdRef.current = currentQuestion.id;
+  }, [runtimeFlags.debugMode, state.step, currentQuestion]);
 
-        trackEvent("result_view", { resultCode: resolvedResultCode });
-        return { ...current, resultCode: resolvedResultCode, step: "result" };
-      });
-    }, LOADING_DELAY_MS);
+  useEffect(() => {
+    if (!runtimeFlags.debugMode || state.step !== "result" || !result) {
+      return;
+    }
 
-    return () => window.clearTimeout(timeoutId);
-  }, [state.step, seed?.step]);
+    const resultLogKey = `${result.code}:${state.answers.length}:${state.completedElapsedMs ?? "na"}`;
+
+    if (lastDebugResultRef.current === resultLogKey) {
+      return;
+    }
+
+    logDebugResult(result.code, result.name, state.scores);
+    lastDebugResultRef.current = resultLogKey;
+  }, [
+    runtimeFlags.debugMode,
+    state.step,
+    state.answers.length,
+    state.completedElapsedMs,
+    state.scores,
+    result,
+  ]);
 
   useLayoutEffect(() => {
     if (!embedded) window.scrollTo(0, 0);
   }, [embedded, state.step, state.currentIndex]);
 
   function startQuiz() {
+    lastDebugQuestionIdRef.current = null;
+    lastDebugResultRef.current = null;
+
+    if (runtimeFlags.debugMode) {
+      console.info("[CBTI Debug] Quiz session started");
+    }
+
     setState({
       step: "quiz",
       currentIndex: 0,
@@ -263,6 +458,10 @@ function App({ embedded = false, state: seed }: { embedded?: boolean; state?: Cl
     const nextScores = applyAnswer(state.scores, option, currentQuestion.id);
     const nextIndex = state.currentIndex + 1;
     const elapsedMs = state.quizStartedAt ? answeredAt - state.quizStartedAt : undefined;
+
+    if (runtimeFlags.debugMode) {
+      logDebugAnswer(currentQuestion, option, nextScores);
+    }
 
     trackEvent("quiz_answer", {
       questionId: currentQuestion.id,
@@ -311,7 +510,7 @@ function App({ embedded = false, state: seed }: { embedded?: boolean; state?: Cl
       return;
     }
 
-    const filename = `${result.code}.png`;
+    const filename = `${result.code}.jpg`;
     const displayedSrc = rootRef.current?.querySelector<HTMLImageElement>(".scene-stage--result img")?.src;
     const sources = Array.from(
       new Set(
@@ -342,6 +541,29 @@ function App({ embedded = false, state: seed }: { embedded?: boolean; state?: Cl
     setActionMessage(message);
   }
 
+  function finishResultLoading() {
+    if (seed?.step === "loading") {
+      return;
+    }
+
+    setState((current) => {
+      const resolvedResultCode = DEBUG_FORCE_RESULT || current.resultCode;
+
+      if (current.step !== "loading" || !resolvedResultCode) {
+        return current;
+      }
+
+      trackEvent("result_view", { resultCode: resolvedResultCode });
+      return { ...current, resultCode: resolvedResultCode, step: "result" };
+    });
+  }
+
+  function handleResultLoadingVideoReady(event: SyntheticEvent<HTMLVideoElement>) {
+    event.currentTarget.play().catch(() => {
+      // Muted inline autoplay should work in target WebViews; onError/onEnded guard the flow.
+    });
+  }
+
   if (!isSupportedEnvironment) {
     return (
       <div ref={rootRef} className={`cbti-root${embedded ? " cbti-embedded" : ""}`}>
@@ -349,50 +571,14 @@ function App({ embedded = false, state: seed }: { embedded?: boolean; state?: Cl
         <section className="phone-stage gate-stage">
           <section className="env-gate-panel">
             <img
-              className="gate-hero"
-              src="/assets/climbing-cbti/loading.webp"
-              alt=""
-              aria-hidden="true"
+              className="gate-douyin-logo"
+              src="/assets/climbing-cbti/douyin-logo.png"
+              alt="抖音"
               draggable="false"
             />
-            <img
-              className="gate-logo"
-              src="/assets/climbing-cbti/co-brand-logo.png"
-              alt="抖音 x 香蕉攀岩"
-              draggable="false"
-            />
-            <p className="gate-copy">请使用抖音APP扫码打开这个页面哦</p>
-          </section>
-        </section>
-      </main>
-      </div>
-    );
-  }
-
-  if (!assetsReady || seed?.step === "preload") {
-    return (
-      <div ref={rootRef} className={`cbti-root${embedded ? " cbti-embedded" : ""}`}>
-      <main className="app-shell">
-        <section className="phone-stage utility-stage">
-          <section className="preload-panel loading-panel--figma">
-            <img
-              className="loading-figure"
-              src="/assets/climbing-cbti/loading.webp"
-              alt=""
-              aria-hidden="true"
-              loading="eager"
-              draggable="false"
-            />
-            <div className="loading-progress-track" aria-hidden="true">
-              <div
-                className="loading-progress-fill"
-                style={{ "--loading-progress": `${Math.max(assetProgress, 6)}%` } as CSSProperties}
-              />
-            </div>
-            <p className="loading-copy">
-              <span>放下包</span>
-              <span>放下完攀执念</span>
-              <span>遵从本心做出选择</span>
+            <p className="gate-copy">
+              <span>请使用抖音APP扫码</span>
+              <span>打开这个页面哦</span>
             </p>
           </section>
         </section>
@@ -403,123 +589,157 @@ function App({ embedded = false, state: seed }: { embedded?: boolean; state?: Cl
 
   return (
     <div ref={rootRef} className={`cbti-root${embedded ? " cbti-embedded" : ""}`}>
-    <main className={`app-shell app-shell--${state.step}`}>
-      <section className={`phone-stage phone-stage--${state.step}`}>
-        {state.step === "cover" && (
-          <section className="cover-panel">
-            <img
-              className="cover-background"
-              src={coverBackgroundSrc}
-              alt=""
-              aria-hidden="true"
-              draggable="false"
-            />
-            <button type="button" className="cover-start-button" onClick={startQuiz}>
-              开始测试
-            </button>
-          </section>
-        )}
+      <main className={`app-shell app-shell--${displayScreen.kind}`}>
+        <section className={`phone-stage phone-stage--${displayScreen.kind}`}>
+          <div className={transitionClassName}>
+            {displayScreen.kind === "preload" && (
+              <section className="utility-stage">
+                <section className="preload-panel loading-panel--figma">
+                  <img
+                    className="loading-figure"
+                    src="/assets/climbing-cbti/loading.webp"
+                    alt=""
+                    aria-hidden="true"
+                    loading="eager"
+                    draggable="false"
+                  />
+                  <div className="loading-progress-track" aria-hidden="true">
+                    <div
+                      className="loading-progress-fill"
+                      style={
+                        { "--loading-progress": `${Math.max(assetProgress, 6)}%` } as CSSProperties
+                      }
+                    />
+                  </div>
+                  <p className="loading-copy">
+                    <span>放下包</span>
+                    <span>放下完攀执念</span>
+                    <span>遵从本心做出选择</span>
+                  </p>
+                </section>
+              </section>
+            )}
 
-        {state.step === "quiz" && currentQuestion && currentScene && (
-          <section className="scene-page">
-            <div className={`question-${currentQuestion.id} scene-stage scene-stage--question`}>
-              <img
-                className="scene-image"
-                src={currentScene.imageSrc}
-                alt={currentQuestion.prompt}
-                loading="eager"
-                draggable="false"
-              />
-
-              {currentQuestion.options.map((option) => (
-                <button
-                  key={`${currentQuestion.id}-${option.key}`}
-                  type="button"
-                  className={`hotspot-button${runtimeFlags.debugHotspots ? " is-debug" : ""}`}
-                  style={
-                    {
-                      ...getHotspotStyle(currentScene.hotspots[option.key]),
-                      "--hotspot-color": DEBUG_HOTSPOT_COLORS[option.key],
-                    } as CSSProperties
-                  }
-                  aria-label={`${option.key}：${option.text}`}
-                  onClick={() => handleAnswer(option, Date.now())}
-                >
-                  {runtimeFlags.debugHotspots && (
-                    <span className="hotspot-debug-label">{option.key}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {state.step === "loading" && (
-          <section className="utility-stage">
-            <section className="loading-panel">
-              <img
-                className="loading-scan"
-                src="/assets/climbing-cbti/loading.webp"
-                alt=""
-                aria-hidden="true"
-                loading="eager"
-                draggable="false"
-              />
-              <h2>物种识别中...</h2>
-            </section>
-          </section>
-        )}
-
-        {state.step === "result" && result && (
-          <section className="scene-page scene-page--result">
-            <div className={`result-${result.code.replace("+", "-plus")} scene-stage scene-stage--result`}>
-              {resultDisplaySrc ? (
+            {displayScreen.kind === "cover" && (
+              <section className="cover-panel">
                 <img
-                  className="scene-image"
-                  src={resultDisplaySrc}
-                  alt={`${result.name} 结果图`}
-                  loading="eager"
-                  onError={() => setResultImageAvailable(false)}
+                  className="cover-background"
+                  src={coverBackgroundSrc}
+                  alt=""
+                  aria-hidden="true"
                   draggable="false"
                 />
-              ) : (
-                <div className="result-fallback-card">
-                  <span className="fallback-code">{result.code}</span>
-                  <strong>{result.name}</strong>
-                  <p>结果图占位图，请替换为成品 PNG / WEBP。</p>
+                <button type="button" className="cover-start-button" onClick={startQuiz}>
+                  开始测试
+                </button>
+              </section>
+            )}
+
+            {displayScreen.kind === "quiz" && displayQuestion && displayScene && (
+              <section className="scene-page">
+                <div className={`question-${displayQuestion.id} scene-stage scene-stage--question`}>
+                  <img
+                    className="scene-image"
+                    src={displayScene.imageSrc}
+                    alt={displayQuestion.prompt}
+                    loading="eager"
+                    draggable="false"
+                  />
+
+                  {displayQuestion.options.map((option) => (
+                    <button
+                      key={`${displayQuestion.id}-${option.key}`}
+                      type="button"
+                      className={`hotspot-button${runtimeFlags.debugHotspots ? " is-debug" : ""}`}
+                      style={
+                        {
+                          ...getHotspotStyle(displayScene.hotspots[option.key]),
+                          "--hotspot-color": DEBUG_HOTSPOT_COLORS[option.key],
+                        } as CSSProperties
+                      }
+                      aria-label={`${option.key}：${option.text}`}
+                      onClick={() => handleAnswer(option, Date.now())}
+                    >
+                      {runtimeFlags.debugHotspots && (
+                        <span className="hotspot-debug-label">{option.key}</span>
+                      )}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
+              </section>
+            )}
 
-            <div className="result-action-cluster">
-              <button
-                type="button"
-                className="result-action-button result-action-button--publish"
-                onClick={() => handlePlaceholderAction("抖音发布流程预留中。")}
-              >
-                一键发布
-              </button>
-              <button
-                type="button"
-                className="result-action-button result-action-button--save"
-                onClick={handleSaveImage}
-              >
-                保存结果
-              </button>
-              <button
-                type="button"
-                className="result-action-button result-action-button--share"
-                onClick={() => handlePlaceholderAction("抖音分享流程预留中。")}
-              >
-                分享岩友
-              </button>
-            </div>
+            {displayScreen.kind === "loading" && (
+              <section className="result-loading-page">
+                <video
+                  key={displayScreen.key}
+                  className="result-loading-video"
+                  src={RESULT_LOADING_VIDEO_SRC}
+                  aria-label="物种识别视频"
+                  autoPlay
+                  muted
+                  playsInline
+                  preload="auto"
+                  onCanPlay={handleResultLoadingVideoReady}
+                  onEnded={finishResultLoading}
+                  onError={finishResultLoading}
+                />
+              </section>
+            )}
 
-            {actionMessage && <p className="result-status-message">{actionMessage}</p>}
-          </section>
-        )}
-      </section>
-    </main>
+            {displayScreen.kind === "result" && displayResult && (
+              <section className="scene-page scene-page--result">
+                <div
+                  className={`result-${displayResult.code.replace("+", "-plus")} scene-stage scene-stage--result`}
+                >
+                  {displayResultSrc ? (
+                    <img
+                      className="scene-image"
+                      src={displayResultSrc}
+                      alt={`${displayResult.name} 结果图`}
+                      loading="eager"
+                      onError={() => setResultImageAvailable(false)}
+                      draggable="false"
+                    />
+                  ) : (
+                    <div className="result-fallback-card">
+                      <span className="fallback-code">{displayResult.code}</span>
+                      <strong>{displayResult.name}</strong>
+                      <p>结果图占位图，请替换为成品 PNG / WEBP。</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="result-action-cluster">
+                  <button
+                    type="button"
+                    className="result-action-button result-action-button--publish"
+                    onClick={() => handlePlaceholderAction("抖音发布流程预留中。")}
+                  >
+                    一键发布
+                  </button>
+                  <button
+                    type="button"
+                    className="result-action-button result-action-button--save"
+                    onClick={handleSaveImage}
+                  >
+                    保存结果
+                  </button>
+                  <button
+                    type="button"
+                    className="result-action-button result-action-button--share"
+                    onClick={() => handlePlaceholderAction("抖音分享流程预留中。")}
+                  >
+                    分享岩友
+                  </button>
+                </div>
+
+                {actionMessage && <p className="result-status-message">{actionMessage}</p>}
+              </section>
+            )}
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
